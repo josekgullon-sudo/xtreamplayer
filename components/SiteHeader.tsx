@@ -36,7 +36,12 @@ export default function SiteHeader() {
         <div className="header-actions">
           {loaded && email ? (
             <>
-              <span className="hide-sm" style={{ fontSize: 13.5, color: "var(--text-dim)" }}>{email}</span>
+              <Link href="/cuenta" className="hide-sm" style={{ fontSize: 13.5, color: "var(--text-dim)" }}>
+                {email}
+              </Link>
+              <Link href="/cuenta" className="btn btn-ghost btn-sm">
+                Mi cuenta
+              </Link>
               <button className="btn btn-ghost btn-sm" onClick={logout}>
                 Salir
               </button>

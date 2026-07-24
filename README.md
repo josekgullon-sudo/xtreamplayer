@@ -35,6 +35,17 @@ npm start        # servidor de producción
 | `SESSION_SECRET` | Secreto para firmar sesiones. Si falta, se genera y persiste en `data/.session-secret`. |
 | `DATA_DIR` | Carpeta de datos SQLite (por defecto `./data`). |
 | `DISABLE_STREAM_PROXY` | `1` para desactivar el proxy de streams (ahorro de ancho de banda). |
+| `ALLOW_PRIVATE_NETWORKS` | `1` para permitir servidores IPTV en redes privadas (solo self-hosted). |
+| `STRIPE_SECRET_KEY` | Clave secreta de Stripe (`sk_live_…` / `sk_test_…`). Sin ella, los pagos quedan desactivados pero la prueba gratuita funciona. |
+| `STRIPE_PRICE_ID` | ID del precio recurrente de Premium (`price_…`, 2,99 €/mes). |
+| `STRIPE_WEBHOOK_SECRET` | Secreto del webhook (`whsec_…`) apuntando a `/api/billing/webhook`. |
+
+## Modelo de negocio (híbrido)
+
+- **Registro** → 15 días de Premium de prueba, sin tarjeta (`trial_ends_at`).
+- **Al expirar** → plan Gratis para siempre: 1 lista en la nube, con anuncios (cuando se active AdSense). Nunca se bloquea el servicio.
+- **Premium (2,99 €/mes, Stripe)** → hasta 20 listas en la nube, sin anuncios y acceso prioritario a funciones nuevas.
+- Configuración en Stripe: crear producto "XtreamPlayer Premium" con precio recurrente mensual, copiar `price_…` a `STRIPE_PRICE_ID`, y crear un webhook hacia `https://TU-DOMINIO/api/billing/webhook` con los eventos `checkout.session.completed`, `customer.subscription.*` e `invoice.paid`/`invoice.payment_failed`.
 
 ## Despliegue
 

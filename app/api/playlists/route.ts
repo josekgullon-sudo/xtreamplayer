@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb, PlaylistRow } from "@/lib/db";
-
-const MAX_PLAYLISTS_FREE = 5;
+import { getPlanInfo } from "@/lib/plan";
 
 function serialize(row: PlaylistRow) {
   return {
@@ -43,10 +42,17 @@ export async function POST(req: NextRequest) {
   }
 
   const db = getDb();
+  const plan = getPlanInfo(user);
   const count = db.prepare("SELECT COUNT(*) AS c FROM playlists WHERE user_id = ?").get(user.id) as { c: number };
-  if (count.c >= MAX_PLAYLISTS_FREE) {
+  if (count.c >= plan.maxCloudPlaylists) {
     return NextResponse.json(
-      { error: `El plan gratuito permite hasta ${MAX_PLAYLISTS_FREE} listas` },
+      {
+        error:
+          plan.plan === "free"
+            ? `El plan Gratis permite ${plan.maxCloudPlaylists} lista en la nube. Pásate a Premium para tener hasta 20.`
+            : `Has alcanzado el máximo de ${plan.maxCloudPlaylists} listas en la nube`,
+        upgrade: plan.plan === "free",
+      },
       { status: 403 }
     );
   }

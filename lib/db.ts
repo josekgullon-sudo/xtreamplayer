@@ -35,7 +35,22 @@ export function getDb(): Database.Database {
     );
     CREATE INDEX IF NOT EXISTS idx_playlists_user ON playlists(user_id);
   `);
+  migrate(_db);
   return _db;
+}
+
+/** Migraciones aditivas: añade columnas nuevas a bases de datos ya existentes. */
+function migrate(db: Database.Database) {
+  const cols = new Set(
+    (db.prepare("PRAGMA table_info(users)").all() as { name: string }[]).map((c) => c.name)
+  );
+  const add = (name: string, ddl: string) => {
+    if (!cols.has(name)) db.exec(`ALTER TABLE users ADD COLUMN ${ddl}`);
+  };
+  add("trial_ends_at", "trial_ends_at INTEGER NOT NULL DEFAULT 0");
+  add("premium_until", "premium_until INTEGER NOT NULL DEFAULT 0");
+  add("stripe_customer_id", "stripe_customer_id TEXT NOT NULL DEFAULT ''");
+  add("stripe_subscription_id", "stripe_subscription_id TEXT NOT NULL DEFAULT ''");
 }
 
 export interface UserRow {
@@ -43,6 +58,10 @@ export interface UserRow {
   email: string;
   password_hash: string;
   created_at: number;
+  trial_ends_at: number;
+  premium_until: number;
+  stripe_customer_id: string;
+  stripe_subscription_id: string;
 }
 
 export interface PlaylistRow {

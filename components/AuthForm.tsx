@@ -43,7 +43,7 @@ function AuthFormInner({ mode }: { mode: "login" | "register" }) {
         <p className="auth-sub">
           {mode === "login"
             ? "Accede a tus listas sincronizadas en todos tus dispositivos."
-            : "Guarda tus listas en la nube y tenlas en cualquier dispositivo. Sin tarjeta."}
+            : "Incluye 15 días de Premium gratis: sin tarjeta, sin permanencia. Al acabar, sigues gratis para siempre."}
         </p>
         {error && (
           <div className="error-box" style={{ marginBottom: 16 }} role="alert">

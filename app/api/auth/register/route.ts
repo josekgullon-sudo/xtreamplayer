@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getDb, UserRow } from "@/lib/db";
 import { isValidEmail, setSessionCookie } from "@/lib/auth";
+import { trialEndTimestamp, TRIAL_DAYS } from "@/lib/plan";
 
 export async function POST(req: NextRequest) {
   let body: { email?: string; password?: string };
@@ -29,9 +30,9 @@ export async function POST(req: NextRequest) {
 
   const hash = await bcrypt.hash(password, 12);
   const result = db
-    .prepare("INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)")
-    .run(email, hash, Date.now());
+    .prepare("INSERT INTO users (email, password_hash, created_at, trial_ends_at) VALUES (?, ?, ?, ?)")
+    .run(email, hash, Date.now(), trialEndTimestamp());
 
   await setSessionCookie(Number(result.lastInsertRowid));
-  return NextResponse.json({ ok: true, user: { email } });
+  return NextResponse.json({ ok: true, user: { email }, trialDays: TRIAL_DAYS });
 }
