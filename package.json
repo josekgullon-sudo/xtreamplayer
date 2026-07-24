@@ -1,0 +1,28 @@
+{
+  "name": "xtreamplayer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "XtreamPlayer — Reproductor IPTV web para Xtream Codes y listas M3U. Sin instalaciones, directo en tu navegador.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.2.0",
+    "hls.js": "^1.6.7",
+    "mpegts.js": "^1.8.0",
+    "next": "^15.4.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.8.0"
+  }
+}
