@@ -10,10 +10,13 @@ import Database from "better-sqlite3";
 import bcrypt from "bcryptjs";
 import path from "path";
 import fs from "fs";
+import { applySchema } from "../lib/schema.mjs";
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const db = new Database(path.join(DATA_DIR, "xtreamplayer.db"));
+// Crea las tablas y aplica migraciones: el script funciona con una base vacía
+applySchema(db);
 
 const EMAIL = "demo@totalplayer.app";
 const PASSWORD = "demo12345";
