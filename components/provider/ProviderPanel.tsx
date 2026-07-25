@@ -205,6 +205,7 @@ export default function ProviderPanel() {
       playlistUsername: String(form.get("playlistUsername") || ""),
       playlistPassword: String(form.get("playlistPassword") || ""),
       maxDevices: Number(form.get("maxDevices") || 2),
+      maxProfiles: Number(form.get("maxProfiles") || 1),
     };
     const res = await fetch("/api/provider/customers", {
       method: "POST",
@@ -1103,9 +1104,15 @@ export default function ProviderPanel() {
                   </div>
                 </>
               )}
-              <div className="auth-field">
-                <label className="label" htmlFor="c-devices">Dispositivos permitidos</label>
-                <input id="c-devices" name="maxDevices" className="input" type="number" min={1} max={10} defaultValue={2} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div className="auth-field">
+                  <label className="label" htmlFor="c-devices">Dispositivos</label>
+                  <input id="c-devices" name="maxDevices" className="input" type="number" min={1} max={10} defaultValue={2} />
+                </div>
+                <div className="auth-field">
+                  <label className="label" htmlFor="c-profiles">Perfiles</label>
+                  <input id="c-profiles" name="maxProfiles" className="input" type="number" min={1} max={10} defaultValue={1} />
+                </div>
               </div>
 
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 10 }}>

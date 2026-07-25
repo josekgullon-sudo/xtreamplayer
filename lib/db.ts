@@ -97,6 +97,8 @@ export interface CustomerRow {
   /** Contraseña de acceso cifrada, para poder consultarla desde el panel */
   password_box: string;
   last_seen: number;
+  /** Perfiles que puede crear este cliente; lo fija su proveedor */
+  max_profiles: number;
   max_devices: number;
   expires_at: number;
   status: string;

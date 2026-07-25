@@ -46,6 +46,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       expiresAt: c.expires_at,
       lastSeen: c.last_seen,
       maxDevices: c.max_devices,
+      maxProfiles: c.max_profiles,
       resellerId: c.reseller_id,
     },
     playlist: {
@@ -84,6 +85,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     password?: string;
     status?: string;
     maxDevices?: number;
+    maxProfiles?: number;
     label?: string;
     expiresAt?: number;
     resetDevices?: boolean;
@@ -113,6 +115,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (typeof body.maxDevices === "number") {
     const max = Math.min(Math.max(body.maxDevices, 1), 10);
     db.prepare("UPDATE customers SET max_devices = ? WHERE id = ?").run(max, customer.id);
+  }
+  if (typeof body.maxProfiles === "number") {
+    const max = Math.min(Math.max(body.maxProfiles, 1), 10);
+    db.prepare("UPDATE customers SET max_profiles = ? WHERE id = ?").run(max, customer.id);
   }
   if (typeof body.label === "string") {
     db.prepare("UPDATE customers SET label = ? WHERE id = ?").run(body.label.trim().slice(0, 120), customer.id);

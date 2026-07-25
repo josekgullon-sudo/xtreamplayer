@@ -119,6 +119,7 @@ export async function POST(req: NextRequest) {
     playlistUsername?: string;
     playlistPassword?: string;
     maxDevices?: number;
+    maxProfiles?: number;
     expiresAt?: number;
   };
   try {
@@ -209,8 +210,8 @@ export async function POST(req: NextRequest) {
     .prepare(
       `INSERT INTO customers
        (provider_id, reseller_id, username, password_hash, password_box, label, playlist_type, playlist_url,
-        playlist_username, playlist_password, domain_id, max_devices, expires_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        playlist_username, playlist_password, domain_id, max_devices, max_profiles, expires_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       provider.id,
@@ -225,6 +226,7 @@ export async function POST(req: NextRequest) {
       plPass,
       domainId,
       maxDevices,
+      Math.min(Math.max(Number(body.maxProfiles) || 1, 1), 10),
       Number(body.expiresAt) || 0,
       Date.now()
     );

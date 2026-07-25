@@ -5,6 +5,7 @@ import Link from "next/link";
 import Icon from "@/components/Icon";
 import VideoPlayer, { PlaySource } from "./VideoPlayer";
 import AddPlaylistModal from "./AddPlaylistModal";
+import ProfileGate from "./ProfileGate";
 import AdSlot from "@/components/AdSlot";
 import {
   StoredPlaylist,
@@ -64,6 +65,7 @@ export default function PlayerApp() {
   const [playlists, setPlaylists] = useState<StoredPlaylist[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [profile, setProfile] = useState<{ id: number; name: string } | null>(null);
 
   const [tab, setTab] = useState<Tab>("live");
   const [search, setSearch] = useState("");
@@ -548,6 +550,8 @@ export default function PlayerApp() {
   const seriesCats = data?.seriesCats || [];
 
   return (
+    <>
+    <ProfileGate onReady={(p) => setProfile({ id: p.id, name: p.name })} />
     <div className="player-app">
       <aside className="pa-sidebar" aria-label="Listas y canales">
         <div className="pa-sidebar-head">
@@ -713,8 +717,16 @@ export default function PlayerApp() {
 
         {customer ? (
           <div style={{ padding: 12, borderTop: "1px solid var(--border)", fontSize: 13, color: "var(--text-dim)" }}>
-            Conectado como <strong>{customer.username}</strong>
-            {customer.brand ? ` · ${customer.brand}` : ""}
+            {profile ? (
+              <>
+                Perfil <strong>{profile.name}</strong> · {customer.username}
+              </>
+            ) : (
+              <>
+                Conectado como <strong>{customer.username}</strong>
+                {customer.brand ? ` · ${customer.brand}` : ""}
+              </>
+            )}
             <button
               className="btn btn-ghost btn-sm"
               style={{ marginLeft: 8 }}
@@ -898,5 +910,6 @@ export default function PlayerApp() {
 
       {showAdd && <AddPlaylistModal loggedIn={!!user} onAdd={handleAddPlaylist} onClose={() => setShowAdd(false)} />}
     </div>
+    </>
   );
 }
