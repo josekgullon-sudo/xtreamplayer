@@ -188,6 +188,11 @@ function migrate(db: Database.Database) {
   addProvider("brand_logo", "brand_logo TEXT NOT NULL DEFAULT ''");
   addProvider("brand_slug", "brand_slug TEXT NOT NULL DEFAULT ''");
   addProvider("brand_support", "brand_support TEXT NOT NULL DEFAULT ''");
+  // Conexión con el panel Xtream del proveedor, para importar clientes en bloque
+  addProvider("panel_url", "panel_url TEXT NOT NULL DEFAULT ''");
+  addProvider("panel_user", "panel_user TEXT NOT NULL DEFAULT ''");
+  addProvider("panel_pass", "panel_pass TEXT NOT NULL DEFAULT ''");
+  addProvider("panel_checked_at", "panel_checked_at INTEGER NOT NULL DEFAULT 0");
   // El slug identifica el enlace público del proveedor: debe ser único
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_providers_slug ON providers(brand_slug) WHERE brand_slug != ''");
 }
@@ -243,6 +248,11 @@ export interface ProviderRow {
   brand_slug: string;
   /** Contacto de soporte que ve su cliente */
   brand_support: string;
+  /** Panel Xtream del proveedor, para importar sus clientes */
+  panel_url: string;
+  panel_user: string;
+  panel_pass: string;
+  panel_checked_at: number;
   status: string;
   created_at: number;
 }

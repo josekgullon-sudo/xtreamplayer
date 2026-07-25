@@ -96,6 +96,15 @@ export default function ProviderPanel() {
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [showDomain, setShowDomain] = useState<Domain | "new" | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [importPreview, setImportPreview] = useState<{
+    created: number;
+    skipped: number;
+    slots: number;
+    sample: { username: string; password: string; source: string }[];
+    errors: { line: number; raw: string; reason: string }[];
+  } | null>(null);
+  const [importing, setImporting] = useState(false);
   const [showPlans, setShowPlans] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -322,6 +331,39 @@ export default function ProviderPanel() {
     }
     loadResellers();
     loadCustomers(search);
+  }
+
+  async function runImport(dryRun: boolean) {
+    setError(null);
+    setImporting(true);
+    try {
+      const text = (document.getElementById("imp-text") as HTMLTextAreaElement)?.value || "";
+      const domainId = Number((document.getElementById("imp-domain") as HTMLSelectElement)?.value || 0);
+      const maxDevices = Number((document.getElementById("imp-devices") as HTMLInputElement)?.value || 2);
+      const res = await fetch("/api/provider/customers/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, domainId: domainId || undefined, maxDevices, dryRun }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "No se pudo importar");
+        return;
+      }
+      if (dryRun) {
+        setImportPreview(data);
+      } else {
+        setNotice(
+          `Importados ${data.created} cliente${data.created === 1 ? "" : "s"}` +
+            (data.skipped ? `. ${data.skipped} línea(s) sin importar.` : ".")
+        );
+        setShowImport(false);
+        setImportPreview(null);
+        loadCustomers(search);
+      }
+    } finally {
+      setImporting(false);
+    }
   }
 
   async function saveBranding(e: React.FormEvent<HTMLFormElement>) {
@@ -840,9 +882,14 @@ export default function ProviderPanel() {
           onChange={(e) => setSearch(e.target.value)}
           style={{ maxWidth: 340 }}
         />
-        <button className="btn btn-primary" onClick={() => setShowNew(true)}>
-          + Nuevo cliente
-        </button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="btn btn-ghost" onClick={() => { setImportPreview(null); setShowImport(true); }}>
+            ⇪ Importar
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowNew(true)}>
+            + Nuevo cliente
+          </button>
+        </div>
       </div>
 
       <div style={{ overflowX: "auto" }}>
@@ -1044,6 +1091,109 @@ export default function ProviderPanel() {
                 <button type="submit" className="btn btn-primary">Crear cliente</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: importación masiva */}
+      {showImport && (
+        <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setShowImport(false)}>
+          <div className="modal" style={{ maxWidth: 720 }} role="dialog" aria-modal="true" aria-label="Importar clientes">
+            <h2>Importar clientes</h2>
+            <p className="modal-sub">
+              Pega las credenciales que exportas de tu panel, una por línea. Se crea un acceso por cada una.
+            </p>
+
+            <div className="auth-field">
+              <label className="label" htmlFor="imp-text">Credenciales</label>
+              <textarea
+                id="imp-text"
+                className="input"
+                rows={9}
+                style={{ fontFamily: "monospace", fontSize: 13.5, resize: "vertical" }}
+                placeholder={"juan21:clave123\nmaria88:otraclave  María López\nhttp://servidor.com:8080/get.php?username=pedro&password=xyz"}
+                onChange={() => setImportPreview(null)}
+              />
+              <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 6 }}>
+                Admite <code>usuario:contraseña</code>, separado por coma, punto y coma o tabulador, y URLs get.php
+                completas. Un tercer campo se toma como nombre.
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
+              <div className="auth-field">
+                <label className="label" htmlFor="imp-domain">Dominio</label>
+                <select id="imp-domain" className="input" defaultValue={domains[0] ? String(domains[0].id) : "0"}>
+                  {domains.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.host}
+                      {d.port ? `:${d.port}` : ""}
+                    </option>
+                  ))}
+                  <option value="0">Cada línea trae su URL</option>
+                </select>
+              </div>
+              <div className="auth-field">
+                <label className="label" htmlFor="imp-devices">Dispositivos</label>
+                <input id="imp-devices" className="input" type="number" min={1} max={10} defaultValue={2} />
+              </div>
+            </div>
+
+            {importPreview && (
+              <div
+                className="card"
+                style={{ marginBottom: 16, background: "var(--bg)", borderColor: importPreview.created ? "var(--success)" : "var(--border-strong)" }}
+              >
+                <p style={{ fontSize: 15, marginBottom: 8 }}>
+                  Se crearán <strong>{importPreview.created}</strong> cliente{importPreview.created === 1 ? "" : "s"}
+                  {importPreview.skipped > 0 && (
+                    <> · <span style={{ color: "var(--danger)" }}>{importPreview.skipped} sin importar</span></>
+                  )}
+                </p>
+                {importPreview.sample.length > 0 && (
+                  <div style={{ fontSize: 13, color: "var(--text-dim)", fontFamily: "monospace" }}>
+                    {importPreview.sample.map((s) => (
+                      <div key={s.username}>
+                        {s.source} → acceso: <strong>{s.username}</strong>
+                      </div>
+                    ))}
+                    {importPreview.created > importPreview.sample.length && <div>…</div>}
+                  </div>
+                )}
+                {importPreview.errors.length > 0 && (
+                  <details style={{ marginTop: 10 }}>
+                    <summary style={{ cursor: "pointer", fontSize: 13, color: "var(--danger)" }}>
+                      Ver líneas con problemas
+                    </summary>
+                    <div style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 8 }}>
+                      {importPreview.errors.map((e) => (
+                        <div key={e.line}>
+                          Línea {e.line}: {e.reason}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button type="button" className="btn btn-ghost" onClick={() => setShowImport(false)} data-tv-close>
+                Cancelar
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => runImport(true)} disabled={importing}>
+                Comprobar
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => runImport(false)}
+                disabled={importing || !importPreview?.created}
+                title={!importPreview ? "Pulsa «Comprobar» primero" : ""}
+              >
+                {importing ? "Importando…" : "Importar"}
+              </button>
+            </div>
           </div>
         </div>
       )}

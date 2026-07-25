@@ -1,18 +1,6 @@
-import type { Metadata } from "next";
-import SiteHeader from "@/components/SiteHeader";
-import AuthForm from "@/components/AuthForm";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Iniciar sesión",
-  description: "Accede a tu cuenta de TOTALplayer para ver tus listas IPTV sincronizadas.",
-  alternates: { canonical: "/login" },
-};
-
+/** Los accesos se unifican en /acceso. */
 export default function LoginPage() {
-  return (
-    <>
-      <SiteHeader />
-      <AuthForm mode="login" />
-    </>
-  );
+  redirect("/acceso");
 }

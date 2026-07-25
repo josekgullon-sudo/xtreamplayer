@@ -32,7 +32,7 @@ export default function SiteHeader() {
         </Link>
         <nav className="nav-links" aria-label="Navegación principal">
           <Link href="/player">Reproductor</Link>
-          <Link href="/acceso">Tengo un acceso</Link>
+          <Link href="/acceso">Entrar</Link>
           <Link href="/proveedores">Proveedores</Link>
           <Link href="/faq">FAQ</Link>
         </nav>
@@ -60,7 +60,7 @@ export default function SiteHeader() {
             </>
           ) : (
             <>
-              <Link href="/login" className="btn btn-ghost btn-sm hide-sm">
+              <Link href="/acceso" className="btn btn-ghost btn-sm hide-sm">
                 Entrar
               </Link>
               <Link href="/player" className="btn btn-primary btn-sm">

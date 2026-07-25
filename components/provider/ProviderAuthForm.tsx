@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 
-export default function ProviderAuthForm({ mode }: { mode: "login" | "register" }) {
+export default function ProviderAuthForm({
+  mode,
+  embedded,
+}: {
+  mode: "login" | "register";
+  /** Dentro del selector de acceso no lleva su propio contenedor de página */
+  embedded?: boolean;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [company, setCompany] = useState("");
@@ -33,9 +40,8 @@ export default function ProviderAuthForm({ mode }: { mode: "login" | "register" 
     }
   }
 
-  return (
-    <div className="auth-wrap">
-      <div className="card auth-card">
+  const content = (
+    <div className="card auth-card" style={embedded ? { maxWidth: "none" } : undefined}>
         <h1>{mode === "login" ? "Acceso proveedores" : "Crea tu cuenta de proveedor"}</h1>
         <p className="auth-sub">
           {mode === "login"
@@ -98,10 +104,13 @@ export default function ProviderAuthForm({ mode }: { mode: "login" | "register" 
             <>¿Ya tienes cuenta? <Link href="/proveedores/login">Inicia sesión</Link></>
           )}
         </p>
-        <p className="auth-alt" style={{ fontSize: 13 }}>
-          ¿Eres usuario final? <Link href="/acceso">Entra con tus datos aquí</Link>
-        </p>
-      </div>
+        {!embedded && (
+          <p className="auth-alt" style={{ fontSize: 13 }}>
+            ¿Eres usuario final? <Link href="/acceso">Entra con tus datos aquí</Link>
+          </p>
+        )}
     </div>
   );
+
+  return embedded ? content : <div className="auth-wrap">{content}</div>;
 }

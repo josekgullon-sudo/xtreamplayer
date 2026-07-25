@@ -8,9 +8,12 @@ import { getDeviceKey, getPlatform } from "@/lib/device";
 export default function CustomerLoginForm({
   brandName,
   support,
+  embedded,
 }: {
   brandName?: string;
   support?: string;
+  /** Dentro del selector de acceso no lleva su propio contenedor de página */
+  embedded?: boolean;
 } = {}) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -33,7 +36,21 @@ export default function CustomerLoginForm({
         }),
       });
       const data = await res.json();
+
       if (!res.ok) {
+        // Si parece un email, puede ser una cuenta propia de TOTALplayer
+        // (las de sincronizar listas). Un solo formulario para ambos casos.
+        if (res.status === 401 && username.includes("@")) {
+          const own = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: username, password }),
+          });
+          if (own.ok) {
+            window.location.href = "/player";
+            return;
+          }
+        }
         setError(data.error || "No se pudo iniciar sesión");
         return;
       }
@@ -45,9 +62,8 @@ export default function CustomerLoginForm({
     }
   }
 
-  return (
-    <div className="auth-wrap">
-      <div className="card auth-card">
+  const content = (
+    <div className="card auth-card" style={embedded ? { maxWidth: "none" } : undefined}>
         <h1>Entra con tu acceso</h1>
         <p className="auth-sub">
           Introduce el usuario y la contraseña que te dio {brandName || "tu proveedor"}. Tu lista se cargará sola:
@@ -60,7 +76,7 @@ export default function CustomerLoginForm({
         )}
         <form onSubmit={submit}>
           <div className="auth-field">
-            <label className="label" htmlFor="cu-user">Usuario</label>
+            <label className="label" htmlFor="cu-user">Usuario o email</label>
             <input
               id="cu-user"
               className="input"
@@ -91,12 +107,13 @@ export default function CustomerLoginForm({
           <p className="auth-alt" style={{ fontSize: 13 }}>
             ¿Problemas para entrar? Escribe a <strong>{support}</strong>
           </p>
-        ) : (
+        ) : !embedded ? (
           <p className="auth-alt" style={{ fontSize: 13 }}>
             ¿Tienes tu propia lista M3U o Xtream? <Link href="/player">Úsala aquí sin registro</Link>
           </p>
-        )}
-      </div>
+        ) : null}
     </div>
   );
+
+  return embedded ? content : <div className="auth-wrap">{content}</div>;
 }
