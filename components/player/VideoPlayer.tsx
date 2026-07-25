@@ -10,17 +10,50 @@ export interface PlaySource {
   kind: "hls" | "ts" | "video" | "auto";
 }
 
-type Attempt = { url: string; engine: "hls" | "mpegts" | "native"; label: string };
+type Attempt = {
+  url: string;
+  engine: "hls" | "mpegts" | "native";
+  label: string;
+  /** Va al servidor del proveedor sin pasar por nuestro proxy */
+  direct: boolean;
+};
 
 /**
  * Cada intento tiene un plazo máximo. Sin él, un servidor que acepta la
  * conexión pero no envía datos deja el reproductor girando indefinidamente,
  * que es justo lo que hacen muchos proveedores cuando bloquean el navegador.
+ *
+ * Los intentos que tienen alternativa detrás esperan poco: alargarlos solo
+ * retrasa el que sí va a funcionar. El último espera más porque, si falla,
+ * ya no hay nada después.
  */
-const ATTEMPT_TIMEOUT_MS = 9000;
+const PLAZO_INTENTO_MS = 6000;
+const PLAZO_ULTIMO_INTENTO_MS = 15000;
 
 function proxied(url: string): string {
   return `/api/proxy?url=${encodeURIComponent(url)}`;
+}
+
+/**
+ * Una página servida por HTTPS no puede cargar un stream por HTTP: el
+ * navegador lo bloquea siempre, sin excepción. Como la mayoría de paneles
+ * IPTV solo hablan HTTP, intentar la conexión directa en producción es
+ * tiempo tirado — mejor ir derechos al proxy.
+ */
+function bloqueadoPorContenidoMixto(url: string): boolean {
+  if (typeof window === "undefined") return false;
+  return window.location.protocol === "https:" && url.startsWith("http://");
+}
+
+/**
+ * Un bloqueo CORS o una conexión rechazada llegan al elemento <video> como
+ * MEDIA_ERR_NETWORK o como MEDIA_ERR_SRC_NOT_SUPPORTED (el navegador no llega
+ * a leer nada, así que dice que no reconoce el formato). Ambos significan lo
+ * mismo para nosotros: contra ese servidor, directo, no hay nada que hacer.
+ */
+function esFalloDeRed(v: HTMLVideoElement): boolean {
+  const code = v.error?.code;
+  return code === 2 || code === 4;
 }
 
 function guessEngine(url: string, kind: PlaySource["kind"]): "hls" | "mpegts" | "native" {
@@ -46,10 +79,13 @@ function buildAttempts(src: PlaySource): Attempt[] {
   const esDirecto = /\/live\//.test(src.url) && clean.endsWith(".m3u8");
   const tsUrl = esDirecto ? src.url.replace(/\.m3u8(\?.*)?$/, ".ts") : "";
 
-  const attempts: Attempt[] = [{ url: src.url, engine, label: "conexión directa" }];
-  if (tsUrl) attempts.push({ url: tsUrl, engine: "mpegts", label: "formato TS" });
-  attempts.push({ url: proxied(src.url), engine, label: "proxy de compatibilidad" });
-  if (tsUrl) attempts.push({ url: proxied(tsUrl), engine: "mpegts", label: "proxy en formato TS" });
+  const attempts: Attempt[] = [];
+  if (!bloqueadoPorContenidoMixto(src.url)) {
+    attempts.push({ url: src.url, engine, label: "conexión directa", direct: true });
+    if (tsUrl) attempts.push({ url: tsUrl, engine: "mpegts", label: "formato TS", direct: true });
+  }
+  attempts.push({ url: proxied(src.url), engine, label: "proxy de compatibilidad", direct: false });
+  if (tsUrl) attempts.push({ url: proxied(tsUrl), engine: "mpegts", label: "proxy en formato TS", direct: false });
   return attempts;
 }
 
@@ -90,11 +126,28 @@ export default function VideoPlayer({
       cleanupRef.current = null;
     }
 
-    function fail(detail: string) {
+    /**
+     * @param redCaida el fallo fue de red (CORS, conexión rechazada, servidor
+     *   caído), no de formato. Distinguirlo importa: si el servidor no deja
+     *   entrar al navegador, los demás intentos directos contra ese mismo
+     *   servidor van a fallar igual, y probarlos uno a uno gasta un plazo de
+     *   espera entero por cada uno antes de llegar al proxy, que es el que
+     *   sí funciona.
+     */
+    function fail(detail: string, redCaida = false) {
       if (cancelled) return;
       clearWatchdog();
-      problems.push(`${attempts[index]?.label ?? "intento"}: ${detail}`);
+      const actual = attempts[index];
+      problems.push(`${actual?.label ?? "intento"}: ${detail}`);
       index += 1;
+
+      if (redCaida && actual?.direct) {
+        while (index < attempts.length && attempts[index].direct) {
+          problems.push(`${attempts[index].label}: omitido (el servidor no acepta al navegador)`);
+          index += 1;
+        }
+      }
+
       if (index < attempts.length) {
         start();
       } else {
@@ -111,32 +164,56 @@ export default function VideoPlayer({
       const v = videoRef.current;
       if (!v) return;
 
+      const esUltimo = index === attempts.length - 1;
       setProgress({ step: index + 1, total: attempts.length, label: attempt.label });
 
+      /*
+       * Hay que mirar si ha empezado a verse de verdad, no el currentTime: en
+       * directo, hls.js coloca el cursor en el borde de emisión en cuanto lee
+       * el manifiesto, así que currentTime deja de ser 0 aunque no llegue ni
+       * un fotograma. Con esa comprobación el plazo nunca saltaba y el
+       * reproductor se quedaba girando.
+       */
+      let arrancado = false;
       const onPlaying = () => {
         if (cancelled) return;
+        arrancado = true;
         clearWatchdog();
         setState("playing");
       };
       v.addEventListener("playing", onPlaying);
 
       // Si en este plazo no ha empezado a verse, pasamos al siguiente intento
-      watchdog = setTimeout(() => {
-        if (!cancelled && v.currentTime === 0) fail("sin respuesta a tiempo");
-      }, ATTEMPT_TIMEOUT_MS);
+      watchdog = setTimeout(
+        () => {
+          if (!cancelled && !arrancado) fail("sin respuesta a tiempo", true);
+        },
+        esUltimo ? PLAZO_ULTIMO_INTENTO_MS : PLAZO_INTENTO_MS
+      );
 
       if (attempt.engine === "hls") {
         if (Hls.isSupported()) {
           const hls = new Hls({
             maxBufferLength: 30,
-            manifestLoadingTimeOut: 15000,
-            levelLoadingTimeOut: 15000,
-            fragLoadingTimeOut: 25000,
+            // Empieza a pedir el primer trozo sin esperar a terminar de
+            // analizar el manifiesto: es el arranque que nota el usuario.
+            startFragPrefetch: true,
+            /*
+             * Los reintentos internos de hls.js sobran mientras quede otro
+             * intento nuestro por probar: duplican la espera antes de dejar
+             * paso al proxy. En el último sí interesan, porque detrás no hay
+             * nada y un corte pasajero merece una segunda oportunidad.
+             */
+            manifestLoadingMaxRetry: esUltimo ? 2 : 0,
+            levelLoadingMaxRetry: esUltimo ? 2 : 0,
+            manifestLoadingTimeOut: esUltimo ? 15000 : 5000,
+            levelLoadingTimeOut: esUltimo ? 15000 : 5000,
+            fragLoadingTimeOut: esUltimo ? 25000 : 12000,
           });
           hls.on(Hls.Events.ERROR, (_evt, data) => {
             if (data.fatal) {
               hls.destroy();
-              fail(`HLS: ${data.details}`);
+              fail(`HLS: ${data.details}`, data.type === Hls.ErrorTypes.NETWORK_ERROR);
             }
           });
           hls.loadSource(attempt.url);
@@ -150,7 +227,7 @@ export default function VideoPlayer({
           };
         } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
           // Safari/iOS: HLS nativo
-          const onError = () => fail("No se pudo cargar el stream HLS");
+          const onError = () => fail("No se pudo cargar el stream HLS", esFalloDeRed(v));
           v.addEventListener("error", onError);
           v.src = attempt.url;
           v.play().catch(() => {});
@@ -175,9 +252,9 @@ export default function VideoPlayer({
             isLive: true,
             url: attempt.url,
           });
-          player.on(mpegts.Events.ERROR, () => {
+          player.on(mpegts.Events.ERROR, (tipo: string) => {
             player.destroy();
-            fail("MPEG-TS: error de red o formato");
+            fail("MPEG-TS: error de red o formato", tipo === mpegts.ErrorTypes.NETWORK_ERROR);
           });
           player.attachMediaElement(v);
           player.load();
@@ -194,7 +271,8 @@ export default function VideoPlayer({
           fail("No se pudo iniciar el motor MPEG-TS");
         }
       } else {
-        const onError = () => fail("El navegador no pudo reproducir este vídeo (¿códec no soportado?)");
+        const onError = () =>
+          fail("El navegador no pudo reproducir este vídeo (¿códec no soportado?)", esFalloDeRed(v));
         v.addEventListener("error", onError);
         v.src = attempt.url;
         v.play().catch(() => {});

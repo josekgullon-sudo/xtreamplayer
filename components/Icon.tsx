@@ -34,7 +34,10 @@ export type IconName =
   | "unlock"
   | "external"
   | "chevronRight"
-  | "alert";
+  | "alert"
+  | "film"
+  | "series"
+  | "star";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   users: (
@@ -183,6 +186,20 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M12 10v4M12 17.5h.01" />
     </>
   ),
+  film: (
+    <>
+      <rect x="2.5" y="4" width="19" height="16" rx="2" />
+      <path d="M7 4v16M17 4v16M2.5 12h19M2.5 8h4.5M2.5 16h4.5M17 8h4.5M17 16h4.5" />
+    </>
+  ),
+  series: (
+    <>
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="m7.5 4 4.5 3 4.5-3" />
+      <path d="m10.5 11.5 4 2.5-4 2.5v-5Z" />
+    </>
+  ),
+  star: <path d="m12 3.5 2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.9l6-.8L12 3.5Z" />,
 };
 
 export default function Icon({

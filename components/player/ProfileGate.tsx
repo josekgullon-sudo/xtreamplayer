@@ -21,7 +21,19 @@ function inicial(nombre: string) {
  * más de un perfil o el usuario decide cambiarlo: con uno solo se entra
  * directo, para no meter un paso de más a quien no lo necesita.
  */
-export default function ProfileGate({ onReady }: { onReady: (profile: Profile) => void }) {
+export default function ProfileGate({
+  onReady,
+  onResuelto,
+}: {
+  onReady: (profile: Profile) => void;
+  /**
+   * Se llama en cuanto esta pantalla deja de tener nada que preguntar, tanto
+   * si eligió el usuario como si nunca llegó a mostrarse (invitado, o cuenta
+   * con un solo perfil). El reproductor lo necesita para saber cuándo puede
+   * enseñar la suya sin pisarse con esta.
+   */
+  onResuelto?: () => void;
+}) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [max, setMax] = useState(1);
   const [owner, setOwner] = useState<string | null>(null);
@@ -33,6 +45,8 @@ export default function ProfileGate({ onReady }: { onReady: (profile: Profile) =
   // render del reproductor crearía uno nuevo y la carga se repetiría en bucle.
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
+  const onResueltoRef = useRef(onResuelto);
+  onResueltoRef.current = onResuelto;
 
   const load = useCallback(async () => {
     const res = await fetch("/api/profiles");
@@ -40,29 +54,21 @@ export default function ProfileGate({ onReady }: { onReady: (profile: Profile) =
     if (!data.owner) {
       // Invitado sin cuenta: no hay perfiles que elegir
       setVisible(false);
+      onResueltoRef.current?.();
       return;
     }
     setOwner(data.owner);
     setProfiles(data.profiles);
     setMax(data.max);
 
-    const activo = data.profiles.find((p: Profile) => p.id === data.activeId);
-    if (activo) {
-      onReadyRef.current(activo);
-      setVisible(false);
-    } else if (data.profiles.length === 1) {
-      // Con un solo perfil se entra directo: no tiene sentido preguntar
-      const unico = data.profiles[0];
-      await fetch("/api/profiles", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profileId: unico.id }),
-      });
-      onReadyRef.current(unico);
-      setVisible(false);
-    } else {
-      setVisible(true);
-    }
+    /*
+     * Se pregunta siempre al entrar, también con un solo perfil: quien comparte
+     * la cuenta necesita ver de quién es la sesión antes de empezar, y es el
+     * único momento en que puede cambiarla. Saltárselo cuando solo hay uno
+     * ahorraba un clic, pero dejaba a esa persona sin manera de saber con qué
+     * perfil estaba viendo.
+     */
+    setVisible(true);
   }, []);
 
   useEffect(() => {
@@ -77,6 +83,7 @@ export default function ProfileGate({ onReady }: { onReady: (profile: Profile) =
     });
     onReadyRef.current(p);
     setVisible(false);
+    onResueltoRef.current?.();
   }
 
   async function crear(e: React.FormEvent<HTMLFormElement>) {

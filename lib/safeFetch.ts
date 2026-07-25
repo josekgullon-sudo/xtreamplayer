@@ -33,6 +33,33 @@ function isPrivateIp(ip: string): boolean {
   );
 }
 
+/**
+ * Un directo pasa por el proxy una vez por cada trozo de vídeo, o sea varias
+ * veces por minuto y por espectador, siempre contra el mismo host. Resolver el
+ * DNS en cada una satura el pool de hilos de Node y se nota en el arranque del
+ * canal, así que guardamos el veredicto un rato.
+ *
+ * El plazo es corto a propósito: cachear indefinidamente reabriría la puerta a
+ * un ataque de DNS rebinding, en el que un dominio responde primero con una IP
+ * pública y después con una privada.
+ */
+const CACHE_DNS_MS = 60_000;
+const veredictos = new Map<string, { publico: boolean; hasta: number }>();
+
+async function hostEsPublico(host: string): Promise<boolean> {
+  const ahora = Date.now();
+  const guardado = veredictos.get(host);
+  if (guardado && guardado.hasta > ahora) return guardado.publico;
+
+  const addresses = await dns.lookup(host, { all: true });
+  const publico = addresses.length > 0 && !addresses.some((a) => isPrivateIp(a.address));
+
+  // Sin dejar que el mapa crezca sin fin en un servidor de larga vida
+  if (veredictos.size > 500) veredictos.clear();
+  veredictos.set(host, { publico, hasta: ahora + CACHE_DNS_MS });
+  return publico;
+}
+
 export async function assertPublicUrl(raw: string): Promise<URL> {
   let url: URL;
   try {
@@ -53,14 +80,12 @@ export async function assertPublicUrl(raw: string): Promise<URL> {
     if (isPrivateIp(host)) throw new Error("Destino no permitido");
     return url;
   }
+  let publico: boolean;
   try {
-    const addresses = await dns.lookup(host, { all: true });
-    if (addresses.some((a) => isPrivateIp(a.address))) {
-      throw new Error("Destino no permitido");
-    }
-  } catch (e) {
-    if (e instanceof Error && e.message === "Destino no permitido") throw e;
+    publico = await hostEsPublico(host);
+  } catch {
     throw new Error("No se pudo resolver el host del servidor IPTV");
   }
+  if (!publico) throw new Error("Destino no permitido");
   return url;
 }

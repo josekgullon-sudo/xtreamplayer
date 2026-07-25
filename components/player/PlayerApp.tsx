@@ -6,6 +6,7 @@ import Icon from "@/components/Icon";
 import VideoPlayer, { PlaySource } from "./VideoPlayer";
 import AddPlaylistModal from "./AddPlaylistModal";
 import ProfileGate from "./ProfileGate";
+import SectionGate from "./SectionGate";
 import AdSlot from "@/components/AdSlot";
 import Loading, { SkeletonList, MENSAJES_CANALES, MENSAJES_CINE, MENSAJES_SERIES } from "@/components/Loading";
 import {
@@ -67,6 +68,14 @@ export default function PlayerApp() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [profile, setProfile] = useState<{ id: number; name: string } | null>(null);
+  const [perfilResuelto, setPerfilResuelto] = useState(false);
+  /**
+   * Estado de la pantalla de «¿qué quieres ver?». Se decide una sola vez al
+   * entrar y no se recalcula en cada render: si dependiera de si hay favoritos
+   * o de la pestaña abierta, aparecería de golpe en mitad de la sesión al
+   * marcar el primer favorito.
+   */
+  const [seccionGate, setSeccionGate] = useState<"pendiente" | "mostrando" | "hecho">("pendiente");
 
   const [tab, setTab] = useState<Tab>("live");
   const [search, setSearch] = useState("");
@@ -161,6 +170,34 @@ export default function PlayerApp() {
   useEffect(() => {
     if (activeId) localStorage.setItem(K_LAST_PLAYLIST, activeId);
   }, [activeId]);
+
+  // Cambiar de lista es empezar de nuevo: se vuelve a preguntar qué ver,
+  // porque lo que ofrece cada lista no tiene por qué ser lo mismo.
+  useEffect(() => {
+    setSeccionGate("pendiente");
+  }, [activeId]);
+
+  /*
+   * Abrimos la conexión con el servidor del proveedor en cuanto se elige la
+   * lista, sin esperar al primer clic. Así el DNS, el TCP y el TLS ya están
+   * resueltos cuando el usuario pincha un canal, que en una Smart TV o en una
+   * conexión móvil es casi un segundo menos de espera.
+   */
+  useEffect(() => {
+    if (!active) return;
+    let origen = "";
+    try {
+      origen = new URL(active.url).origin;
+    } catch {
+      return;
+    }
+    const link = document.createElement("link");
+    link.rel = "preconnect";
+    link.href = origen;
+    link.crossOrigin = "anonymous";
+    document.head.appendChild(link);
+    return () => link.remove();
+  }, [active]);
 
   /* ---------- Carga de datos por lista y pestaña ---------- */
 
@@ -547,12 +584,39 @@ export default function PlayerApp() {
 
   const isXtream = active?.type === "xtream";
   const showSidebar = tab === "live" || tab === "favs" || !isXtream;
+  /*
+   * Solo se pregunta cuando hay más de un sitio al que ir. Una lista M3U sin
+   * favoritos únicamente trae canales, así que preguntar entre una sola opción
+   * sería meter un clic por el gusto de meterlo.
+   */
+  const hayDondeElegir = isXtream || Object.keys(favorites).length > 0;
+
+  // Se resuelve una sola vez por lista, en cuanto se sabe quién está viendo
+  useEffect(() => {
+    if (seccionGate !== "pendiente" || !perfilResuelto || !active) return;
+    setSeccionGate(hayDondeElegir ? "mostrando" : "hecho");
+  }, [seccionGate, perfilResuelto, active, hayDondeElegir]);
   const vodCats = data?.vodCats || [];
   const seriesCats = data?.seriesCats || [];
 
   return (
     <>
-    <ProfileGate onReady={(p) => setProfile({ id: p.id, name: p.name })} />
+    <ProfileGate
+      onReady={(p) => setProfile({ id: p.id, name: p.name })}
+      onResuelto={() => setPerfilResuelto(true)}
+    />
+    {seccionGate === "mostrando" && (
+      <SectionGate
+        marca={customer?.brand || "TOTALplayer"}
+        perfil={profile?.name}
+        conCine={isXtream}
+        conFavoritos={Object.keys(favorites).length > 0}
+        onElegir={(s) => {
+          setTab(s);
+          setSeccionGate("hecho");
+        }}
+      />
+    )}
     <div className="player-app">
       <aside className="pa-sidebar" aria-label="Listas y canales">
         <div className="pa-sidebar-head">
@@ -596,9 +660,19 @@ export default function PlayerApp() {
                 </>
               )}
               <button role="tab" aria-selected={tab === "favs"} className={`pa-tab ${tab === "favs" ? "active" : ""}`} onClick={() => setTab("favs")} title="Favoritos" aria-label="Favoritos">
-                <Icon name="check" size={15} />
+                <Icon name="star" size={15} />
               </button>
             </div>
+          )}
+
+          {active && hayDondeElegir && (
+            <button
+              className="pa-inicio"
+              onClick={() => setSeccionGate("mostrando")}
+              title="Volver a elegir qué ver"
+            >
+              <Icon name="back" size={14} /> Elegir qué ver
+            </button>
           )}
 
           {active && (
