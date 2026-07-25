@@ -82,7 +82,7 @@ export default function ProviderPanel() {
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [perms, setPerms] = useState<Permissions | null>(null);
   const [role, setRole] = useState<"provider" | "reseller">("provider");
-  const [tab, setTab] = useState<"clientes" | "dominios" | "revendedores" | "marca">("clientes");
+  const [tab, setTab] = useState<"clientes" | "dominios" | "revendedores" | "marca" | "plan">("clientes");
   const [branding, setBranding] = useState<{
     name: string;
     color: string;
@@ -378,20 +378,100 @@ export default function ProviderPanel() {
 
   const pct = status && status.maxCustomers ? Math.min(100, (status.usedCustomers / status.maxCustomers) * 100) : 0;
 
+  const TITULOS: Record<string, string> = {
+    clientes: "Clientes",
+    revendedores: "Revendedores",
+    dominios: "Dominios",
+    marca: "Mi marca",
+    plan: "Plan y facturación",
+  };
+
   return (
-    <div className="panel-wrap">
+    <div className="panel-layout">
+      {/* Menú lateral */}
+      <aside className="panel-nav" aria-label="Secciones del panel">
+        <div className="panel-nav-head">
+          <div className="panel-nav-brand">{provider.company || "Panel"}</div>
+          <div className="panel-nav-mail">{provider.email}</div>
+        </div>
+
+        <div className="panel-nav-group">Usuarios</div>
+        <button
+          className={`panel-nav-item ${tab === "clientes" ? "active" : ""}`}
+          onClick={() => setTab("clientes")}
+        >
+          <span className="panel-nav-icon">👥</span> Clientes
+          <span className="panel-nav-count">{customers.length}</span>
+        </button>
+        {perms?.manageResellers && (
+          <button
+            className={`panel-nav-item ${tab === "revendedores" ? "active" : ""}`}
+            onClick={() => setTab("revendedores")}
+          >
+            <span className="panel-nav-icon">🤝</span> Revendedores
+            <span className="panel-nav-count">{resellers.length}</span>
+          </button>
+        )}
+
+        {(perms?.domainAccess === "full" || perms?.managePlan) && (
+          <>
+            <div className="panel-nav-group">Configuración</div>
+            {perms?.domainAccess === "full" && (
+              <button
+                className={`panel-nav-item ${tab === "dominios" ? "active" : ""}`}
+                onClick={() => setTab("dominios")}
+              >
+                <span className="panel-nav-icon">🌐</span> Dominios
+                <span className="panel-nav-count">{domains.length}</span>
+              </button>
+            )}
+            {perms?.managePlan && (
+              <button
+                className={`panel-nav-item ${tab === "marca" ? "active" : ""}`}
+                onClick={() => setTab("marca")}
+              >
+                <span className="panel-nav-icon">✨</span> Mi marca
+              </button>
+            )}
+          </>
+        )}
+
+        {perms?.managePlan && (
+          <>
+            <div className="panel-nav-group">Facturación</div>
+            <button className={`panel-nav-item ${tab === "plan" ? "active" : ""}`} onClick={() => setTab("plan")}>
+              <span className="panel-nav-icon">💳</span> Plan
+            </button>
+          </>
+        )}
+
+        <div className="panel-nav-foot">
+          <Link href="/player" className="panel-nav-item">
+            <span className="panel-nav-icon">▶</span> Ver reproductor
+          </Link>
+          <button className="panel-nav-item" onClick={logout}>
+            <span className="panel-nav-icon">⏻</span> Salir
+          </button>
+        </div>
+      </aside>
+
+      <div className="panel-main">
       <div className="panel-head">
         <div>
-          <h1>Panel de proveedor</h1>
-          <p className="panel-sub">{provider.company || provider.email}</p>
+          <h1>{TITULOS[tab]}</h1>
+          <p className="panel-sub">
+            {role === "reseller" ? "Revendedor" : "Proveedor"} · {status?.planName}
+            {status?.onTrial ? " (prueba)" : ""}
+          </p>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <Link href="/player" className="btn btn-ghost btn-sm">
-            Ver reproductor
-          </Link>
-          <button className="btn btn-ghost btn-sm" onClick={logout}>
-            Salir
-          </button>
+        <div className="panel-head-stat">
+          <span className="panel-card-label">Clientes</span>
+          <span className="panel-card-value">
+            {status?.usedCustomers} <small>/ {status?.maxCustomers}</small>
+          </span>
+          <div className="panel-meter">
+            <div style={{ width: `${pct}%`, background: pct > 90 ? "var(--danger)" : "var(--accent)" }} />
+          </div>
         </div>
       </div>
 
@@ -406,42 +486,53 @@ export default function ProviderPanel() {
         </div>
       )}
 
-      {/* Resumen del plan */}
-      <div className="panel-cards">
-        <div className="panel-card">
-          <span className="panel-card-label">Plan actual</span>
-          <span className="panel-card-value">{status?.planName}</span>
-          {status?.onTrial && <span className="badge badge-accent">Prueba gratuita</span>}
-        </div>
-        <div className="panel-card">
-          <span className="panel-card-label">Clientes</span>
-          <span className="panel-card-value">
-            {status?.usedCustomers} <small>/ {status?.maxCustomers}</small>
-          </span>
-          <div className="panel-meter">
-            <div style={{ width: `${pct}%`, background: pct > 90 ? "var(--danger)" : "var(--accent)" }} />
+      {/* Plan y facturación */}
+      {tab === "plan" && perms?.managePlan && (
+        <>
+          <div className="panel-cards">
+            <div className="panel-card">
+              <span className="panel-card-label">Plan actual</span>
+              <span className="panel-card-value">{status?.planName}</span>
+              {status?.onTrial && <span className="badge badge-accent">Prueba gratuita</span>}
+            </div>
+            <div className="panel-card">
+              <span className="panel-card-label">Clientes</span>
+              <span className="panel-card-value">
+                {status?.usedCustomers} <small>/ {status?.maxCustomers}</small>
+              </span>
+              <div className="panel-meter">
+                <div style={{ width: `${pct}%`, background: pct > 90 ? "var(--danger)" : "var(--accent)" }} />
+              </div>
+            </div>
+            <div className="panel-card">
+              <span className="panel-card-label">Renovación</span>
+              <span className="panel-card-value">{formatDate(status?.expiresAt || 0)}</span>
+            </div>
           </div>
-        </div>
-        <div className="panel-card">
-          <span className="panel-card-label">Renovación</span>
-          <span className="panel-card-value">{formatDate(status?.expiresAt || 0)}</span>
-        </div>
-        {perms?.managePlan ? (
-          <div className="panel-card" style={{ justifyContent: "center" }}>
-            <button className="btn btn-primary" onClick={() => setShowPlans(true)}>
-              {status?.onTrial ? "Contratar plan" : "Cambiar de plan"}
-            </button>
+
+          <h3 style={{ marginBottom: 6 }}>Elige tu plan</h3>
+          <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 20 }}>
+            Pagas por tramo de clientes. Cambia cuando quieras: cuanto mayor es el tramo, menos pagas por cliente.
+          </p>
+          <div className="plan-grid">
+            {plans.map((p) => (
+              <button
+                key={p.id}
+                className={`plan-tile ${status?.planName === p.name ? "current" : ""}`}
+                onClick={() => subscribe(p.id)}
+              >
+                <span className="plan-tile-name">{p.name}</span>
+                <span className="plan-tile-price">
+                  {p.priceMonth}€<small>/mes</small>
+                </span>
+                <span className="plan-tile-users">{p.maxCustomers.toLocaleString("es-ES")} clientes</span>
+                <span className="plan-tile-unit">{p.pricePerCustomer.toFixed(2)}€ por cliente</span>
+                {status?.planName === p.name && <span className="badge badge-success" style={{ marginTop: 8 }}>Tu plan</span>}
+              </button>
+            ))}
           </div>
-        ) : (
-          <div className="panel-card">
-            <span className="panel-card-label">Tu rol</span>
-            <span className="panel-card-value" style={{ fontSize: 20 }}>Revendedor</span>
-            <span style={{ fontSize: 13, color: "var(--text-faint)" }}>
-              {perms?.viewAllCustomers ? "Ves todos los clientes" : "Ves solo tus clientes"}
-            </span>
-          </div>
-        )}
-      </div>
+        </>
+      )}
 
       {/* Credenciales recién creadas */}
       {created && (
@@ -473,31 +564,6 @@ export default function ProviderPanel() {
           </p>
         </div>
       )}
-
-      {/* Pestañas */}
-      <div className="panel-tabs">
-        <button className={`panel-tab ${tab === "clientes" ? "active" : ""}`} onClick={() => setTab("clientes")}>
-          Clientes <span className="panel-tab-count">{customers.length}</span>
-        </button>
-        {perms?.domainAccess === "full" && (
-          <button className={`panel-tab ${tab === "dominios" ? "active" : ""}`} onClick={() => setTab("dominios")}>
-            Dominios <span className="panel-tab-count">{domains.length}</span>
-          </button>
-        )}
-        {perms?.manageResellers && (
-          <button
-            className={`panel-tab ${tab === "revendedores" ? "active" : ""}`}
-            onClick={() => setTab("revendedores")}
-          >
-            Revendedores <span className="panel-tab-count">{resellers.length}</span>
-          </button>
-        )}
-        {perms?.managePlan && (
-          <button className={`panel-tab ${tab === "marca" ? "active" : ""}`} onClick={() => setTab("marca")}>
-            Mi marca
-          </button>
-        )}
-      </div>
 
       {/* Credenciales de revendedor recién creado */}
       {createdReseller && (
@@ -1153,7 +1219,7 @@ export default function ProviderPanel() {
         </div>
       )}
 
-      {/* Modal: planes */}
+      {/* Modal: planes (se abre desde los avisos de cupo alcanzado) */}
       {showPlans && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setShowPlans(false)}>
           <div className="modal" style={{ maxWidth: 900 }} role="dialog" aria-modal="true" aria-label="Planes">
@@ -1177,6 +1243,7 @@ export default function ProviderPanel() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

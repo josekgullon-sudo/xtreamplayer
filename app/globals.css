@@ -7,16 +7,20 @@
  */
 
 :root {
-  /* Fondos: negro con un punto cálido, para que el rojo no vibre */
-  --bg: #08080a;
-  --bg-elev: #111114;
-  --bg-elev-2: #18181d;
-  --bg-hover: #1f1f26;
-  --border: #232329;
-  --border-strong: #33333d;
-  --text: #f4f4f6;
-  --text-dim: #a1a1aa;
-  --text-faint: #71717a;
+  /*
+   * Fondos en gris cálido, no en negro puro: el negro absoluto con texto
+   * claro cansa la vista y hunde los bordes. Estos tonos suben el contraste
+   * de las superficies entre sí y hacen las tablas mucho más legibles.
+   */
+  --bg: #17161a;
+  --bg-elev: #211f25;
+  --bg-elev-2: #2a272e;
+  --bg-hover: #332f38;
+  --border: #35313b;
+  --border-strong: #494352;
+  --text: #f6f4f7;
+  --text-dim: #b4adba;
+  --text-faint: #8b8394;
 
   /* Marca: rojo sobre negro */
   --accent: #e5192b;
@@ -27,8 +31,8 @@
   --accent-tint-strong: rgba(229, 25, 43, 0.28);
   --accent-halo: rgba(229, 25, 43, 0.20);
   --accent-halo-deep: rgba(143, 15, 28, 0.14);
-  --bg-blur: rgba(8, 8, 10, 0.85);
-  --bg-fade: rgba(8, 8, 10, 0.96);
+  --bg-blur: rgba(23, 22, 26, 0.88);
+  --bg-fade: rgba(23, 22, 26, 0.96);
   /* Paradas de degradado: cambiar estas tres reviste toda la marca */
   --accent-deep: #8f0f1c;
   --accent-soft: #ff8a95;
@@ -559,10 +563,73 @@ select.input { appearance: none; cursor: pointer; }
 
 /* ============ Panel de proveedor ============ */
 
+/* Menú lateral: escala mejor que las pestañas cuando hay muchas secciones */
+.panel-layout {
+  display: grid;
+  grid-template-columns: 244px 1fr;
+  min-height: calc(100vh - var(--header-h));
+  align-items: start;
+}
+
+.panel-nav {
+  position: sticky;
+  top: var(--header-h);
+  height: calc(100vh - var(--header-h));
+  overflow-y: auto;
+  background: var(--bg-elev);
+  border-right: 1px solid var(--border);
+  padding: 18px 12px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.panel-nav-head { padding: 4px 12px 18px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.panel-nav-brand { font-size: 16px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel-nav-mail { font-size: 12.5px; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel-nav-group {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: 1.1px; font-weight: 700;
+  color: var(--text-faint); padding: 16px 12px 6px;
+}
+.panel-nav-item {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 10px 12px; border: none; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-dim); font-size: 14.5px; font-weight: 600;
+  cursor: pointer; text-align: left; transition: background 0.15s, color 0.15s;
+  text-decoration: none !important;
+}
+.panel-nav-item:hover { background: var(--bg-hover); color: var(--text); }
+.panel-nav-item.active { background: var(--accent-tint); color: var(--accent-bright); }
+.panel-nav-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+.panel-nav-count {
+  margin-left: auto; background: var(--bg-elev-2); color: var(--text-faint);
+  border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 700;
+}
+.panel-nav-item.active .panel-nav-count { background: var(--accent-tint-strong); color: var(--accent-bright); }
+.panel-nav-foot { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+
+.panel-main { padding: 28px 32px 80px; min-width: 0; }
 .panel-wrap { max-width: 1280px; margin: 0 auto; padding: 32px 24px 80px; }
-.panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 28px; }
-.panel-head h1 { font-size: 28px; letter-spacing: -0.5px; }
+.panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
+.panel-head h1 { font-size: 26px; letter-spacing: -0.5px; }
 .panel-sub { color: var(--text-dim); font-size: 14.5px; }
+.panel-head-stat {
+  background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 18px; min-width: 190px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.panel-head-stat .panel-card-value { font-size: 22px; line-height: 1.2; }
+
+@media (max-width: 900px) {
+  .panel-layout { grid-template-columns: 1fr; }
+  .panel-nav {
+    position: static; height: auto; flex-direction: row; flex-wrap: wrap;
+    border-right: none; border-bottom: 1px solid var(--border); padding: 12px;
+  }
+  .panel-nav-head, .panel-nav-group { display: none; }
+  .panel-nav-item { width: auto; }
+  .panel-nav-foot { margin-top: 0; padding-top: 0; border-top: none; display: flex; gap: 2px; }
+  .panel-main { padding: 20px 14px 60px; }
+}
 
 .panel-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
 .panel-card {
@@ -634,6 +701,7 @@ select.input { appearance: none; cursor: pointer; }
   color: var(--text); text-align: left; transition: border-color 0.15s, transform 0.15s;
 }
 .plan-tile:hover { border-color: var(--accent); transform: translateY(-2px); }
+.plan-tile.current { border-color: var(--success); }
 .plan-tile-name { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-faint); font-weight: 700; }
 .plan-tile-price { font-size: 26px; font-weight: 800; }
 .plan-tile-price small { font-size: 13px; font-weight: 500; color: var(--text-faint); }
