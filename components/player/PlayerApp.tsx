@@ -7,6 +7,7 @@ import VideoPlayer, { PlaySource } from "./VideoPlayer";
 import AddPlaylistModal from "./AddPlaylistModal";
 import ProfileGate from "./ProfileGate";
 import AdSlot from "@/components/AdSlot";
+import Loading, { SkeletonList, MENSAJES_CANALES, MENSAJES_CINE, MENSAJES_SERIES } from "@/components/Loading";
 import {
   StoredPlaylist,
   getLocalPlaylists,
@@ -627,7 +628,12 @@ export default function PlayerApp() {
             </div>
           )}
 
-          {active && loading && (tab === "live" || tab === "favs") && <div className="pa-empty">Cargando canales…</div>}
+          {active && loading && (tab === "live" || tab === "favs") && (
+            <div data-testid="cargando-canales">
+              <Loading messages={MENSAJES_CANALES} compact />
+              <SkeletonList rows={7} />
+            </div>
+          )}
 
           {active && loadError && (tab === "live" || tab === "favs") && (
             <div className="pa-empty">
@@ -823,7 +829,7 @@ export default function PlayerApp() {
 
           {active && isXtream && tab === "vod" && !seriesDetail && (
             <>
-              {loading && <div className="pa-empty">Cargando películas…</div>}
+              {loading && <Loading messages={MENSAJES_CINE} />}
               {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
               <div className="pa-grid">
                 {vodVisible.slice(0, 400).map((v) => (
@@ -849,7 +855,7 @@ export default function PlayerApp() {
 
           {active && isXtream && tab === "series" && !seriesDetail && (
             <>
-              {loading && <div className="pa-empty">Cargando series…</div>}
+              {loading && <Loading messages={MENSAJES_SERIES} />}
               {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
               <div className="pa-grid">
                 {seriesVisible.slice(0, 400).map((s) => (

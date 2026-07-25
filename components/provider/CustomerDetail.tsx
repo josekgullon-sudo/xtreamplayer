@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Icon, { IconName } from "@/components/Icon";
+import Loading, { MENSAJES_CLIENTE } from "@/components/Loading";
 
 interface Detail {
   customer: {
@@ -133,7 +134,7 @@ export default function CustomerDetail({
   }
 
   if (error) return <div className="error-box">{error}</div>;
-  if (!data) return <div className="panel-loading"><div className="pa-spinner" /></div>;
+  if (!data) return <Loading messages={MENSAJES_CLIENTE} compact />;
 
   const { customer, playlist, devices, logins } = data;
   const activo = customer.status === "active";

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { StoredPlaylist, newLocalId } from "@/lib/storage";
 import { normalizeBase, parseXtreamUrl, XtreamUserInfo } from "@/lib/xtream";
+import Loading, { MENSAJES_LISTA } from "@/components/Loading";
 
 export default function AddPlaylistModal({
   loggedIn,
@@ -184,6 +185,8 @@ export default function AddPlaylistModal({
               Modo invitado: la lista se guarda solo en este navegador. Crea una cuenta gratis para sincronizarla.
             </p>
           )}
+
+          {busy && <Loading messages={MENSAJES_LISTA} compact />}
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy} data-tv-close>

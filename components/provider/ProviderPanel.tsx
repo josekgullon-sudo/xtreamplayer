@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Icon from "@/components/Icon";
 import CustomerDetail from "./CustomerDetail";
+import Loading, { MENSAJES_PANEL } from "@/components/Loading";
 import { useCallback, useEffect, useState } from "react";
 
 interface Customer {
@@ -417,7 +418,7 @@ export default function ProviderPanel() {
   if (!loaded) {
     return (
       <div className="auth-wrap">
-        <div className="pa-spinner" />
+        <Loading messages={MENSAJES_PANEL} />
       </div>
     );
   }

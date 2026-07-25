@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { getDeviceKey, getPlatform } from "@/lib/device";
+import Loading, { MENSAJES_ACCESO } from "@/components/Loading";
 
 /** Acceso del cliente final con las credenciales que le dio su proveedor. */
 export default function CustomerLoginForm({
@@ -102,6 +103,7 @@ export default function CustomerLoginForm({
           <button className="btn btn-primary" style={{ width: "100%" }} disabled={busy}>
             {busy ? "Entrando…" : "Entrar y ver la tele"}
           </button>
+          {busy && <Loading messages={MENSAJES_ACCESO} compact />}
         </form>
         {support ? (
           <p className="auth-alt" style={{ fontSize: 13 }}>

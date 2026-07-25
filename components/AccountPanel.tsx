@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Loading, { MENSAJES_CUENTA } from "@/components/Loading";
 
 interface PlanInfo {
   plan: "free" | "premium";
@@ -55,7 +56,7 @@ export default function AccountPanel() {
     }
   }
 
-  if (!loaded) return <div className="auth-wrap"><div className="pa-spinner" /></div>;
+  if (!loaded) return <div className="auth-wrap"><Loading messages={MENSAJES_CUENTA} /></div>;
 
   if (!email) {
     return (
