@@ -583,6 +583,16 @@ select.input { appearance: none; cursor: pointer; }
   border-top: 1px solid var(--border); flex-wrap: wrap;
 }
 
+.perm-row {
+  display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px;
+  background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  cursor: pointer; transition: border-color 0.15s;
+}
+.perm-row:hover { border-color: var(--accent); }
+.perm-row input { margin-top: 3px; flex-shrink: 0; }
+.perm-row strong { display: block; font-size: 14.5px; margin-bottom: 3px; }
+.perm-row small { color: var(--text-faint); font-size: 13px; line-height: 1.45; }
+
 .cred {
   display: inline-block; background: var(--bg); border: 1px solid var(--border-strong);
   padding: 6px 12px; border-radius: 6px; font-family: monospace; font-size: 15px; color: var(--accent-bright);

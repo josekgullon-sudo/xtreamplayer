@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getDb, CustomerRow, ProviderDomainRow } from "@/lib/db";
-import { getCurrentProvider, getProviderStatus, isValidUsername, resolveCustomerPlaylist } from "@/lib/provider";
+import {
+  getPanelActor,
+  getProviderStatus,
+  isValidUsername,
+  resolveCustomerPlaylist,
+  customerScopeClause,
+  resellerCustomerCount,
+} from "@/lib/provider";
 import { normalizeBase, parseXtreamUrl } from "@/lib/xtream";
 
 export const dynamic = "force-dynamic";
@@ -24,23 +31,24 @@ function serialize(row: CustomerRow, devices: number) {
   };
 }
 
-/** Lista de clientes del proveedor, con búsqueda opcional. */
+/** Clientes visibles para el actor: todos los del proveedor o solo los suyos. */
 export async function GET(req: NextRequest) {
-  const provider = await getCurrentProvider();
-  if (!provider) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  const actor = await getPanelActor();
+  if (!actor) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   const db = getDb();
   const q = (req.nextUrl.searchParams.get("q") || "").trim();
+  const scope = customerScopeClause(actor);
 
   const rows = q
     ? (db
         .prepare(
-          "SELECT * FROM customers WHERE provider_id = ? AND (username LIKE ? OR label LIKE ?) ORDER BY created_at DESC LIMIT 500"
+          `SELECT * FROM customers WHERE ${scope.sql} AND (username LIKE ? OR label LIKE ?) ORDER BY created_at DESC LIMIT 500`
         )
-        .all(provider.id, `%${q}%`, `%${q}%`) as CustomerRow[])
+        .all(...scope.params, `%${q}%`, `%${q}%`) as CustomerRow[])
     : (db
-        .prepare("SELECT * FROM customers WHERE provider_id = ? ORDER BY created_at DESC LIMIT 500")
-        .all(provider.id) as CustomerRow[]);
+        .prepare(`SELECT * FROM customers WHERE ${scope.sql} ORDER BY created_at DESC LIMIT 500`)
+        .all(...scope.params) as CustomerRow[]);
 
   const counts = db.prepare("SELECT customer_id, COUNT(*) AS c FROM devices GROUP BY customer_id").all() as {
     customer_id: number;
@@ -48,32 +56,56 @@ export async function GET(req: NextRequest) {
   }[];
   const deviceMap = new Map(counts.map((c) => [c.customer_id, c.c]));
 
-  return NextResponse.json({
-    customers: rows.map((r) => serialize(r, deviceMap.get(r.id) ?? 0)),
-    status: getProviderStatus(provider),
-  });
+  const status = getProviderStatus(actor.provider);
+  if (actor.kind === "reseller" && actor.ownCustomerLimit > 0) {
+    status.maxCustomers = actor.ownCustomerLimit;
+    status.usedCustomers = resellerCustomerCount(actor.reseller!.id);
+  }
+
+  return NextResponse.json({ customers: rows.map((r) => serialize(r, deviceMap.get(r.id) ?? 0)), status });
 }
 
-/** Alta de un cliente final. El proveedor entrega usuario+contraseña a su cliente. */
+/** Alta de un cliente final. Se entrega usuario+contraseña al cliente. */
 export async function POST(req: NextRequest) {
-  const provider = await getCurrentProvider();
-  if (!provider) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  const actor = await getPanelActor();
+  if (!actor) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  const provider = actor.provider;
 
   const status = getProviderStatus(provider);
   if (!status.active) {
     return NextResponse.json(
-      { error: "Tu plan no está activo. Contrata un plan para dar de alta clientes.", needsPlan: true },
-      { status: 403 }
-    );
-  }
-  if (status.usedCustomers >= status.maxCustomers) {
-    return NextResponse.json(
       {
-        error: `Has alcanzado el límite de ${status.maxCustomers} clientes de tu plan ${status.planName}. Amplía tu plan para añadir más.`,
-        needsUpgrade: true,
+        error:
+          actor.kind === "reseller"
+            ? "El plan de tu proveedor no está activo. Contacta con él."
+            : "Tu plan no está activo. Contrata un plan para dar de alta clientes.",
+        needsPlan: actor.kind === "provider",
       },
       { status: 403 }
     );
+  }
+  // Cupo global del plan del proveedor
+  if (status.usedCustomers >= status.maxCustomers) {
+    return NextResponse.json(
+      {
+        error:
+          actor.kind === "reseller"
+            ? "Tu proveedor ha alcanzado el límite de clientes de su plan. Contacta con él."
+            : `Has alcanzado el límite de ${status.maxCustomers} clientes de tu plan ${status.planName}. Amplía tu plan para añadir más.`,
+        needsUpgrade: actor.kind === "provider",
+      },
+      { status: 403 }
+    );
+  }
+  // Cupo propio del revendedor, si su proveedor se lo asignó
+  if (actor.kind === "reseller" && actor.ownCustomerLimit > 0) {
+    const own = resellerCustomerCount(actor.reseller!.id);
+    if (own >= actor.ownCustomerLimit) {
+      return NextResponse.json(
+        { error: `Has alcanzado tu límite de ${actor.ownCustomerLimit} clientes. Pide ampliación a tu proveedor.` },
+        { status: 403 }
+      );
+    }
   }
 
   let body: {
@@ -118,8 +150,11 @@ export async function POST(req: NextRequest) {
   let plPass = body.playlistPassword || "";
   let domainId = 0;
 
-  // Vía normal: el proveedor elige uno de sus dominios ya configurados
+  // Vía normal: se elige uno de los dominios ya configurados
   if (body.domainId) {
+    if (actor.domainAccess === "none") {
+      return NextResponse.json({ error: "No tienes acceso a los dominios de tu proveedor" }, { status: 403 });
+    }
     const domain = db
       .prepare("SELECT * FROM provider_domains WHERE id = ? AND provider_id = ?")
       .get(Number(body.domainId), provider.id) as ProviderDomainRow | undefined;
@@ -172,12 +207,13 @@ export async function POST(req: NextRequest) {
   const result = db
     .prepare(
       `INSERT INTO customers
-       (provider_id, username, password_hash, label, playlist_type, playlist_url,
+       (provider_id, reseller_id, username, password_hash, label, playlist_type, playlist_url,
         playlist_username, playlist_password, domain_id, max_devices, expires_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       provider.id,
+      actor.reseller?.id ?? 0,
       username,
       hash,
       (body.label || "").trim().slice(0, 120),

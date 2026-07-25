@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, ProviderDomainRow } from "@/lib/db";
-import { getCurrentProvider, normalizeHost, isValidHost, domainBaseUrl } from "@/lib/provider";
+import { getPanelActor, normalizeHost, isValidHost, domainBaseUrl } from "@/lib/provider";
 
 export const dynamic = "force-dynamic";
 
+/** Editar o borrar dominios exige acceso completo (el proveedor siempre lo tiene). */
 async function ownedDomain(id: string) {
-  const provider = await getCurrentProvider();
-  if (!provider) return { error: NextResponse.json({ error: "No autenticado" }, { status: 401 }) };
+  const actor = await getPanelActor();
+  if (!actor) return { error: NextResponse.json({ error: "No autenticado" }, { status: 401 }) };
+  if (actor.domainAccess !== "full") {
+    return { error: NextResponse.json({ error: "No tienes permiso para gestionar dominios" }, { status: 403 }) };
+  }
   const row = getDb()
     .prepare("SELECT * FROM provider_domains WHERE id = ? AND provider_id = ?")
-    .get(Number(id), provider.id) as ProviderDomainRow | undefined;
+    .get(Number(id), actor.provider.id) as ProviderDomainRow | undefined;
   if (!row) return { error: NextResponse.json({ error: "Dominio no encontrado" }, { status: 404 }) };
-  return { domain: row, providerId: provider.id };
+  return { domain: row, providerId: actor.provider.id };
 }
 
 /**

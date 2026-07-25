@@ -42,7 +42,7 @@ function sign(payload: string): string {
  * Ámbito de la sesión. Va dentro de la firma para que un token de cliente
  * final nunca pueda usarse como token de proveedor ni de usuario.
  */
-export type SessionScope = "user" | "provider" | "customer";
+export type SessionScope = "user" | "provider" | "reseller" | "customer";
 
 export function createSessionToken(id: number, scope: SessionScope = "user"): string {
   const expiry = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;

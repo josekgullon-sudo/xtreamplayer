@@ -96,6 +96,25 @@ export function getDb(): Database.Database {
     );
     CREATE INDEX IF NOT EXISTS idx_domains_provider ON provider_domains(provider_id);
 
+    -- Revendedores: cuentas que el proveedor crea para dar acceso al mismo panel
+    -- con permisos recortados.
+    CREATE TABLE IF NOT EXISTS resellers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      provider_id INTEGER NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      name TEXT NOT NULL DEFAULT '',
+      -- 0 = ve solo los clientes que él crea; 1 = ve todos los del proveedor
+      view_all_customers INTEGER NOT NULL DEFAULT 0,
+      -- 'full' = gestiona dominios | 'names' = solo ve el nombre para asignarlo | 'none'
+      domain_access TEXT NOT NULL DEFAULT 'names' CHECK (domain_access IN ('full','names','none')),
+      -- Cupo propio de clientes (0 = sin límite propio, dentro del plan del proveedor)
+      max_customers INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_resellers_provider ON resellers(provider_id);
+
     -- Dispositivos vinculados a cada cliente (MAC en TV, UUID en web)
     CREATE TABLE IF NOT EXISTS devices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,6 +173,10 @@ function migrate(db: Database.Database) {
   const customerCols = columnsOf("customers");
   if (customerCols.size && !customerCols.has("domain_id")) {
     db.exec("ALTER TABLE customers ADD COLUMN domain_id INTEGER NOT NULL DEFAULT 0");
+  }
+  // 0 = creado directamente por el proveedor
+  if (customerCols.size && !customerCols.has("reseller_id")) {
+    db.exec("ALTER TABLE customers ADD COLUMN reseller_id INTEGER NOT NULL DEFAULT 0");
   }
 }
 
@@ -216,8 +239,23 @@ export interface CustomerRow {
   playlist_password: string;
   /** Si es > 0, la URL se resuelve desde provider_domains (permite migrar dominios en bloque) */
   domain_id: number;
+  /** 0 = dado de alta por el propio proveedor; si no, el revendedor que lo creó */
+  reseller_id: number;
   max_devices: number;
   expires_at: number;
+  status: string;
+  created_at: number;
+}
+
+export interface ResellerRow {
+  id: number;
+  provider_id: number;
+  email: string;
+  password_hash: string;
+  name: string;
+  view_all_customers: number;
+  domain_access: "full" | "names" | "none";
+  max_customers: number;
   status: string;
   created_at: number;
 }

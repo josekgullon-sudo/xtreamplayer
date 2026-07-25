@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { createSessionToken, verifySessionToken } from "./auth";
-import { getDb, ProviderRow, ProviderPlanRow, CustomerRow, ProviderDomainRow } from "./db";
+import { getDb, ProviderRow, ProviderPlanRow, CustomerRow, ProviderDomainRow, ResellerRow } from "./db";
 
 /**
  * Sesiones y reglas de negocio del lado B2B:
@@ -9,6 +9,7 @@ import { getDb, ProviderRow, ProviderPlanRow, CustomerRow, ProviderDomainRow } f
  */
 
 const PROVIDER_COOKIE = "xp_provider";
+const RESELLER_COOKIE = "xp_reseller";
 const CUSTOMER_COOKIE = "xp_customer";
 const PROVIDER_TRIAL_DAYS = 7;
 
@@ -40,6 +41,105 @@ export async function getCurrentProvider(): Promise<ProviderRow | null> {
   const row = getDb().prepare("SELECT * FROM providers WHERE id = ?").get(id) as ProviderRow | undefined;
   if (!row || row.status !== "active") return null;
   return row;
+}
+
+/* ---------------- Sesión de revendedor ---------------- */
+
+export async function setResellerCookie(resellerId: number) {
+  const store = await cookies();
+  store.set(RESELLER_COOKIE, createSessionToken(resellerId, "reseller"), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 30 * 86_400,
+    path: "/",
+  });
+}
+
+export async function clearResellerCookie() {
+  (await cookies()).delete(RESELLER_COOKIE);
+}
+
+export async function getCurrentReseller(): Promise<ResellerRow | null> {
+  const token = (await cookies()).get(RESELLER_COOKIE)?.value;
+  if (!token) return null;
+  const id = verifySessionToken(token, "reseller");
+  if (id === null) return null;
+  const row = getDb().prepare("SELECT * FROM resellers WHERE id = ?").get(id) as ResellerRow | undefined;
+  if (!row || row.status !== "active") return null;
+  return row;
+}
+
+/* ---------------- Actor del panel (proveedor o revendedor) ---------------- */
+
+export interface PanelActor {
+  kind: "provider" | "reseller";
+  provider: ProviderRow;
+  reseller: ResellerRow | null;
+  /** Permisos efectivos: el proveedor siempre los tiene todos */
+  canViewAllCustomers: boolean;
+  domainAccess: "full" | "names" | "none";
+  canManageResellers: boolean;
+  /** Cupo propio del revendedor (0 = solo limita el plan del proveedor) */
+  ownCustomerLimit: number;
+}
+
+/**
+ * Resuelve quién está usando el panel. Los revendedores comparten panel con su
+ * proveedor, pero solo ven lo que este les haya permitido.
+ */
+export async function getPanelActor(): Promise<PanelActor | null> {
+  const provider = await getCurrentProvider();
+  if (provider) {
+    return {
+      kind: "provider",
+      provider,
+      reseller: null,
+      canViewAllCustomers: true,
+      domainAccess: "full",
+      canManageResellers: true,
+      ownCustomerLimit: 0,
+    };
+  }
+
+  const reseller = await getCurrentReseller();
+  if (!reseller) return null;
+
+  const parent = getDb().prepare("SELECT * FROM providers WHERE id = ?").get(reseller.provider_id) as
+    | ProviderRow
+    | undefined;
+  if (!parent || parent.status !== "active") return null;
+
+  return {
+    kind: "reseller",
+    provider: parent,
+    reseller,
+    canViewAllCustomers: reseller.view_all_customers === 1,
+    domainAccess: reseller.domain_access,
+    canManageResellers: false,
+    ownCustomerLimit: reseller.max_customers,
+  };
+}
+
+/** Clientes que este actor puede ver: todos los del proveedor o solo los suyos. */
+export function customerScopeClause(actor: PanelActor): { sql: string; params: unknown[] } {
+  if (actor.canViewAllCustomers) {
+    return { sql: "provider_id = ?", params: [actor.provider.id] };
+  }
+  return { sql: "provider_id = ? AND reseller_id = ?", params: [actor.provider.id, actor.reseller!.id] };
+}
+
+/** Cuántos clientes lleva creados el revendedor (para su cupo propio). */
+export function resellerCustomerCount(resellerId: number): number {
+  return (
+    getDb().prepare("SELECT COUNT(*) AS c FROM customers WHERE reseller_id = ?").get(resellerId) as { c: number }
+  ).c;
+}
+
+export function listResellers(providerId: number): ResellerRow[] {
+  return getDb()
+    .prepare("SELECT * FROM resellers WHERE provider_id = ? ORDER BY created_at DESC")
+    .all(providerId) as ResellerRow[];
 }
 
 /* ---------------- Sesión de cliente final ---------------- */

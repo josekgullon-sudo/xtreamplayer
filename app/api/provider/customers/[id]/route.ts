@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getDb, CustomerRow } from "@/lib/db";
-import { getCurrentProvider } from "@/lib/provider";
+import { getPanelActor, customerScopeClause } from "@/lib/provider";
 
 export const dynamic = "force-dynamic";
 
+/** Solo deja tocar clientes dentro del alcance del actor (proveedor o revendedor). */
 async function ownedCustomer(id: string) {
-  const provider = await getCurrentProvider();
-  if (!provider) return { error: NextResponse.json({ error: "No autenticado" }, { status: 401 }) };
+  const actor = await getPanelActor();
+  if (!actor) return { error: NextResponse.json({ error: "No autenticado" }, { status: 401 }) };
+  const scope = customerScopeClause(actor);
   const row = getDb()
-    .prepare("SELECT * FROM customers WHERE id = ? AND provider_id = ?")
-    .get(Number(id), provider.id) as CustomerRow | undefined;
+    .prepare(`SELECT * FROM customers WHERE id = ? AND ${scope.sql}`)
+    .get(Number(id), ...scope.params) as CustomerRow | undefined;
   if (!row) return { error: NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 }) };
   return { customer: row };
 }

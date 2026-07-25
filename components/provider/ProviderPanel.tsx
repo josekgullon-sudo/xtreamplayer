@@ -37,12 +37,36 @@ interface Plan {
 interface Domain {
   id: number;
   host: string;
-  port: number;
-  protocol: "http" | "https";
+  port?: number;
+  protocol?: "http" | "https";
   label: string;
-  baseUrl: string;
-  customers: number;
+  baseUrl?: string;
+  customers?: number;
 }
+
+interface Reseller {
+  id: number;
+  email: string;
+  name: string;
+  viewAllCustomers: boolean;
+  domainAccess: "full" | "names" | "none";
+  maxCustomers: number;
+  customers: number;
+  status: string;
+}
+
+interface Permissions {
+  viewAllCustomers: boolean;
+  domainAccess: "full" | "names" | "none";
+  manageResellers: boolean;
+  managePlan: boolean;
+}
+
+const DOMAIN_ACCESS_LABEL: Record<string, string> = {
+  full: "Gestiona dominios",
+  names: "Solo ve el nombre",
+  none: "Sin acceso",
+};
 
 function formatDate(ts: number) {
   return ts ? new Date(ts).toLocaleDateString("es-ES") : "—";
@@ -55,7 +79,12 @@ export default function ProviderPanel() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [domains, setDomains] = useState<Domain[]>([]);
-  const [tab, setTab] = useState<"clientes" | "dominios">("clientes");
+  const [resellers, setResellers] = useState<Reseller[]>([]);
+  const [perms, setPerms] = useState<Permissions | null>(null);
+  const [role, setRole] = useState<"provider" | "reseller">("provider");
+  const [tab, setTab] = useState<"clientes" | "dominios" | "revendedores">("clientes");
+  const [showReseller, setShowReseller] = useState<Reseller | "new" | null>(null);
+  const [createdReseller, setCreatedReseller] = useState<{ email: string; password: string } | null>(null);
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [showDomain, setShowDomain] = useState<Domain | "new" | null>(null);
@@ -79,6 +108,13 @@ export default function ProviderPanel() {
     setDomains(data.domains || []);
   }, []);
 
+  const loadResellers = useCallback(async () => {
+    const res = await fetch("/api/provider/resellers");
+    if (!res.ok) return;
+    const data = await res.json();
+    setResellers(data.resellers || []);
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") === "success") setNotice("¡Plan contratado! Se activará en unos segundos.");
@@ -92,18 +128,36 @@ export default function ProviderPanel() {
         }
         setProvider(d.provider);
         setStatus(d.status);
-        await Promise.all([loadCustomers(), loadDomains()]);
-        const p = await fetch("/api/provider/plans").then((r) => r.json());
-        setPlans(p.plans || []);
+        setPerms(d.permissions || null);
+        setRole(d.role || "provider");
+        await Promise.all([
+          loadCustomers(),
+          d.permissions?.domainAccess !== "none" ? loadDomains() : Promise.resolve(),
+          d.permissions?.manageResellers ? loadResellers() : Promise.resolve(),
+        ]);
+        if (d.permissions?.managePlan) {
+          const p = await fetch("/api/provider/plans").then((r) => r.json());
+          setPlans(p.plans || []);
+        }
       })
       .catch(() => setError("No se pudo cargar el panel"))
       .finally(() => setLoaded(true));
-  }, [loadCustomers, loadDomains]);
+  }, [loadCustomers, loadDomains, loadResellers]);
 
   useEffect(() => {
     const t = setTimeout(() => loadCustomers(search), 300);
     return () => clearTimeout(t);
   }, [search, loadCustomers]);
+
+  // Al volver a una pestaña, refresca sus datos: el panel puede quedarse
+  // abierto mientras un revendedor da de alta clientes por su cuenta.
+  useEffect(() => {
+    if (!loaded) return;
+    if (tab === "clientes") loadCustomers(search);
+    else if (tab === "dominios") loadDomains();
+    else if (tab === "revendedores") loadResellers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   async function createCustomer(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -191,6 +245,67 @@ export default function ProviderPanel() {
     loadDomains();
   }
 
+  async function saveReseller(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const editing = showReseller !== "new" && showReseller !== null;
+    const payload: Record<string, unknown> = {
+      name: String(form.get("name") || ""),
+      viewAllCustomers: form.get("viewAllCustomers") === "on",
+      domainAccess: String(form.get("domainAccess") || "names"),
+      maxCustomers: Number(form.get("maxCustomers") || 0),
+    };
+    if (!editing) {
+      payload.email = String(form.get("email") || "");
+      payload.password = String(form.get("password") || "");
+    } else if (form.get("password")) {
+      payload.password = String(form.get("password"));
+    }
+
+    const res = await fetch(`/api/provider/resellers${editing ? `/${(showReseller as Reseller).id}` : ""}`, {
+      method: editing ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "No se pudo guardar el revendedor");
+      return;
+    }
+    if (!editing) {
+      setCreatedReseller({ email: String(payload.email), password: String(payload.password) });
+    }
+    setShowReseller(null);
+    loadResellers();
+  }
+
+  async function patchReseller(id: number, body: Record<string, unknown>) {
+    const res = await fetch(`/api/provider/resellers/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) loadResellers();
+    else setError((await res.json()).error || "No se pudo actualizar");
+  }
+
+  async function removeReseller(r: Reseller) {
+    if (
+      !confirm(
+        `¿Eliminar al revendedor «${r.email}»?\n\nSus ${r.customers} cliente${r.customers === 1 ? "" : "s"} NO se borrarán: pasarán a depender de ti directamente.`
+      )
+    )
+      return;
+    const res = await fetch(`/api/provider/resellers/${r.id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (res.ok && data.movedCustomers > 0) {
+      setNotice(`Revendedor eliminado. ${data.movedCustomers} cliente(s) han pasado a tu cuenta.`);
+    }
+    loadResellers();
+    loadCustomers(search);
+  }
+
   async function subscribe(planId: string) {
     const res = await fetch("/api/provider/subscribe", {
       method: "POST",
@@ -269,11 +384,21 @@ export default function ProviderPanel() {
           <span className="panel-card-label">Renovación</span>
           <span className="panel-card-value">{formatDate(status?.expiresAt || 0)}</span>
         </div>
-        <div className="panel-card" style={{ justifyContent: "center" }}>
-          <button className="btn btn-primary" onClick={() => setShowPlans(true)}>
-            {status?.onTrial ? "Contratar plan" : "Cambiar de plan"}
-          </button>
-        </div>
+        {perms?.managePlan ? (
+          <div className="panel-card" style={{ justifyContent: "center" }}>
+            <button className="btn btn-primary" onClick={() => setShowPlans(true)}>
+              {status?.onTrial ? "Contratar plan" : "Cambiar de plan"}
+            </button>
+          </div>
+        ) : (
+          <div className="panel-card">
+            <span className="panel-card-label">Tu rol</span>
+            <span className="panel-card-value" style={{ fontSize: 20 }}>Revendedor</span>
+            <span style={{ fontSize: 13, color: "var(--text-faint)" }}>
+              {perms?.viewAllCustomers ? "Ves todos los clientes" : "Ves solo tus clientes"}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Credenciales recién creadas */}
@@ -312,13 +437,128 @@ export default function ProviderPanel() {
         <button className={`panel-tab ${tab === "clientes" ? "active" : ""}`} onClick={() => setTab("clientes")}>
           Clientes <span className="panel-tab-count">{customers.length}</span>
         </button>
-        <button className={`panel-tab ${tab === "dominios" ? "active" : ""}`} onClick={() => setTab("dominios")}>
-          Dominios <span className="panel-tab-count">{domains.length}</span>
-        </button>
+        {perms?.domainAccess === "full" && (
+          <button className={`panel-tab ${tab === "dominios" ? "active" : ""}`} onClick={() => setTab("dominios")}>
+            Dominios <span className="panel-tab-count">{domains.length}</span>
+          </button>
+        )}
+        {perms?.manageResellers && (
+          <button
+            className={`panel-tab ${tab === "revendedores" ? "active" : ""}`}
+            onClick={() => setTab("revendedores")}
+          >
+            Revendedores <span className="panel-tab-count">{resellers.length}</span>
+          </button>
+        )}
       </div>
 
+      {/* Credenciales de revendedor recién creado */}
+      {createdReseller && (
+        <div className="card" style={{ marginBottom: 20, borderColor: "var(--success)" }}>
+          <h3 style={{ marginBottom: 8 }}>Revendedor creado — entrégale estos datos</h3>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "center" }}>
+            <div>
+              <span className="label">Email</span>
+              <code className="cred">{createdReseller.email}</code>
+            </div>
+            <div>
+              <span className="label">Contraseña</span>
+              <code className="cred">{createdReseller.password}</code>
+            </div>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() =>
+                navigator.clipboard?.writeText(`Email: ${createdReseller.email}\nContraseña: ${createdReseller.password}`)
+              }
+            >
+              Copiar
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setCreatedReseller(null)}>
+              Cerrar
+            </button>
+          </div>
+          <p style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 12 }}>
+            Entra en <strong>/proveedores/login</strong> con esos datos y verá este mismo panel con los permisos que
+            le has dado.
+          </p>
+        </div>
+      )}
+
+      {/* Revendedores */}
+      {tab === "revendedores" && perms?.manageResellers && (
+        <>
+          <div className="panel-toolbar">
+            <p style={{ color: "var(--text-dim)", fontSize: 14, maxWidth: 640 }}>
+              Crea accesos para tus revendedores. Entran al mismo panel y tú decides qué pueden ver: solo sus
+              clientes o todos, y si acceden a tus dominios, solo al nombre o a nada.
+            </p>
+            <button className="btn btn-primary" onClick={() => setShowReseller("new")}>
+              + Nuevo revendedor
+            </button>
+          </div>
+
+          <div style={{ overflowX: "auto" }}>
+            <table className="panel-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Nombre</th>
+                  <th>Ve clientes</th>
+                  <th>Dominios</th>
+                  <th>Clientes</th>
+                  <th>Estado</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {!resellers.length && (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: "center", color: "var(--text-faint)", padding: 30 }}>
+                      Aún no tienes revendedores.
+                    </td>
+                  </tr>
+                )}
+                {resellers.map((r) => (
+                  <tr key={r.id}>
+                    <td><strong>{r.email}</strong></td>
+                    <td>{r.name || "—"}</td>
+                    <td>{r.viewAllCustomers ? "Todos" : "Solo los suyos"}</td>
+                    <td>
+                      <span className="badge badge-accent">{DOMAIN_ACCESS_LABEL[r.domainAccess]}</span>
+                    </td>
+                    <td>
+                      {r.customers}
+                      {r.maxCustomers > 0 ? ` / ${r.maxCustomers}` : ""}
+                    </td>
+                    <td>
+                      <span className={`badge ${r.status === "active" ? "badge-success" : ""}`}>
+                        {r.status === "active" ? "Activo" : "Desactivado"}
+                      </span>
+                    </td>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setShowReseller(r)}>
+                        Permisos
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => patchReseller(r.id, { status: r.status === "active" ? "disabled" : "active" })}
+                      >
+                        {r.status === "active" ? "Desactivar" : "Activar"}
+                      </button>
+                      <button className="btn btn-danger btn-sm" onClick={() => removeReseller(r)}>
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
       {/* Dominios */}
-      {tab === "dominios" && (
+      {tab === "dominios" && perms?.domainAccess === "full" && (
         <>
           <div className="panel-toolbar">
             <p style={{ color: "var(--text-dim)", fontSize: 14, maxWidth: 620 }}>
@@ -351,7 +591,7 @@ export default function ProviderPanel() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="domain-host">{d.host}</div>
                       <div className="domain-meta">
-                        Puerto {d.port} · {d.protocol.toUpperCase()}
+                        Puerto {d.port} · {(d.protocol ?? "http").toUpperCase()}
                       </div>
                     </div>
                     <button className="btn btn-ghost btn-sm" onClick={() => setShowDomain(d)} title="Editar">
@@ -364,7 +604,7 @@ export default function ProviderPanel() {
                   <div className="domain-card-foot">
                     {d.label && <span className="badge badge-accent">{d.label}</span>}
                     <span style={{ color: "var(--text-faint)", fontSize: 13 }}>
-                      {d.customers} cliente{d.customers === 1 ? "" : "s"}
+                      {d.customers ?? 0} cliente{d.customers === 1 ? "" : "s"}
                     </span>
                   </div>
                 </div>
@@ -497,11 +737,12 @@ export default function ProviderPanel() {
                     <select id="c-domain" name="domainId" className="input" defaultValue={String(domains[0].id)}>
                       {domains.map((d) => (
                         <option key={d.id} value={d.id}>
-                          {d.host}:{d.port}
+                          {d.host}
+                          {d.port ? `:${d.port}` : ""}
                           {d.label ? ` — ${d.label}` : ""}
                         </option>
                       ))}
-                      <option value="0">Otro (escribir a mano)</option>
+                      {perms?.domainAccess === "full" && <option value="0">Otro (escribir a mano)</option>}
                     </select>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -514,7 +755,7 @@ export default function ProviderPanel() {
                       <input id="c-plpass" name="playlistPassword" className="input" autoComplete="off" required />
                     </div>
                   </div>
-                  <details style={{ marginBottom: 14 }}>
+                  <details style={{ marginBottom: 14, display: perms?.domainAccess === "full" ? undefined : "none" }}>
                     <summary style={{ cursor: "pointer", fontSize: 13.5, color: "var(--text-dim)" }}>
                       Usar otro servidor o una lista M3U
                     </summary>
@@ -658,6 +899,104 @@ export default function ProviderPanel() {
                 </button>
                 <button type="submit" className="btn btn-primary">
                   {showDomain === "new" ? "Añadir dominio" : "Guardar cambios"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: revendedor */}
+      {showReseller && (
+        <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setShowReseller(null)}>
+          <div className="modal" role="dialog" aria-modal="true" aria-label="Revendedor">
+            <h2>{showReseller === "new" ? "Nuevo revendedor" : "Permisos del revendedor"}</h2>
+            <p className="modal-sub">
+              {showReseller === "new"
+                ? "Tendrá acceso a este mismo panel con los permisos que marques aquí."
+                : (showReseller as Reseller).email}
+            </p>
+            <form onSubmit={saveReseller}>
+              {showReseller === "new" && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div className="auth-field">
+                    <label className="label" htmlFor="r-email">Email de acceso</label>
+                    <input id="r-email" name="email" className="input" type="email" required placeholder="revendedor@email.com" />
+                  </div>
+                  <div className="auth-field">
+                    <label className="label" htmlFor="r-pass">Contraseña</label>
+                    <input id="r-pass" name="password" className="input" required minLength={8} placeholder="mínimo 8 caracteres" />
+                  </div>
+                </div>
+              )}
+              <div className="auth-field">
+                <label className="label" htmlFor="r-name">Nombre o referencia</label>
+                <input
+                  id="r-name"
+                  name="name"
+                  className="input"
+                  placeholder="Revendedor Madrid"
+                  defaultValue={showReseller === "new" ? "" : (showReseller as Reseller).name}
+                />
+              </div>
+
+              <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "18px 0" }} />
+              <p className="label" style={{ marginBottom: 12 }}>Qué puede ver y hacer</p>
+
+              <label className="perm-row">
+                <input
+                  type="checkbox"
+                  name="viewAllCustomers"
+                  defaultChecked={showReseller !== "new" && (showReseller as Reseller).viewAllCustomers}
+                />
+                <span>
+                  <strong>Ver todos tus clientes</strong>
+                  <small>Si lo dejas sin marcar, solo verá y gestionará los clientes que él mismo dé de alta.</small>
+                </span>
+              </label>
+
+              <div className="auth-field" style={{ marginTop: 16 }}>
+                <label className="label" htmlFor="r-domains">Acceso a tus dominios</label>
+                <select
+                  id="r-domains"
+                  name="domainAccess"
+                  className="input"
+                  defaultValue={showReseller === "new" ? "names" : (showReseller as Reseller).domainAccess}
+                >
+                  <option value="names">Solo ve el nombre — puede asignarlos, no editarlos</option>
+                  <option value="full">Acceso completo — puede crear y editar dominios</option>
+                  <option value="none">Sin acceso — tendrá que escribir la URL a mano</option>
+                </select>
+              </div>
+
+              <div className="auth-field">
+                <label className="label" htmlFor="r-max">Límite de clientes (0 = sin límite propio)</label>
+                <input
+                  id="r-max"
+                  name="maxCustomers"
+                  className="input"
+                  type="number"
+                  min={0}
+                  defaultValue={showReseller === "new" ? 0 : (showReseller as Reseller).maxCustomers}
+                />
+                <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 6 }}>
+                  Sus clientes cuentan dentro del cupo de tu plan.
+                </p>
+              </div>
+
+              {showReseller !== "new" && (
+                <div className="auth-field">
+                  <label className="label" htmlFor="r-newpass">Nueva contraseña (opcional)</label>
+                  <input id="r-newpass" name="password" className="input" minLength={8} placeholder="Dejar vacío para no cambiarla" />
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 10 }}>
+                <button type="button" className="btn btn-ghost" onClick={() => setShowReseller(null)} data-tv-close>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  {showReseller === "new" ? "Crear revendedor" : "Guardar permisos"}
                 </button>
               </div>
             </form>

@@ -1,26 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getDb, ProviderRow } from "@/lib/db";
+import { getDb, ProviderRow, ResellerRow } from "@/lib/db";
 import { isValidEmail } from "@/lib/auth";
 import {
   setProviderCookie,
   clearProviderCookie,
-  getCurrentProvider,
+  setResellerCookie,
+  clearResellerCookie,
+  getPanelActor,
   getProviderStatus,
   providerTrialEnd,
+  resellerCustomerCount,
   PROVIDER_TRIAL_CUSTOMERS,
 } from "@/lib/provider";
 import { stripeConfigured } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 
-/** Estado de la sesión del proveedor. */
+/** Estado de la sesión del panel: sirve para proveedor y para revendedor. */
 export async function GET() {
-  const provider = await getCurrentProvider();
-  if (!provider) return NextResponse.json({ provider: null });
-  const status = getProviderStatus(provider);
+  const actor = await getPanelActor();
+  if (!actor) return NextResponse.json({ provider: null });
+
+  const status = getProviderStatus(actor.provider);
+
+  // El revendedor ve su propio cupo, no el del proveedor
+  if (actor.kind === "reseller" && actor.ownCustomerLimit > 0) {
+    status.maxCustomers = actor.ownCustomerLimit;
+    status.usedCustomers = resellerCustomerCount(actor.reseller!.id);
+  }
+
   return NextResponse.json({
-    provider: { email: provider.email, company: provider.company, brandName: provider.brand_name },
+    provider: {
+      email: actor.kind === "reseller" ? actor.reseller!.email : actor.provider.email,
+      company: actor.kind === "reseller" ? actor.reseller!.name || actor.provider.company : actor.provider.company,
+      brandName: actor.provider.brand_name,
+    },
+    role: actor.kind,
+    permissions: {
+      viewAllCustomers: actor.canViewAllCustomers,
+      domainAccess: actor.domainAccess,
+      manageResellers: actor.canManageResellers,
+      managePlan: actor.kind === "provider",
+    },
     status,
     billingEnabled: stripeConfigured(),
   });
@@ -58,23 +80,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, trialCustomers: PROVIDER_TRIAL_CUSTOMERS });
   }
 
-  // login
+  // Login: el mismo formulario sirve para proveedores y para sus revendedores
   const provider = db.prepare("SELECT * FROM providers WHERE email = ?").get(email) as ProviderRow | undefined;
-  const hash = provider?.password_hash || "$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva";
-  const valid = await bcrypt.compare(password, hash);
-  if (!provider || !valid) {
+  if (provider) {
+    if (!(await bcrypt.compare(password, provider.password_hash))) {
+      return NextResponse.json({ error: "Email o contraseña incorrectos" }, { status: 401 });
+    }
+    if (provider.status !== "active") {
+      return NextResponse.json({ error: "Esta cuenta está suspendida. Contacta con soporte." }, { status: 403 });
+    }
+    await setProviderCookie(provider.id);
+    return NextResponse.json({ ok: true, role: "provider" });
+  }
+
+  const reseller = db.prepare("SELECT * FROM resellers WHERE email = ?").get(email) as ResellerRow | undefined;
+  const hash = reseller?.password_hash || "$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva";
+  if (!reseller || !(await bcrypt.compare(password, hash))) {
     return NextResponse.json({ error: "Email o contraseña incorrectos" }, { status: 401 });
   }
-  if (provider.status !== "active") {
-    return NextResponse.json({ error: "Esta cuenta está suspendida. Contacta con soporte." }, { status: 403 });
+  if (reseller.status !== "active") {
+    return NextResponse.json({ error: "Tu acceso está desactivado. Contacta con tu proveedor." }, { status: 403 });
+  }
+  const parent = db.prepare("SELECT * FROM providers WHERE id = ?").get(reseller.provider_id) as
+    | ProviderRow
+    | undefined;
+  if (!parent || parent.status !== "active") {
+    return NextResponse.json({ error: "El servicio de tu proveedor no está activo." }, { status: 403 });
   }
 
-  await setProviderCookie(provider.id);
-  return NextResponse.json({ ok: true });
+  await setResellerCookie(reseller.id);
+  return NextResponse.json({ ok: true, role: "reseller" });
 }
 
-/** Cierre de sesión. */
+/** Cierre de sesión (cualquiera de los dos roles). */
 export async function DELETE() {
   await clearProviderCookie();
+  await clearResellerCookie();
   return NextResponse.json({ ok: true });
 }

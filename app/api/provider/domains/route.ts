@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, ProviderDomainRow } from "@/lib/db";
-import { getCurrentProvider, listDomains, normalizeHost, isValidHost, domainBaseUrl } from "@/lib/provider";
+import {
+  getPanelActor,
+  listDomains,
+  normalizeHost,
+  isValidHost,
+  domainBaseUrl,
+} from "@/lib/provider";
 
 export const dynamic = "force-dynamic";
 
@@ -17,24 +23,43 @@ function serialize(row: ProviderDomainRow, customers: number) {
   };
 }
 
-/** Dominios del proveedor con el número de clientes que usa cada uno. */
+/**
+ * Dominios visibles. El revendedor con permiso «names» solo recibe el nombre
+ * (lo justo para asignarlo), sin puerto, protocolo ni recuentos.
+ */
 export async function GET() {
-  const provider = await getCurrentProvider();
-  if (!provider) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  const actor = await getPanelActor();
+  if (!actor) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  const rows = listDomains(provider.id);
+  if (actor.domainAccess === "none") {
+    return NextResponse.json({ domains: [], access: "none" });
+  }
+
+  const rows = listDomains(actor.provider.id);
+
+  if (actor.domainAccess === "names") {
+    return NextResponse.json({
+      domains: rows.map((r) => ({ id: r.id, host: r.host, label: r.label })),
+      access: "names",
+    });
+  }
+
   const counts = getDb()
     .prepare("SELECT domain_id, COUNT(*) AS c FROM customers WHERE provider_id = ? GROUP BY domain_id")
-    .all(provider.id) as { domain_id: number; c: number }[];
+    .all(actor.provider.id) as { domain_id: number; c: number }[];
   const map = new Map(counts.map((c) => [c.domain_id, c.c]));
 
-  return NextResponse.json({ domains: rows.map((r) => serialize(r, map.get(r.id) ?? 0)) });
+  return NextResponse.json({ domains: rows.map((r) => serialize(r, map.get(r.id) ?? 0)), access: "full" });
 }
 
-/** Alta de dominio. Se configura una vez y se reutiliza en cada cliente. */
+/** Alta de dominio. Solo el proveedor o un revendedor con acceso completo. */
 export async function POST(req: NextRequest) {
-  const provider = await getCurrentProvider();
-  if (!provider) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  const actor = await getPanelActor();
+  if (!actor) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  if (actor.domainAccess !== "full") {
+    return NextResponse.json({ error: "No tienes permiso para gestionar dominios" }, { status: 403 });
+  }
+  const provider = actor.provider;
 
   let body: { host?: string; port?: number; protocol?: string; label?: string };
   try {
