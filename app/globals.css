@@ -625,6 +625,17 @@ select.input { appearance: none; cursor: pointer; }
 .pa-content { flex: 1; overflow-y: auto; }
 
 .pa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; padding: 20px; }
+
+/*
+ * Catálogo a pantalla completa: sin vídeo arriba, las carátulas son las
+ * protagonistas. Más grandes y con más aire que en la franja de antes.
+ */
+.pa-catalogo .pa-grid {
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  gap: 20px 16px;
+  padding: 28px 32px 40px;
+}
+.pa-catalogo .pa-series-detail { padding: 28px 32px 40px; }
 .pa-card {
   background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-sm);
   overflow: hidden; cursor: pointer; transition: transform 0.15s, border-color 0.15s;

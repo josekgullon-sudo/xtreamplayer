@@ -15,11 +15,15 @@ import Icon from "./Icon";
  */
 export default function AccountMenu({
   email,
+  esCliente = false,
   onLogout,
   tvMode,
   onTvMode,
 }: {
+  /** Correo de la cuenta propia, o nombre de usuario si viene del proveedor */
   email: string;
+  /** Sesión de cliente de proveedor: sin página «Mi cuenta» que ofrecer */
+  esCliente?: boolean;
   onLogout: () => void;
   tvMode: boolean;
   onTvMode: () => void;
@@ -69,9 +73,11 @@ export default function AccountMenu({
             </span>
           </div>
 
-          <Link href="/cuenta" className="account-pop-item" role="menuitem" onClick={() => setAbierto(false)}>
-            <Icon name="users" size={16} /> Mi cuenta
-          </Link>
+          {!esCliente && (
+            <Link href="/cuenta" className="account-pop-item" role="menuitem" onClick={() => setAbierto(false)}>
+              <Icon name="users" size={16} /> Mi cuenta
+            </Link>
+          )}
           <Link href="/player" className="account-pop-item" role="menuitem" onClick={() => setAbierto(false)}>
             <Icon name="play" size={16} /> Reproductor
           </Link>

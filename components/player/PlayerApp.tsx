@@ -76,6 +76,13 @@ export default function PlayerApp() {
    * marcar el primer favorito.
    */
   const [seccionGate, setSeccionGate] = useState<"pendiente" | "mostrando" | "hecho">("pendiente");
+  /**
+   * En cine y series se navega a pantalla completa: el vídeo solo aparece
+   * cuando se ha elegido algo que ver. Tener el reproductor siempre arriba
+   * dejaba las carátulas en una franja al fondo y un stream sonando encima
+   * mientras se buscaba otra cosa.
+   */
+  const [viendo, setViendo] = useState(false);
 
   const [tab, setTab] = useState<Tab>("live");
   const [search, setSearch] = useState("");
@@ -275,6 +282,10 @@ export default function PlayerApp() {
   );
 
   useEffect(() => {
+    setViendo(false);
+  }, [tab, activeId]);
+
+  useEffect(() => {
     if (!active) return;
     setCatFilter("all");
     if (active.type === "m3u" && (tab === "vod" || tab === "series")) {
@@ -404,6 +415,7 @@ export default function PlayerApp() {
 
   function playVod(p: StoredPlaylist, item: XtreamVodStream) {
     const ext = item.container_extension || "mp4";
+    setViendo(true);
     setCurrent({
       source: { url: vodStreamUrl(credsOf(p), item.stream_id, ext), name: item.name, kind: "video" },
       logo: item.stream_icon,
@@ -440,6 +452,7 @@ export default function PlayerApp() {
   }
 
   function playEpisode(p: StoredPlaylist, s: XtreamSeries, epId: string, title: string, ext?: string) {
+    setViendo(true);
     setCurrent({
       source: { url: seriesEpisodeUrl(credsOf(p), epId, ext || "mp4"), name: `${s.name} — ${title}`, kind: "video" },
       logo: s.cover,
@@ -584,6 +597,8 @@ export default function PlayerApp() {
 
   const isXtream = active?.type === "xtream";
   const showSidebar = tab === "live" || tab === "favs" || !isXtream;
+  /** Cine/series sin nada elegido: catálogo a pantalla completa, sin vídeo */
+  const modoCatalogo = isXtream && (tab === "vod" || tab === "series") && !viendo;
   /*
    * Solo se pregunta cuando hay más de un sitio al que ir. Una lista M3U sin
    * favoritos únicamente trae canales, así que preguntar entre una sola opción
@@ -830,11 +845,25 @@ export default function PlayerApp() {
         ) : null}
       </aside>
 
-      <main className={`pa-main ${current && showSidebar ? "pa-main-full" : ""}`}>
-        <VideoPlayer source={current?.source || null} />
+      <main className={`pa-main ${current && !modoCatalogo ? "pa-main-full" : ""}`}>
+        {/* En el catálogo no hay reproductor: desmontarlo detiene el stream
+            anterior, que seguía sonando encima mientras se buscaba otra cosa */}
+        {!modoCatalogo && <VideoPlayer source={current?.source || null} />}
 
-        {current && (
+        {!modoCatalogo && current && (
           <div className="pa-now-playing">
+            {(current.kind === "vod" || current.kind === "episode") && (
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  setViendo(false);
+                  setCurrent(null);
+                  setTab(current.kind === "vod" ? "vod" : "series");
+                }}
+              >
+                <Icon name="back" size={14} /> Catálogo
+              </button>
+            )}
             {current.logo && <img src={current.logo} alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="pa-now-title">{current.source.name}</div>
@@ -857,7 +886,7 @@ export default function PlayerApp() {
           </div>
         )}
 
-        <div className="pa-content">
+        <div className={`pa-content ${modoCatalogo ? "pa-catalogo" : ""}`}>
           {!active && (
             <div className="pa-welcome">
               <h2>Bienvenido a TOTALplayer</h2>
@@ -906,7 +935,7 @@ export default function PlayerApp() {
             </div>
           )}
 
-          {active && isXtream && tab === "vod" && !seriesDetail && (
+          {active && modoCatalogo && tab === "vod" && !seriesDetail && (
             <>
               {loading && <Loading messages={MENSAJES_CINE} />}
               {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
@@ -932,7 +961,7 @@ export default function PlayerApp() {
             </>
           )}
 
-          {active && isXtream && tab === "series" && !seriesDetail && (
+          {active && modoCatalogo && tab === "series" && !seriesDetail && (
             <>
               {loading && <Loading messages={MENSAJES_SERIES} />}
               {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
@@ -953,7 +982,7 @@ export default function PlayerApp() {
             </>
           )}
 
-          {active && isXtream && seriesDetail && (
+          {active && modoCatalogo && seriesDetail && (
             <div className="pa-series-detail">
               <button className="btn btn-ghost btn-sm" onClick={() => setSeriesDetail(null)} style={{ marginBottom: 16 }}>
                 ← Volver a series

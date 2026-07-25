@@ -19,17 +19,31 @@ export default function SiteHeader() {
    */
   const enReproductor = (usePathname() || "").startsWith("/player");
 
+  /*
+   * Hay dos formas de estar dentro: con cuenta propia (email) o con el
+   * usuario que te dio tu proveedor. La cabecera tiene que reconocer las dos;
+   * mirando solo la primera, un cliente con sesión abierta veía «Entrar»,
+   * como si no hubiera entrado ya.
+   */
+  const [customerUser, setCustomerUser] = useState<string | null>(null);
+
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((d) => setEmail(d.user?.email ?? null))
-      .catch(() => {})
+    Promise.all([
+      fetch("/api/auth/me").then((r) => r.json()).catch(() => ({})),
+      fetch("/api/customer/me").then((r) => r.json()).catch(() => ({})),
+    ])
+      .then(([auth, cust]) => {
+        setEmail(auth.user?.email ?? null);
+        setCustomerUser(cust.customer?.username ?? null);
+      })
       .finally(() => setLoaded(true));
   }, []);
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    if (email) await fetch("/api/auth/logout", { method: "POST" });
+    if (customerUser) await fetch("/api/customer/me", { method: "DELETE" });
     setEmail(null);
+    setCustomerUser(null);
     window.location.href = "/";
   }
 
@@ -52,7 +66,7 @@ export default function SiteHeader() {
         )}
         <div className="header-actions">
           {/* Con sesión abierta, el modo TV vive dentro del menú de cuenta */}
-          {!tvMode && !(loaded && email) && (
+          {!tvMode && !(loaded && (email || customerUser)) && (
             <button
               className="btn btn-ghost btn-sm hide-sm"
               onClick={() => setTvMode(true)}
@@ -61,8 +75,14 @@ export default function SiteHeader() {
               <><Icon name="tv" size={15} /> Modo TV</>
             </button>
           )}
-          {loaded && email ? (
-            <AccountMenu email={email} onLogout={logout} tvMode={tvMode} onTvMode={() => setTvMode(true)} />
+          {loaded && (email || customerUser) ? (
+            <AccountMenu
+              email={email || customerUser || ""}
+              esCliente={!email}
+              onLogout={logout}
+              tvMode={tvMode}
+              onTvMode={() => setTvMode(true)}
+            />
           ) : (
             <>
               <Link href="/acceso" className={`btn btn-sm ${enReproductor ? "btn-primary" : "btn-ghost hide-sm"}`}>

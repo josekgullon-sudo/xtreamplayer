@@ -31,10 +31,57 @@ type Attempt = {
  * eternamente sin llegar a reproducir nada.
  */
 const SIN_AVANCE_MS = 8000;
+/*
+ * El intento directo espera menos: tiene al proxy esperando detrás, así que
+ * cada segundo mirando a un servidor mudo es un segundo robado al camino que
+ * sí va a funcionar. Este peaje además solo se paga una vez por servidor,
+ * gracias a la memoria de sesión.
+ */
+const SIN_AVANCE_DIRECTO_MS = 5000;
 const TECHO_INTENTO_MS = 28000;
 
 function proxied(url: string): string {
   return `/api/proxy?url=${encodeURIComponent(url)}`;
+}
+
+/**
+ * Memoria por servidor: si un servidor ya rechazó la conexión directa una
+ * vez, la rechazará siempre — es un filtro suyo, no mala suerte. Sin esta
+ * memoria, cada zapping volvía a pagar el descubrimiento entero (hasta 8 s
+ * mirando a un servidor mudo) antes de caer al proxy que sí funciona. Con
+ * ella, solo el primer canal de la sesión paga ese peaje; los demás van
+ * directos al camino bueno.
+ *
+ * Va en sessionStorage para sobrevivir a recargas de página, pero no se
+ * guarda para siempre: el proveedor puede cambiar de configuración.
+ */
+const K_SIN_DIRECTO = "xp.sinDirecto.v1";
+
+function leerSinDirecto(): Set<string> {
+  try {
+    return new Set(JSON.parse(sessionStorage.getItem(K_SIN_DIRECTO) || "[]"));
+  } catch {
+    return new Set();
+  }
+}
+
+function marcarSinDirecto(url: string) {
+  try {
+    const origen = new URL(url, window.location.href).origin;
+    const set = leerSinDirecto();
+    set.add(origen);
+    sessionStorage.setItem(K_SIN_DIRECTO, JSON.stringify([...set]));
+  } catch {
+    /* URL rara: sin memoria, pero sin romper */
+  }
+}
+
+function origenSinDirecto(url: string): boolean {
+  try {
+    return leerSinDirecto().has(new URL(url, window.location.href).origin);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -87,12 +134,16 @@ function buildAttempts(src: PlaySource): Attempt[] {
   const tsUrl = esDirecto ? src.url.replace(/\.m3u8(\?.*)?$/, ".ts") : "";
   const mixto = bloqueadoPorContenidoMixto(src.url);
 
+  // Sin directo cuando el navegador lo bloquearía (HTTPS→HTTP) o cuando este
+  // servidor ya nos rechazó antes en esta sesión
+  const sinDirecto = mixto || origenSinDirecto(src.url);
+
   const attempts: Attempt[] = [];
-  if (!mixto) attempts.push({ url: src.url, engine, label: "conexión directa", direct: true });
+  if (!sinDirecto) attempts.push({ url: src.url, engine, label: "conexión directa", direct: true });
   attempts.push({ url: proxied(src.url), engine, label: "proxy de compatibilidad", direct: false });
   if (tsUrl) {
     attempts.push({ url: proxied(tsUrl), engine: "mpegts", label: "proxy en formato TS", direct: false });
-    if (!mixto) attempts.push({ url: tsUrl, engine: "mpegts", label: "formato TS directo", direct: true });
+    if (!sinDirecto) attempts.push({ url: tsUrl, engine: "mpegts", label: "formato TS directo", direct: true });
   }
   return attempts;
 }
@@ -151,7 +202,12 @@ export default function VideoPlayer({
       problems.push(`${actual?.label ?? "intento"}: ${detail}`);
       index += 1;
 
-      if (redCaida && actual?.direct) directoDescartado = true;
+      if (redCaida && actual?.direct) {
+        directoDescartado = true;
+        // Y se recuerda para toda la sesión: el próximo canal de este mismo
+        // servidor irá al proxy sin pagar otra vez el descubrimiento
+        marcarSinDirecto(actual.url);
+      }
       // Se descartan todos los intentos directos que queden, estén donde estén
       // en la lista: si el servidor no acepta al navegador, no lo va a aceptar
       // por cambiarle la extensión al fichero.
@@ -208,10 +264,11 @@ export default function VideoPlayer({
         for (const evt of EVENTOS_AVANCE) v.removeEventListener(evt, avanza);
       };
 
+      const sinAvanceMax = attempt.direct ? SIN_AVANCE_DIRECTO_MS : SIN_AVANCE_MS;
       watchdog = setInterval(() => {
         if (cancelled || arrancado) return;
         const ahora = Date.now();
-        if (ahora - ultimoAvance > SIN_AVANCE_MS) {
+        if (ahora - ultimoAvance > sinAvanceMax) {
           fail("el servidor dejó de responder", true);
         } else if (ahora - inicio > TECHO_INTENTO_MS) {
           fail("tarda demasiado en arrancar");
