@@ -21,34 +21,42 @@ export async function POST(req: NextRequest) {
   const password = body.password || "";
   const db = getDb();
 
-  // El usuario es único por proveedor: puede haber homónimos en proveedores distintos
+  // El usuario solo es único por proveedor, así que puede haber homónimos con la
+  // misma contraseña en proveedores distintos. Recogemos TODAS las coincidencias y
+  // damos prioridad a la cuenta utilizable, para no rechazar a un cliente activo
+  // por culpa del homónimo desactivado de otro proveedor.
   const candidates = db.prepare("SELECT * FROM customers WHERE username = ?").all(username) as CustomerRow[];
 
-  let customer: CustomerRow | null = null;
+  const matches: CustomerRow[] = [];
   for (const row of candidates) {
-    if (await bcrypt.compare(password, row.password_hash)) {
-      customer = row;
-      break;
-    }
+    if (await bcrypt.compare(password, row.password_hash)) matches.push(row);
   }
-  if (!customer) {
+  if (!matches.length) {
     // Coste constante aproximado aunque no exista el usuario
     if (!candidates.length) await bcrypt.compare(password, "$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinv");
     return NextResponse.json({ error: "Usuario o contraseña incorrectos" }, { status: 401 });
   }
 
+  const now = Date.now();
+  const providerOf = db.prepare("SELECT * FROM providers WHERE id = ?");
+  const usable = (row: CustomerRow) => {
+    if (row.status !== "active") return false;
+    if (row.expires_at > 0 && row.expires_at < now) return false;
+    const p = providerOf.get(row.provider_id) as ProviderRow | undefined;
+    return Boolean(p && p.status === "active" && getProviderStatus(p, now).active);
+  };
+
+  const customer = matches.find(usable) ?? matches[0];
+  const provider = providerOf.get(customer.provider_id) as ProviderRow | undefined;
+
   if (customer.status !== "active") {
     return NextResponse.json({ error: "Tu acceso está desactivado. Contacta con tu proveedor." }, { status: 403 });
   }
-  if (customer.expires_at > 0 && customer.expires_at < Date.now()) {
+  if (customer.expires_at > 0 && customer.expires_at < now) {
     return NextResponse.json({ error: "Tu acceso ha caducado. Contacta con tu proveedor." }, { status: 403 });
   }
-
   // Si el proveedor se queda sin plan, sus clientes dejan de entrar
-  const provider = db.prepare("SELECT * FROM providers WHERE id = ?").get(customer.provider_id) as
-    | ProviderRow
-    | undefined;
-  if (!provider || provider.status !== "active" || !getProviderStatus(provider).active) {
+  if (!provider || provider.status !== "active" || !getProviderStatus(provider, now).active) {
     return NextResponse.json(
       { error: "El servicio de tu proveedor no está activo en este momento." },
       { status: 403 }

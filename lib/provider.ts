@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { createSessionToken, verifySessionToken } from "./auth";
-import { getDb, ProviderRow, ProviderPlanRow, CustomerRow } from "./db";
+import { getDb, ProviderRow, ProviderPlanRow, CustomerRow, ProviderDomainRow } from "./db";
 
 /**
  * Sesiones y reglas de negocio del lado B2B:
@@ -164,4 +164,58 @@ export function registerDevice(customer: CustomerRow, deviceKey: string, platfor
 
 export function isValidUsername(username: string): boolean {
   return /^[a-zA-Z0-9._-]{3,32}$/.test(username);
+}
+
+/* ---------------- Dominios del proveedor ---------------- */
+
+/** Host limpio: sin protocolo, sin barras, sin puerto pegado. */
+export function normalizeHost(input: string): string {
+  return input
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/.*$/, "")
+    .replace(/:\d+$/, "")
+    .toLowerCase();
+}
+
+export function isValidHost(host: string): boolean {
+  return /^[a-z0-9.-]{3,253}$/.test(host) && host.includes(".");
+}
+
+export function domainBaseUrl(domain: ProviderDomainRow): string {
+  const defaultPort = domain.protocol === "https" ? 443 : 80;
+  const port = domain.port === defaultPort ? "" : `:${domain.port}`;
+  return `${domain.protocol}://${domain.host}${port}`;
+}
+
+export function listDomains(providerId: number): ProviderDomainRow[] {
+  return getDb()
+    .prepare("SELECT * FROM provider_domains WHERE provider_id = ? ORDER BY created_at ASC")
+    .all(providerId) as ProviderDomainRow[];
+}
+
+/**
+ * URL efectiva del cliente. Si tiene dominio asignado, se construye desde
+ * `provider_domains`, de modo que cambiar el dominio actualiza a todos sus
+ * clientes de golpe (útil cuando bloquean un dominio).
+ */
+export function resolveCustomerPlaylist(customer: CustomerRow): {
+  type: "xtream" | "m3u";
+  url: string;
+  username: string;
+  password: string;
+} {
+  let url = customer.playlist_url;
+  if (customer.domain_id) {
+    const domain = getDb()
+      .prepare("SELECT * FROM provider_domains WHERE id = ?")
+      .get(customer.domain_id) as ProviderDomainRow | undefined;
+    if (domain) url = domainBaseUrl(domain);
+  }
+  return {
+    type: customer.playlist_type,
+    url,
+    username: customer.playlist_username,
+    password: customer.playlist_password,
+  };
 }

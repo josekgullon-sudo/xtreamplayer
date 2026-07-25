@@ -82,6 +82,20 @@ export function getDb(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_customers_provider ON customers(provider_id);
     CREATE INDEX IF NOT EXISTS idx_customers_username ON customers(username);
 
+    -- Dominios del proveedor: se configuran una vez y se reutilizan en cada alta.
+    -- Si un dominio cae o lo bloquean, se edita aquí y todos sus clientes quedan actualizados.
+    CREATE TABLE IF NOT EXISTS provider_domains (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      provider_id INTEGER NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
+      host TEXT NOT NULL,
+      port INTEGER NOT NULL DEFAULT 80,
+      protocol TEXT NOT NULL DEFAULT 'http' CHECK (protocol IN ('http','https')),
+      label TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL,
+      UNIQUE (provider_id, host, port)
+    );
+    CREATE INDEX IF NOT EXISTS idx_domains_provider ON provider_domains(provider_id);
+
     -- Dispositivos vinculados a cada cliente (MAC en TV, UUID en web)
     CREATE TABLE IF NOT EXISTS devices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -125,16 +139,22 @@ function seedPlans(db: Database.Database) {
 
 /** Migraciones aditivas: añade columnas nuevas a bases de datos ya existentes. */
 function migrate(db: Database.Database) {
-  const cols = new Set(
-    (db.prepare("PRAGMA table_info(users)").all() as { name: string }[]).map((c) => c.name)
-  );
-  const add = (name: string, ddl: string) => {
-    if (!cols.has(name)) db.exec(`ALTER TABLE users ADD COLUMN ${ddl}`);
+  const columnsOf = (table: string) =>
+    new Set((db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((c) => c.name));
+
+  const userCols = columnsOf("users");
+  const addUser = (name: string, ddl: string) => {
+    if (!userCols.has(name)) db.exec(`ALTER TABLE users ADD COLUMN ${ddl}`);
   };
-  add("trial_ends_at", "trial_ends_at INTEGER NOT NULL DEFAULT 0");
-  add("premium_until", "premium_until INTEGER NOT NULL DEFAULT 0");
-  add("stripe_customer_id", "stripe_customer_id TEXT NOT NULL DEFAULT ''");
-  add("stripe_subscription_id", "stripe_subscription_id TEXT NOT NULL DEFAULT ''");
+  addUser("trial_ends_at", "trial_ends_at INTEGER NOT NULL DEFAULT 0");
+  addUser("premium_until", "premium_until INTEGER NOT NULL DEFAULT 0");
+  addUser("stripe_customer_id", "stripe_customer_id TEXT NOT NULL DEFAULT ''");
+  addUser("stripe_subscription_id", "stripe_subscription_id TEXT NOT NULL DEFAULT ''");
+
+  const customerCols = columnsOf("customers");
+  if (customerCols.size && !customerCols.has("domain_id")) {
+    db.exec("ALTER TABLE customers ADD COLUMN domain_id INTEGER NOT NULL DEFAULT 0");
+  }
 }
 
 export interface UserRow {
@@ -194,9 +214,21 @@ export interface CustomerRow {
   playlist_url: string;
   playlist_username: string;
   playlist_password: string;
+  /** Si es > 0, la URL se resuelve desde provider_domains (permite migrar dominios en bloque) */
+  domain_id: number;
   max_devices: number;
   expires_at: number;
   status: string;
+  created_at: number;
+}
+
+export interface ProviderDomainRow {
+  id: number;
+  provider_id: number;
+  host: string;
+  port: number;
+  protocol: "http" | "https";
+  label: string;
   created_at: number;
 }
 

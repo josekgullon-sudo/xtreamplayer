@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getDb, CustomerRow } from "@/lib/db";
-import { getCurrentProvider, getProviderStatus, isValidUsername } from "@/lib/provider";
+import { getDb, CustomerRow, ProviderDomainRow } from "@/lib/db";
+import { getCurrentProvider, getProviderStatus, isValidUsername, resolveCustomerPlaylist } from "@/lib/provider";
 import { normalizeBase, parseXtreamUrl } from "@/lib/xtream";
 
 export const dynamic = "force-dynamic";
 
 function serialize(row: CustomerRow, devices: number) {
+  const resolved = resolveCustomerPlaylist(row);
   return {
     id: row.id,
     username: row.username,
     label: row.label,
     playlistType: row.playlist_type,
-    playlistUrl: row.playlist_url,
+    playlistUrl: resolved.url,
     playlistUsername: row.playlist_username,
+    domainId: row.domain_id,
     maxDevices: row.max_devices,
     devices,
     expiresAt: row.expires_at,
@@ -78,6 +80,7 @@ export async function POST(req: NextRequest) {
     username?: string;
     password?: string;
     label?: string;
+    domainId?: number;
     playlistType?: string;
     playlistUrl?: string;
     playlistUsername?: string;
@@ -109,13 +112,33 @@ export async function POST(req: NextRequest) {
     .get(provider.id, username);
   if (dup) return NextResponse.json({ error: "Ya tienes un cliente con ese usuario" }, { status: 409 });
 
-  // Acepta pegar una URL get.php completa y extrae las credenciales
   let type = body.playlistType === "m3u" ? "m3u" : "xtream";
   let url = (body.playlistUrl || "").trim();
   let plUser = (body.playlistUsername || "").trim();
   let plPass = body.playlistPassword || "";
+  let domainId = 0;
 
-  if (type === "xtream") {
+  // Vía normal: el proveedor elige uno de sus dominios ya configurados
+  if (body.domainId) {
+    const domain = db
+      .prepare("SELECT * FROM provider_domains WHERE id = ? AND provider_id = ?")
+      .get(Number(body.domainId), provider.id) as ProviderDomainRow | undefined;
+    if (!domain) return NextResponse.json({ error: "Ese dominio no existe en tu cuenta" }, { status: 400 });
+
+    // Si pegan la URL get.php en el usuario, extraemos las credenciales igualmente
+    const parsed = parseXtreamUrl(plUser);
+    if (parsed) {
+      plUser = parsed.username;
+      plPass = plPass || parsed.password;
+    }
+    if (!plUser || !plPass) {
+      return NextResponse.json({ error: "Indica el usuario y la contraseña IPTV del cliente" }, { status: 400 });
+    }
+    domainId = domain.id;
+    type = "xtream";
+    url = "";
+  } else if (type === "xtream") {
+    // Vía manual: URL escrita a mano (acepta un get.php completo)
     const parsed = parseXtreamUrl(url);
     if (parsed) {
       url = parsed.base;
@@ -126,7 +149,7 @@ export async function POST(req: NextRequest) {
     }
     if (!url || !plUser || !plPass) {
       return NextResponse.json(
-        { error: "Para Xtream necesitas servidor, usuario y contraseña del cliente" },
+        { error: "Elige un dominio o indica servidor, usuario y contraseña" },
         { status: 400 }
       );
     }
@@ -150,8 +173,8 @@ export async function POST(req: NextRequest) {
     .prepare(
       `INSERT INTO customers
        (provider_id, username, password_hash, label, playlist_type, playlist_url,
-        playlist_username, playlist_password, max_devices, expires_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        playlist_username, playlist_password, domain_id, max_devices, expires_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       provider.id,
@@ -162,6 +185,7 @@ export async function POST(req: NextRequest) {
       url,
       plUser,
       plPass,
+      domainId,
       maxDevices,
       Number(body.expiresAt) || 0,
       Date.now()

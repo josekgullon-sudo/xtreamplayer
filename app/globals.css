@@ -554,6 +554,35 @@ select.input { appearance: none; cursor: pointer; }
 .panel-table tr:last-child td { border-bottom: none; }
 .panel-table tbody tr:hover { background: var(--bg-hover); }
 
+.panel-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.panel-tab {
+  padding: 11px 20px; background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: var(--text-dim); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-tab:hover { color: var(--text); }
+.panel-tab.active { color: var(--accent-bright); border-bottom-color: var(--accent); }
+.panel-tab-count {
+  background: var(--bg-elev-2); color: var(--text-faint); border-radius: 999px;
+  padding: 1px 8px; font-size: 12px; font-weight: 700;
+}
+.panel-tab.active .panel-tab-count { background: rgba(108,92,231,0.2); color: var(--accent-bright); }
+
+.domain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.domain-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.domain-card-head { display: flex; align-items: center; gap: 12px; }
+.domain-lock {
+  width: 38px; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 184, 77, 0.15); font-size: 17px; flex-shrink: 0;
+}
+.domain-lock.secure { background: rgba(46, 204, 143, 0.15); }
+.domain-host { font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.domain-meta { font-size: 13px; color: var(--text-faint); }
+.domain-card-foot {
+  display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--border); flex-wrap: wrap;
+}
+
 .cred {
   display: inline-block; background: var(--bg); border: 1px solid var(--border-strong);
   padding: 6px 12px; border-radius: 6px; font-family: monospace; font-size: 15px; color: var(--accent-bright);

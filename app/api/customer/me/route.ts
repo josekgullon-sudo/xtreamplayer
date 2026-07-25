@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb, ProviderRow } from "@/lib/db";
-import { getCurrentCustomer, clearCustomerCookie } from "@/lib/provider";
+import { getCurrentCustomer, clearCustomerCookie, resolveCustomerPlaylist } from "@/lib/provider";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +26,7 @@ export async function GET() {
     playlist: {
       id: `provider-${customer.id}`,
       name: provider?.brand_name || "Mi lista",
-      type: customer.playlist_type,
-      url: customer.playlist_url,
-      username: customer.playlist_username,
-      password: customer.playlist_password,
+      ...resolveCustomerPlaylist(customer),
       managed: true,
     },
   });
