@@ -1,4 +1,10 @@
-/* ============ XtreamPlayer — Design System ============ */
+/* ============ TOTALplayer — Design System ============ */
+/*
+ * Toda la marca sale de las variables de :root. Cambiar el bloque de
+ * acento reviste la aplicación entera sin tocar ninguna regla.
+ * Se usan variables en vez de color-mix() porque los navegadores de
+ * las Smart TV (Tizen/webOS) no lo soportan.
+ */
 
 :root {
   --bg: #0a0c12;
@@ -13,6 +19,21 @@
   --accent: #6c5ce7;
   --accent-bright: #8b7cf7;
   --accent-glow: rgba(108, 92, 231, 0.35);
+  --accent-tint-soft: rgba(108, 92, 231, 0.10);
+  --accent-tint: rgba(108, 92, 231, 0.18);
+  --accent-tint-strong: rgba(108, 92, 231, 0.28);
+  --accent-halo: rgba(108, 92, 231, 0.22);
+  --accent-halo-deep: rgba(72, 52, 184, 0.12);
+  --bg-blur: rgba(10, 12, 18, 0.85);
+  --bg-fade: rgba(10, 12, 18, 0.96);
+  --danger-tint: rgba(255, 92, 114, 0.10);
+  --danger-border: rgba(255, 92, 114, 0.35);
+  --success-tint: rgba(46, 204, 143, 0.15);
+  --warning-tint: rgba(255, 184, 77, 0.15);
+  /* Paradas de degradado: cambiar estas cuatro reviste toda la marca */
+  --accent-deep: #4834b8;
+  --accent-soft: #b3a7ff;
+  --accent-contrast: #7ee0c0;
   --success: #2ecc8f;
   --danger: #ff5c72;
   --warning: #ffb84d;
@@ -73,7 +94,7 @@ button { font-family: inherit; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent), #5a4bd1);
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
   color: #fff;
   box-shadow: 0 4px 20px var(--accent-glow);
 }
@@ -87,7 +108,7 @@ button { font-family: inherit; }
 .btn-ghost:hover:not(:disabled) { background: var(--bg-hover); }
 
 .btn-danger { background: transparent; color: var(--danger); border-color: transparent; }
-.btn-danger:hover:not(:disabled) { background: rgba(255, 92, 114, 0.1); }
+.btn-danger:hover:not(:disabled) { background: var(--danger-tint); }
 
 .btn-lg { padding: 14px 28px; font-size: 17px; border-radius: var(--radius); }
 .btn-sm { padding: 6px 12px; font-size: 13px; }
@@ -116,8 +137,8 @@ button { font-family: inherit; }
 }
 
 .error-box {
-  background: rgba(255, 92, 114, 0.1);
-  border: 1px solid rgba(255, 92, 114, 0.35);
+  background: var(--danger-tint);
+  border: 1px solid var(--danger-border);
   color: var(--danger);
   padding: 10px 14px;
   border-radius: var(--radius-sm);
@@ -132,8 +153,8 @@ button { font-family: inherit; }
   font-weight: 700;
   letter-spacing: 0.3px;
 }
-.badge-accent { background: rgba(108, 92, 231, 0.18); color: var(--accent-bright); }
-.badge-success { background: rgba(46, 204, 143, 0.15); color: var(--success); }
+.badge-accent { background: var(--accent-tint); color: var(--accent-bright); }
+.badge-success { background: var(--success-tint); color: var(--success); }
 
 /* ============ Header global ============ */
 
@@ -144,7 +165,7 @@ button { font-family: inherit; }
   height: var(--header-h);
   display: flex;
   align-items: center;
-  background: rgba(10, 12, 18, 0.85);
+  background: var(--bg-blur);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
@@ -152,7 +173,7 @@ button { font-family: inherit; }
 .logo { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 800; color: var(--text); text-decoration: none !important; }
 .logo-mark {
   width: 32px; height: 32px; border-radius: 9px;
-  background: linear-gradient(135deg, var(--accent), #4834b8);
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 16px; color: #fff;
   box-shadow: 0 2px 12px var(--accent-glow);
@@ -179,8 +200,8 @@ button { font-family: inherit; }
   padding: 90px 0 70px;
   text-align: center;
   background:
-    radial-gradient(ellipse 60% 50% at 50% -10%, rgba(108, 92, 231, 0.22), transparent),
-    radial-gradient(ellipse 40% 35% at 80% 10%, rgba(72, 52, 184, 0.12), transparent);
+    radial-gradient(ellipse 60% 50% at 50% -10%, var(--accent-halo), transparent),
+    radial-gradient(ellipse 40% 35% at 80% 10%, var(--accent-halo-deep), transparent);
 }
 .hero h1 {
   font-size: clamp(34px, 5.5vw, 58px);
@@ -191,7 +212,7 @@ button { font-family: inherit; }
   margin: 0 auto 20px;
 }
 .hero h1 .grad {
-  background: linear-gradient(120deg, var(--accent-bright), #b3a7ff 60%, #7ee0c0);
+  background: linear-gradient(120deg, var(--accent-bright), var(--accent-soft) 60%, var(--accent-contrast));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -221,7 +242,7 @@ button { font-family: inherit; }
 .step-num {
   width: 44px; height: 44px; margin: 0 auto 16px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), #4834b8);
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
   display: flex; align-items: center; justify-content: center;
   font-weight: 800; font-size: 18px; color: #fff;
 }
@@ -253,7 +274,7 @@ button { font-family: inherit; }
 
 .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 340px)); gap: 24px; justify-content: center; }
 .price-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; padding: 32px; position: relative; }
-.price-card.featured { border-color: var(--accent); box-shadow: 0 0 40px rgba(108, 92, 231, 0.15); }
+.price-card.featured { border-color: var(--accent); box-shadow: 0 0 40px var(--accent-tint); }
 .price-card .plan-name { font-size: 15px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
 .price-card .price { font-size: 44px; font-weight: 800; margin: 10px 0 4px; }
 .price-card .price span { font-size: 16px; font-weight: 500; color: var(--text-faint); }
@@ -325,7 +346,7 @@ select.input { appearance: none; cursor: pointer; }
   font-size: 14px; cursor: pointer; border-radius: 6px; text-align: left;
 }
 .pa-channel:hover { background: var(--bg-hover); }
-.pa-channel.active { background: rgba(108, 92, 231, 0.18); color: var(--accent-bright); }
+.pa-channel.active { background: var(--accent-tint); color: var(--accent-bright); }
 .pa-channel img { width: 28px; height: 28px; object-fit: contain; border-radius: 4px; background: var(--bg); flex-shrink: 0; }
 .pa-channel .ph { width: 28px; height: 28px; border-radius: 4px; background: var(--bg-elev-2); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text-faint); flex-shrink: 0; }
 .pa-channel .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -343,7 +364,7 @@ select.input { appearance: none; cursor: pointer; }
 .pa-video-overlay {
   position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px;
-  background: radial-gradient(ellipse at center, rgba(108,92,231,0.08), transparent 70%);
+  background: radial-gradient(ellipse at center, var(--accent-tint-soft), transparent 70%);
 }
 .pa-video-overlay h2 { font-size: 22px; font-weight: 700; }
 .pa-video-overlay p { color: var(--text-dim); max-width: 460px; font-size: 14.5px; }
@@ -447,12 +468,12 @@ select.input { appearance: none; cursor: pointer; }
   outline: 4px solid var(--accent-bright) !important;
   outline-offset: 3px;
   border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 8px rgba(108, 92, 231, 0.25) !important;
+  box-shadow: 0 0 0 8px var(--accent-tint-strong) !important;
 }
 .tv-mode .pa-channel:focus,
 .tv-mode .pa-card:focus,
 .tv-mode .pa-episode:focus {
-  background: rgba(108, 92, 231, 0.28);
+  background: var(--accent-tint-strong);
   transform: scale(1.02);
 }
 .tv-mode .pa-card:focus { transform: scale(1.06); z-index: 2; position: relative; }
@@ -516,7 +537,7 @@ select.input { appearance: none; cursor: pointer; }
   justify-content: center;
   align-items: center;
   padding: 12px 56px;
-  background: linear-gradient(to top, rgba(10, 12, 18, 0.96), transparent);
+  background: linear-gradient(to top, var(--bg-fade), transparent);
   font-size: 15px;
   color: var(--text-dim);
   pointer-events: none;
@@ -566,16 +587,16 @@ select.input { appearance: none; cursor: pointer; }
   background: var(--bg-elev-2); color: var(--text-faint); border-radius: 999px;
   padding: 1px 8px; font-size: 12px; font-weight: 700;
 }
-.panel-tab.active .panel-tab-count { background: rgba(108,92,231,0.2); color: var(--accent-bright); }
+.panel-tab.active .panel-tab-count { background: var(--accent-tint); color: var(--accent-bright); }
 
 .domain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
 .domain-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
 .domain-card-head { display: flex; align-items: center; gap: 12px; }
 .domain-lock {
   width: 38px; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center;
-  background: rgba(255, 184, 77, 0.15); font-size: 17px; flex-shrink: 0;
+  background: var(--warning-tint); font-size: 17px; flex-shrink: 0;
 }
-.domain-lock.secure { background: rgba(46, 204, 143, 0.15); }
+.domain-lock.secure { background: var(--success-tint); }
 .domain-host { font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .domain-meta { font-size: 13px; color: var(--text-faint); }
 .domain-card-foot {
