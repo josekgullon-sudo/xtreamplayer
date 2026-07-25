@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import AdSlot from "@/components/AdSlot";
+import Icon from "@/components/Icon";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -74,7 +75,7 @@ export default function HomePage() {
             </p>
             <div className="hero-cta">
               <Link href="/player" className="btn btn-primary btn-lg">
-                ▶ Reproducir mi lista ahora
+                <><Icon name="play" size={18} /> Reproducir mi lista ahora</>
               </Link>
               <Link href="/registro" className="btn btn-ghost btn-lg">
                 Crear cuenta gratis
@@ -120,47 +121,47 @@ export default function HomePage() {
             </p>
             <div className="features-grid">
               <div className="feature-card">
-                <div className="feature-icon">📡</div>
+                <div className="feature-icon"><Icon name="list" size={22} /></div>
                 <h3>Xtream Codes completo</h3>
                 <p>TV en directo, películas y series con carátulas, categorías y ficha de cada título. También puedes pegar tu URL get.php y detectamos las credenciales solos.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">📋</div>
+                <div className="feature-icon"><Icon name="list" size={22} /></div>
                 <h3>Listas M3U y M3U8</h3>
                 <p>Parser tolerante que entiende listas gigantes y mal formadas, con grupos, logos y EPG-ID. Si tu lista funciona en VLC, funciona aquí.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">⚡</div>
+                <div className="feature-icon"><Icon name="sparkle" size={22} /></div>
                 <h3>Zapping instantáneo</h3>
                 <p>Cambia de canal con las flechas del teclado, busca en milisegundos entre miles de canales y vuelve a lo último que viste con un clic.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">🛰️</div>
+                <div className="feature-icon"><Icon name="globe" size={22} /></div>
                 <h3>EPG integrada</h3>
                 <p>Consulta qué están echando ahora y qué viene después en cada canal, directamente desde tu proveedor Xtream.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">🔒</div>
+                <div className="feature-icon"><Icon name="lock" size={22} /></div>
                 <h3>Privacidad primero</h3>
                 <p>Modo invitado real: tus listas y credenciales se guardan en tu navegador, no en nuestros servidores. Tú decides si quieres cuenta.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">🧩</div>
+                <div className="feature-icon"><Icon name="shield" size={22} /></div>
                 <h3>Compatibilidad automática</h3>
                 <p>Si un stream falla por CORS o formato, lo reintentamos automáticamente con nuestro motor de compatibilidad. Menos pantallas negras, más tele.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">☁️</div>
+                <div className="feature-icon"><Icon name="globe" size={22} /></div>
                 <h3>Tus listas en la nube</h3>
                 <p>Con una cuenta gratuita, tus listas te siguen a cualquier dispositivo: portátil, móvil, tablet o la tele del salón.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">⭐</div>
+                <div className="feature-icon"><Icon name="check" size={22} /></div>
                 <h3>Favoritos e historial</h3>
                 <p>Marca tus canales de siempre y retoma lo último que estabas viendo. Todo sincronizado y sin esfuerzo.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">📱</div>
+                <div className="feature-icon"><Icon name="device" size={22} /></div>
                 <h3>Multiplataforma real</h3>
                 <p>Un navegador es todo lo que necesitas: PC, Mac, Linux, Android, iPhone o Smart TV. Siempre actualizado.</p>
               </div>
@@ -217,7 +218,7 @@ export default function HomePage() {
             <h2 className="section-title">¿Listo para ver tu lista?</h2>
             <p className="section-sub">Gratis, al momento y desde cualquier dispositivo.</p>
             <Link href="/player" className="btn btn-primary btn-lg">
-              ▶ Abrir el reproductor
+              <><Icon name="play" size={18} /> Abrir el reproductor</>
             </Link>
           </div>
         </section>

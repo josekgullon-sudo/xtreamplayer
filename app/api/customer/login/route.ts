@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getDb, CustomerRow, ProviderRow } from "@/lib/db";
-import { setCustomerCookie, registerDevice, getProviderStatus } from "@/lib/provider";
+import { setCustomerCookie, registerDevice, getProviderStatus, recordLogin, clientIp } from "@/lib/provider";
 
 export const dynamic = "force-dynamic";
 
@@ -66,10 +66,15 @@ export async function POST(req: NextRequest) {
   const deviceKey = (body.deviceKey || "").trim().slice(0, 128);
   if (!deviceKey) return NextResponse.json({ error: "Falta el identificador del dispositivo" }, { status: 400 });
 
-  const check = registerDevice(customer, deviceKey, (body.platform || "web").slice(0, 40));
+  const platform = (body.platform || "web").slice(0, 40);
+  const ip = clientIp(req.headers);
+
+  const check = registerDevice(customer, deviceKey, platform, ip);
   if (!check.allowed) {
+    recordLogin(customer.id, deviceKey, platform, ip, false);
     return NextResponse.json({ error: check.reason, devicesUsed: check.used, devicesMax: check.max }, { status: 403 });
   }
+  recordLogin(customer.id, deviceKey, platform, ip, true);
 
   await setCustomerCookie(customer.id);
   return NextResponse.json({

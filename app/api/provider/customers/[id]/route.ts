@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getDb, CustomerRow } from "@/lib/db";
-import { getPanelActor, customerScopeClause } from "@/lib/provider";
+import { getDb, CustomerRow, DeviceRow, CustomerLoginRow } from "@/lib/db";
+import { getPanelActor, customerScopeClause, resolveCustomerPlaylist } from "@/lib/provider";
+import { encryptSecret, decryptSecret } from "@/lib/secretBox";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,62 @@ async function ownedCustomer(id: string) {
   return { customer: row };
 }
 
+/** Ficha completa del cliente: credenciales, dispositivos e historial de accesos. */
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const found = await ownedCustomer(id);
+  if (found.error) return found.error;
+  const c = found.customer!;
+  const db = getDb();
+
+  const devices = db
+    .prepare("SELECT * FROM devices WHERE customer_id = ? ORDER BY last_seen DESC")
+    .all(c.id) as DeviceRow[];
+  const logins = db
+    .prepare("SELECT * FROM customer_logins WHERE customer_id = ? ORDER BY created_at DESC LIMIT 25")
+    .all(c.id) as CustomerLoginRow[];
+  const playlist = resolveCustomerPlaylist(c);
+
+  return NextResponse.json({
+    customer: {
+      id: c.id,
+      username: c.username,
+      // Se guarda cifrada aparte del hash para poder mostrarla al proveedor
+      password: decryptSecret(c.password_box),
+      label: c.label,
+      status: c.status,
+      createdAt: c.created_at,
+      expiresAt: c.expires_at,
+      lastSeen: c.last_seen,
+      maxDevices: c.max_devices,
+      resellerId: c.reseller_id,
+    },
+    playlist: {
+      type: playlist.type,
+      url: playlist.url,
+      username: playlist.username,
+      password: playlist.password,
+      domainId: c.domain_id,
+    },
+    devices: devices.map((d) => ({
+      id: d.id,
+      key: d.device_key,
+      platform: d.platform,
+      ip: d.ip,
+      name: d.name,
+      firstSeen: d.first_seen,
+      lastSeen: d.last_seen,
+    })),
+    logins: logins.map((l) => ({
+      id: l.id,
+      platform: l.platform,
+      ip: l.ip,
+      ok: l.ok === 1,
+      at: l.created_at,
+    })),
+  });
+}
+
 /** Editar cliente: contraseña, estado, dispositivos, lista o caducidad. */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,6 +87,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     label?: string;
     expiresAt?: number;
     resetDevices?: boolean;
+    removeDevice?: number;
   };
   try {
     body = await req.json();
@@ -43,8 +101,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.password) {
     if (body.password.length < 4)
       return NextResponse.json({ error: "La contraseña debe tener al menos 4 caracteres" }, { status: 400 });
-    db.prepare("UPDATE customers SET password_hash = ? WHERE id = ?").run(
+    db.prepare("UPDATE customers SET password_hash = ?, password_box = ? WHERE id = ?").run(
       await bcrypt.hash(body.password, 10),
+      encryptSecret(body.password),
       customer.id
     );
   }
@@ -64,6 +123,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // Liberar dispositivos: el cliente cambió de tele o agotó el cupo
   if (body.resetDevices) {
     db.prepare("DELETE FROM devices WHERE customer_id = ?").run(customer.id);
+  }
+  if (typeof body.removeDevice === "number") {
+    db.prepare("DELETE FROM devices WHERE id = ? AND customer_id = ?").run(body.removeDevice, customer.id);
   }
 
   const row = db.prepare("SELECT * FROM customers WHERE id = ?").get(customer.id) as CustomerRow;

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Icon from "@/components/Icon";
+import CustomerDetail from "./CustomerDetail";
 import { useCallback, useEffect, useState } from "react";
 
 interface Customer {
@@ -94,6 +96,7 @@ export default function ProviderPanel() {
   const [showReseller, setShowReseller] = useState<Reseller | "new" | null>(null);
   const [createdReseller, setCreatedReseller] = useState<{ email: string; password: string } | null>(null);
   const [search, setSearch] = useState("");
+  const [detailId, setDetailId] = useState<number | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [showDomain, setShowDomain] = useState<Domain | "new" | null>(null);
   const [showImport, setShowImport] = useState(false);
@@ -179,6 +182,7 @@ export default function ProviderPanel() {
   // abierto mientras un revendedor da de alta clientes por su cuenta.
   useEffect(() => {
     if (!loaded) return;
+    if (tab !== "clientes") setDetailId(null);
     if (tab === "clientes") loadCustomers(search);
     else if (tab === "dominios") loadDomains();
     else if (tab === "revendedores") loadResellers();
@@ -442,7 +446,7 @@ export default function ProviderPanel() {
           className={`panel-nav-item ${tab === "clientes" ? "active" : ""}`}
           onClick={() => setTab("clientes")}
         >
-          <span className="panel-nav-icon">👥</span> Clientes
+          <Icon name="users" size={17} className="panel-nav-icon" /> Clientes
           <span className="panel-nav-count">{customers.length}</span>
         </button>
         {perms?.manageResellers && (
@@ -450,7 +454,7 @@ export default function ProviderPanel() {
             className={`panel-nav-item ${tab === "revendedores" ? "active" : ""}`}
             onClick={() => setTab("revendedores")}
           >
-            <span className="panel-nav-icon">🤝</span> Revendedores
+            <Icon name="handshake" size={17} className="panel-nav-icon" /> Revendedores
             <span className="panel-nav-count">{resellers.length}</span>
           </button>
         )}
@@ -463,7 +467,7 @@ export default function ProviderPanel() {
                 className={`panel-nav-item ${tab === "dominios" ? "active" : ""}`}
                 onClick={() => setTab("dominios")}
               >
-                <span className="panel-nav-icon">🌐</span> Dominios
+                <Icon name="globe" size={17} className="panel-nav-icon" /> Dominios
                 <span className="panel-nav-count">{domains.length}</span>
               </button>
             )}
@@ -472,7 +476,7 @@ export default function ProviderPanel() {
                 className={`panel-nav-item ${tab === "marca" ? "active" : ""}`}
                 onClick={() => setTab("marca")}
               >
-                <span className="panel-nav-icon">✨</span> Mi marca
+                <Icon name="sparkle" size={17} className="panel-nav-icon" /> Mi marca
               </button>
             )}
           </>
@@ -482,17 +486,17 @@ export default function ProviderPanel() {
           <>
             <div className="panel-nav-group">Facturación</div>
             <button className={`panel-nav-item ${tab === "plan" ? "active" : ""}`} onClick={() => setTab("plan")}>
-              <span className="panel-nav-icon">💳</span> Plan
+              <Icon name="card" size={17} className="panel-nav-icon" /> Plan
             </button>
           </>
         )}
 
         <div className="panel-nav-foot">
           <Link href="/player" className="panel-nav-item">
-            <span className="panel-nav-icon">▶</span> Ver reproductor
+            <Icon name="play" size={17} className="panel-nav-icon" /> Ver reproductor
           </Link>
           <button className="panel-nav-item" onClick={logout}>
-            <span className="panel-nav-icon">⏻</span> Salir
+            <Icon name="power" size={17} className="panel-nav-icon" /> Salir
           </button>
         </div>
       </aside>
@@ -648,7 +652,7 @@ export default function ProviderPanel() {
               clientes o todos, y si acceden a tus dominios, solo al nombre o a nada.
             </p>
             <button className="btn btn-primary" onClick={() => setShowReseller("new")}>
-              + Nuevo revendedor
+              <Icon name="plus" size={16} /> Nuevo revendedor
             </button>
           </div>
 
@@ -795,7 +799,7 @@ export default function ProviderPanel() {
                       className="logo-mark"
                       style={branding.color ? { background: branding.color, boxShadow: "none" } : undefined}
                     >
-                      ▶
+                      <Icon name="play" size={16} />
                     </span>
                   )}
                   <strong style={{ fontSize: 18 }}>{branding.name || "Tu marca"}</strong>
@@ -824,7 +828,7 @@ export default function ProviderPanel() {
               pasarán al nuevo destino automáticamente.</strong>
             </p>
             <button className="btn btn-primary" onClick={() => setShowDomain("new")}>
-              + Añadir dominio
+              <Icon name="plus" size={16} /> Añadir dominio
             </button>
           </div>
 
@@ -834,7 +838,7 @@ export default function ProviderPanel() {
                 Aún no tienes dominios. Añade el primero y darás de alta clientes en segundos.
               </p>
               <button className="btn btn-primary" onClick={() => setShowDomain("new")}>
-                + Añadir mi primer dominio
+                <Icon name="plus" size={16} /> Añadir mi primer dominio
               </button>
             </div>
           ) : (
@@ -843,7 +847,7 @@ export default function ProviderPanel() {
                 <div className="domain-card" key={d.id}>
                   <div className="domain-card-head">
                     <span className={`domain-lock ${d.protocol === "https" ? "secure" : ""}`}>
-                      {d.protocol === "https" ? "🔒" : "🔓"}
+                      <Icon name={d.protocol === "https" ? "lock" : "unlock"} size={17} />
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="domain-host">{d.host}</div>
@@ -851,11 +855,11 @@ export default function ProviderPanel() {
                         Puerto {d.port} · {(d.protocol ?? "http").toUpperCase()}
                       </div>
                     </div>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setShowDomain(d)} title="Editar">
-                      ✎
+                    <button className="btn btn-ghost btn-sm" onClick={() => setShowDomain(d)} title="Editar" aria-label="Editar dominio">
+                      <Icon name="pencil" size={15} />
                     </button>
-                    <button className="btn btn-danger btn-sm" onClick={() => removeDomain(d)} title="Eliminar">
-                      🗑
+                    <button className="btn btn-danger btn-sm" onClick={() => removeDomain(d)} title="Eliminar" aria-label="Eliminar dominio">
+                      <Icon name="trash" size={15} />
                     </button>
                   </div>
                   <div className="domain-card-foot">
@@ -871,8 +875,17 @@ export default function ProviderPanel() {
         </>
       )}
 
+      {/* Ficha de un cliente */}
+      {tab === "clientes" && detailId !== null && (
+        <CustomerDetail
+          customerId={detailId}
+          onBack={() => setDetailId(null)}
+          onChanged={() => loadCustomers(search)}
+        />
+      )}
+
       {/* Clientes */}
-      {tab === "clientes" && (
+      {tab === "clientes" && detailId === null && (
       <>
       <div className="panel-toolbar">
         <input
@@ -884,10 +897,10 @@ export default function ProviderPanel() {
         />
         <div style={{ display: "flex", gap: 10 }}>
           <button className="btn btn-ghost" onClick={() => { setImportPreview(null); setShowImport(true); }}>
-            ⇪ Importar
+            <Icon name="upload" size={16} /> Importar
           </button>
           <button className="btn btn-primary" onClick={() => setShowNew(true)}>
-            + Nuevo cliente
+            <Icon name="plus" size={16} /> Nuevo cliente
           </button>
         </div>
       </div>
@@ -915,7 +928,11 @@ export default function ProviderPanel() {
             )}
             {customers.map((c) => (
               <tr key={c.id}>
-                <td><strong>{c.username}</strong></td>
+                <td>
+                  <button className="link-btn" onClick={() => setDetailId(c.id)}>
+                    {c.username}
+                  </button>
+                </td>
                 <td>{c.label || "—"}</td>
                 <td><span className="badge badge-accent">{c.playlistType === "xtream" ? "Xtream" : "M3U"}</span></td>
                 <td>

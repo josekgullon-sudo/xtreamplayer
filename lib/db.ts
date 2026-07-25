@@ -94,6 +94,9 @@ export interface CustomerRow {
   domain_id: number;
   /** 0 = dado de alta por el propio proveedor; si no, el revendedor que lo creó */
   reseller_id: number;
+  /** Contraseña de acceso cifrada, para poder consultarla desde el panel */
+  password_box: string;
+  last_seen: number;
   max_devices: number;
   expires_at: number;
   status: string;
@@ -128,6 +131,18 @@ export interface DeviceRow {
   customer_id: number;
   device_key: string;
   platform: string;
+  ip: string;
+  name: string;
   first_seen: number;
   last_seen: number;
+}
+
+export interface CustomerLoginRow {
+  id: number;
+  customer_id: number;
+  device_key: string;
+  platform: string;
+  ip: string;
+  ok: number;
+  created_at: number;
 }

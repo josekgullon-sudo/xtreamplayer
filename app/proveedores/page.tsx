@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import Icon from "@/components/Icon";
 import { listPlans } from "@/lib/provider";
 
 export const metadata: Metadata = {
@@ -73,32 +74,32 @@ export default function ProvidersPage() {
             <h2 className="section-title">Todo lo que incluye tu cuenta</h2>
             <div className="features-grid">
               <div className="feature-card">
-                <div className="feature-icon">👥</div>
+                <div className="feature-icon"><Icon name="users" size={22} /></div>
                 <h3>Gestión de clientes</h3>
                 <p>Alta, baja, cambio de contraseña, activar y desactivar al instante. Búsqueda inmediata entre miles.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">📱</div>
+                <div className="feature-icon"><Icon name="device" size={22} /></div>
                 <h3>Control de dispositivos</h3>
                 <p>Decide cuántas pantallas puede usar cada cliente y libéralas cuando cambie de televisor.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">📺</div>
+                <div className="feature-icon"><Icon name="tv" size={22} /></div>
                 <h3>Web y televisores</h3>
                 <p>El mismo acceso funciona en navegador, móvil y Smart TV con navegación por mando a distancia.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">🎬</div>
+                <div className="feature-icon"><Icon name="play" size={22} /></div>
                 <h3>Directo, cine y series</h3>
                 <p>Soporte completo de la API Xtream con carátulas, categorías, temporadas y EPG. También listas M3U.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">⚡</div>
+                <div className="feature-icon"><Icon name="sparkle" size={22} /></div>
                 <h3>Menos incidencias</h3>
                 <p>Motor de compatibilidad que reintenta solo cuando un canal falla. Menos mensajes de «no me va».</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon">📈</div>
+                <div className="feature-icon"><Icon name="check" size={22} /></div>
                 <h3>Creces sin fricción</h3>
                 <p>Cambias de tramo cuando lo necesitas. Pagas por capacidad, no por activación individual.</p>
               </div>

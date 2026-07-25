@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import Icon from "./Icon";
 import CustomerLoginForm from "./CustomerLoginForm";
 import ProviderAuthForm from "./provider/ProviderAuthForm";
 
@@ -23,7 +24,7 @@ export default function AccessChooser({ initial = "cliente" }: { initial?: "clie
             className={`access-tab ${tab === "cliente" ? "active" : ""}`}
             onClick={() => setTab("cliente")}
           >
-            <span className="access-tab-icon">📺</span>
+            <Icon name="tv" size={20} className="access-tab-icon" />
             <span>
               <strong>Soy cliente</strong>
               <small>Tengo un usuario de mi proveedor</small>
@@ -35,7 +36,7 @@ export default function AccessChooser({ initial = "cliente" }: { initial?: "clie
             className={`access-tab ${tab === "proveedor" ? "active" : ""}`}
             onClick={() => setTab("proveedor")}
           >
-            <span className="access-tab-icon">🏢</span>
+            <Icon name="building" size={20} className="access-tab-icon" />
             <span>
               <strong>Soy proveedor</strong>
               <small>Gestiono clientes y revendedores</small>

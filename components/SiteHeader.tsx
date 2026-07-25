@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTvMode } from "./TvModeProvider";
+import Icon from "./Icon";
 
 export default function SiteHeader() {
   const [email, setEmail] = useState<string | null>(null);
@@ -27,7 +28,7 @@ export default function SiteHeader() {
     <header className="site-header">
       <div className="container">
         <Link href="/" className="logo">
-          <span className="logo-mark">▶</span>
+          <span className="logo-mark"><Icon name="play" size={15} /></span>
           TOTALplayer
         </Link>
         <nav className="nav-links" aria-label="Navegación principal">
@@ -43,7 +44,7 @@ export default function SiteHeader() {
               onClick={() => setTvMode(true)}
               title="Interfaz grande con navegación por mando"
             >
-              📺 Modo TV
+              <><Icon name="tv" size={15} /> Modo TV</>
             </button>
           )}
           {loaded && email ? (

@@ -226,7 +226,12 @@ export interface DeviceCheck {
  * Registra el dispositivo si hay cupo. En TV la clave es la MAC;
  * en web, un UUID persistente del navegador.
  */
-export function registerDevice(customer: CustomerRow, deviceKey: string, platform: string): DeviceCheck {
+export function registerDevice(
+  customer: CustomerRow,
+  deviceKey: string,
+  platform: string,
+  ip = ""
+): DeviceCheck {
   const db = getDb();
   const now = Date.now();
 
@@ -234,18 +239,21 @@ export function registerDevice(customer: CustomerRow, deviceKey: string, platfor
     .prepare("SELECT * FROM devices WHERE customer_id = ? AND device_key = ?")
     .get(customer.id, deviceKey) as { id: number } | undefined;
 
+  const countDevices = () =>
+    (db.prepare("SELECT COUNT(*) AS c FROM devices WHERE customer_id = ?").get(customer.id) as { c: number }).c;
+
   if (existing) {
-    db.prepare("UPDATE devices SET last_seen = ?, platform = ? WHERE id = ?").run(now, platform, existing.id);
-    const used = (
-      db.prepare("SELECT COUNT(*) AS c FROM devices WHERE customer_id = ?").get(customer.id) as { c: number }
-    ).c;
-    return { allowed: true, used, max: customer.max_devices };
+    db.prepare("UPDATE devices SET last_seen = ?, platform = ?, ip = ? WHERE id = ?").run(
+      now,
+      platform,
+      ip,
+      existing.id
+    );
+    db.prepare("UPDATE customers SET last_seen = ? WHERE id = ?").run(now, customer.id);
+    return { allowed: true, used: countDevices(), max: customer.max_devices };
   }
 
-  const used = (
-    db.prepare("SELECT COUNT(*) AS c FROM devices WHERE customer_id = ?").get(customer.id) as { c: number }
-  ).c;
-
+  const used = countDevices();
   if (used >= customer.max_devices) {
     return {
       allowed: false,
@@ -256,10 +264,39 @@ export function registerDevice(customer: CustomerRow, deviceKey: string, platfor
   }
 
   db.prepare(
-    "INSERT INTO devices (customer_id, device_key, platform, first_seen, last_seen) VALUES (?, ?, ?, ?, ?)"
-  ).run(customer.id, deviceKey, platform, now, now);
+    "INSERT INTO devices (customer_id, device_key, platform, ip, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?)"
+  ).run(customer.id, deviceKey, platform, ip, now, now);
+  db.prepare("UPDATE customers SET last_seen = ? WHERE id = ?").run(now, customer.id);
 
   return { allowed: true, used: used + 1, max: customer.max_devices };
+}
+
+/** Deja constancia del intento de acceso, para el historial del panel. */
+export function recordLogin(
+  customerId: number,
+  deviceKey: string,
+  platform: string,
+  ip: string,
+  ok: boolean
+): void {
+  const db = getDb();
+  db.prepare(
+    "INSERT INTO customer_logins (customer_id, device_key, platform, ip, ok, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+  ).run(customerId, deviceKey.slice(0, 128), platform.slice(0, 40), ip.slice(0, 64), ok ? 1 : 0, Date.now());
+
+  // Historial acotado: nos quedamos con los 50 accesos más recientes
+  db.prepare(
+    `DELETE FROM customer_logins WHERE customer_id = ? AND id NOT IN (
+       SELECT id FROM customer_logins WHERE customer_id = ? ORDER BY created_at DESC LIMIT 50
+     )`
+  ).run(customerId, customerId);
+}
+
+/** IP del cliente detrás del proxy inverso. */
+export function clientIp(headers: Headers): string {
+  const forwarded = headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim().slice(0, 64);
+  return (headers.get("x-real-ip") || "").slice(0, 64);
 }
 
 export function isValidUsername(username: string): boolean {

@@ -10,6 +10,7 @@ import {
   resellerCustomerCount,
 } from "@/lib/provider";
 import { normalizeBase, parseXtreamUrl } from "@/lib/xtream";
+import { encryptSecret } from "@/lib/secretBox";
 
 export const dynamic = "force-dynamic";
 
@@ -207,15 +208,16 @@ export async function POST(req: NextRequest) {
   const result = db
     .prepare(
       `INSERT INTO customers
-       (provider_id, reseller_id, username, password_hash, label, playlist_type, playlist_url,
+       (provider_id, reseller_id, username, password_hash, password_box, label, playlist_type, playlist_url,
         playlist_username, playlist_password, domain_id, max_devices, expires_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       provider.id,
       actor.reseller?.id ?? 0,
       username,
       hash,
+      encryptSecret(password),
       (body.label || "").trim().slice(0, 120),
       type,
       url,

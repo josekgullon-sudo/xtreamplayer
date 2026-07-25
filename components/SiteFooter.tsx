@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Icon from "./Icon";
 
 export default function SiteFooter() {
   return (
@@ -7,7 +8,7 @@ export default function SiteFooter() {
         <div className="footer-grid">
           <div className="footer-col" style={{ maxWidth: 300 }}>
             <div className="logo" style={{ marginBottom: 12 }}>
-              <span className="logo-mark">▶</span> TOTALplayer
+              <span className="logo-mark"><Icon name="play" size={15} /></span> TOTALplayer
             </div>
             <p style={{ fontSize: 13.5, color: "var(--text-faint)" }}>
               El reproductor IPTV web más rápido para Xtream Codes y listas M3U. Sin instalaciones, sin

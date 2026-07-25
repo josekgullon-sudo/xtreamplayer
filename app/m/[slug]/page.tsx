@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getDb, ProviderRow } from "@/lib/db";
 import { brandingOf, brandCssVars } from "@/lib/branding";
 import CustomerLoginForm from "@/components/CustomerLoginForm";
+import Icon from "@/components/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ export default async function BrandedAccessPage({ params }: { params: Promise<{ 
               // eslint-disable-next-line @next/next/no-img-element
               <img src={brand.logo} alt={brand.name} style={{ height: 30, width: "auto", borderRadius: 6 }} />
             ) : (
-              <span className="logo-mark">▶</span>
+              <span className="logo-mark"><Icon name="play" size={15} /></span>
             )}
             {brand.name}
           </span>

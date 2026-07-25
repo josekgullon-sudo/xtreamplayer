@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Icon from "@/components/Icon";
 import VideoPlayer, { PlaySource } from "./VideoPlayer";
 import AddPlaylistModal from "./AddPlaylistModal";
 import AdSlot from "@/components/AdSlot";
@@ -569,7 +570,7 @@ export default function PlayerApp() {
             </button>
             {active && !active.managed && (
               <button className="btn btn-danger btn-sm" onClick={() => handleDeletePlaylist(active)} title="Eliminar lista">
-                🗑
+                <Icon name="trash" size={14} />
               </button>
             )}
           </div>
@@ -589,15 +590,15 @@ export default function PlayerApp() {
                   </button>
                 </>
               )}
-              <button role="tab" aria-selected={tab === "favs"} className={`pa-tab ${tab === "favs" ? "active" : ""}`} onClick={() => setTab("favs")}>
-                ★
+              <button role="tab" aria-selected={tab === "favs"} className={`pa-tab ${tab === "favs" ? "active" : ""}`} onClick={() => setTab("favs")} title="Favoritos" aria-label="Favoritos">
+                <Icon name="check" size={15} />
               </button>
             </div>
           )}
 
           {active && (
             <div className="pa-search">
-              <span className="pa-search-icon">🔎</span>
+              <Icon name="search" size={15} className="pa-search-icon" />
               <input
                 ref={searchRef}
                 className="input"
@@ -616,7 +617,7 @@ export default function PlayerApp() {
               Añade tu primera lista M3U o Xtream Codes para empezar.
               <div style={{ marginTop: 12 }}>
                 <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
-                  + Añadir lista
+                  <><Icon name="plus" size={15} /> Añadir lista</>
                 </button>
               </div>
             </div>
@@ -659,7 +660,7 @@ export default function PlayerApp() {
                           {ch.logo ? (
                             <img src={ch.logo} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
                           ) : (
-                            <span className="ph">▶</span>
+                            <span className="ph"><Icon name="play" size={13} /></span>
                           )}
                           <span className="name">{ch.name}</span>
                           <span
@@ -678,7 +679,7 @@ export default function PlayerApp() {
                               }
                             }}
                           >
-                            ★
+                            <Icon name="check" size={13} />
                           </span>
                         </button>
                       ))}
@@ -753,7 +754,7 @@ export default function PlayerApp() {
                 onClick={() => onToggleFav(current.favKey!)}
                 title="Añadir a favoritos"
               >
-                {favorites[current.favKey] ? "★ Favorito" : "☆ Favorito"}
+                <><Icon name="check" size={14} /> {favorites[current.favKey] ? "En favoritos" : "Añadir a favoritos"}</>
               </button>
             )}
           </div>
@@ -768,7 +769,7 @@ export default function PlayerApp() {
                 directamente en el navegador.
               </p>
               <button className="btn btn-primary btn-lg" onClick={() => setShowAdd(true)}>
-                + Añadir mi primera lista
+                <><Icon name="plus" size={17} /> Añadir mi primera lista</>
               </button>
               {recents.length > 0 && (
                 <>
@@ -776,7 +777,7 @@ export default function PlayerApp() {
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
                     {recents.slice(0, 6).map((r) => (
                       <button key={r.key} className="btn btn-ghost btn-sm" onClick={() => playRecent(r)}>
-                        ▶ {r.name}
+                        <><Icon name="play" size={13} /> {r.name}</>
                       </button>
                     ))}
                   </div>
@@ -799,7 +800,7 @@ export default function PlayerApp() {
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
                   {recents.slice(0, 6).map((r) => (
                     <button key={r.key} className="btn btn-ghost btn-sm" onClick={() => playRecent(r)}>
-                      ▶ {r.name}
+                      <><Icon name="play" size={13} /> {r.name}</>
                     </button>
                   ))}
                 </div>
@@ -816,9 +817,9 @@ export default function PlayerApp() {
                 {vodVisible.slice(0, 400).map((v) => (
                   <button className="pa-card" key={v.stream_id} onClick={() => playVod(active, v)} title={v.name}>
                     {v.stream_icon ? (
-                      <img className="poster" src={v.stream_icon} alt={v.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">🎬</div>')} />
+                      <img className="poster" src={v.stream_icon} alt={v.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
                     ) : (
-                      <div className="poster-ph">🎬</div>
+                      <div className="poster-ph"><Icon name="play" size={26} /></div>
                     )}
                     <div className="meta">
                       <div className="title">{v.name}</div>
@@ -842,9 +843,9 @@ export default function PlayerApp() {
                 {seriesVisible.slice(0, 400).map((s) => (
                   <button className="pa-card" key={s.series_id} onClick={() => openSeries(active, s)} title={s.name}>
                     {s.cover ? (
-                      <img className="poster" src={s.cover} alt={s.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">📺</div>')} />
+                      <img className="poster" src={s.cover} alt={s.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
                     ) : (
-                      <div className="poster-ph">📺</div>
+                      <div className="poster-ph"><Icon name="tv" size={26} /></div>
                     )}
                     <div className="meta">
                       <div className="title">{s.name}</div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTvMode } from "./TvModeProvider";
+import Icon from "./Icon";
 
 /** Guía de mando fija en la parte inferior (solo visible en modo TV). */
 export default function TvHint() {
@@ -19,7 +20,7 @@ export default function TvHint() {
         <span className="kbd">↩</span> Atrás
       </span>
       <span>
-        <span className="kbd">▶❚❚</span> Play / Pausa
+        <span className="kbd"><Icon name="play" size={11} style={{ verticalAlign: "-1px" }} /></span> Play / Pausa
       </span>
       <button
         className="btn btn-ghost btn-sm"

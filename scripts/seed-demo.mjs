@@ -11,6 +11,7 @@ import bcrypt from "bcryptjs";
 import path from "path";
 import fs from "fs";
 import { applySchema } from "../lib/schema.mjs";
+import { encryptSecret } from "./secretBox.mjs";
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -82,13 +83,17 @@ const NOMBRES = [
 const PACKS = ["pack anual", "pack 6 meses", "mensual", "prueba 7 días", "anual + adulto"];
 
 const insertCustomer = db.prepare(
-  `INSERT INTO customers (provider_id, reseller_id, username, password_hash, label, playlist_type,
-    playlist_url, playlist_username, playlist_password, domain_id, max_devices, expires_at, status, created_at)
-   VALUES (?, ?, ?, ?, ?, 'xtream', '', ?, ?, ?, ?, ?, ?, ?)`
+  `INSERT INTO customers (provider_id, reseller_id, username, password_hash, password_box, label, playlist_type,
+    playlist_url, playlist_username, playlist_password, domain_id, max_devices, expires_at, status, created_at, last_seen)
+   VALUES (?, ?, ?, ?, ?, ?, 'xtream', '', ?, ?, ?, ?, ?, ?, ?, ?)`
 );
 const insertDevice = db.prepare(
-  "INSERT INTO devices (customer_id, device_key, platform, first_seen, last_seen) VALUES (?, ?, ?, ?, ?)"
+  "INSERT INTO devices (customer_id, device_key, platform, ip, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?)"
 );
+const insertLogin = db.prepare(
+  "INSERT INTO customer_logins (customer_id, device_key, platform, ip, ok, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+);
+const IPS = ["93.156.230.183", "77.228.161.224", "88.12.45.9", "212.170.33.201", "83.45.199.10"];
 const PLATAFORMAS = ["web", "samsung", "lg", "firetv", "android", "ios"];
 
 let creados = 0;
@@ -113,6 +118,7 @@ NOMBRES.forEach((nombre, i) => {
       resellerId,
       usuario,
       hash("cliente123"),
+      encryptSecret("cliente123"),
       `${nombre} — ${PACKS[i % PACKS.length]}`,
       `iptv_${usuario}`,
       "pass" + (1000 + i),
@@ -120,7 +126,8 @@ NOMBRES.forEach((nombre, i) => {
       maxDevices,
       caduca,
       estado,
-      now - dias(90 - i * 3)
+      now - dias(90 - i * 3),
+      0
     ).lastInsertRowid
   );
   creados++;
@@ -132,8 +139,28 @@ NOMBRES.forEach((nombre, i) => {
       id,
       `demo-device-${id}-${d}`,
       PLATAFORMAS[(i + d) % PLATAFORMAS.length],
+      IPS[(i + d) % IPS.length],
       now - dias(30),
-      now - dias(i % 7)
+      now - dias(i % 7) - d * 7200_000
+    );
+  }
+
+  // La última conexión del cliente es la de su dispositivo más reciente:
+  // así el resumen y la pestaña de dispositivos cuentan lo mismo.
+  if (usados) {
+    const ultima = now - dias(i % 7);
+    db.prepare("UPDATE customers SET last_seen = ? WHERE id = ?").run(ultima, id);
+  }
+
+  // Historial de accesos, con algún intento rechazado por límite
+  for (let l = 0; l < (usados ? 4 : 0); l++) {
+    insertLogin.run(
+      id,
+      `demo-device-${id}-${l % Math.max(usados, 1)}`,
+      PLATAFORMAS[(i + l) % PLATAFORMAS.length],
+      IPS[(i + l) % IPS.length],
+      l === 3 && i % 4 === 0 ? 0 : 1,
+      now - dias(l) - l * 5400_000
     );
   }
 });
