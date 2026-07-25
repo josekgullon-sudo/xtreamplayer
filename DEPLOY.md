@@ -6,42 +6,89 @@ Esta guía cubre dos cosas: poner TOTALplayer en internet con dominio propio y, 
 
 ## Parte 1 — Poner la web en internet
 
+**Tiempo total: unos 20 minutos.** Necesitas una cuenta de Railway (gratis para empezar) y un dominio.
+
 ### 1. Comprar el dominio
 
 Cualquier registrador sirve (Namecheap, Porkbun, Cloudflare, Dinahosting). Ideas: `totalplayer.app`, `.tv`, `.es`. Coste orientativo: 10–20 €/año.
+
+Puedes saltarte este paso al principio: Railway te da una URL propia (`algo.up.railway.app`) con la que ya puedes enseñárselo a tus proveedores.
 
 ### 2. Desplegar en Railway (recomendado)
 
 El repositorio ya incluye `Dockerfile` y `railway.json`, así que Railway lo detecta solo.
 
-1. Entra en [railway.app](https://railway.app) y regístrate con GitHub.
-2. **New Project → Deploy from GitHub repo →** elige `xtreamplayer`.
-3. **Añade un volumen persistente** (importante: sin él se pierden usuarios y listas en cada despliegue):
-   - Pestaña **Variables → + Volume**
+1. Entra en [railway.app](https://railway.app) y regístrate **con tu cuenta de GitHub**.
+2. **New Project → Deploy from GitHub repo →** elige el repositorio `xtreamplayer`.
+   - En **Settings → Source**, comprueba que la rama sea la que quieres desplegar (`main` una vez fusionado el PR).
+3. **Añade un volumen persistente.** Es el paso más importante: sin él se borran proveedores, clientes y listas en cada despliegue.
+   - **Settings → Volumes → + New Volume**
    - Mount path: `/data`
 4. Configura las variables de entorno (pestaña **Variables**):
 
    | Variable | Valor |
    | --- | --- |
-   | `NEXT_PUBLIC_SITE_URL` | `https://tudominio.com` |
-   | `SESSION_SECRET` | Cadena aleatoria larga — genérala con `openssl rand -hex 32` |
    | `DATA_DIR` | `/data` |
+   | `SESSION_SECRET` | Una cadena aleatoria larga: `openssl rand -hex 32` |
+   | `NEXT_PUBLIC_SITE_URL` | `https://tudominio.com` (o la URL que te dé Railway) |
 
-5. **Settings → Networking → Custom Domain**: añade tu dominio y copia el registro CNAME que te da Railway en el panel DNS de tu registrador. El HTTPS se configura solo.
+   > `SESSION_SECRET` firma las sesiones: si la cambias más adelante, todo el mundo tendrá que volver a entrar. Guárdala en un sitio seguro.
 
-Alternativas equivalentes: Render, Fly.io o un VPS (Hetzner ~4 €/mes) con `docker build` + `docker run -v xp-data:/data -p 3000:3000`.
+5. Railway construye y despliega solo. Cuando termine, **Settings → Networking → Generate Domain** te da una URL pública para probar.
+6. Cuando tengas dominio propio: **Custom Domain**, y copia el registro CNAME que te indique en el panel DNS de tu registrador. El certificado HTTPS se emite solo en unos minutos.
 
-> **No uses Vercel** para esta app tal cual: es serverless, y SQLite y el proxy de streams necesitan un servidor persistente.
+**Comprobación rápida tras el despliegue** — abre en el navegador:
+
+- `/` — debe cargar la portada
+- `/proveedores/registro` — crea tu cuenta de proveedor y verás el panel con la prueba de 7 días
+- Crea un cliente de prueba y entra con sus datos en `/acceso` desde una ventana privada
+
+Alternativas equivalentes: Render, Fly.io o un VPS (Hetzner ~4 €/mes) con `docker build` + `docker run -v tp-data:/data -p 3000:3000`.
+
+> **No uses Vercel** para esta app tal cual: es serverless, y SQLite y el proxy de streams necesitan un servidor persistente con disco.
+
+### 2b. Copias de seguridad
+
+Toda la información (proveedores, clientes, listas) vive en un único fichero: `/data/xtreamplayer.db`. Descárgalo periódicamente:
+
+```bash
+railway run cat /data/xtreamplayer.db > backup-$(date +%F).db
+```
 
 ### 3. Activar los cobros (Stripe)
 
 1. Crea la cuenta en [stripe.com](https://stripe.com) (requiere datos fiscales y cuenta bancaria).
-2. **Productos →** crea "TOTALplayer Premium" con precio **recurrente mensual de 2,99 €**. Copia el `price_…`.
-3. **Desarrolladores → Webhooks →** añade endpoint `https://tudominio.com/api/billing/webhook` con los eventos:
-   `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`. Copia el `whsec_…`.
-4. Añade las variables en Railway: `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`.
+2. **Productos →** crea un producto por cada plan de proveedor, todos con precio **recurrente mensual**:
 
-Mientras no configures esto, la app funciona igual: la prueba de 15 días opera con normalidad y el botón de pago indica que estará disponible pronto.
+   | Producto | Precio/mes | Plan en la base de datos |
+   | --- | --- | --- |
+   | TOTALplayer Starter | 20 € | `starter` |
+   | TOTALplayer Basic | 45 € | `basic` |
+   | TOTALplayer Premium | 90 € | `premium` |
+   | TOTALplayer Enterprise | 180 € | `enterprise` |
+   | TOTALplayer Large | 270 € | `large` |
+   | TOTALplayer Mega | 450 € | `mega` |
+
+3. Copia cada `price_…` a su fila de la tabla `provider_plans`. Con el contenedor en marcha:
+
+   ```bash
+   sqlite3 /data/xtreamplayer.db \
+     "UPDATE provider_plans SET stripe_price_id='price_XXXX' WHERE id='starter';"
+   ```
+
+   Los precios y tramos también se editan ahí (`price_month` va en céntimos, `max_customers` en número de clientes), sin tocar código.
+
+4. **Desarrolladores → Webhooks →** añade endpoint `https://tudominio.com/api/billing/webhook` con los eventos:
+   `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`. Copia el `whsec_…`.
+5. Añade las variables en Railway: `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` (`STRIPE_PRICE_ID` es solo para el Premium del usuario final).
+
+Mientras no configures esto, la plataforma funciona igual: los proveedores usan su prueba de 7 días y, si quieres activarles un plan a mano mientras tanto, basta con:
+
+```bash
+# Plan Premium (600 clientes) durante 30 días para el proveedor con ese email
+sqlite3 /data/xtreamplayer.db \
+  "UPDATE providers SET plan_id='premium', plan_expires_at=$(( ($(date +%s) + 2592000) * 1000 )) WHERE email='proveedor@ejemplo.com';"
+```
 
 ### 4. SEO: dar de alta el sitio en Google
 

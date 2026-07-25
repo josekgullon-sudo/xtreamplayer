@@ -91,7 +91,7 @@ export default function FaqPage() {
       name: f.q,
       acceptedAnswer: {
         "@type": "Answer",
-        text: typeof f.a === "string" ? f.a : "Consulta la respuesta completa en xtreamplayer.",
+        text: typeof f.a === "string" ? f.a : "Consulta la respuesta completa en TOTALplayer.",
       },
     })),
   };
