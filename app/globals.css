@@ -432,6 +432,102 @@ select.input { appearance: none; cursor: pointer; }
   .pa-video-zone { max-height: none; }
 }
 
+/* ============ Modo TV (10-foot UI + mando a distancia) ============ */
+
+.tv-mode {
+  --header-h: 84px;
+  font-size: 20px;
+}
+
+.tv-mode body { font-size: 20px; }
+
+/* Foco siempre visible: en TV es la única referencia de "dónde estoy" */
+.tv-mode *:focus,
+.tv-mode *:focus-visible {
+  outline: 4px solid var(--accent-bright) !important;
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 8px rgba(108, 92, 231, 0.25) !important;
+}
+.tv-mode .pa-channel:focus,
+.tv-mode .pa-card:focus,
+.tv-mode .pa-episode:focus {
+  background: rgba(108, 92, 231, 0.28);
+  transform: scale(1.02);
+}
+.tv-mode .pa-card:focus { transform: scale(1.06); z-index: 2; position: relative; }
+
+/* Ocultamos el cursor: en TV no hay ratón */
+.tv-mode { cursor: none; }
+
+/* Zona segura (overscan): muchas TVs recortan los bordes */
+.tv-mode .container { padding: 0 56px; max-width: 1600px; }
+
+.tv-mode .btn { padding: 14px 28px; font-size: 20px; }
+.tv-mode .btn-sm { padding: 10px 18px; font-size: 17px; }
+.tv-mode .btn-lg { padding: 20px 40px; font-size: 24px; }
+.tv-mode .input { padding: 14px 18px; font-size: 19px; }
+.tv-mode .label { font-size: 16px; }
+
+.tv-mode .logo { font-size: 26px; }
+.tv-mode .logo-mark { width: 44px; height: 44px; font-size: 22px; }
+.tv-mode .nav-links a { font-size: 19px; }
+
+/* Reproductor en TV: barra lateral más ancha y textos legibles a 3 m */
+.tv-mode .player-app { grid-template-columns: 420px 1fr; }
+.tv-mode .pa-channel { padding: 14px 16px; font-size: 19px; }
+.tv-mode .pa-channel img,
+.tv-mode .pa-channel .ph { width: 40px; height: 40px; }
+.tv-mode .pa-group-head { font-size: 17px; padding: 14px 16px; }
+.tv-mode .pa-tab { padding: 12px 8px; font-size: 17px; }
+.tv-mode .pa-search .input { padding-left: 46px; padding-top: 13px; padding-bottom: 13px; }
+.tv-mode .pa-search-icon { left: 16px; font-size: 18px; }
+.tv-mode .pa-now-title { font-size: 22px; }
+.tv-mode .pa-now-epg { font-size: 17px; }
+.tv-mode .pa-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 22px; padding: 28px; }
+.tv-mode .pa-card .title { font-size: 17px; }
+.tv-mode .pa-welcome h2 { font-size: 34px; }
+.tv-mode .pa-welcome p { font-size: 20px; max-width: 700px; }
+.tv-mode .pa-video-overlay h2 { font-size: 30px; }
+.tv-mode .pa-video-overlay p { font-size: 19px; max-width: 620px; }
+
+/* Los favoritos se manejan con el mando: siempre visibles */
+.tv-mode .pa-channel .fav-btn { opacity: 1; font-size: 20px; }
+
+.tv-mode .modal { max-width: 640px; padding: 40px; }
+.tv-mode .modal h2 { font-size: 28px; }
+
+.tv-mode .hero h1 { font-size: clamp(44px, 5vw, 68px); }
+.tv-mode .hero p.sub { font-size: 23px; max-width: 760px; }
+.tv-mode .section-title { font-size: clamp(32px, 4vw, 44px); }
+.tv-mode .section-sub { font-size: 20px; max-width: 760px; }
+.tv-mode .feature-card h3 { font-size: 21px; }
+.tv-mode .feature-card p { font-size: 18px; }
+
+/* Ayuda de mando fija en la parte inferior */
+.tv-hint {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: none;
+  gap: 28px;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 56px;
+  background: linear-gradient(to top, rgba(10, 12, 18, 0.96), transparent);
+  font-size: 15px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.tv-mode .tv-hint { display: flex; }
+.tv-hint .kbd { font-size: 14px; }
+
+@media (max-width: 900px) {
+  .tv-hint { display: none !important; }
+}
+
 /* Contenido legal / texto largo */
 .prose { max-width: 780px; margin: 0 auto; padding: 48px 24px; }
 .prose h1 { font-size: 32px; margin-bottom: 16px; letter-spacing: -0.5px; }

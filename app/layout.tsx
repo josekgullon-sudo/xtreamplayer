@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
+import TvModeProvider from "@/components/TvModeProvider";
+import TvHint from "@/components/TvHint";
 import { SITE_NAME, SITE_URL, SITE_DESCRIPTION, ADSENSE_CLIENT } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -78,7 +80,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             strategy="afterInteractive"
           />
         ) : null}
-        {children}
+        <TvModeProvider>
+          {children}
+          <TvHint />
+        </TvModeProvider>
       </body>
     </html>
   );

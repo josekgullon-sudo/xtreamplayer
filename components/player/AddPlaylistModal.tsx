@@ -186,7 +186,7 @@ export default function AddPlaylistModal({
           )}
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy}>
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy} data-tv-close>
               Cancelar
             </button>
             <button type="submit" className="btn btn-primary" disabled={busy}>

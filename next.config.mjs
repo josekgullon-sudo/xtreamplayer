@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Salida autocontenida para la imagen Docker (server.js + deps mínimas)
+  output: "standalone",
   serverExternalPackages: ["better-sqlite3"],
   poweredByHeader: false,
   reactStrictMode: true,

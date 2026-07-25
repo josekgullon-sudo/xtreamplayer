@@ -10,6 +10,7 @@ Reproductor IPTV web para **Xtream Codes** y **listas M3U/M3U8**. Sin instalacio
 - **Modo invitado**: listas, favoritos e historial en `localStorage` — nada se guarda en el servidor.
 - **Cuentas gratuitas**: registro/login con cookie de sesión firmada (HMAC) y contraseñas bcrypt; hasta 5 listas sincronizadas en la nube (SQLite).
 - **UX**: búsqueda instantánea (`/`), zapping con flechas, `F` pantalla completa, `M` silencio, favoritos, historial "visto recientemente", diseño oscuro responsive.
+- **Modo TV (10-foot UI)**: se activa solo en Samsung Tizen, LG webOS, Android TV, Fire TV y navegadores de televisor. Interfaz grande, foco visible y navegación completa con mando (flechas, OK, Atrás, Play/Pausa). También se puede forzar desde el botón «📺 Modo TV».
 - **SEO**: metadata completa, Open Graph, JSON-LD (WebApplication + FAQPage), sitemap.xml, robots.txt, landing con contenido indexable en español.
 - **Monetización**: componente `AdSlot` para AdSense (se activa con `NEXT_PUBLIC_ADSENSE_CLIENT`) y página de planes con Premium "próximamente".
 
@@ -54,6 +55,15 @@ Necesita un runtime **Node persistente** (VPS, Railway, Fly.io, Render…) por S
 ```bash
 npm run build && npm start   # detrás de un reverse proxy con HTTPS
 ```
+
+Con Docker (incluye `Dockerfile` y `railway.json` listos):
+
+```bash
+docker build -t xtreamplayer .
+docker run -p 3000:3000 -v xp-data:/data xtreamplayer
+```
+
+📘 **[DEPLOY.md](DEPLOY.md)** — guía paso a paso: dominio, Railway, Stripe, Search Console, AdSense y publicación en las tiendas de Samsung, LG, Google Play, Amazon Fire TV, App Store, Windows y macOS.
 
 ## Notas legales
 

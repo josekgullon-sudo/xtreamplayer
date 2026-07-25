@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useTvMode } from "./TvModeProvider";
 
 export default function SiteHeader() {
   const [email, setEmail] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const { tvMode, setTvMode } = useTvMode();
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -34,6 +36,15 @@ export default function SiteHeader() {
           <Link href="/faq">FAQ</Link>
         </nav>
         <div className="header-actions">
+          {!tvMode && (
+            <button
+              className="btn btn-ghost btn-sm hide-sm"
+              onClick={() => setTvMode(true)}
+              title="Interfaz grande con navegación por mando"
+            >
+              📺 Modo TV
+            </button>
+          )}
           {loaded && email ? (
             <>
               <Link href="/cuenta" className="hide-sm" style={{ fontSize: 13.5, color: "var(--text-dim)" }}>
