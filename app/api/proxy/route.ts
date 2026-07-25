@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const target = await assertPublicUrl(url);
-    const headers: Record<string, string> = { "User-Agent": "XtreamPlayer/1.0" };
+    const headers: Record<string, string> = { "User-Agent": "TOTALplayer/1.0" };
     const range = req.headers.get("range");
     if (range) headers["Range"] = range;
 

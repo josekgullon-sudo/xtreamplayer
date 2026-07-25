@@ -1,4 +1,4 @@
-# XtreamPlayer — imagen de producción multi-stage
+# TOTALplayer — imagen de producción multi-stage
 FROM node:22-slim AS base
 ENV NEXT_TELEMETRY_DISABLED=1
 

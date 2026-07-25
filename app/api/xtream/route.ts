@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     await assertPublicUrl(target.toString());
     const upstream = await fetch(target.toString(), {
       signal: AbortSignal.timeout(20000),
-      headers: { "User-Agent": "XtreamPlayer/1.0" },
+      headers: { "User-Agent": "TOTALplayer/1.0" },
       cache: "no-store",
     });
     if (!upstream.ok) {

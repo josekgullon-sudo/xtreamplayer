@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 
 const FAQS = [
   {
-    q: "¿Qué es XtreamPlayer y cómo funciona?",
-    a: "XtreamPlayer es un reproductor IPTV que funciona directamente en tu navegador. Introduce la URL de tu lista M3U o las credenciales Xtream Codes que te dio tu proveedor y podrás ver tus canales de TV en directo, películas y series al momento, sin instalar ninguna aplicación.",
+    q: "¿Qué es TOTALplayer y cómo funciona?",
+    a: "TOTALplayer es un reproductor IPTV que funciona directamente en tu navegador. Introduce la URL de tu lista M3U o las credenciales Xtream Codes que te dio tu proveedor y podrás ver tus canales de TV en directo, películas y series al momento, sin instalar ninguna aplicación.",
   },
   {
-    q: "¿XtreamPlayer es gratis?",
+    q: "¿TOTALplayer es gratis?",
     a: "Sí. El plan gratuito incluye el reproductor completo: listas M3U y Xtream Codes ilimitadas en modo invitado, favoritos, búsqueda, EPG y reproducción de TV en directo, VOD y series. Si creas una cuenta gratuita, además guardas tus listas en la nube y las tienes en cualquier dispositivo.",
   },
   {
@@ -26,8 +26,8 @@ const FAQS = [
     a: "No. Puedes usarlo como invitado: tus listas se guardan únicamente en tu navegador y nunca salen de tu dispositivo. El registro es opcional y sirve para sincronizar tus listas entre dispositivos.",
   },
   {
-    q: "¿XtreamPlayer incluye canales o contenido?",
-    a: "No. XtreamPlayer es solo un reproductor, como VLC: no proporciona, aloja ni vende ningún canal, película ni lista. Necesitas una suscripción con un proveedor IPTV o una lista M3U propia y legal.",
+    q: "¿TOTALplayer incluye canales o contenido?",
+    a: "No. TOTALplayer es solo un reproductor, como VLC: no proporciona, aloja ni vende ningún canal, película ni lista. Necesitas una suscripción con un proveedor IPTV o una lista M3U propia y legal.",
   },
   {
     q: "¿Qué formatos y protocolos soporta?",
@@ -43,7 +43,7 @@ const FAQS = [
   },
   {
     q: "Mi lista no se reproduce, ¿qué hago?",
-    a: "Comprueba que la URL y las credenciales sean correctas y que tu suscripción esté activa. Si el canal no carga, XtreamPlayer reintenta automáticamente a través de su proxy de compatibilidad. Algunos proveedores bloquean la reproducción web; en ese caso contacta con tu proveedor.",
+    a: "Comprueba que la URL y las credenciales sean correctas y que tu suscripción esté activa. Si el canal no carga, TOTALplayer reintenta automáticamente a través de su proxy de compatibilidad. Algunos proveedores bloquean la reproducción web; en ese caso contacta con tu proveedor.",
   },
 ];
 
@@ -170,14 +170,14 @@ export default function HomePage() {
 
         <section className="section" id="comparativa">
           <div className="container">
-            <h2 className="section-title">¿Por qué XtreamPlayer y no otro?</h2>
+            <h2 className="section-title">¿Por qué TOTALplayer y no otro?</h2>
             <p className="section-sub">Comparado con los reproductores IPTV web más usados.</p>
             <div style={{ overflowX: "auto" }}>
               <table className="compare-table">
                 <thead>
                   <tr>
                     <th>Característica</th>
-                    <th>XtreamPlayer</th>
+                    <th>TOTALplayer</th>
                     <th>Players web típicos</th>
                     <th>Apps de escritorio</th>
                   </tr>

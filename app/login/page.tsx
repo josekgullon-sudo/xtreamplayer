@@ -4,7 +4,7 @@ import AuthForm from "@/components/AuthForm";
 
 export const metadata: Metadata = {
   title: "Iniciar sesión",
-  description: "Accede a tu cuenta de XtreamPlayer para ver tus listas IPTV sincronizadas.",
+  description: "Accede a tu cuenta de TOTALplayer para ver tus listas IPTV sincronizadas.",
   alternates: { canonical: "/login" },
 };
 

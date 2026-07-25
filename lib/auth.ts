@@ -38,23 +38,30 @@ function sign(payload: string): string {
   return crypto.createHmac("sha256", getSecret()).update(payload).digest("base64url");
 }
 
-export function createSessionToken(userId: number): string {
+/**
+ * Ámbito de la sesión. Va dentro de la firma para que un token de cliente
+ * final nunca pueda usarse como token de proveedor ni de usuario.
+ */
+export type SessionScope = "user" | "provider" | "customer";
+
+export function createSessionToken(id: number, scope: SessionScope = "user"): string {
   const expiry = Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000;
-  const payload = `${userId}.${expiry}`;
+  const payload = `${scope}.${id}.${expiry}`;
   return `${payload}.${sign(payload)}`;
 }
 
-export function verifySessionToken(token: string): number | null {
+export function verifySessionToken(token: string, scope: SessionScope = "user"): number | null {
   const parts = token.split(".");
-  if (parts.length !== 3) return null;
-  const [userId, expiry, signature] = parts;
-  const payload = `${userId}.${expiry}`;
+  if (parts.length !== 4) return null;
+  const [tokenScope, id, expiry, signature] = parts;
+  if (tokenScope !== scope) return null;
+  const payload = `${tokenScope}.${id}.${expiry}`;
   const expected = sign(payload);
   const a = Buffer.from(signature);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
   if (Number(expiry) < Date.now()) return null;
-  return Number(userId);
+  return Number(id);
 }
 
 export async function setSessionCookie(userId: number): Promise<void> {

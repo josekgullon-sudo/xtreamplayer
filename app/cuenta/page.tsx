@@ -4,7 +4,7 @@ import AccountPanel from "@/components/AccountPanel";
 
 export const metadata: Metadata = {
   title: "Tu cuenta",
-  description: "Gestiona tu plan, tu prueba gratuita y tu suscripción Premium de XtreamPlayer.",
+  description: "Gestiona tu plan, tu prueba gratuita y tu suscripción Premium de TOTALplayer.",
   robots: { index: false },
 };
 

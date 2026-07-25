@@ -1,4 +1,4 @@
-# XtreamPlayer
+# TOTALplayer
 
 Reproductor IPTV web para **Xtream Codes** y **listas M3U/M3U8**. Sin instalaciones: el usuario pega su URL o credenciales y reproduce TV en directo, películas y series en el navegador.
 
@@ -31,7 +31,7 @@ npm start        # servidor de producción
 
 | Variable | Descripción |
 | --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | URL pública (para SEO/sitemap). Ej: `https://xtreamplayer.app` |
+| `NEXT_PUBLIC_SITE_URL` | URL pública (para SEO/sitemap). Ej: `https://totalplayer.app` |
 | `NEXT_PUBLIC_ADSENSE_CLIENT` | ID de cliente AdSense (`ca-pub-…`). Sin él no se cargan anuncios. |
 | `SESSION_SECRET` | Secreto para firmar sesiones. Si falta, se genera y persiste en `data/.session-secret`. |
 | `DATA_DIR` | Carpeta de datos SQLite (por defecto `./data`). |
@@ -46,7 +46,7 @@ npm start        # servidor de producción
 - **Registro** → 15 días de Premium de prueba, sin tarjeta (`trial_ends_at`).
 - **Al expirar** → plan Gratis para siempre: 1 lista en la nube, con anuncios (cuando se active AdSense). Nunca se bloquea el servicio.
 - **Premium (2,99 €/mes, Stripe)** → hasta 20 listas en la nube, sin anuncios y acceso prioritario a funciones nuevas.
-- Configuración en Stripe: crear producto "XtreamPlayer Premium" con precio recurrente mensual, copiar `price_…` a `STRIPE_PRICE_ID`, y crear un webhook hacia `https://TU-DOMINIO/api/billing/webhook` con los eventos `checkout.session.completed`, `customer.subscription.*` e `invoice.paid`/`invoice.payment_failed`.
+- Configuración en Stripe: crear producto "TOTALplayer Premium" con precio recurrente mensual, copiar `price_…` a `STRIPE_PRICE_ID`, y crear un webhook hacia `https://TU-DOMINIO/api/billing/webhook` con los eventos `checkout.session.completed`, `customer.subscription.*` e `invoice.paid`/`invoice.payment_failed`.
 
 ## Despliegue
 
@@ -67,7 +67,7 @@ docker run -p 3000:3000 -v xp-data:/data xtreamplayer
 
 ## Notas legales
 
-XtreamPlayer es solo un reproductor (como VLC): no aloja, distribuye ni recomienda contenido ni proveedores. Los términos de uso y la política de privacidad están en `/legal/terminos` y `/legal/privacidad`.
+TOTALplayer es solo un reproductor (como VLC): no aloja, distribuye ni recomienda contenido ni proveedores. Los términos de uso y la política de privacidad están en `/legal/terminos` y `/legal/privacidad`.
 
 ## Hoja de ruta
 

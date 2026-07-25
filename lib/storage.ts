@@ -13,6 +13,7 @@ export interface StoredPlaylist {
   username?: string;
   password?: string;
   remote?: boolean; // true si está sincronizada en la nube
+  managed?: boolean; // true si la gestiona el proveedor (no editable por el cliente)
 }
 
 export interface RecentItem {

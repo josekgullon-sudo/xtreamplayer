@@ -28,11 +28,12 @@ export default function SiteHeader() {
       <div className="container">
         <Link href="/" className="logo">
           <span className="logo-mark">▶</span>
-          XtreamPlayer
+          TOTALplayer
         </Link>
         <nav className="nav-links" aria-label="Navegación principal">
           <Link href="/player">Reproductor</Link>
-          <Link href="/precios">Precios</Link>
+          <Link href="/acceso">Tengo un acceso</Link>
+          <Link href="/proveedores">Proveedores</Link>
           <Link href="/faq">FAQ</Link>
         </nav>
         <div className="header-actions">

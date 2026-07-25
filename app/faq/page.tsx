@@ -36,7 +36,7 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     a: (
       <p>
         Las causas más habituales: la suscripción ha caducado, el proveedor limita las conexiones simultáneas, el
-        canal está caído o el servidor bloquea la reproducción desde navegadores. XtreamPlayer reintenta
+        canal está caído o el servidor bloquea la reproducción desde navegadores. TOTALplayer reintenta
         automáticamente con su motor de compatibilidad; si aun así no funciona, prueba el canal en VLC para
         descartar que sea cosa del proveedor.
       </p>
@@ -62,7 +62,7 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     ),
   },
   {
-    q: "¿XtreamPlayer vende canales o listas IPTV?",
+    q: "¿TOTALplayer vende canales o listas IPTV?",
     a: (
       <p>
         No. Somos un reproductor, igual que VLC o Kodi: tú pones tu lista, nosotros la reproducimos con la mejor

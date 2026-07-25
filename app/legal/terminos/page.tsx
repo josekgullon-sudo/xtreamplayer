@@ -4,7 +4,7 @@ import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
   title: "Términos de uso",
-  description: "Términos y condiciones de uso del reproductor web XtreamPlayer.",
+  description: "Términos y condiciones de uso del reproductor web TOTALplayer.",
   alternates: { canonical: "/legal/terminos" },
   robots: { index: true, follow: true },
 };
@@ -17,16 +17,16 @@ export default function TermsPage() {
         <h1>Términos de uso</h1>
         <p>Última actualización: julio de 2026</p>
 
-        <h2>1. Qué es XtreamPlayer</h2>
+        <h2>1. Qué es TOTALplayer</h2>
         <p>
-          XtreamPlayer («el Servicio») es una aplicación web que actúa exclusivamente como reproductor multimedia
+          TOTALplayer («el Servicio») es una aplicación web que actúa exclusivamente como reproductor multimedia
           para listas de reproducción proporcionadas por el propio usuario, en formato M3U/M3U8 o mediante
           credenciales de la API Xtream Codes.
         </p>
 
         <h2>2. El Servicio no proporciona contenido</h2>
         <p>
-          XtreamPlayer no aloja, distribuye, vende, enlaza ni recomienda ningún canal, película, serie, lista de
+          TOTALplayer no aloja, distribuye, vende, enlaza ni recomienda ningún canal, película, serie, lista de
           reproducción ni proveedor IPTV. Todo el contenido reproducido procede de fuentes configuradas por el
           usuario. El usuario declara y garantiza que dispone de los derechos o licencias necesarios sobre el
           contenido al que accede.
@@ -63,7 +63,7 @@ export default function TermsPage() {
         </p>
 
         <h2>7. Contacto</h2>
-        <p>Para cualquier cuestión legal o notificación de derechos: legal@xtreamplayer.app</p>
+        <p>Para cualquier cuestión legal o notificación de derechos: legal@totalplayer.app</p>
       </main>
       <SiteFooter />
     </>

@@ -65,7 +65,7 @@ export default function PricingPage() {
             </div>
           </div>
           <p style={{ textAlign: "center", marginTop: 36, color: "var(--text-faint)", fontSize: 13.5 }}>
-            XtreamPlayer no vende ni incluye contenido: necesitas tu propia lista o suscripción IPTV.
+            TOTALplayer no vende ni incluye contenido: necesitas tu propia lista o suscripción IPTV.
           </p>
         </div>
       </main>

@@ -58,6 +58,7 @@ function credsOf(p: StoredPlaylist): XtreamCreds {
 
 export default function PlayerApp() {
   const [user, setUser] = useState<{ email: string } | null>(null);
+  const [customer, setCustomer] = useState<{ username: string; brand: string } | null>(null);
   const [authLoaded, setAuthLoaded] = useState(false);
   const [playlists, setPlaylists] = useState<StoredPlaylist[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -94,6 +95,26 @@ export default function PlayerApp() {
     const last = localStorage.getItem(K_LAST_PLAYLIST);
     if (last && locals.some((p) => p.id === last)) setActiveId(last);
     else if (locals.length) setActiveId(locals[0].id);
+
+    // Cliente dado de alta por un proveedor: su lista se carga sola
+    fetch("/api/customer/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.customer || !d.playlist) return;
+        setCustomer({ username: d.customer.username, brand: d.brand || "" });
+        const managed: StoredPlaylist = {
+          id: d.playlist.id,
+          name: d.playlist.name,
+          type: d.playlist.type,
+          url: d.playlist.url,
+          username: d.playlist.username,
+          password: d.playlist.password,
+          managed: true,
+        };
+        setPlaylists((prev) => [managed, ...prev.filter((p) => p.id !== managed.id)]);
+        setActiveId(managed.id);
+      })
+      .catch(() => {});
 
     fetch("/api/auth/me")
       .then((r) => r.json())
@@ -270,6 +291,10 @@ export default function PlayerApp() {
   }
 
   async function handleDeletePlaylist(p: StoredPlaylist) {
+    if (p.managed) {
+      alert("Esta lista la gestiona tu proveedor y no se puede eliminar.");
+      return;
+    }
     if (!confirm(`¿Eliminar la lista «${p.name}»?`)) return;
     if (p.remote) {
       await fetch(`/api/playlists/${p.id.replace("cloud-", "")}`, { method: "DELETE" }).catch(() => {});
@@ -535,7 +560,7 @@ export default function PlayerApp() {
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)} title="Añadir lista">
               +
             </button>
-            {active && (
+            {active && !active.managed && (
               <button className="btn btn-danger btn-sm" onClick={() => handleDeletePlaylist(active)} title="Eliminar lista">
                 🗑
               </button>
@@ -678,11 +703,26 @@ export default function PlayerApp() {
           )}
         </div>
 
-        {authLoaded && !user && (
+        {customer ? (
+          <div style={{ padding: 12, borderTop: "1px solid var(--border)", fontSize: 13, color: "var(--text-dim)" }}>
+            Conectado como <strong>{customer.username}</strong>
+            {customer.brand ? ` · ${customer.brand}` : ""}
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ marginLeft: 8 }}
+              onClick={async () => {
+                await fetch("/api/customer/me", { method: "DELETE" });
+                window.location.href = "/acceso";
+              }}
+            >
+              Salir
+            </button>
+          </div>
+        ) : authLoaded && !user ? (
           <div style={{ padding: 12, borderTop: "1px solid var(--border)", fontSize: 13, color: "var(--text-dim)" }}>
             Modo invitado — <Link href="/registro">crea una cuenta</Link> para sincronizar tus listas.
           </div>
-        )}
+        ) : null}
       </aside>
 
       <main className="pa-main">
@@ -715,7 +755,7 @@ export default function PlayerApp() {
         <div className="pa-content">
           {!active && (
             <div className="pa-welcome">
-              <h2>Bienvenido a XtreamPlayer</h2>
+              <h2>Bienvenido a TOTALplayer</h2>
               <p>
                 Añade tu lista M3U o tus credenciales Xtream Codes y empieza a ver TV en directo, películas y series
                 directamente en el navegador.

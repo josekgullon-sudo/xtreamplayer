@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { getDb, UserRow } from "@/lib/db";
+import { getDb, UserRow, ProviderRow } from "@/lib/db";
 import { getStripe, stripeConfigured, STRIPE_WEBHOOK_SECRET } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
@@ -30,17 +30,31 @@ export async function POST(req: NextRequest) {
 
   function applySubscription(sub: Stripe.Subscription) {
     const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-    const user = db.prepare("SELECT * FROM users WHERE stripe_customer_id = ?").get(customerId) as UserRow | undefined;
-    if (!user) return;
 
     const active = sub.status === "active" || sub.status === "trialing" || sub.status === "past_due";
     // current_period_end viene en cada item de la suscripción
     const periodEnd = Math.max(0, ...sub.items.data.map((i) => i.current_period_end || 0)) * 1000;
     // past_due mantiene el acceso hasta el fin del periodo ya pagado
-    const premiumUntil = active ? periodEnd : Math.min(periodEnd, Date.now());
+    const activeUntil = active ? periodEnd : Math.min(periodEnd, Date.now());
+
+    // ¿Es una suscripción de proveedor (B2B)?
+    const provider = db.prepare("SELECT * FROM providers WHERE stripe_customer_id = ?").get(customerId) as
+      | ProviderRow
+      | undefined;
+    if (provider) {
+      const planId = sub.metadata?.planId || provider.plan_id;
+      db.prepare(
+        "UPDATE providers SET plan_id = ?, plan_expires_at = ?, stripe_subscription_id = ? WHERE id = ?"
+      ).run(planId, activeUntil, sub.id, provider.id);
+      return;
+    }
+
+    // Si no, es un usuario final con Premium
+    const user = db.prepare("SELECT * FROM users WHERE stripe_customer_id = ?").get(customerId) as UserRow | undefined;
+    if (!user) return;
 
     db.prepare("UPDATE users SET premium_until = ?, stripe_subscription_id = ? WHERE id = ?").run(
-      premiumUntil,
+      activeUntil,
       sub.id,
       user.id
     );

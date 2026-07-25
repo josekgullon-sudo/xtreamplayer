@@ -4,7 +4,7 @@ import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
   title: "Política de privacidad",
-  description: "Cómo trata XtreamPlayer tus datos: modo invitado local, cuentas opcionales y cookies.",
+  description: "Cómo trata TOTALplayer tus datos: modo invitado local, cuentas opcionales y cookies.",
   alternates: { canonical: "/legal/privacidad" },
 };
 
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
 
         <h2>1. Modo invitado</h2>
         <p>
-          Si usas XtreamPlayer sin cuenta, tus listas, credenciales IPTV, favoritos e historial se guardan
+          Si usas TOTALplayer sin cuenta, tus listas, credenciales IPTV, favoritos e historial se guardan
           únicamente en el almacenamiento local de tu navegador. No se almacenan en nuestros servidores. Las
           peticiones de datos (categorías, canales, EPG) transitan por nuestro servidor solo para evitar
           restricciones CORS del navegador y no se registran de forma asociada a tu identidad.
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
 
         <h2>5. Tus derechos</h2>
         <p>
-          Puedes ejercer tus derechos de acceso, rectificación y supresión escribiendo a privacy@xtreamplayer.app.
+          Puedes ejercer tus derechos de acceso, rectificación y supresión escribiendo a privacy@totalplayer.app.
         </p>
       </main>
       <SiteFooter />

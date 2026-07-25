@@ -1,6 +1,6 @@
 # Guía de despliegue y publicación en tiendas
 
-Esta guía cubre dos cosas: poner XtreamPlayer en internet con dominio propio y, a partir de ahí, llevarlo a las tiendas de TV, móvil y escritorio.
+Esta guía cubre dos cosas: poner TOTALplayer en internet con dominio propio y, a partir de ahí, llevarlo a las tiendas de TV, móvil y escritorio.
 
 ---
 
@@ -8,7 +8,7 @@ Esta guía cubre dos cosas: poner XtreamPlayer en internet con dominio propio y,
 
 ### 1. Comprar el dominio
 
-Cualquier registrador sirve (Namecheap, Porkbun, Cloudflare, Dinahosting). Ideas: `xtreamplayer.app`, `.tv`, `.es`. Coste orientativo: 10–20 €/año.
+Cualquier registrador sirve (Namecheap, Porkbun, Cloudflare, Dinahosting). Ideas: `totalplayer.app`, `.tv`, `.es`. Coste orientativo: 10–20 €/año.
 
 ### 2. Desplegar en Railway (recomendado)
 
@@ -36,7 +36,7 @@ Alternativas equivalentes: Render, Fly.io o un VPS (Hetzner ~4 €/mes) con `doc
 ### 3. Activar los cobros (Stripe)
 
 1. Crea la cuenta en [stripe.com](https://stripe.com) (requiere datos fiscales y cuenta bancaria).
-2. **Productos →** crea "XtreamPlayer Premium" con precio **recurrente mensual de 2,99 €**. Copia el `price_…`.
+2. **Productos →** crea "TOTALplayer Premium" con precio **recurrente mensual de 2,99 €**. Copia el `price_…`.
 3. **Desarrolladores → Webhooks →** añade endpoint `https://tudominio.com/api/billing/webhook` con los eventos:
    `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`. Copia el `whsec_…`.
 4. Añade las variables en Railway: `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`.
@@ -74,7 +74,7 @@ Se empaqueta con [Capacitor](https://capacitorjs.com) reutilizando el mismo cód
 
 ```bash
 npm install @capacitor/core @capacitor/cli @capacitor/android
-npx cap init XtreamPlayer com.xtreamplayer.app
+npx cap init TOTALplayer com.totalplayer.app
 npx cap add android
 npx cap open android   # compila el APK/AAB en Android Studio
 ```
