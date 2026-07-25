@@ -636,6 +636,90 @@ select.input { appearance: none; cursor: pointer; }
   padding: 28px 32px 40px;
 }
 .pa-catalogo .pa-series-detail { padding: 28px 32px 40px; }
+
+/* ---- Parrilla de canales: el directo se navega, no se impone ---- */
+
+.canales-cat { padding: 22px 32px 44px; }
+
+.canales-recientes {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.canales-recientes-label {
+  font-size: 12.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--text-faint); margin-right: 4px;
+}
+
+/*
+ * Las carpetas como pastillas deslizables, arriba y siempre a mano. Es la
+ * misma navegación que ya se usa en cine, así que no hay nada nuevo que
+ * aprender al cambiar de sección.
+ */
+.canales-chips {
+  display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 14px;
+  position: sticky; top: 0; z-index: 5;
+  background: linear-gradient(var(--bg) 82%, transparent);
+  margin: -2px -2px 8px;
+}
+.canal-chip {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 16px; border-radius: var(--radius-pill);
+  border: 1px solid var(--hairline); background: var(--surface-quiet);
+  color: var(--text-dim); font-size: 13.5px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.canal-chip:hover { color: var(--text); background: var(--bg-hover); }
+.canal-chip.active { background: var(--text); color: var(--bg); border-color: transparent; }
+.canal-chip-n { font-size: 11.5px; font-weight: 700; opacity: 0.55; }
+
+.canales-seccion { margin-bottom: 30px; }
+.canales-seccion-head {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px;
+}
+.canales-seccion-head h3 { font-size: 16.5px; font-weight: 650; letter-spacing: -0.02em; }
+.canales-seccion-n { font-size: 12.5px; color: var(--text-faint); font-weight: 600; }
+.canales-ver-todos {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 3px;
+  background: none; border: none; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: var(--accent-bright);
+  padding: 4px 6px; border-radius: 8px;
+}
+.canales-ver-todos:hover { background: var(--accent-tint-soft); }
+
+.canales-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
+  gap: 10px;
+}
+.canal-card {
+  display: flex; align-items: center; gap: 12px; min-width: 0;
+  padding: 11px 14px; border-radius: 14px; text-align: left;
+  background: var(--bg-elev); border: 1px solid var(--hairline);
+  color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer;
+  transition: background 0.16s, border-color 0.16s, transform 0.16s;
+}
+.canal-card:hover, .canal-card:focus-visible {
+  background: var(--bg-elev-2); border-color: var(--border-strong); transform: translateY(-2px);
+}
+.canal-logo {
+  width: 40px; height: 40px; flex-shrink: 0; object-fit: contain;
+  border-radius: 9px; background: rgba(0, 0, 0, 0.35); padding: 4px;
+}
+.canal-logo-ph {
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
+  font-size: 16px; font-weight: 700; color: var(--text-faint);
+}
+.canal-nombre {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  line-height: 1.35;
+}
+.canal-fav { color: var(--warning); flex-shrink: 0; display: inline-flex; }
+
+@media (max-width: 700px) {
+  .canales-cat { padding: 16px 14px 36px; }
+  .canales-grid { grid-template-columns: repeat(auto-fill, minmax(164px, 1fr)); gap: 8px; }
+  .canal-card { padding: 9px 11px; gap: 9px; }
+  .canal-logo { width: 32px; height: 32px; }
+}
 .pa-card {
   background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-sm);
   overflow: hidden; cursor: pointer; transition: transform 0.15s, border-color 0.15s;

@@ -83,6 +83,8 @@ export default function PlayerApp() {
    * mientras se buscaba otra cosa.
    */
   const [viendo, setViendo] = useState(false);
+  /** Carpeta abierta en la parrilla de canales (null = todas) */
+  const [grupoSel, setGrupoSel] = useState<string | null>(null);
 
   const [tab, setTab] = useState<Tab>("live");
   const [search, setSearch] = useState("");
@@ -283,6 +285,7 @@ export default function PlayerApp() {
 
   useEffect(() => {
     setViendo(false);
+    setGrupoSel(null);
   }, [tab, activeId]);
 
   useEffect(() => {
@@ -370,6 +373,7 @@ export default function PlayerApp() {
   const playLive = useCallback(
     (p: StoredPlaylist, ch: XtreamLiveStream) => {
       const favKey = `${p.id}:live:${ch.stream_id}`;
+      setViendo(true);
       setCurrent({
         source: { url: liveStreamUrl(credsOf(p), ch.stream_id), name: ch.name, kind: "hls" },
         logo: ch.stream_icon,
@@ -394,6 +398,7 @@ export default function PlayerApp() {
 
   const playM3u = useCallback((p: StoredPlaylist, ch: M3UChannel) => {
     const favKey = `${p.id}:m3u:${ch.url}`;
+    setViendo(true);
     setCurrent({
       source: { url: ch.url, name: ch.name, kind: "auto" },
       logo: ch.logo,
@@ -599,6 +604,13 @@ export default function PlayerApp() {
   const showSidebar = tab === "live" || tab === "favs" || !isXtream;
   /** Cine/series sin nada elegido: catálogo a pantalla completa, sin vídeo */
   const modoCatalogo = isXtream && (tab === "vod" || tab === "series") && !viendo;
+  /**
+   * El directo funciona igual que el cine: primero se navega la parrilla de
+   * canales y carpetas a pantalla completa, y el reproductor solo aparece al
+   * elegir. Cargar un vídeo nada más entrar decidía por el usuario qué ver.
+   */
+  const modoCanales = Boolean(active) && (tab === "live" || tab === "favs") && !viendo;
+  const explorando = modoCatalogo || modoCanales;
   /*
    * Solo se pregunta cuando hay más de un sitio al que ir. Una lista M3U sin
    * favoritos únicamente trae canales, así que preguntar entre una sola opción
@@ -845,25 +857,24 @@ export default function PlayerApp() {
         ) : null}
       </aside>
 
-      <main className={`pa-main ${current && !modoCatalogo ? "pa-main-full" : ""}`}>
-        {/* En el catálogo no hay reproductor: desmontarlo detiene el stream
-            anterior, que seguía sonando encima mientras se buscaba otra cosa */}
-        {!modoCatalogo && <VideoPlayer source={current?.source || null} />}
+      <main className={`pa-main ${current && !explorando ? "pa-main-full" : ""}`}>
+        {/* Mientras se explora no hay reproductor: desmontarlo detiene el
+            stream anterior, que seguía sonando encima mientras se buscaba */}
+        {!explorando && <VideoPlayer source={current?.source || null} />}
 
-        {!modoCatalogo && current && (
+        {!explorando && current && (
           <div className="pa-now-playing">
-            {(current.kind === "vod" || current.kind === "episode") && (
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => {
-                  setViendo(false);
-                  setCurrent(null);
-                  setTab(current.kind === "vod" ? "vod" : "series");
-                }}
-              >
-                <Icon name="back" size={14} /> Catálogo
-              </button>
-            )}
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                setViendo(false);
+                setCurrent(null);
+                if (current.kind === "vod") setTab("vod");
+                else if (current.kind === "episode") setTab("series");
+              }}
+            >
+              <Icon name="back" size={14} /> {current.kind === "vod" || current.kind === "episode" ? "Catálogo" : "Canales"}
+            </button>
             {current.logo && <img src={current.logo} alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="pa-now-title">{current.source.name}</div>
@@ -886,7 +897,7 @@ export default function PlayerApp() {
           </div>
         )}
 
-        <div className={`pa-content ${modoCatalogo ? "pa-catalogo" : ""}`}>
+        <div className={`pa-content ${explorando ? "pa-catalogo" : ""}`}>
           {!active && (
             <div className="pa-welcome">
               <h2>Bienvenido a TOTALplayer</h2>
@@ -918,18 +929,100 @@ export default function PlayerApp() {
             </div>
           )}
 
-          {active && (tab === "live" || tab === "favs") && !current && (
-            <div className="pa-welcome">
-              <h2>{tab === "favs" ? "Tus favoritos" : "Elige un canal"}</h2>
-              <p>Selecciona un canal de la izquierda o usa la búsqueda. Zapea con las flechas del teclado.</p>
-              {recents.length > 0 && (
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                  {recents.slice(0, 6).map((r) => (
-                    <button key={r.key} className="btn btn-ghost btn-sm" onClick={() => playRecent(r)}>
-                      <><Icon name="play" size={13} /> {r.name}</>
-                    </button>
-                  ))}
+          {modoCanales && (
+            <div className="canales-cat">
+              {loading && !liveGroups.length && <Loading messages={MENSAJES_CANALES} />}
+              {!loading && !liveGroups.length && (
+                <div className="pa-empty">
+                  {tab === "favs"
+                    ? "Aún no tienes favoritos. Pulsa la estrella de cualquier canal para guardarlo aquí."
+                    : "No hay canales que coincidan."}
                 </div>
+              )}
+
+              {liveGroups.length > 0 && (
+                <>
+                  {recents.length > 0 && tab === "live" && !grupoSel && !q && (
+                    <div className="canales-recientes">
+                      <span className="canales-recientes-label">Seguir viendo</span>
+                      {recents.slice(0, 5).map((r) => (
+                        <button key={r.key} className="btn btn-ghost btn-sm" onClick={() => playRecent(r)}>
+                          <><Icon name="play" size={13} /> {r.name}</>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Las carpetas, como pastillas: una pulsación y ves solo esa */}
+                  <div className="canales-chips" role="tablist" aria-label="Categorías de canales">
+                    <button
+                      className={`canal-chip ${!grupoSel ? "active" : ""}`}
+                      onClick={() => setGrupoSel(null)}
+                      role="tab"
+                      aria-selected={!grupoSel}
+                    >
+                      Todas
+                    </button>
+                    {liveGroups.map((g) => (
+                      <button
+                        key={g.name}
+                        className={`canal-chip ${grupoSel === g.name ? "active" : ""}`}
+                        onClick={() => setGrupoSel(g.name)}
+                        role="tab"
+                        aria-selected={grupoSel === g.name}
+                      >
+                        {g.name} <span className="canal-chip-n">{g.channels.length}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {(grupoSel && liveGroups.some((g) => g.name === grupoSel)
+                    ? liveGroups.filter((g) => g.name === grupoSel)
+                    : liveGroups
+                  ).map((g) => {
+                    // Con todas las carpetas a la vez se enseña un adelanto de
+                    // cada una: pintar diez mil tarjetas de golpe congelaría
+                    // la página. Dentro de una carpeta se ve entera.
+                    const adelanto = !grupoSel && g.channels.length > 12;
+                    const canales = adelanto ? g.channels.slice(0, 12) : g.channels.slice(0, 1000);
+                    return (
+                      <section className="canales-seccion" key={g.name}>
+                        <div className="canales-seccion-head">
+                          <h3>{g.name}</h3>
+                          <span className="canales-seccion-n">{g.channels.length}</span>
+                          {adelanto && (
+                            <button className="canales-ver-todos" onClick={() => setGrupoSel(g.name)}>
+                              Ver todos <Icon name="chevronRight" size={13} />
+                            </button>
+                          )}
+                        </div>
+                        <div className="canales-grid">
+                          {canales.map((ch) => (
+                            <button className="canal-card" key={ch.favKey} onClick={ch.play} title={ch.name}>
+                              {ch.logo ? (
+                                <img
+                                  className="canal-logo"
+                                  src={ch.logo}
+                                  alt=""
+                                  loading="lazy"
+                                  onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")}
+                                />
+                              ) : (
+                                <span className="canal-logo canal-logo-ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
+                              )}
+                              <span className="canal-nombre">{ch.name}</span>
+                              {favorites[ch.favKey] && (
+                                <span className="canal-fav" aria-label="En favoritos">
+                                  <Icon name="star" size={13} />
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </>
               )}
               <AdSlot slot="player-welcome" />
             </div>
