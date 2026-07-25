@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertPublicUrl } from "@/lib/safeFetch";
 
+/**
+ * Muchos servidores IPTV filtran por User-Agent y rechazan cualquier cliente
+ * que no reconozcan, así que nos identificamos como VLC, que es el que todos
+ * admiten. Sin esto, servidores perfectamente accesibles responden 403 o se
+ * quedan sin contestar.
+ */
+const PLAYER_UA = "VLC/3.0.20 LibVLC/3.0.20";
+
 export const dynamic = "force-dynamic";
 
 const MAX_M3U_BYTES = 50 * 1024 * 1024; // 50 MB — listas grandes pero acotadas
@@ -16,7 +24,7 @@ export async function GET(req: NextRequest) {
     await assertPublicUrl(url);
     const upstream = await fetch(url, {
       signal: AbortSignal.timeout(45000),
-      headers: { "User-Agent": "TOTALplayer/1.0" },
+      headers: { "User-Agent": PLAYER_UA },
       cache: "no-store",
     });
     if (!upstream.ok) {

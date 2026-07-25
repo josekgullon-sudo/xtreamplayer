@@ -4,6 +4,14 @@ import { getCurrentProvider } from "@/lib/provider";
 import { normalizeBase, parseXtreamUrl } from "@/lib/xtream";
 import { assertPublicUrl } from "@/lib/safeFetch";
 
+/**
+ * Muchos servidores IPTV filtran por User-Agent y rechazan cualquier cliente
+ * que no reconozcan, así que nos identificamos como VLC, que es el que todos
+ * admiten. Sin esto, servidores perfectamente accesibles responden 403 o se
+ * quedan sin contestar.
+ */
+const PLAYER_UA = "VLC/3.0.20 LibVLC/3.0.20";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -73,7 +81,7 @@ export async function PUT(req: NextRequest) {
 
     const res = await fetch(target.toString(), {
       signal: AbortSignal.timeout(20000),
-      headers: { "User-Agent": "TOTALplayer/1.0" },
+      headers: { "User-Agent": PLAYER_UA },
       cache: "no-store",
     });
     if (!res.ok) {

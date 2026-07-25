@@ -10,7 +10,14 @@ export interface PlaySource {
   kind: "hls" | "ts" | "video" | "auto";
 }
 
-type Attempt = { url: string; engine: "hls" | "mpegts" | "native" };
+type Attempt = { url: string; engine: "hls" | "mpegts" | "native"; label: string };
+
+/**
+ * Cada intento tiene un plazo máximo. Sin él, un servidor que acepta la
+ * conexión pero no envía datos deja el reproductor girando indefinidamente,
+ * que es justo lo que hacen muchos proveedores cuando bloquean el navegador.
+ */
+const ATTEMPT_TIMEOUT_MS = 9000;
 
 function proxied(url: string): string {
   return `/api/proxy?url=${encodeURIComponent(url)}`;
@@ -27,19 +34,22 @@ function guessEngine(url: string, kind: PlaySource["kind"]): "hls" | "mpegts" | 
 }
 
 /**
- * Cadena de reintentos: directo → mismo motor vía proxy → (para HLS en vivo)
- * variante .ts con mpegts vía proxy. Reduce al mínimo las "pantallas negras" por CORS.
+ * Orden de intentos, del más rápido al más compatible:
+ *   1. Directo con el motor que corresponde a la extensión
+ *   2. Para canales en directo, la variante .ts: muchos paneles Xtream sirven
+ *      solo TS aunque anuncien .m3u8
+ *   3. Los mismos dos, a través de nuestro proxy, para saltar el bloqueo CORS
  */
 function buildAttempts(src: PlaySource): Attempt[] {
   const engine = guessEngine(src.url, src.kind);
-  const attempts: Attempt[] = [
-    { url: src.url, engine },
-    { url: proxied(src.url), engine },
-  ];
   const clean = src.url.split("?")[0];
-  if (engine === "hls" && /\/live\//.test(src.url) && clean.endsWith(".m3u8")) {
-    attempts.push({ url: proxied(src.url.replace(/\.m3u8(\?.*)?$/, ".ts")), engine: "mpegts" });
-  }
+  const esDirecto = /\/live\//.test(src.url) && clean.endsWith(".m3u8");
+  const tsUrl = esDirecto ? src.url.replace(/\.m3u8(\?.*)?$/, ".ts") : "";
+
+  const attempts: Attempt[] = [{ url: src.url, engine, label: "conexión directa" }];
+  if (tsUrl) attempts.push({ url: tsUrl, engine: "mpegts", label: "formato TS" });
+  attempts.push({ url: proxied(src.url), engine, label: "proxy de compatibilidad" });
+  if (tsUrl) attempts.push({ url: proxied(tsUrl), engine: "mpegts", label: "proxy en formato TS" });
   return attempts;
 }
 
@@ -54,6 +64,7 @@ export default function VideoPlayer({
   const cleanupRef = useRef<(() => void) | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "playing" | "error">("idle");
   const [errorDetail, setErrorDetail] = useState<string>("");
+  const [progress, setProgress] = useState<{ step: number; total: number; label: string } | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -62,23 +73,33 @@ export default function VideoPlayer({
     let cancelled = false;
     const attempts = buildAttempts(source);
     let index = 0;
+    let watchdog: ReturnType<typeof setTimeout> | null = null;
+    const problems: string[] = [];
 
     setState("loading");
     setErrorDetail("");
 
+    function clearWatchdog() {
+      if (watchdog) clearTimeout(watchdog);
+      watchdog = null;
+    }
+
     function destroyEngine() {
+      clearWatchdog();
       cleanupRef.current?.();
       cleanupRef.current = null;
     }
 
     function fail(detail: string) {
       if (cancelled) return;
+      clearWatchdog();
+      problems.push(`${attempts[index]?.label ?? "intento"}: ${detail}`);
       index += 1;
       if (index < attempts.length) {
         start();
       } else {
         destroyEngine();
-        setErrorDetail(detail);
+        setErrorDetail(problems.join(" · "));
         setState("error");
       }
     }
@@ -90,8 +111,19 @@ export default function VideoPlayer({
       const v = videoRef.current;
       if (!v) return;
 
-      const onPlaying = () => !cancelled && setState("playing");
+      setProgress({ step: index + 1, total: attempts.length, label: attempt.label });
+
+      const onPlaying = () => {
+        if (cancelled) return;
+        clearWatchdog();
+        setState("playing");
+      };
       v.addEventListener("playing", onPlaying);
+
+      // Si en este plazo no ha empezado a verse, pasamos al siguiente intento
+      watchdog = setTimeout(() => {
+        if (!cancelled && v.currentTime === 0) fail("sin respuesta a tiempo");
+      }, ATTEMPT_TIMEOUT_MS);
 
       if (attempt.engine === "hls") {
         if (Hls.isSupported()) {
@@ -202,6 +234,11 @@ export default function VideoPlayer({
         <div className="pa-video-overlay" style={{ pointerEvents: "none" }}>
           <div className="pa-spinner" />
           <p>Conectando con {source.name}…</p>
+          {progress && progress.total > 1 && (
+            <p style={{ fontSize: 13, color: "var(--text-faint)" }}>
+              Probando {progress.label} ({progress.step} de {progress.total})
+            </p>
+          )}
         </div>
       )}
       {source && state === "error" && (
@@ -211,7 +248,16 @@ export default function VideoPlayer({
             Probamos conexión directa y nuestro motor de compatibilidad sin éxito. Suele deberse a: suscripción
             caducada, límite de conexiones alcanzado, canal caído o proveedor que bloquea la reproducción web.
           </p>
-          <p style={{ fontSize: 12.5, color: "var(--text-faint)" }}>Detalle técnico: {errorDetail}</p>
+          <p style={{ fontSize: 12.5, color: "var(--text-faint)", maxWidth: 560 }}>
+            Intentos realizados — {errorDetail}
+          </p>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => navigator.clipboard?.writeText(source.url)}
+            style={{ pointerEvents: "auto" }}
+          >
+            Copiar URL del canal (para probarla en VLC)
+          </button>
         </div>
       )}
     </div>
