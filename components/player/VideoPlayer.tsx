@@ -19,16 +19,19 @@ type Attempt = {
 };
 
 /**
- * Cada intento tiene un plazo máximo. Sin él, un servidor que acepta la
- * conexión pero no envía datos deja el reproductor girando indefinidamente,
- * que es justo lo que hacen muchos proveedores cuando bloquean el navegador.
+ * El plazo se mide sobre el avance, no sobre el reloj.
  *
- * Los intentos que tienen alternativa detrás esperan poco: alargarlos solo
- * retrasa el que sí va a funcionar. El último espera más porque, si falla,
- * ya no hay nada después.
+ * Un plazo fijo obliga a elegir entre dos males: corto, y se corta un canal
+ * que estaba descargando sin problemas pero despacio; largo, y un servidor
+ * muerto tiene al usuario mirando una ruleta. Contando desde la última señal
+ * de vida —manifiesto leído, trozo descargado, primer fotograma— no hay que
+ * elegir: lo que avanza sigue, y lo que no avanza cae rápido.
+ *
+ * El techo existe para el caso raro del servidor que va soltando datos
+ * eternamente sin llegar a reproducir nada.
  */
-const PLAZO_INTENTO_MS = 6000;
-const PLAZO_ULTIMO_INTENTO_MS = 15000;
+const SIN_AVANCE_MS = 8000;
+const TECHO_INTENTO_MS = 28000;
 
 function proxied(url: string): string {
   return `/api/proxy?url=${encodeURIComponent(url)}`;
@@ -67,25 +70,30 @@ function guessEngine(url: string, kind: PlaySource["kind"]): "hls" | "mpegts" | 
 }
 
 /**
- * Orden de intentos, del más rápido al más compatible:
- *   1. Directo con el motor que corresponde a la extensión
- *   2. Para canales en directo, la variante .ts: muchos paneles Xtream sirven
- *      solo TS aunque anuncien .m3u8
- *   3. Los mismos dos, a través de nuestro proxy, para saltar el bloqueo CORS
+ * Orden de intentos, del más probable al más rebuscado:
+ *   1. Directo: cuando funciona es lo más rápido y no gasta ancho de banda nuestro
+ *   2. El proxy con el mismo formato: es lo que arregla el caso habitual, un
+ *      servidor que no manda cabeceras CORS o que filtra por User-Agent
+ *   3. El proxy en TS y, ya como último recurso, el TS directo: algunos paneles
+ *      sirven solo TS aunque anuncien .m3u8
+ *
+ * El TS directo va al final justo porque, si el servidor ya ha rechazado al
+ * navegador una vez, va a rechazarlo también aquí.
  */
 function buildAttempts(src: PlaySource): Attempt[] {
   const engine = guessEngine(src.url, src.kind);
   const clean = src.url.split("?")[0];
   const esDirecto = /\/live\//.test(src.url) && clean.endsWith(".m3u8");
   const tsUrl = esDirecto ? src.url.replace(/\.m3u8(\?.*)?$/, ".ts") : "";
+  const mixto = bloqueadoPorContenidoMixto(src.url);
 
   const attempts: Attempt[] = [];
-  if (!bloqueadoPorContenidoMixto(src.url)) {
-    attempts.push({ url: src.url, engine, label: "conexión directa", direct: true });
-    if (tsUrl) attempts.push({ url: tsUrl, engine: "mpegts", label: "formato TS", direct: true });
-  }
+  if (!mixto) attempts.push({ url: src.url, engine, label: "conexión directa", direct: true });
   attempts.push({ url: proxied(src.url), engine, label: "proxy de compatibilidad", direct: false });
-  if (tsUrl) attempts.push({ url: proxied(tsUrl), engine: "mpegts", label: "proxy en formato TS", direct: false });
+  if (tsUrl) {
+    attempts.push({ url: proxied(tsUrl), engine: "mpegts", label: "proxy en formato TS", direct: false });
+    if (!mixto) attempts.push({ url: tsUrl, engine: "mpegts", label: "formato TS directo", direct: true });
+  }
   return attempts;
 }
 
@@ -109,14 +117,16 @@ export default function VideoPlayer({
     let cancelled = false;
     const attempts = buildAttempts(source);
     let index = 0;
-    let watchdog: ReturnType<typeof setTimeout> | null = null;
+    let watchdog: ReturnType<typeof setInterval> | null = null;
+    /** El servidor ya ha rechazado al navegador: no vale la pena volver a él */
+    let directoDescartado = false;
     const problems: string[] = [];
 
     setState("loading");
     setErrorDetail("");
 
     function clearWatchdog() {
-      if (watchdog) clearTimeout(watchdog);
+      if (watchdog) clearInterval(watchdog);
       watchdog = null;
     }
 
@@ -141,11 +151,13 @@ export default function VideoPlayer({
       problems.push(`${actual?.label ?? "intento"}: ${detail}`);
       index += 1;
 
-      if (redCaida && actual?.direct) {
-        while (index < attempts.length && attempts[index].direct) {
-          problems.push(`${attempts[index].label}: omitido (el servidor no acepta al navegador)`);
-          index += 1;
-        }
+      if (redCaida && actual?.direct) directoDescartado = true;
+      // Se descartan todos los intentos directos que queden, estén donde estén
+      // en la lista: si el servidor no acepta al navegador, no lo va a aceptar
+      // por cambiarle la extensión al fichero.
+      while (index < attempts.length && directoDescartado && attempts[index].direct) {
+        problems.push(`${attempts[index].label}: omitido (el servidor no acepta al navegador)`);
+        index += 1;
       }
 
       if (index < attempts.length) {
@@ -175,6 +187,12 @@ export default function VideoPlayer({
        * reproductor se quedaba girando.
        */
       let arrancado = false;
+      const inicio = Date.now();
+      let ultimoAvance = inicio;
+      const avanza = () => {
+        ultimoAvance = Date.now();
+      };
+
       const onPlaying = () => {
         if (cancelled) return;
         arrancado = true;
@@ -182,22 +200,28 @@ export default function VideoPlayer({
         setState("playing");
       };
       v.addEventListener("playing", onPlaying);
+      // Cualquier señal de que están llegando datos cuenta como avance
+      const EVENTOS_AVANCE = ["loadedmetadata", "loadeddata", "progress", "canplay"];
+      for (const evt of EVENTOS_AVANCE) v.addEventListener(evt, avanza);
+      const soltarEventos = () => {
+        v.removeEventListener("playing", onPlaying);
+        for (const evt of EVENTOS_AVANCE) v.removeEventListener(evt, avanza);
+      };
 
-      // Si en este plazo no ha empezado a verse, pasamos al siguiente intento
-      watchdog = setTimeout(
-        () => {
-          if (!cancelled && !arrancado) fail("sin respuesta a tiempo", true);
-        },
-        esUltimo ? PLAZO_ULTIMO_INTENTO_MS : PLAZO_INTENTO_MS
-      );
+      watchdog = setInterval(() => {
+        if (cancelled || arrancado) return;
+        const ahora = Date.now();
+        if (ahora - ultimoAvance > SIN_AVANCE_MS) {
+          fail("el servidor dejó de responder", true);
+        } else if (ahora - inicio > TECHO_INTENTO_MS) {
+          fail("tarda demasiado en arrancar");
+        }
+      }, 1000);
 
       if (attempt.engine === "hls") {
         if (Hls.isSupported()) {
           const hls = new Hls({
             maxBufferLength: 30,
-            // Empieza a pedir el primer trozo sin esperar a terminar de
-            // analizar el manifiesto: es el arranque que nota el usuario.
-            startFragPrefetch: true,
             /*
              * Los reintentos internos de hls.js sobran mientras quede otro
              * intento nuestro por probar: duplican la espera antes de dejar
@@ -206,10 +230,20 @@ export default function VideoPlayer({
              */
             manifestLoadingMaxRetry: esUltimo ? 2 : 0,
             levelLoadingMaxRetry: esUltimo ? 2 : 0,
-            manifestLoadingTimeOut: esUltimo ? 15000 : 5000,
-            levelLoadingTimeOut: esUltimo ? 15000 : 5000,
-            fragLoadingTimeOut: esUltimo ? 25000 : 12000,
+            manifestLoadingTimeOut: 12000,
+            levelLoadingTimeOut: 12000,
+            fragLoadingTimeOut: 25000,
           });
+          // El manifiesto y cada trozo que llega son señales de vida
+          for (const evt of [
+            Hls.Events.MANIFEST_LOADED,
+            Hls.Events.MANIFEST_PARSED,
+            Hls.Events.LEVEL_LOADED,
+            Hls.Events.FRAG_LOADED,
+            Hls.Events.FRAG_BUFFERED,
+          ]) {
+            hls.on(evt, avanza);
+          }
           hls.on(Hls.Events.ERROR, (_evt, data) => {
             if (data.fatal) {
               hls.destroy();
@@ -222,7 +256,7 @@ export default function VideoPlayer({
             v.play().catch(() => {});
           });
           cleanupRef.current = () => {
-            v.removeEventListener("playing", onPlaying);
+            soltarEventos();
             hls.destroy();
           };
         } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
@@ -232,7 +266,7 @@ export default function VideoPlayer({
           v.src = attempt.url;
           v.play().catch(() => {});
           cleanupRef.current = () => {
-            v.removeEventListener("playing", onPlaying);
+            soltarEventos();
             v.removeEventListener("error", onError);
             v.removeAttribute("src");
             v.load();
@@ -252,6 +286,8 @@ export default function VideoPlayer({
             isLive: true,
             url: attempt.url,
           });
+          player.on(mpegts.Events.MEDIA_INFO, avanza);
+          player.on(mpegts.Events.STATISTICS_INFO, avanza);
           player.on(mpegts.Events.ERROR, (tipo: string) => {
             player.destroy();
             fail("MPEG-TS: error de red o formato", tipo === mpegts.ErrorTypes.NETWORK_ERROR);
@@ -260,7 +296,7 @@ export default function VideoPlayer({
           player.load();
           player.play()?.catch?.(() => {});
           cleanupRef.current = () => {
-            v.removeEventListener("playing", onPlaying);
+            soltarEventos();
             try {
               player.destroy();
             } catch {
@@ -277,7 +313,7 @@ export default function VideoPlayer({
         v.src = attempt.url;
         v.play().catch(() => {});
         cleanupRef.current = () => {
-          v.removeEventListener("playing", onPlaying);
+          soltarEventos();
           v.removeEventListener("error", onError);
           v.removeAttribute("src");
           v.load();

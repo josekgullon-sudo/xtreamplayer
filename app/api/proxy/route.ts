@@ -38,15 +38,27 @@ export async function GET(req: NextRequest) {
     const range = req.headers.get("range");
     if (range) headers["Range"] = range;
 
+    /*
+     * Se corta la petición al proveedor en cuanto el navegador abandona la
+     * suya. Sin esto, cada intento descartado del reproductor deja una
+     * descarga viva contra el servidor IPTV; como casi todas las suscripciones
+     * permiten una sola conexión simultánea, el intento siguiente se encuentra
+     * la plaza ocupada por el anterior y le responden 502.
+     */
+    const abortar = AbortSignal.any([req.signal, AbortSignal.timeout(30000)]);
+
     const upstream = await fetch(target.toString(), {
       headers,
-      signal: AbortSignal.timeout(30000),
+      signal: abortar,
       cache: "no-store",
       redirect: "follow",
     });
 
     if (!upstream.ok && upstream.status !== 206) {
-      return NextResponse.json({ error: `El servidor respondió ${upstream.status}` }, { status: 502 });
+      return NextResponse.json(
+        { error: `El servidor del proveedor respondió ${upstream.status}`, status: upstream.status },
+        { status: 502 }
+      );
     }
 
     const contentType = upstream.headers.get("content-type") || "";
@@ -78,6 +90,8 @@ export async function GET(req: NextRequest) {
       headers: passthroughHeaders,
     });
   } catch (e) {
+    // El navegador se fue: no es un error que haya que reportar
+    if (req.signal.aborted) return new NextResponse(null, { status: 499 });
     const message = e instanceof Error ? e.message : "Error de conexión";
     const status = message.includes("permitido") || message.includes("inválida") ? 400 : 502;
     return NextResponse.json({ error: message }, { status });

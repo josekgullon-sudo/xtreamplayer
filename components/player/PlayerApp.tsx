@@ -634,12 +634,17 @@ export default function PlayerApp() {
                 </option>
               ))}
             </select>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)} title="Añadir lista">
-              +
+            <button className="pa-icon-btn" onClick={() => setShowAdd(true)} title="Añadir lista" aria-label="Añadir lista">
+              <Icon name="plus" size={16} />
             </button>
             {active && !active.managed && (
-              <button className="btn btn-danger btn-sm" onClick={() => handleDeletePlaylist(active)} title="Eliminar lista">
-                <Icon name="trash" size={14} />
+              <button
+                className="pa-icon-btn pa-icon-btn-danger"
+                onClick={() => handleDeletePlaylist(active)}
+                title="Eliminar lista"
+                aria-label="Eliminar lista"
+              >
+                <Icon name="trash" size={15} />
               </button>
             )}
           </div>
@@ -763,7 +768,7 @@ export default function PlayerApp() {
                               }
                             }}
                           >
-                            <Icon name="check" size={13} />
+                            <Icon name="star" size={13} />
                           </span>
                         </button>
                       ))}
@@ -825,7 +830,7 @@ export default function PlayerApp() {
         ) : null}
       </aside>
 
-      <main className="pa-main">
+      <main className={`pa-main ${current && showSidebar ? "pa-main-full" : ""}`}>
         <VideoPlayer source={current?.source || null} />
 
         {current && (
@@ -846,7 +851,7 @@ export default function PlayerApp() {
                 onClick={() => onToggleFav(current.favKey!)}
                 title="Añadir a favoritos"
               >
-                <><Icon name="check" size={14} /> {favorites[current.favKey] ? "En favoritos" : "Añadir a favoritos"}</>
+                <><Icon name="star" size={14} /> {favorites[current.favKey] ? "En favoritos" : "Añadir a favoritos"}</>
               </button>
             )}
           </div>

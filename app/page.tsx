@@ -121,7 +121,7 @@ export default function HomePage() {
             </p>
             <div className="features-grid">
               <div className="feature-card">
-                <div className="feature-icon"><Icon name="list" size={22} /></div>
+                <div className="feature-icon"><Icon name="tv" size={22} /></div>
                 <h3>Xtream Codes completo</h3>
                 <p>TV en directo, películas y series con carátulas, categorías y ficha de cada título. También puedes pegar tu URL get.php y detectamos las credenciales solos.</p>
               </div>
@@ -136,7 +136,7 @@ export default function HomePage() {
                 <p>Cambia de canal con las flechas del teclado, busca en milisegundos entre miles de canales y vuelve a lo último que viste con un clic.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon"><Icon name="globe" size={22} /></div>
+                <div className="feature-icon"><Icon name="clock" size={22} /></div>
                 <h3>EPG integrada</h3>
                 <p>Consulta qué están echando ahora y qué viene después en cada canal, directamente desde tu proveedor Xtream.</p>
               </div>
@@ -151,12 +151,12 @@ export default function HomePage() {
                 <p>Si un stream falla por CORS o formato, lo reintentamos automáticamente con nuestro motor de compatibilidad. Menos pantallas negras, más tele.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon"><Icon name="globe" size={22} /></div>
+                <div className="feature-icon"><Icon name="upload" size={22} /></div>
                 <h3>Tus listas en la nube</h3>
                 <p>Con una cuenta gratuita, tus listas te siguen a cualquier dispositivo: portátil, móvil, tablet o la tele del salón.</p>
               </div>
               <div className="feature-card">
-                <div className="feature-icon"><Icon name="check" size={22} /></div>
+                <div className="feature-icon"><Icon name="star" size={22} /></div>
                 <h3>Favoritos e historial</h3>
                 <p>Marca tus canales de siempre y retoma lo último que estabas viendo. Todo sincronizado y sin esfuerzo.</p>
               </div>
