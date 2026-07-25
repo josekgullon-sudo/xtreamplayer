@@ -195,7 +195,9 @@ button { font-family: inherit; }
 .nav-links a:hover { color: var(--text); text-decoration: none; }
 .header-actions { display: flex; gap: 10px; align-items: center; }
 
-@media (max-width: 720px) {
+/* El menú se retira antes de que la cabecera se quede sin sitio: por debajo
+   de 900px el logotipo, la navegación y los botones ya no caben a la vez. */
+@media (max-width: 900px) {
   .nav-links { display: none; }
 }
 
@@ -801,6 +803,19 @@ select.input { appearance: none; cursor: pointer; }
 
 /* Los botones con icono alinean bien su contenido */
 .btn svg { flex-shrink: 0; }
+
+/* ---- Columna de acciones alineada ----
+   Los botones cambian de texto según el estado ("Activar"/"Desactivar"),
+   así que sin anchos fijos cada fila desplazaba el botón de eliminar. */
+.col-actions { text-align: right; white-space: nowrap; width: 1%; }
+.row-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+.row-actions .act-toggle { min-width: 104px; }
+.row-actions .act-pass { min-width: 104px; }
+.row-actions .act-del { margin-left: 2px; }
+.row-actions .act-del:hover { color: var(--danger); border-color: var(--danger-border); background: var(--danger-tint); }
+
+.devices-cell { display: inline-flex; align-items: center; gap: 8px; }
+.devices-full { color: var(--warning); font-weight: 700; }
 
 .cred {
   display: inline-block; background: var(--bg); border: 1px solid var(--border-strong);

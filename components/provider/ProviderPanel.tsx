@@ -694,19 +694,21 @@ export default function ProviderPanel() {
                         {r.status === "active" ? "Activo" : "Desactivado"}
                       </span>
                     </td>
-                    <td style={{ whiteSpace: "nowrap" }}>
-                      <button className="btn btn-ghost btn-sm" onClick={() => setShowReseller(r)}>
-                        Permisos
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => patchReseller(r.id, { status: r.status === "active" ? "disabled" : "active" })}
-                      >
-                        {r.status === "active" ? "Desactivar" : "Activar"}
-                      </button>
-                      <button className="btn btn-danger btn-sm" onClick={() => removeReseller(r)}>
-                        Eliminar
-                      </button>
+                    <td className="col-actions">
+                      <div className="row-actions">
+                        <button className="btn btn-ghost btn-sm act-pass" onClick={() => setShowReseller(r)}>
+                          Permisos
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-sm act-toggle"
+                          onClick={() => patchReseller(r.id, { status: r.status === "active" ? "disabled" : "active" })}
+                        >
+                          {r.status === "active" ? "Desactivar" : "Activar"}
+                        </button>
+                        <button className="icon-btn act-del" onClick={() => removeReseller(r)} title="Eliminar revendedor" aria-label="Eliminar revendedor">
+                          <Icon name="trash" size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -936,17 +938,20 @@ export default function ProviderPanel() {
                 <td>{c.label || "—"}</td>
                 <td><span className="badge badge-accent">{c.playlistType === "xtream" ? "Xtream" : "M3U"}</span></td>
                 <td>
-                  {c.devices}/{c.maxDevices}
-                  {c.devices > 0 && (
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      style={{ marginLeft: 8 }}
-                      onClick={() => patchCustomer(c.id, { resetDevices: true })}
-                      title="Liberar dispositivos"
-                    >
-                      Liberar
-                    </button>
-                  )}
+                  <span className="devices-cell">
+                    <span className={c.devices >= c.maxDevices ? "devices-full" : ""}>
+                      {c.devices}/{c.maxDevices}
+                    </span>
+                    {c.devices > 0 && (
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => patchCustomer(c.id, { resetDevices: true })}
+                        title="Liberar dispositivos"
+                      >
+                        Liberar
+                      </button>
+                    )}
+                  </span>
                 </td>
                 <td>
                   <span className={`badge ${c.status === "active" ? "badge-success" : ""}`}>
@@ -954,25 +959,27 @@ export default function ProviderPanel() {
                   </span>
                 </td>
                 <td style={{ color: "var(--text-faint)" }}>{formatDate(c.createdAt)}</td>
-                <td style={{ whiteSpace: "nowrap" }}>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => patchCustomer(c.id, { status: c.status === "active" ? "disabled" : "active" })}
-                  >
-                    {c.status === "active" ? "Desactivar" : "Activar"}
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      const pass = prompt(`Nueva contraseña para ${c.username}:`);
-                      if (pass) patchCustomer(c.id, { password: pass });
-                    }}
-                  >
-                    Contraseña
-                  </button>
-                  <button className="btn btn-danger btn-sm" onClick={() => removeCustomer(c)}>
-                    Eliminar
-                  </button>
+                <td className="col-actions">
+                  <div className="row-actions">
+                    <button
+                      className="btn btn-ghost btn-sm act-toggle"
+                      onClick={() => patchCustomer(c.id, { status: c.status === "active" ? "disabled" : "active" })}
+                    >
+                      {c.status === "active" ? "Desactivar" : "Activar"}
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm act-pass"
+                      onClick={() => {
+                        const pass = prompt(`Nueva contraseña para ${c.username}:`);
+                        if (pass) patchCustomer(c.id, { password: pass });
+                      }}
+                    >
+                      Contraseña
+                    </button>
+                    <button className="icon-btn act-del" onClick={() => removeCustomer(c)} title="Eliminar cliente" aria-label="Eliminar cliente">
+                      <Icon name="trash" size={15} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
