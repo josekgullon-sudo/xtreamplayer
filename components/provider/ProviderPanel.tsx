@@ -82,7 +82,15 @@ export default function ProviderPanel() {
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [perms, setPerms] = useState<Permissions | null>(null);
   const [role, setRole] = useState<"provider" | "reseller">("provider");
-  const [tab, setTab] = useState<"clientes" | "dominios" | "revendedores">("clientes");
+  const [tab, setTab] = useState<"clientes" | "dominios" | "revendedores" | "marca">("clientes");
+  const [branding, setBranding] = useState<{
+    name: string;
+    color: string;
+    logo: string;
+    slug: string;
+    support: string;
+  } | null>(null);
+  const [accessUrl, setAccessUrl] = useState("");
   const [showReseller, setShowReseller] = useState<Reseller | "new" | null>(null);
   const [createdReseller, setCreatedReseller] = useState<{ email: string; password: string } | null>(null);
   const [search, setSearch] = useState("");
@@ -115,6 +123,14 @@ export default function ProviderPanel() {
     setResellers(data.resellers || []);
   }, []);
 
+  const loadBranding = useCallback(async () => {
+    const res = await fetch("/api/provider/branding");
+    if (!res.ok) return;
+    const data = await res.json();
+    setBranding(data.branding);
+    setAccessUrl(data.accessUrl || "");
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") === "success") setNotice("¡Plan contratado! Se activará en unos segundos.");
@@ -134,6 +150,7 @@ export default function ProviderPanel() {
           loadCustomers(),
           d.permissions?.domainAccess !== "none" ? loadDomains() : Promise.resolve(),
           d.permissions?.manageResellers ? loadResellers() : Promise.resolve(),
+          d.permissions?.managePlan ? loadBranding() : Promise.resolve(),
         ]);
         if (d.permissions?.managePlan) {
           const p = await fetch("/api/provider/plans").then((r) => r.json());
@@ -142,7 +159,7 @@ export default function ProviderPanel() {
       })
       .catch(() => setError("No se pudo cargar el panel"))
       .finally(() => setLoaded(true));
-  }, [loadCustomers, loadDomains, loadResellers]);
+  }, [loadCustomers, loadDomains, loadResellers, loadBranding]);
 
   useEffect(() => {
     const t = setTimeout(() => loadCustomers(search), 300);
@@ -156,6 +173,7 @@ export default function ProviderPanel() {
     if (tab === "clientes") loadCustomers(search);
     else if (tab === "dominios") loadDomains();
     else if (tab === "revendedores") loadResellers();
+    else if (tab === "marca") loadBranding();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -306,6 +324,30 @@ export default function ProviderPanel() {
     loadCustomers(search);
   }
 
+  async function saveBranding(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const res = await fetch("/api/provider/branding", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: String(form.get("brandName") || ""),
+        color: String(form.get("brandColor") || ""),
+        logo: String(form.get("brandLogo") || ""),
+        slug: String(form.get("brandSlug") || ""),
+        support: String(form.get("brandSupport") || ""),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "No se pudo guardar la marca");
+      return;
+    }
+    setNotice("Marca guardada. Tus clientes la verán al entrar.");
+    loadBranding();
+  }
+
   async function subscribe(planId: string) {
     const res = await fetch("/api/provider/subscribe", {
       method: "POST",
@@ -450,6 +492,11 @@ export default function ProviderPanel() {
             Revendedores <span className="panel-tab-count">{resellers.length}</span>
           </button>
         )}
+        {perms?.managePlan && (
+          <button className={`panel-tab ${tab === "marca" ? "active" : ""}`} onClick={() => setTab("marca")}>
+            Mi marca
+          </button>
+        )}
       </div>
 
       {/* Credenciales de revendedor recién creado */}
@@ -555,6 +602,108 @@ export default function ProviderPanel() {
             </table>
           </div>
         </>
+      )}
+
+      {/* Mi marca */}
+      {tab === "marca" && perms?.managePlan && branding && (
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(300px, 520px) 1fr", gap: 28, alignItems: "start" }}>
+          <form className="card" onSubmit={saveBranding}>
+            <h3 style={{ marginBottom: 6 }}>Marca blanca</h3>
+            <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 20 }}>
+              Tus clientes verán tu nombre, tu color y tu logotipo, tanto al entrar como dentro del reproductor.
+            </p>
+
+            <div className="auth-field">
+              <label className="label" htmlFor="b-name">Nombre de tu servicio</label>
+              <input id="b-name" name="brandName" className="input" defaultValue={branding.name} placeholder="Mi IPTV" maxLength={60} />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="auth-field">
+                <label className="label" htmlFor="b-color">Color principal</label>
+                <input
+                  id="b-color"
+                  name="brandColor"
+                  className="input"
+                  type="color"
+                  defaultValue={branding.color || "#e5192b"}
+                  style={{ height: 44, padding: 4, cursor: "pointer" }}
+                />
+              </div>
+              <div className="auth-field">
+                <label className="label" htmlFor="b-slug">Tu enlace</label>
+                <input id="b-slug" name="brandSlug" className="input" defaultValue={branding.slug} placeholder="mi-iptv" />
+              </div>
+            </div>
+
+            <div className="auth-field">
+              <label className="label" htmlFor="b-logo">Logotipo (URL https)</label>
+              <input id="b-logo" name="brandLogo" className="input" defaultValue={branding.logo} placeholder="https://…/logo.png" />
+            </div>
+
+            <div className="auth-field">
+              <label className="label" htmlFor="b-support">Contacto de soporte para tus clientes</label>
+              <input id="b-support" name="brandSupport" className="input" defaultValue={branding.support} placeholder="soporte@miiptv.com o un WhatsApp" />
+            </div>
+
+            <button className="btn btn-primary" style={{ width: "100%" }}>Guardar marca</button>
+          </form>
+
+          <div>
+            {accessUrl && (
+              <div className="card" style={{ marginBottom: 20 }}>
+                <span className="label">Enlace para tus clientes</span>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <code className="cred" style={{ fontSize: 14 }}>{accessUrl}</code>
+                  <button className="btn btn-ghost btn-sm" onClick={() => navigator.clipboard?.writeText(accessUrl)}>
+                    Copiar
+                  </button>
+                  <a className="btn btn-ghost btn-sm" href={accessUrl} target="_blank" rel="noreferrer">
+                    Abrir
+                  </a>
+                </div>
+                <p style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 10 }}>
+                  Comparte este enlace en vez de /acceso: tus clientes entrarán viendo tu marca, no la nuestra.
+                </p>
+              </div>
+            )}
+            <div className="card">
+              <span className="label">Vista previa</span>
+              <div
+                style={{
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius)",
+                  padding: 24,
+                  background: "var(--bg)",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                  {branding.logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={branding.logo} alt="" style={{ height: 28, borderRadius: 6 }} />
+                  ) : (
+                    <span
+                      className="logo-mark"
+                      style={branding.color ? { background: branding.color, boxShadow: "none" } : undefined}
+                    >
+                      ▶
+                    </span>
+                  )}
+                  <strong style={{ fontSize: 18 }}>{branding.name || "Tu marca"}</strong>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={branding.color ? { background: branding.color, boxShadow: "none" } : undefined}
+                  disabled
+                >
+                  Entrar y ver la tele
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Dominios */}

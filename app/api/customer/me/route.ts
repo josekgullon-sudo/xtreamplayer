@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb, ProviderRow } from "@/lib/db";
 import { getCurrentCustomer, clearCustomerCookie, resolveCustomerPlaylist } from "@/lib/provider";
+import { brandingOf, brandCssVars } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,8 @@ export async function GET() {
     | ProviderRow
     | undefined;
 
+  const branding = brandingOf(provider);
+
   return NextResponse.json({
     customer: {
       username: customer.username,
@@ -23,6 +26,10 @@ export async function GET() {
       expiresAt: customer.expires_at,
     },
     brand: provider?.brand_name || "",
+    // El reproductor se viste con la marca del proveedor mientras dura la sesión
+    branding: branding.isWhiteLabel
+      ? { name: branding.name, logo: branding.logo, support: branding.support, cssVars: brandCssVars(branding.color) }
+      : null,
     playlist: {
       id: `provider-${customer.id}`,
       name: provider?.brand_name || "Mi lista",

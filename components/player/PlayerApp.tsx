@@ -102,6 +102,13 @@ export default function PlayerApp() {
       .then((d) => {
         if (!d.customer || !d.playlist) return;
         setCustomer({ username: d.customer.username, brand: d.brand || "" });
+        // Marca blanca: viste el reproductor con el color del proveedor
+        if (d.branding?.cssVars) {
+          const style = document.createElement("style");
+          style.dataset.branding = "1";
+          style.textContent = `:root{${d.branding.cssVars}}`;
+          document.head.appendChild(style);
+        }
         const managed: StoredPlaylist = {
           id: d.playlist.id,
           name: d.playlist.name,

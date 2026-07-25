@@ -178,6 +178,18 @@ function migrate(db: Database.Database) {
   if (customerCols.size && !customerCols.has("reseller_id")) {
     db.exec("ALTER TABLE customers ADD COLUMN reseller_id INTEGER NOT NULL DEFAULT 0");
   }
+
+  // Marca blanca del proveedor
+  const providerCols = columnsOf("providers");
+  const addProvider = (name: string, ddl: string) => {
+    if (providerCols.size && !providerCols.has(name)) db.exec(`ALTER TABLE providers ADD COLUMN ${ddl}`);
+  };
+  addProvider("brand_color", "brand_color TEXT NOT NULL DEFAULT ''");
+  addProvider("brand_logo", "brand_logo TEXT NOT NULL DEFAULT ''");
+  addProvider("brand_slug", "brand_slug TEXT NOT NULL DEFAULT ''");
+  addProvider("brand_support", "brand_support TEXT NOT NULL DEFAULT ''");
+  // El slug identifica el enlace público del proveedor: debe ser único
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_providers_slug ON providers(brand_slug) WHERE brand_slug != ''");
 }
 
 export interface UserRow {
@@ -223,6 +235,14 @@ export interface ProviderRow {
   stripe_customer_id: string;
   stripe_subscription_id: string;
   brand_name: string;
+  /** Color principal de la marca blanca (#rrggbb). Vacío = marca TOTALplayer */
+  brand_color: string;
+  /** URL del logotipo del proveedor */
+  brand_logo: string;
+  /** Identificador para su enlace: /m/<slug> */
+  brand_slug: string;
+  /** Contacto de soporte que ve su cliente */
+  brand_support: string;
   status: string;
   created_at: number;
 }

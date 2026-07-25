@@ -5,7 +5,13 @@ import { useState } from "react";
 import { getDeviceKey, getPlatform } from "@/lib/device";
 
 /** Acceso del cliente final con las credenciales que le dio su proveedor. */
-export default function CustomerLoginForm() {
+export default function CustomerLoginForm({
+  brandName,
+  support,
+}: {
+  brandName?: string;
+  support?: string;
+} = {}) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -44,8 +50,8 @@ export default function CustomerLoginForm() {
       <div className="card auth-card">
         <h1>Entra con tu acceso</h1>
         <p className="auth-sub">
-          Introduce el usuario y la contraseña que te dio tu proveedor. Tu lista se cargará sola: no tienes que
-          configurar nada.
+          Introduce el usuario y la contraseña que te dio {brandName || "tu proveedor"}. Tu lista se cargará sola:
+          no tienes que configurar nada.
         </p>
         {error && (
           <div className="error-box" style={{ marginBottom: 16 }} role="alert">
@@ -81,9 +87,15 @@ export default function CustomerLoginForm() {
             {busy ? "Entrando…" : "Entrar y ver la tele"}
           </button>
         </form>
-        <p className="auth-alt" style={{ fontSize: 13 }}>
-          ¿Tienes tu propia lista M3U o Xtream? <Link href="/player">Úsala aquí sin registro</Link>
-        </p>
+        {support ? (
+          <p className="auth-alt" style={{ fontSize: 13 }}>
+            ¿Problemas para entrar? Escribe a <strong>{support}</strong>
+          </p>
+        ) : (
+          <p className="auth-alt" style={{ fontSize: 13 }}>
+            ¿Tienes tu propia lista M3U o Xtream? <Link href="/player">Úsala aquí sin registro</Link>
+          </p>
+        )}
       </div>
     </div>
   );
