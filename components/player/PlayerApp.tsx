@@ -828,7 +828,7 @@ export default function PlayerApp() {
         </div>
 
         {customer ? (
-          <div style={{ padding: 12, borderTop: "1px solid var(--border)", fontSize: 13, color: "var(--text-dim)" }}>
+          <div className="pa-side-foot" style={{ padding: 12, borderTop: "1px solid var(--border)", fontSize: 13, color: "var(--text-dim)" }}>
             {profile ? (
               <>
                 Perfil <strong>{profile.name}</strong> · {customer.username}
@@ -851,7 +851,7 @@ export default function PlayerApp() {
             </button>
           </div>
         ) : authLoaded && !user ? (
-          <div style={{ padding: 12, borderTop: "1px solid var(--border)", fontSize: 13, color: "var(--text-dim)" }}>
+          <div className="pa-side-foot" style={{ padding: 12, borderTop: "1px solid var(--border)", fontSize: 13, color: "var(--text-dim)" }}>
             Modo invitado — <Link href="/registro">crea una cuenta</Link> para sincronizar tus listas.
           </div>
         ) : null}
@@ -894,6 +894,42 @@ export default function PlayerApp() {
                 <><Icon name="star" size={14} /> {favorites[current.favKey] ? "En favoritos" : "Añadir a favoritos"}</>
               </button>
             )}
+          </div>
+        )}
+
+        {/* En el móvil no hay barra lateral: la lista para zapear va bajo el vídeo */}
+        {!explorando && current && showSidebar && (
+          <div className="pa-zap" aria-label="Cambiar de canal">
+            {liveGroups.map((g) => {
+              const abierto = openGroups[`${active?.id}:zap:${g.name}`] ?? false;
+              return (
+                <div key={g.name}>
+                  <button
+                    className="pa-group-head"
+                    onClick={() => setOpenGroups((prev) => ({ ...prev, [`${active?.id}:zap:${g.name}`]: !abierto }))}
+                    aria-expanded={abierto}
+                  >
+                    <span>{g.name}</span>
+                    <span className="count">{g.channels.length}</span>
+                  </button>
+                  {abierto &&
+                    g.channels.slice(0, 300).map((ch) => (
+                      <button
+                        key={ch.favKey}
+                        className={`pa-channel ${current?.favKey === ch.favKey ? "active" : ""}`}
+                        onClick={ch.play}
+                      >
+                        {ch.logo ? (
+                          <img src={ch.logo} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+                        ) : (
+                          <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
+                        )}
+                        <span className="name">{ch.name}</span>
+                      </button>
+                    ))}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -1114,6 +1150,43 @@ export default function PlayerApp() {
           )}
         </div>
       </main>
+
+      {active && (
+        <nav className="pa-bottomnav" aria-label="Secciones">
+          <button
+            className={`pa-bottomnav-item ${tab === "live" ? "active" : ""}`}
+            onClick={() => { setTab("live"); setSeccionGate("hecho"); }}
+          >
+            <Icon name="tv" size={21} />
+            <span>{isXtream ? "Directo" : "Canales"}</span>
+          </button>
+          {isXtream && (
+            <>
+              <button
+                className={`pa-bottomnav-item ${tab === "vod" ? "active" : ""}`}
+                onClick={() => { setTab("vod"); setSeccionGate("hecho"); }}
+              >
+                <Icon name="film" size={21} />
+                <span>Cine</span>
+              </button>
+              <button
+                className={`pa-bottomnav-item ${tab === "series" ? "active" : ""}`}
+                onClick={() => { setTab("series"); setSeccionGate("hecho"); }}
+              >
+                <Icon name="series" size={21} />
+                <span>Series</span>
+              </button>
+            </>
+          )}
+          <button
+            className={`pa-bottomnav-item ${tab === "favs" ? "active" : ""}`}
+            onClick={() => { setTab("favs"); setSeccionGate("hecho"); }}
+          >
+            <Icon name="star" size={21} />
+            <span>Favoritos</span>
+          </button>
+        </nav>
+      )}
 
       {showAdd && <AddPlaylistModal loggedIn={!!user} onAdd={handleAddPlaylist} onClose={() => setShowAdd(false)} />}
     </div>

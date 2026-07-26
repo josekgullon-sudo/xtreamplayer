@@ -85,12 +85,15 @@ export default function SiteHeader() {
             />
           ) : (
             <>
-              <Link href="/acceso" className={`btn btn-sm ${enReproductor ? "btn-primary" : "btn-ghost hide-sm"}`}>
+              {/* «Entrar» visible también en móvil: era la única puerta al
+                  login y estaba oculta justo donde más se entra por primera vez */}
+              <Link href="/acceso" className={`btn btn-sm ${enReproductor ? "btn-primary" : "btn-ghost"}`}>
                 Entrar
               </Link>
               {!enReproductor && (
                 <Link href="/player" className="btn btn-primary btn-sm">
-                  Abrir reproductor
+                  <span className="oculta-movil">Abrir reproductor</span>
+                  <span className="solo-movil">Reproductor</span>
                 </Link>
               )}
             </>

@@ -304,11 +304,16 @@ button { font-family: inherit; }
   .nav-links { display: none; }
 }
 
+.solo-movil { display: none; }
+
 @media (max-width: 560px) {
-  .site-header .container { gap: 12px; padding: 0 14px; }
+  .site-header .container { gap: 10px; padding: 0 14px; }
   .header-actions { gap: 6px; margin-left: auto; }
   .hide-sm { display: none !important; }
-  .logo { font-size: 16px; }
+  .solo-movil { display: inline; }
+  .oculta-movil { display: none; }
+  .logo { font-size: 16px; gap: 8px; }
+  .header-actions .btn-sm { padding: 8px 13px; font-size: 13px; }
 }
 
 /* ============ Landing ============ */
@@ -780,12 +785,60 @@ select.input { appearance: none; cursor: pointer; }
   color: var(--text-faint); font-size: 12px;
 }
 
-/* Responsive player */
+/* ---- Navegación inferior y lista de zapeo: existen solo en móvil ---- */
+.pa-bottomnav { display: none; }
+.pa-zap { display: none; }
+
+/*
+ * En el móvil el reproductor se reorganiza como una app nativa:
+ * la barra lateral desaparece, arriba queda una franja con la lista y la
+ * búsqueda, la navegación entre secciones baja a una barra fija con el
+ * pulgar, y para zapear mientras se ve un canal la lista aparece debajo
+ * del vídeo. Antes la barra lateral entera se aplastaba debajo del vídeo
+ * y las pestañas quedaban, en la práctica, escondidas.
+ */
 @media (max-width: 860px) {
-  .player-app { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
-  .pa-sidebar { order: 2; max-height: 50vh; border-right: none; border-top: 1px solid var(--border); }
-  .pa-main { order: 1; }
-  .pa-video-zone { max-height: none; }
+  .player-app { display: flex; flex-direction: column; height: auto; min-height: calc(100vh - var(--header-h)); }
+
+  /* La barra lateral se convierte en franja superior: lista + búsqueda */
+  .pa-sidebar { border-right: none; border-bottom: 1px solid var(--hairline); overflow: visible; }
+  .pa-sidebar-head { padding: 10px 14px; border-bottom: none; }
+  /* Solo las pestañas de la barra lateral: el modal de añadir lista usa la
+     misma clase para elegir Xtream/M3U y esas sí hacen falta */
+  .pa-sidebar .pa-tabs, .pa-inicio { display: none; }
+  .pa-lists { display: none; }              /* la lista vive en la parrilla y en el zapeo */
+  .pa-side-foot { display: none; }          /* la sesión vive en el menú de la cabecera */
+
+  .pa-main { flex: 1; }
+  /* Hueco para que la barra inferior no tape el final del contenido */
+  .pa-content { padding-bottom: 84px; }
+  .canales-cat { padding: 14px 14px 96px; }
+  .pa-catalogo .pa-grid { padding: 18px 14px 96px; }
+  .pa-catalogo .pa-series-detail { padding: 18px 14px 96px; }
+
+  /* Viendo un canal: vídeo arriba (sin comerse la pantalla) y zapeo debajo */
+  .pa-video-zone, .pa-main-full .pa-video-zone { aspect-ratio: 16/9; max-height: 42vh; flex: none; }
+  .pa-zap { display: block; padding: 6px 8px 90px; }
+  .pa-now-playing { flex-wrap: wrap; gap: 10px; padding: 12px 14px; }
+
+  .pa-bottomnav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: flex; justify-content: space-around; align-items: stretch;
+    background: var(--bg-blur);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border-top: 1px solid var(--hairline-strong);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .pa-bottomnav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 7px 4px; min-height: 52px; max-width: 120px;
+    background: none; border: none; cursor: pointer; border-radius: 12px;
+    color: var(--text-faint); font-size: 11px; font-weight: 600;
+    transition: color 0.15s;
+  }
+  .pa-bottomnav-item.active { color: var(--accent-bright); }
+  .pa-bottomnav-item:active { color: var(--text); }
 }
 
 /* ============ Modo TV (10-foot UI + mando a distancia) ============ */
