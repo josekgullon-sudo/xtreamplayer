@@ -14,6 +14,10 @@ RUN npm ci
 # ---------- Build ----------
 FROM base AS builder
 WORKDIR /app
+# El commit del despliegue, grabado en el bundle para poder ver en cualquier
+# captura qué versión corre el navegador (Railway lo pasa como build arg)
+ARG RAILWAY_GIT_COMMIT_SHA
+ENV RAILWAY_GIT_COMMIT_SHA=$RAILWAY_GIT_COMMIT_SHA
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
@@ -36,6 +40,10 @@ ENV DATA_DIR=/data
 # que las películas y series se vean también en Safari y iPhone
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/*
+
+# La misma marca de versión, disponible en tiempo de ejecución (/api/version)
+ARG RAILWAY_GIT_COMMIT_SHA
+ENV RAILWAY_GIT_COMMIT_SHA=$RAILWAY_GIT_COMMIT_SHA
 
 RUN groupadd --system --gid 1001 nodejs \
     && useradd --system --uid 1001 --gid nodejs nextjs \

@@ -197,6 +197,19 @@ export default function VideoPlayer({
     if (!source) return;
     setDiagnosticando(true);
     setDiag(null);
+    /*
+     * La firma de versiones va en cada veredicto: si la web del navegador y
+     * el servidor no coinciden, el móvil está probando arreglos que aún no
+     * tiene (Safari se aferra a su caché) — y la captura lo delata sola.
+     */
+    let firma = `[web ${process.env.NEXT_PUBLIC_BUILD || "?"}`;
+    try {
+      const v = await fetch("/api/version").then((r) => r.json());
+      firma += ` · servidor ${v.commit}]`;
+    } catch {
+      firma += "]";
+    }
+    const setDiag_ = (texto: string) => setDiag(`${texto} ${firma}`);
     try {
       const res = await fetch(`/api/diag?url=${encodeURIComponent(source.url)}`);
       const d = await res.json();
@@ -229,28 +242,28 @@ export default function VideoPlayer({
             }
             await new Promise((r) => setTimeout(r, 2000));
           }
-          setDiag(
+          setDiag_(
             veredicto ||
               "El proveedor entrega el vídeo y el conversor lleva 45 segundos trabajando sin terminar: el proveedor está entregando el fichero muy despacio. Espera un minuto y dale al play otra vez."
           );
           return;
         }
-        setDiag(
+        setDiag_(
           esAppleSinSoporte
             ? `El proveedor entrega el vídeo sin problema, pero es un fichero .${ext} y ni este navegador ni el conversor han podido con su contenido. Suele ser el códec interno (p. ej. vídeo HEVC en un navegador sin soporte). Prueba desde otro dispositivo.`
             : "El proveedor entrega datos al servidor sin problema. El fallo está en la decodificación en este dispositivo: prueba desde otro navegador o dispositivo."
         );
       } else if (d.timeout || d.status === 0) {
-        setDiag(
+        setDiag_(
           "Tu proveedor no responde a nuestro servidor (sí respondería a tu casa). Suele significar que bloquea las IPs de centros de datos: pídele que permita el acceso desde servidores, o desde la IP de este servicio."
         );
       } else {
-        setDiag(
+        setDiag_(
           `Tu proveedor respondió ${d.status} al servidor: rechaza la conexión (bloqueo de IPs de servidores, o suscripción sin conexiones libres).`
         );
       }
     } catch {
-      setDiag("No se pudo completar el diagnóstico. Inténtalo de nuevo.");
+      setDiag_("No se pudo completar el diagnóstico. Inténtalo de nuevo.");
     } finally {
       setDiagnosticando(false);
     }
