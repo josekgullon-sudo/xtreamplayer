@@ -62,18 +62,52 @@ function conversionesVivas(): number {
   return n;
 }
 
-/** El playlist está listo cuando ya referencia al menos un segmento. */
-async function esperarPlaylist(dir: string, maxMs: number): Promise<boolean> {
-  const playlist = path.join(dir, "index.m3u8");
+function playlistListo(dir: string): boolean {
+  try {
+    return fs.readFileSync(path.join(dir, "index.m3u8"), "utf8").includes(".m4s");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Espera a que el playlist referencie al menos un segmento, o a que ffmpeg
+ * muera sin conseguirlo — en ese caso no tiene sentido agotar el plazo.
+ */
+async function esperarPlaylist(dir: string, maxMs: number, sesion?: Sesion): Promise<boolean> {
   const limite = Date.now() + maxMs;
   while (Date.now() < limite) {
-    try {
-      const texto = fs.readFileSync(playlist, "utf8");
-      if (texto.includes(".m4s")) return true;
-    } catch { /* aún no existe */ }
+    if (playlistListo(dir)) return true;
+    if (sesion && (!sesion.proc || sesion.proc.exitCode !== null)) {
+      // ffmpeg ya terminó: o dejó el playlist hecho, o falló y está el porqué
+      return playlistListo(dir);
+    }
     await new Promise((r) => setTimeout(r, 250));
   }
-  return false;
+  return playlistListo(dir);
+}
+
+/**
+ * Para la ruta del playlist: espera a que la conversión de una sesión tenga
+ * su primer segmento. Es ahí donde se puede esperar sin peligro — los
+ * reproductores de vídeo aguantan un manifiesto lento; una petición fetch
+ * colgada 20 s sin cabeceras, en cambio, la corta cualquier intermediario.
+ */
+export async function esperarSesionLista(id: string, maxMs: number): Promise<{ ok: boolean; detalle: string }> {
+  const dir = path.join(RAIZ, id);
+  const sesion = sesiones.get(id);
+  if (sesion) sesion.ultimoUso = Date.now();
+  // Sin sesión ni ficheros no hay nada que esperar (reinicio o caducidad)
+  if (!sesion && !playlistListo(dir)) {
+    return { ok: false, detalle: "la sesión de conversión ya no existe: vuelve a darle al play" };
+  }
+  const ok = await esperarPlaylist(dir, maxMs, sesion);
+  if (ok) return { ok: true, detalle: "" };
+  const s = sesiones.get(id);
+  return {
+    ok: false,
+    detalle: s ? s.fallo || s.salida.trim() || "la conversión no produjo vídeo a tiempo" : "sesión desaparecida",
+  };
 }
 
 export async function obtenerSesionRemux(
@@ -86,13 +120,13 @@ export async function obtenerSesionRemux(
   const previa = sesiones.get(id);
   if (previa) {
     previa.ultimoUso = Date.now();
-    if (fs.existsSync(path.join(dir, "index.m3u8")) || (previa.proc && previa.proc.exitCode === null)) {
-      const lista = await esperarPlaylist(dir, 20000);
-      return lista
-        ? { id }
-        : { error: "La conversión no arranca. Prueba de nuevo.", detalle: previa.fallo || previa.salida.trim(), status: 502 };
+    if (playlistListo(dir) || (previa.proc && previa.proc.exitCode === null)) {
+      // Lista o en marcha: se responde ya; la espera fina la hace el playlist
+      return { id };
     }
+    // Murió sin producir nada: se limpia y se intenta de cero
     sesiones.delete(id);
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 
   if (conversionesVivas() >= MAX_SIMULTANEAS) {
@@ -150,28 +184,23 @@ export async function obtenerSesionRemux(
   });
 
   /*
-   * 20 s de margen: con un proveedor real el primer byte de una película
-   * puede tardar varios segundos en llegar (y si el intento anterior del
-   * navegador dejó ocupada la única conexión de la suscripción, unos más
-   * hasta que el panel la libera). Con 14 s se caían conversiones que
-   * habrían arrancado un suspiro después.
+   * Espera corta, solo para cazar los fallos inmediatos (URL mala, códec
+   * imposible, ffmpeg ausente) y devolverlos con su porqué. Si ffmpeg sigue
+   * vivo se responde ya con optimismo: la espera larga la hace la ruta del
+   * playlist, donde los reproductores aguantan sin cortarse. Aquí colgar la
+   * respuesta 20 s sin cabeceras hacía que los intermediarios (y algún
+   * navegador) cortaran la conexión a mitad.
    */
-  const lista = await esperarPlaylist(dir, 20000);
-  if (!lista) {
-    proc.kill("SIGKILL");
+  const lista = await esperarPlaylist(dir, 6000, sesion);
+  if (lista) return { id };
+
+  if (!sesion.proc || sesion.proc.exitCode !== null) {
     fs.rm(dir, { recursive: true, force: true }, () => {});
     sesiones.delete(id);
-    const detalle =
-      sesion.fallo ||
-      sesion.salida.trim() ||
-      "ffmpeg no recibió el fichero a tiempo (el proveedor tarda en soltar la conexión o entrega muy lento)";
+    const detalle = sesion.fallo || sesion.salida.trim() || "ffmpeg terminó sin producir vídeo ni explicar por qué";
     // Al log del servidor: es lo que se ve en Railway → Deploy Logs
     console.error("[remux] conversión fallida:", url, "→", detalle);
-    return {
-      error: "La conversión no arranca.",
-      detalle,
-      status: 502,
-    };
+    return { error: "La conversión falló.", detalle, status: 502 };
   }
   return { id };
 }
