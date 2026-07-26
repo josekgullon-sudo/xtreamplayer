@@ -36,9 +36,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ listo: false, error: resultado.error, detalle: resultado.detalle || "" });
     }
     const estado = await esperarSesionLista(resultado.id, 2500);
-    if (estado.ok) return NextResponse.json({ listo: true });
-    if (estado.enMarcha) return NextResponse.json({ listo: false });
-    return NextResponse.json({ listo: false, error: "La conversión falló.", detalle: estado.detalle });
+    if (estado.ok) return NextResponse.json({ listo: true, codec: estado.codec });
+    if (estado.enMarcha) return NextResponse.json({ listo: false, codec: estado.codec });
+    return NextResponse.json({ listo: false, error: "La conversión falló.", detalle: estado.detalle, codec: estado.codec });
   } catch (e) {
     console.error("[remux] error en el sondeo:", e);
     return NextResponse.json({

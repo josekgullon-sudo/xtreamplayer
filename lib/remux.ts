@@ -29,6 +29,8 @@ interface Sesion {
   /** Cola del stderr de ffmpeg: si algo falla, aquí está el porqué */
   salida: string;
   fallo: string;
+  /** Códec de vídeo detectado y qué se hizo con él (para el diagnóstico) */
+  codec: string;
 }
 
 const RAIZ = path.join(os.tmpdir(), "tp-remux");
@@ -60,6 +62,45 @@ function conversionesVivas(): number {
   let n = 0;
   for (const s of sesiones.values()) if (s.proc && s.proc.exitCode === null) n += 1;
   return n;
+}
+
+/**
+ * Mira qué códec de vídeo trae el fichero antes de convertir. Importa
+ * porque Safari es quisquilloso: el HEVC solo lo reproduce etiquetado como
+ * hvc1 (ffmpeg al copiar lo deja como hev1, que Apple ignora), y códecs
+ * como el H.264 de 10 bits o el MPEG-4 viejo no los reproduce de ninguna
+ * manera — ahí toca recodificar.
+ */
+async function sondearVideo(url: string): Promise<{ codec: string; perfil: string }> {
+  return new Promise((resolve) => {
+    const p = spawn(
+      "ffprobe",
+      [
+        "-v", "error",
+        "-user_agent", PLAYER_UA,
+        "-select_streams", "V:0",
+        "-show_entries", "stream=codec_name,profile",
+        "-of", "csv=p=0",
+        url,
+      ],
+      { stdio: ["ignore", "pipe", "ignore"] }
+    );
+    let out = "";
+    const t = setTimeout(() => {
+      p.kill("SIGKILL");
+      resolve({ codec: "", perfil: "" });
+    }, 8000);
+    p.stdout?.on("data", (c: Buffer) => (out += c.toString()));
+    p.on("close", () => {
+      clearTimeout(t);
+      const [codec = "", perfil = ""] = out.trim().split("\n")[0]?.split(",") || [];
+      resolve({ codec: codec.trim(), perfil: perfil.trim() });
+    });
+    p.on("error", () => {
+      clearTimeout(t);
+      resolve({ codec: "", perfil: "" });
+    });
+  });
 }
 
 function playlistListo(dir: string): boolean {
@@ -96,21 +137,23 @@ async function esperarPlaylist(dir: string, maxMs: number, sesion?: Sesion): Pro
 export async function esperarSesionLista(
   id: string,
   maxMs: number
-): Promise<{ ok: boolean; enMarcha: boolean; detalle: string }> {
+): Promise<{ ok: boolean; enMarcha: boolean; detalle: string; codec: string }> {
   const dir = path.join(RAIZ, id);
   const sesion = sesiones.get(id);
   if (sesion) sesion.ultimoUso = Date.now();
   // Sin sesión ni ficheros no hay nada que esperar (reinicio o caducidad)
   if (!sesion && !playlistListo(dir)) {
-    return { ok: false, enMarcha: false, detalle: "la sesión de conversión ya no existe: vuelve a darle al play" };
+    return { ok: false, enMarcha: false, detalle: "la sesión de conversión ya no existe: vuelve a darle al play", codec: "" };
   }
   const ok = await esperarPlaylist(dir, maxMs, sesion);
-  if (ok) return { ok: true, enMarcha: false, detalle: "" };
+  const codec = sesiones.get(id)?.codec || "";
+  if (ok) return { ok: true, enMarcha: false, detalle: "", codec };
   const s = sesiones.get(id);
   const enMarcha = Boolean(s && s.proc && s.proc.exitCode === null);
   return {
     ok: false,
     enMarcha,
+    codec,
     detalle: enMarcha
       ? "la conversión sigue en marcha"
       : s
@@ -143,6 +186,33 @@ export async function obtenerSesionRemux(
   }
 
   fs.mkdirSync(dir, { recursive: true });
+
+  /*
+   * Con el códec en la mano se decide qué hacer con el vídeo:
+   *  - HEVC: copiar, pero etiquetado hvc1 (con hev1 Safari lo ignora)
+   *  - H.264 de 8 bits: copiar tal cual
+   *  - H.264 de 10 bits, MPEG-4, VC-1…: recodificar a H.264, porque ningún
+   *    iPhone los decodifica por mucho que el contenedor esté bien
+   *  - Sin datos o códecs web (VP9/AV1): copiar y que decida el navegador
+   */
+  const video = await sondearVideo(url);
+  const diezBits = /10/.test(video.perfil);
+  let videoArgs: string[];
+  let notaCodec: string;
+  if (video.codec === "hevc") {
+    videoArgs = ["-c:v", "copy", "-tag:v", "hvc1"];
+    notaCodec = `${video.codec} ${video.perfil} (etiquetado hvc1)`.trim();
+  } else if (video.codec === "h264" && !diezBits) {
+    videoArgs = ["-c:v", "copy"];
+    notaCodec = `${video.codec} ${video.perfil}`.trim();
+  } else if (!video.codec || ["vp9", "av1", "vp8"].includes(video.codec)) {
+    videoArgs = ["-c:v", "copy"];
+    notaCodec = video.codec || "desconocido";
+  } else {
+    videoArgs = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"];
+    notaCodec = `${video.codec} ${video.perfil} → recodificado a H.264`.trim();
+  }
+
   const proc = spawn(
     "ffmpeg",
     [
@@ -162,7 +232,7 @@ export async function obtenerSesionRemux(
       "-sn",
       "-dn",
       "-map_chapters", "-1",
-      "-c:v", "copy",
+      ...videoArgs,
       "-c:a", "aac",
       "-b:a", "160k",
       "-ac", "2",
@@ -177,7 +247,7 @@ export async function obtenerSesionRemux(
     ],
     { stdio: ["ignore", "ignore", "pipe"] }
   );
-  const sesion: Sesion = { id, dir, proc, ultimoUso: Date.now(), salida: "", fallo: "" };
+  const sesion: Sesion = { id, dir, proc, ultimoUso: Date.now(), salida: "", fallo: "", codec: notaCodec };
   proc.stderr?.on("data", (chunk: Buffer) => {
     sesion.salida = (sesion.salida + chunk.toString()).slice(-600);
   });

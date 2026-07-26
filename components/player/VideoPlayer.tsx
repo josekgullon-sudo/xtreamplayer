@@ -214,10 +214,9 @@ export default function VideoPlayer({
               const rc = await fetch(`/api/remux/espera?url=${encodeURIComponent(source.url)}`, {
                 signal: AbortSignal.timeout(15000),
               });
-              const rj = (await rc.json()) as { listo?: boolean; error?: string; detalle?: string };
+              const rj = (await rc.json()) as { listo?: boolean; error?: string; detalle?: string; codec?: string };
               if (rj.listo) {
-                veredicto =
-                  "El proveedor entrega el vídeo y el conversor lo tiene listo. El fallo está en la reproducción en este dispositivo: recarga la página y dale al play de nuevo; si persiste, dime qué dispositivo es.";
+                veredicto = `El proveedor entrega el vídeo y el conversor lo tiene listo${rj.codec ? ` (vídeo: ${rj.codec})` : ""}. El fallo está en la reproducción en este dispositivo: recarga la página y dale al play de nuevo; si persiste, dime qué dispositivo es y este veredicto entero.`;
                 break;
               }
               if (rj.error) {
@@ -426,7 +425,13 @@ export default function VideoPlayer({
          */
         const hlsNativo = v.canPlayType("application/vnd.apple.mpegurl");
         if (hlsNativo) {
-          const onError = () => fail("No se pudo cargar el stream HLS", esFalloDeRed(v));
+          // El código del error nativo distingue red (2), decodificación (3)
+          // y formato no soportado (4): oro para diagnosticar a distancia
+          const onError = () =>
+            fail(
+              `No se pudo cargar el stream HLS${v.error ? ` (código ${v.error.code}${v.error.message ? `: ${v.error.message}` : ""})` : ""}`,
+              esFalloDeRed(v)
+            );
           v.addEventListener("error", onError);
           v.src = attempt.url;
           v.play().catch((e) => {
