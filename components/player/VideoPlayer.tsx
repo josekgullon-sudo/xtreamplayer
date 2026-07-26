@@ -155,7 +155,9 @@ function buildAttempts(src: PlaySource): Attempt[] {
    * ya era compatible, nunca se llega aquí.
    */
   if (engine === "native") {
-    attempts.push({ url: `/api/remux?url=${encodeURIComponent(src.url)}`, engine: "native", label: "conversor de formato", direct: false });
+    // Como HLS: es lo único que Safari/iPhone reproducen en streaming, y de
+    // regalo permite saltar dentro de lo ya convertido
+    attempts.push({ url: `/api/remux?url=${encodeURIComponent(src.url)}`, engine: "hls", label: "conversor de formato", direct: false });
   }
   return attempts;
 }

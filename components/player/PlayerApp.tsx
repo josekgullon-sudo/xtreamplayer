@@ -27,6 +27,7 @@ import {
   XtreamVodStream,
   XtreamSeries,
   XtreamSeriesInfo,
+  XtreamVodInfo,
   xtreamApi,
   liveStreamUrl,
   vodStreamUrl,
@@ -101,6 +102,7 @@ export default function PlayerApp() {
   const [favorites, setFavorites] = useState<Record<string, true>>({});
   const [recents, setRecents] = useState<RecentItem[]>([]);
   const [seriesDetail, setSeriesDetail] = useState<{ series: XtreamSeries; info: XtreamSeriesInfo; season: string } | null>(null);
+  const [vodDetail, setVodDetail] = useState<{ vod: XtreamVodStream; info: XtreamVodInfo | null } | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -286,6 +288,7 @@ export default function PlayerApp() {
   useEffect(() => {
     setViendo(false);
     setGrupoSel(null);
+    setVodDetail(null);
   }, [tab, activeId]);
 
   useEffect(() => {
@@ -417,6 +420,17 @@ export default function PlayerApp() {
       })
     );
   }, []);
+
+  async function openVod(p: StoredPlaylist, item: XtreamVodStream) {
+    setVodDetail({ vod: item, info: null });
+    try {
+      const info = await xtreamApi<XtreamVodInfo>(credsOf(p), "get_vod_info", { vod_id: String(item.stream_id) });
+      setVodDetail((prev) => (prev && prev.vod.stream_id === item.stream_id ? { vod: item, info } : prev));
+    } catch {
+      // Sin ficha no pasa nada: el botón de reproducir sigue ahí
+      setVodDetail((prev) => (prev && prev.vod.stream_id === item.stream_id ? { vod: item, info: {} } : prev));
+    }
+  }
 
   function playVod(p: StoredPlaylist, item: XtreamVodStream) {
     const ext = item.container_extension || "mp4";
@@ -873,7 +887,7 @@ export default function PlayerApp() {
                 else if (current.kind === "episode") setTab("series");
               }}
             >
-              <Icon name="back" size={14} /> {current.kind === "vod" || current.kind === "episode" ? "Catálogo" : "Canales"}
+              <Icon name="back" size={14} /> {current.kind === "vod" || current.kind === "episode" ? "Volver" : "Canales"}
             </button>
             {current.logo && <img src={current.logo} alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />}
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1064,13 +1078,13 @@ export default function PlayerApp() {
             </div>
           )}
 
-          {active && modoCatalogo && tab === "vod" && !seriesDetail && (
+          {active && modoCatalogo && tab === "vod" && !seriesDetail && !vodDetail && (
             <>
               {loading && <Loading messages={MENSAJES_CINE} />}
               {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
               <div className="pa-grid">
                 {vodVisible.slice(0, 400).map((v) => (
-                  <button className="pa-card" key={v.stream_id} onClick={() => playVod(active, v)} title={v.name}>
+                  <button className="pa-card" key={v.stream_id} onClick={() => openVod(active, v)} title={v.name}>
                     {v.stream_icon ? (
                       <img className="poster" src={v.stream_icon} alt={v.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
                     ) : (
@@ -1111,6 +1125,49 @@ export default function PlayerApp() {
             </>
           )}
 
+          {active && modoCatalogo && tab === "vod" && vodDetail && (
+            <div className="pa-series-detail">
+              <button className="btn btn-ghost btn-sm" onClick={() => setVodDetail(null)} style={{ marginBottom: 16 }}>
+                <Icon name="back" size={15} /> Volver a cine
+              </button>
+              <div className="pa-series-head">
+                {(vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon) && (
+                  <img src={vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon} alt={vodDetail.vod.name} />
+                )}
+                <div>
+                  <h2>{vodDetail.vod.name}</h2>
+                  <FichaMeta
+                    genero={vodDetail.info?.info?.genre}
+                    fecha={vodDetail.info?.info?.releasedate || vodDetail.info?.info?.release_date}
+                    duracion={vodDetail.info?.info?.duration}
+                    nota={vodDetail.info?.info?.rating || vodDetail.vod.rating}
+                  />
+                  {vodDetail.info === null ? (
+                    <p className="ficha-cargando">Cargando la ficha…</p>
+                  ) : (
+                    <>
+                      {(vodDetail.info.info?.plot || vodDetail.info.info?.description) && (
+                        <p>{vodDetail.info.info?.plot || vodDetail.info.info?.description}</p>
+                      )}
+                      <FichaCredito etiqueta="Reparto" valor={vodDetail.info.info?.cast || vodDetail.info.info?.actors} />
+                      <FichaCredito etiqueta="Dirección" valor={vodDetail.info.info?.director} />
+                    </>
+                  )}
+                  <button
+                    className="btn btn-primary"
+                    style={{ marginTop: 18 }}
+                    onClick={() => playVod(active, {
+                      ...vodDetail.vod,
+                      container_extension: vodDetail.info?.movie_data?.container_extension || vodDetail.vod.container_extension,
+                    })}
+                  >
+                    <Icon name="play" size={16} /> Reproducir
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {active && modoCatalogo && seriesDetail && (
             <div className="pa-series-detail">
               <button className="btn btn-ghost btn-sm" onClick={() => setSeriesDetail(null)} style={{ marginBottom: 16 }}>
@@ -1120,7 +1177,15 @@ export default function PlayerApp() {
                 {seriesDetail.series.cover && <img src={seriesDetail.series.cover} alt={seriesDetail.series.name} />}
                 <div>
                   <h2>{seriesDetail.series.name}</h2>
+                  <FichaMeta
+                    genero={seriesDetail.info.info?.genre}
+                    fecha={seriesDetail.info.info?.releaseDate || seriesDetail.info.info?.release_date}
+                    duracion={seriesDetail.info.info?.episode_run_time ? `${seriesDetail.info.info.episode_run_time} min/ep` : undefined}
+                    nota={seriesDetail.info.info?.rating || seriesDetail.series.rating}
+                  />
                   <p>{seriesDetail.info.info?.plot || seriesDetail.series.plot || ""}</p>
+                  <FichaCredito etiqueta="Reparto" valor={seriesDetail.info.info?.cast} />
+                  <FichaCredito etiqueta="Dirección" valor={seriesDetail.info.info?.director} />
                 </div>
               </div>
               <div className="pa-season-tabs">
@@ -1191,5 +1256,35 @@ export default function PlayerApp() {
       {showAdd && <AddPlaylistModal loggedIn={!!user} onAdd={handleAddPlaylist} onClose={() => setShowAdd(false)} />}
     </div>
     </>
+  );
+}
+
+/** Chips de metadatos de la ficha (género, año, duración, nota). */
+function FichaMeta({ genero, fecha, duracion, nota }: { genero?: string; fecha?: string; duracion?: string; nota?: string }) {
+  const año = (fecha || "").slice(0, 4);
+  const notaNum = parseFloat(nota || "");
+  const chips = [
+    genero,
+    año && año !== "0000" ? año : "",
+    duracion,
+    Number.isFinite(notaNum) && notaNum > 0 ? `★ ${notaNum.toFixed(1)}` : "",
+  ].filter(Boolean);
+  if (!chips.length) return null;
+  return (
+    <div className="ficha-meta">
+      {chips.map((c) => (
+        <span className="ficha-chip" key={c}>{c}</span>
+      ))}
+    </div>
+  );
+}
+
+/** Línea de créditos (Reparto: …, Dirección: …). No pinta nada si no hay dato. */
+function FichaCredito({ etiqueta, valor }: { etiqueta: string; valor?: string }) {
+  if (!valor?.trim()) return null;
+  return (
+    <p className="ficha-credito">
+      <span>{etiqueta}</span> {valor}
+    </p>
   );
 }

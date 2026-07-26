@@ -52,8 +52,40 @@ export interface XtreamEpisode {
 
 export interface XtreamSeriesInfo {
   seasons?: unknown[];
-  info?: { name?: string; plot?: string; cover?: string };
+  info?: {
+    name?: string;
+    plot?: string;
+    cover?: string;
+    cast?: string;
+    director?: string;
+    genre?: string;
+    releaseDate?: string;
+    release_date?: string;
+    rating?: string;
+    episode_run_time?: string;
+  };
   episodes?: Record<string, XtreamEpisode[]>;
+}
+
+/** Ficha completa de una película (get_vod_info). */
+export interface XtreamVodInfo {
+  info?: {
+    name?: string;
+    movie_image?: string;
+    plot?: string;
+    description?: string;
+    cast?: string;
+    actors?: string;
+    director?: string;
+    genre?: string;
+    releasedate?: string;
+    release_date?: string;
+    rating?: string;
+    duration?: string;
+    duration_secs?: number;
+    youtube_trailer?: string;
+  };
+  movie_data?: { stream_id?: number; name?: string; container_extension?: string };
 }
 
 export interface XtreamUserInfo {

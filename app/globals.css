@@ -642,6 +642,17 @@ select.input { appearance: none; cursor: pointer; }
 }
 .pa-catalogo .pa-series-detail { padding: 28px 32px 40px; }
 
+/* Ficha de película/serie: metadatos como chips y créditos discretos */
+.ficha-meta { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 14px; }
+.ficha-chip {
+  padding: 4px 12px; border-radius: var(--radius-pill);
+  background: var(--surface-quiet); border: 1px solid var(--hairline);
+  font-size: 12.5px; font-weight: 600; color: var(--text-dim);
+}
+.ficha-credito { font-size: 13.5px; color: var(--text-dim); margin-top: 8px; }
+.ficha-credito span { color: var(--text-faint); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 6px; }
+.ficha-cargando { color: var(--text-faint); font-size: 14px; }
+
 /* ---- Parrilla de canales: el directo se navega, no se impone ---- */
 
 .canales-cat { padding: 22px 32px 44px; }
