@@ -205,34 +205,36 @@ export default function VideoPlayer({
       if (d.ok && d.bytes > 0) {
         // El proveedor entrega: la siguiente pregunta es si el conversor pudo
         if (engineDe(source) === "native") {
-          try {
-            // El conversor puede tardar hasta 20 s en contestar (espera a
-            // tener el primer segmento): el sondeo aguanta más que él
-            const rc = await fetch(`/api/remux?url=${encodeURIComponent(source.url)}`, {
-              signal: AbortSignal.timeout(30000),
-            });
-            if (rc.ok) {
-              setDiag(
-                "El proveedor entrega el vídeo y el conversor lo prepara sin problema. El fallo está en la reproducción en este dispositivo: recarga la página y prueba de nuevo; si persiste, dime qué dispositivo es."
-              );
-            } else {
-              const rj = await rc.json().catch(() => ({} as { error?: string; detalle?: string }));
-              setDiag(
-                `El proveedor entrega el vídeo, pero el conversor falló: ${rj.error || `HTTP ${rc.status}`}${rj.detalle ? ` — ${rj.detalle}` : ""}`
-              );
+          // Sondeos cortos al conversor: cada respuesta llega en milisegundos
+          // y trae el estado real (listo, en marcha, o fallo con su porqué)
+          const limite = Date.now() + 45000;
+          let veredicto = "";
+          while (Date.now() < limite) {
+            try {
+              const rc = await fetch(`/api/remux/espera?url=${encodeURIComponent(source.url)}`, {
+                signal: AbortSignal.timeout(15000),
+              });
+              const rj = (await rc.json()) as { listo?: boolean; error?: string; detalle?: string };
+              if (rj.listo) {
+                veredicto =
+                  "El proveedor entrega el vídeo y el conversor lo tiene listo. El fallo está en la reproducción en este dispositivo: recarga la página y dale al play de nuevo; si persiste, dime qué dispositivo es.";
+                break;
+              }
+              if (rj.error) {
+                veredicto = `El proveedor entrega el vídeo, pero el conversor falló: ${rj.error}${rj.detalle ? ` — ${rj.detalle}` : ""}`;
+                break;
+              }
+              // sigue convirtiendo: se le da un poco más de cuerda
+            } catch {
+              /* un sondeo perdido no decide nada: se reintenta */
             }
-            return;
-          } catch (e) {
-            // El sondeo se cortó sin respuesta: eso también es un dato
-            const porque =
-              e instanceof Error && e.name === "TimeoutError"
-                ? "no contestó en 30 segundos"
-                : "la conexión se cortó a mitad";
-            setDiag(
-              `El proveedor entrega el vídeo, pero el sondeo del conversor ${porque}. Vuelve a intentarlo en un minuto; si se repite, es un problema del servidor de conversión y los registros del despliegue dirán el motivo exacto.`
-            );
-            return;
+            await new Promise((r) => setTimeout(r, 2000));
           }
+          setDiag(
+            veredicto ||
+              "El proveedor entrega el vídeo y el conversor lleva 45 segundos trabajando sin terminar: el proveedor está entregando el fichero muy despacio. Espera un minuto y dale al play otra vez."
+          );
+          return;
         }
         setDiag(
           esAppleSinSoporte
@@ -366,7 +368,7 @@ export default function VideoPlayer({
           : attempt.direct
             ? SIN_AVANCE_DIRECTO_MS
             : SIN_AVANCE_MS;
-      const techo = attempt.lento ? 70000 : TECHO_INTENTO_MS;
+      const techo = attempt.lento ? 150000 : TECHO_INTENTO_MS;
       watchdog = setInterval(() => {
         if (cancelled || arrancado) return;
         const ahora = Date.now();
@@ -376,6 +378,44 @@ export default function VideoPlayer({
           fail("tarda demasiado en arrancar");
         }
       }, 1000);
+
+      /*
+       * El conversor primero se sondea hasta que esté listo: peticiones de
+       * milisegundos cada 2 s, nada que un intermediario pueda cortar. Solo
+       * entonces se le da la URL al vídeo, que ya carga al instante. Esperar
+       * dentro de la petición del vídeo dejaba la conexión muda mientras
+       * ffmpeg trabajaba, y algo por el camino la cortaba a mitad.
+       */
+      if (attempt.lento) {
+        const limite = Date.now() + 120000;
+        let preparado = false;
+        while (!cancelled && Date.now() < limite) {
+          avanza(); // el sondeo cuenta como señal de vida para el plazo
+          try {
+            const r = await fetch(`/api/remux/espera?url=${encodeURIComponent(source!.url)}`, {
+              signal: AbortSignal.timeout(15000),
+            });
+            const est = (await r.json()) as { listo?: boolean; error?: string; detalle?: string };
+            if (est.listo) {
+              preparado = true;
+              break;
+            }
+            if (est.error) {
+              fail(`${est.error}${est.detalle ? ` — ${est.detalle}` : ""}`);
+              return;
+            }
+          } catch {
+            /* un sondeo perdido no es un fallo: se reintenta */
+          }
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+        if (cancelled) return;
+        if (!preparado) {
+          fail("la conversión no arrancó en dos minutos");
+          return;
+        }
+        avanza();
+      }
 
       if (attempt.engine === "hls") {
         /*

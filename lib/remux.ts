@@ -93,20 +93,29 @@ async function esperarPlaylist(dir: string, maxMs: number, sesion?: Sesion): Pro
  * reproductores de vídeo aguantan un manifiesto lento; una petición fetch
  * colgada 20 s sin cabeceras, en cambio, la corta cualquier intermediario.
  */
-export async function esperarSesionLista(id: string, maxMs: number): Promise<{ ok: boolean; detalle: string }> {
+export async function esperarSesionLista(
+  id: string,
+  maxMs: number
+): Promise<{ ok: boolean; enMarcha: boolean; detalle: string }> {
   const dir = path.join(RAIZ, id);
   const sesion = sesiones.get(id);
   if (sesion) sesion.ultimoUso = Date.now();
   // Sin sesión ni ficheros no hay nada que esperar (reinicio o caducidad)
   if (!sesion && !playlistListo(dir)) {
-    return { ok: false, detalle: "la sesión de conversión ya no existe: vuelve a darle al play" };
+    return { ok: false, enMarcha: false, detalle: "la sesión de conversión ya no existe: vuelve a darle al play" };
   }
   const ok = await esperarPlaylist(dir, maxMs, sesion);
-  if (ok) return { ok: true, detalle: "" };
+  if (ok) return { ok: true, enMarcha: false, detalle: "" };
   const s = sesiones.get(id);
+  const enMarcha = Boolean(s && s.proc && s.proc.exitCode === null);
   return {
     ok: false,
-    detalle: s ? s.fallo || s.salida.trim() || "la conversión no produjo vídeo a tiempo" : "sesión desaparecida",
+    enMarcha,
+    detalle: enMarcha
+      ? "la conversión sigue en marcha"
+      : s
+        ? s.fallo || s.salida.trim() || "ffmpeg terminó sin producir vídeo ni explicar por qué"
+        : "sesión desaparecida",
   };
 }
 
