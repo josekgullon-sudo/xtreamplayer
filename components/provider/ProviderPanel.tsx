@@ -6,6 +6,7 @@ import CustomerDetail from "./CustomerDetail";
 import TicketsSection from "./TicketsSection";
 import ApiSection from "./ApiSection";
 import InvoicesSection from "./InvoicesSection";
+import PanelSection from "./PanelSection";
 import Loading, { MENSAJES_PANEL } from "@/components/Loading";
 import { useCallback, useEffect, useState } from "react";
 
@@ -88,7 +89,7 @@ export default function ProviderPanel() {
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [perms, setPerms] = useState<Permissions | null>(null);
   const [role, setRole] = useState<"provider" | "reseller">("provider");
-  const [tab, setTab] = useState<"clientes" | "dominios" | "revendedores" | "marca" | "plan" | "facturas" | "api" | "soporte">("clientes");
+  const [tab, setTab] = useState<"clientes" | "dominios" | "revendedores" | "marca" | "plan" | "facturas" | "panel" | "api" | "soporte">("clientes");
   const [branding, setBranding] = useState<{
     name: string;
     color: string;
@@ -436,6 +437,7 @@ export default function ProviderPanel() {
     marca: "Mi marca",
     plan: "Plan y facturación",
     facturas: "Facturas",
+    panel: "Conexión del panel",
     api: "API",
     soporte: "Soporte",
   };
@@ -501,6 +503,9 @@ export default function ProviderPanel() {
             </button>
 
             <div className="panel-nav-group">Herramientas</div>
+            <button className={`panel-nav-item ${tab === "panel" ? "active" : ""}`} onClick={() => setTab("panel")}>
+              <Icon name="device" size={17} className="panel-nav-icon" /> Mi panel XUI
+            </button>
             <button className={`panel-nav-item ${tab === "api" ? "active" : ""}`} onClick={() => setTab("api")}>
               <Icon name="external" size={17} className="panel-nav-icon" /> API
             </button>
@@ -553,6 +558,7 @@ export default function ProviderPanel() {
 
       {/* Plan y facturación */}
       {tab === "facturas" && perms?.managePlan && <InvoicesSection />}
+      {tab === "panel" && perms?.managePlan && <PanelSection onImported={() => loadCustomers(search)} />}
       {tab === "api" && perms?.managePlan && <ApiSection />}
       {tab === "soporte" && perms?.managePlan && <TicketsSection />}
 

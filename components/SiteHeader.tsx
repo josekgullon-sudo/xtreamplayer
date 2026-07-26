@@ -26,15 +26,18 @@ export default function SiteHeader() {
    * como si no hubiera entrado ya.
    */
   const [customerUser, setCustomerUser] = useState<string | null>(null);
+  const [providerMail, setProviderMail] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
       fetch("/api/auth/me").then((r) => r.json()).catch(() => ({})),
       fetch("/api/customer/me").then((r) => r.json()).catch(() => ({})),
+      fetch("/api/provider/auth").then((r) => r.json()).catch(() => ({})),
     ])
-      .then(([auth, cust]) => {
+      .then(([auth, cust, prov]) => {
         setEmail(auth.user?.email ?? null);
         setCustomerUser(cust.customer?.username ?? null);
+        setProviderMail(prov.provider?.email ?? null);
       })
       .finally(() => setLoaded(true));
   }, []);
@@ -42,8 +45,10 @@ export default function SiteHeader() {
   async function logout() {
     if (email) await fetch("/api/auth/logout", { method: "POST" });
     if (customerUser) await fetch("/api/customer/me", { method: "DELETE" });
+    if (providerMail) await fetch("/api/provider/auth", { method: "DELETE" });
     setEmail(null);
     setCustomerUser(null);
+    setProviderMail(null);
     window.location.href = "/";
   }
 
@@ -66,7 +71,7 @@ export default function SiteHeader() {
         )}
         <div className="header-actions">
           {/* Con sesión abierta, el modo TV vive dentro del menú de cuenta */}
-          {!tvMode && !(loaded && (email || customerUser)) && (
+          {!tvMode && !(loaded && (email || customerUser || providerMail)) && (
             <button
               className="btn btn-ghost btn-sm hide-sm"
               onClick={() => setTvMode(true)}
@@ -75,10 +80,11 @@ export default function SiteHeader() {
               <><Icon name="tv" size={15} /> Modo TV</>
             </button>
           )}
-          {loaded && (email || customerUser) ? (
+          {loaded && (email || customerUser || providerMail) ? (
             <AccountMenu
-              email={email || customerUser || ""}
-              esCliente={!email}
+              email={email || customerUser || providerMail || ""}
+              esCliente={!email && Boolean(customerUser)}
+              esProveedor={!email && !customerUser && Boolean(providerMail)}
               onLogout={logout}
               tvMode={tvMode}
               onTvMode={() => setTvMode(true)}

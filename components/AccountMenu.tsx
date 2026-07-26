@@ -16,6 +16,7 @@ import Icon from "./Icon";
 export default function AccountMenu({
   email,
   esCliente = false,
+  esProveedor = false,
   onLogout,
   tvMode,
   onTvMode,
@@ -24,6 +25,8 @@ export default function AccountMenu({
   email: string;
   /** Sesión de cliente de proveedor: sin página «Mi cuenta» que ofrecer */
   esCliente?: boolean;
+  /** Sesión de proveedor: su casa es el panel, no «Mi cuenta» */
+  esProveedor?: boolean;
   onLogout: () => void;
   tvMode: boolean;
   onTvMode: () => void;
@@ -73,7 +76,12 @@ export default function AccountMenu({
             </span>
           </div>
 
-          {!esCliente && (
+          {esProveedor && (
+            <Link href="/panel" className="account-pop-item" role="menuitem" onClick={() => setAbierto(false)}>
+              <Icon name="users" size={16} /> Mi panel
+            </Link>
+          )}
+          {!esCliente && !esProveedor && (
             <Link href="/cuenta" className="account-pop-item" role="menuitem" onClick={() => setAbierto(false)}>
               <Icon name="users" size={16} /> Mi cuenta
             </Link>

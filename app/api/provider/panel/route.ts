@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { getCurrentProvider } from "@/lib/provider";
 import { normalizeBase, parseXtreamUrl } from "@/lib/xtream";
 import { assertPublicUrl } from "@/lib/safeFetch";
+import { listarUsuariosPanel } from "@/lib/xuiPanel";
 
 /**
  * Muchos servidores IPTV filtran por User-Agent y rechazan cualquier cliente
@@ -26,7 +27,8 @@ export async function GET() {
     panel: {
       url: provider.panel_url || "",
       username: provider.panel_user || "",
-      connected: Boolean(provider.panel_url && provider.panel_user),
+      hasApiKey: Boolean(provider.panel_api_key),
+      connected: Boolean(provider.panel_url && (provider.panel_user || provider.panel_api_key)),
       checkedAt: provider.panel_checked_at || 0,
     },
   });
@@ -37,7 +39,7 @@ export async function PUT(req: NextRequest) {
   const provider = await getCurrentProvider();
   if (!provider) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  let body: { url?: string; username?: string; password?: string };
+  let body: { url?: string; username?: string; password?: string; apiKey?: string };
   try {
     body = await req.json();
   } catch {
@@ -48,15 +50,16 @@ export async function PUT(req: NextRequest) {
 
   // Desconectar
   if (!body.url) {
-    db.prepare("UPDATE providers SET panel_url = '', panel_user = '', panel_pass = '', panel_checked_at = 0 WHERE id = ?").run(
-      provider.id
-    );
+    db.prepare(
+      "UPDATE providers SET panel_url = '', panel_user = '', panel_pass = '', panel_api_key = '', panel_checked_at = 0 WHERE id = ?"
+    ).run(provider.id);
     return NextResponse.json({ ok: true, connected: false });
   }
 
   let url = body.url.trim();
   let username = (body.username || "").trim();
   let password = body.password || "";
+  const apiKey = (body.apiKey || "").trim();
 
   // Acepta que peguen una URL get.php con las credenciales dentro
   const parsed = parseXtreamUrl(url);
@@ -68,8 +71,31 @@ export async function PUT(req: NextRequest) {
     url = normalizeBase(url);
   }
 
-  if (!url || !username || !password) {
-    return NextResponse.json({ error: "Indica la URL del panel, el usuario y la contraseña" }, { status: 400 });
+  if (!url || (!apiKey && (!username || !password))) {
+    return NextResponse.json(
+      { error: "Indica la URL del panel y su código de API (o usuario y contraseña)" },
+      { status: 400 }
+    );
+  }
+
+  /*
+   * Con código de API se valida contra la API de administración: es lo que
+   * de verdad hace falta para importar. Se guarda primero y se comprueba
+   * después, para poder devolver el motivo exacto si el panel no responde.
+   */
+  if (apiKey) {
+    db.prepare(
+      "UPDATE providers SET panel_url = ?, panel_user = ?, panel_pass = ?, panel_api_key = ?, panel_checked_at = ? WHERE id = ?"
+    ).run(url, username, password, apiKey, Date.now(), provider.id);
+    const actualizado = { ...provider, panel_url: url, panel_user: username, panel_pass: password, panel_api_key: apiKey };
+    const prueba = await listarUsuariosPanel(actualizado);
+    if (!prueba.ok) {
+      return NextResponse.json(
+        { ok: true, connected: true, url, verificado: false, aviso: prueba.error, detalle: prueba.detalle },
+        { status: 200 }
+      );
+    }
+    return NextResponse.json({ ok: true, connected: true, url, verificado: true, usuarios: prueba.users.length });
   }
 
   // Comprobamos que responde antes de guardarlo
@@ -101,8 +127,8 @@ export async function PUT(req: NextRequest) {
   }
 
   db.prepare(
-    "UPDATE providers SET panel_url = ?, panel_user = ?, panel_pass = ?, panel_checked_at = ? WHERE id = ?"
+    "UPDATE providers SET panel_url = ?, panel_user = ?, panel_pass = ?, panel_api_key = '', panel_checked_at = ? WHERE id = ?"
   ).run(url, username, password, Date.now(), provider.id);
 
-  return NextResponse.json({ ok: true, connected: true, url });
+  return NextResponse.json({ ok: true, connected: true, url, verificado: true });
 }
