@@ -65,40 +65,39 @@ function conversionesVivas(): number {
 }
 
 /**
- * Mira qué códec de vídeo trae el fichero antes de convertir. Importa
- * porque Safari es quisquilloso: el HEVC solo lo reproduce etiquetado como
- * hvc1 (ffmpeg al copiar lo deja como hev1, que Apple ignora), y códecs
- * como el H.264 de 10 bits o el MPEG-4 viejo no los reproduce de ninguna
- * manera — ahí toca recodificar.
+ * Lee códec, perfil y etiqueta del init.mp4 recién producido. Es un fichero
+ * local: la respuesta es instantánea y no depende de que el proveedor
+ * conteste a un segundo sondeo (el sondeo remoto fallaba con proveedores
+ * lentos y dejaba el códec «desconocido» — y el HEVC sin su etiqueta).
  */
-async function sondearVideo(url: string): Promise<{ codec: string; perfil: string }> {
+async function codecDelInit(dir: string): Promise<{ codec: string; perfil: string; tag: string }> {
   return new Promise((resolve) => {
     const p = spawn(
       "ffprobe",
       [
         "-v", "error",
-        "-user_agent", PLAYER_UA,
-        "-select_streams", "V:0",
-        "-show_entries", "stream=codec_name,profile",
+        "-select_streams", "v:0",
+        // ffprobe imprime en su orden canónico: codec_name, profile, tag
+        "-show_entries", "stream=codec_name,profile,codec_tag_string",
         "-of", "csv=p=0",
-        url,
+        path.join(dir, "init.mp4"),
       ],
       { stdio: ["ignore", "pipe", "ignore"] }
     );
     let out = "";
     const t = setTimeout(() => {
       p.kill("SIGKILL");
-      resolve({ codec: "", perfil: "" });
-    }, 8000);
+      resolve({ codec: "", perfil: "", tag: "" });
+    }, 5000);
     p.stdout?.on("data", (c: Buffer) => (out += c.toString()));
     p.on("close", () => {
       clearTimeout(t);
-      const [codec = "", perfil = ""] = out.trim().split("\n")[0]?.split(",") || [];
-      resolve({ codec: codec.trim(), perfil: perfil.trim() });
+      const [codec = "", perfil = "", tag = ""] = out.trim().split("\n")[0]?.split(",") || [];
+      resolve({ codec: codec.trim(), perfil: perfil.trim(), tag: tag.trim() });
     });
     p.on("error", () => {
       clearTimeout(t);
-      resolve({ codec: "", perfil: "" });
+      resolve({ codec: "", perfil: "", tag: "" });
     });
   });
 }
@@ -145,7 +144,28 @@ export async function esperarSesionLista(
   if (!sesion && !playlistListo(dir)) {
     return { ok: false, enMarcha: false, detalle: "la sesión de conversión ya no existe: vuelve a darle al play", codec: "" };
   }
-  const ok = await esperarPlaylist(dir, maxMs, sesion);
+  /*
+   * «Lista» exige playlist con segmentos Y códec ya identificado: si el
+   * vigilante aún está mirando el init, puede estar a punto de tirar esta
+   * conversión y relanzarla corregida — darla por buena sería servirle al
+   * iPhone justo la versión que va a rechazar. Si el plazo se agota con el
+   * playlist hecho, se abre la mano para no bloquear a nadie.
+   */
+  const fin = Date.now() + maxMs;
+  let ok = false;
+  for (;;) {
+    const s2 = sesiones.get(id);
+    if (playlistListo(dir) && (!s2 || s2.codec !== "detectando")) {
+      ok = true;
+      break;
+    }
+    if (s2 && (!s2.proc || s2.proc.exitCode !== null) && !playlistListo(dir)) break; // murió sin playlist
+    if (Date.now() > fin) {
+      ok = playlistListo(dir);
+      break;
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
   const codec = sesiones.get(id)?.codec || "";
   if (ok) return { ok: true, enMarcha: false, detalle: "", codec };
   const s = sesiones.get(id);
@@ -162,57 +182,8 @@ export async function esperarSesionLista(
   };
 }
 
-export async function obtenerSesionRemux(
-  url: string
-): Promise<{ id: string } | { error: string; detalle?: string; status: number }> {
-  const id = createHash("sha1").update(url).digest("hex").slice(0, 16);
-  const dir = path.join(RAIZ, id);
-
-  // Dos espectadores del mismo fichero comparten conversión
-  const previa = sesiones.get(id);
-  if (previa) {
-    previa.ultimoUso = Date.now();
-    if (playlistListo(dir) || (previa.proc && previa.proc.exitCode === null)) {
-      // Lista o en marcha: se responde ya; la espera fina la hace el playlist
-      return { id };
-    }
-    // Murió sin producir nada: se limpia y se intenta de cero
-    sesiones.delete(id);
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
-
-  if (conversionesVivas() >= MAX_SIMULTANEAS) {
-    return { error: "El conversor está al máximo de uso. Prueba en unos segundos.", status: 503 };
-  }
-
-  fs.mkdirSync(dir, { recursive: true });
-
-  /*
-   * Con el códec en la mano se decide qué hacer con el vídeo:
-   *  - HEVC: copiar, pero etiquetado hvc1 (con hev1 Safari lo ignora)
-   *  - H.264 de 8 bits: copiar tal cual
-   *  - H.264 de 10 bits, MPEG-4, VC-1…: recodificar a H.264, porque ningún
-   *    iPhone los decodifica por mucho que el contenedor esté bien
-   *  - Sin datos o códecs web (VP9/AV1): copiar y que decida el navegador
-   */
-  const video = await sondearVideo(url);
-  const diezBits = /10/.test(video.perfil);
-  let videoArgs: string[];
-  let notaCodec: string;
-  if (video.codec === "hevc") {
-    videoArgs = ["-c:v", "copy", "-tag:v", "hvc1"];
-    notaCodec = `${video.codec} ${video.perfil} (etiquetado hvc1)`.trim();
-  } else if (video.codec === "h264" && !diezBits) {
-    videoArgs = ["-c:v", "copy"];
-    notaCodec = `${video.codec} ${video.perfil}`.trim();
-  } else if (!video.codec || ["vp9", "av1", "vp8"].includes(video.codec)) {
-    videoArgs = ["-c:v", "copy"];
-    notaCodec = video.codec || "desconocido";
-  } else {
-    videoArgs = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"];
-    notaCodec = `${video.codec} ${video.perfil} → recodificado a H.264`.trim();
-  }
-
+/** Lanza (o relanza) el ffmpeg de una sesión con los args de vídeo dados. */
+function arrancarFfmpeg(sesion: Sesion, url: string, videoArgs: string[]) {
   const proc = spawn(
     "ffmpeg",
     [
@@ -242,12 +213,12 @@ export async function obtenerSesionRemux(
       "-hls_playlist_type", "event",
       "-hls_segment_type", "fmp4",
       "-hls_fmp4_init_filename", "init.mp4",
-      "-hls_segment_filename", path.join(dir, "seg%05d.m4s"),
-      path.join(dir, "index.m3u8"),
+      "-hls_segment_filename", path.join(sesion.dir, "seg%05d.m4s"),
+      path.join(sesion.dir, "index.m3u8"),
     ],
     { stdio: ["ignore", "ignore", "pipe"] }
   );
-  const sesion: Sesion = { id, dir, proc, ultimoUso: Date.now(), salida: "", fallo: "", codec: notaCodec };
+  sesion.proc = proc;
   proc.stderr?.on("data", (chunk: Buffer) => {
     sesion.salida = (sesion.salida + chunk.toString()).slice(-600);
   });
@@ -255,12 +226,103 @@ export async function obtenerSesionRemux(
     // spawn falló: normalmente ffmpeg no está instalado en la imagen
     sesion.fallo = `No se pudo lanzar ffmpeg: ${e.message}`;
   });
-  sesiones.set(id, sesion);
   proc.on("close", () => {
     // Los ficheros se quedan: el playlist terminado sigue sirviendo (y hasta
     // permite verlo entero con salto libre). La limpieza va por inactividad.
-    sesion.proc = null;
+    // El guardia evita que el cierre de un ffmpeg sustituido borre al nuevo.
+    if (sesion.proc === proc) sesion.proc = null;
   });
+}
+
+/**
+ * Mira el códec real en cuanto existe el init.mp4 y corrige si hace falta:
+ *  - HEVC etiquetado hev1 → relanzar con -tag:v hvc1 (Safari solo acepta esa)
+ *  - H.264 de 10 bits, MPEG-4, VC-1… → recodificar a H.264 de 8 bits
+ *  - Lo demás (H.264 normal, VP9/AV1) → se queda como está
+ */
+async function vigilarCodec(sesion: Sesion, url: string) {
+  const init = path.join(sesion.dir, "init.mp4");
+  const limite = Date.now() + 120000;
+  while (!fs.existsSync(init)) {
+    if (Date.now() > limite) return;
+    if (!sesion.proc || sesion.proc.exitCode !== null) return; // murió: no hay nada que corregir
+    await new Promise((r) => setTimeout(r, 300));
+  }
+
+  // El init puede estar a medio escribir en la primera mirada: reintentos
+  let v = await codecDelInit(sesion.dir);
+  for (let i = 0; i < 5 && !v.codec; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    v = await codecDelInit(sesion.dir);
+  }
+  const diezBits = /10/.test(v.perfil);
+  const etiqueta = `${v.codec}${v.perfil ? ` ${v.perfil}` : ""}`;
+  let argsCorregidos: string[] | null = null;
+  if (v.codec === "hevc" && v.tag !== "hvc1") {
+    argsCorregidos = ["-c:v", "copy", "-tag:v", "hvc1"];
+    sesion.codec = `${etiqueta} (reetiquetado hvc1)`;
+  } else if ((v.codec === "h264" && diezBits) || ["mpeg4", "msmpeg4v3", "vc1", "wmv3", "mpeg2video"].includes(v.codec)) {
+    argsCorregidos = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"];
+    sesion.codec = `${etiqueta} → recodificado a H.264`;
+  } else {
+    sesion.codec = etiqueta || "desconocido";
+    return;
+  }
+
+  console.error("[remux] códec corregido:", url, "→", sesion.codec);
+  // Sin await entre matar y relanzar: nadie puede observar la sesión «muerta»
+  const viejo = sesion.proc;
+  try {
+    viejo?.kill("SIGKILL");
+  } catch { /* ya muerto */ }
+  fs.rmSync(sesion.dir, { recursive: true, force: true });
+  fs.mkdirSync(sesion.dir, { recursive: true });
+  sesion.salida = "";
+  sesion.fallo = "";
+  arrancarFfmpeg(sesion, url, argsCorregidos);
+}
+
+export async function obtenerSesionRemux(
+  url: string
+): Promise<{ id: string } | { error: string; detalle?: string; status: number }> {
+  const id = createHash("sha1").update(url).digest("hex").slice(0, 16);
+  const dir = path.join(RAIZ, id);
+
+  // Dos espectadores del mismo fichero comparten conversión
+  const previa = sesiones.get(id);
+  if (previa) {
+    previa.ultimoUso = Date.now();
+    if (playlistListo(dir) || (previa.proc && previa.proc.exitCode === null)) {
+      // Lista o en marcha: se responde ya; la espera fina la hace el playlist
+      return { id };
+    }
+    // Murió sin producir nada: se limpia y se intenta de cero
+    sesiones.delete(id);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+
+  if (conversionesVivas() >= MAX_SIMULTANEAS) {
+    return { error: "El conversor está al máximo de uso. Prueba en unos segundos.", status: 503 };
+  }
+
+  // Sesión nueva, directorio limpio: restos de una conversión anterior (por
+  // ejemplo tras un reinicio del servidor) mezclan ficheros de dos ffmpeg
+  // distintos y confunden al vigilante de códec
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.mkdirSync(dir, { recursive: true });
+
+  /*
+   * Se arranca copiando el vídeo tal cual — el caso bueno (H.264) no paga
+   * ningún peaje ni segunda conexión al proveedor. En cuanto ffmpeg escribe
+   * el init.mp4, un vigilante mira el códec real en local y, si Safari lo
+   * va a rechazar (HEVC etiquetado hev1, H.264 de 10 bits, códecs viejos),
+   * reinicia la conversión corregida. Eso pasa antes del primer segmento,
+   * así que ningún espectador llega a ver la versión mala.
+   */
+  const sesion: Sesion = { id, dir, proc: null, ultimoUso: Date.now(), salida: "", fallo: "", codec: "detectando" };
+  sesiones.set(id, sesion);
+  arrancarFfmpeg(sesion, url, ["-c:v", "copy"]);
+  vigilarCodec(sesion, url).catch((e) => console.error("[remux] vigilante de códec:", e));
 
   /*
    * Espera corta, solo para cazar los fallos inmediatos (URL mala, códec
