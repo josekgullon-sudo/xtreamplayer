@@ -148,6 +148,15 @@ function buildAttempts(src: PlaySource): Attempt[] {
     attempts.push({ url: proxied(tsUrl), engine: "mpegts", label: "proxy en formato TS", direct: false });
     if (!sinDirecto) attempts.push({ url: tsUrl, engine: "mpegts", label: "formato TS directo", direct: true });
   }
+  /*
+   * Último recurso para películas y series: el conversor del servidor, que
+   * reenvuelve el fichero como MP4 al vuelo. Es lo que hace que un MKV se
+   * vea en un iPhone. Va el último porque gasta CPU nuestra; si el fichero
+   * ya era compatible, nunca se llega aquí.
+   */
+  if (engine === "native") {
+    attempts.push({ url: `/api/remux?url=${encodeURIComponent(src.url)}`, engine: "native", label: "conversor de formato", direct: false });
+  }
   return attempts;
 }
 
@@ -184,7 +193,7 @@ export default function VideoPlayer({
       if (d.ok && d.bytes > 0) {
         setDiag(
           esAppleSinSoporte
-            ? `El proveedor entrega el vídeo sin problema, pero es un fichero .${ext} y este navegador no sabe decodificarlo (los iPhone y Safari no reproducen ${ext.toUpperCase()}). Prueba desde un ordenador con Chrome, o pide a tu proveedor la versión en MP4.`
+            ? `El proveedor entrega el vídeo sin problema, pero es un fichero .${ext} y ni este navegador ni el conversor han podido con su contenido. Suele ser el códec interno (p. ej. vídeo HEVC en un navegador sin soporte). Prueba desde otro dispositivo.`
             : "El proveedor entrega datos al servidor sin problema. El fallo está en la decodificación en este dispositivo: prueba desde otro navegador o dispositivo."
         );
       } else if (d.timeout || d.status === 0) {

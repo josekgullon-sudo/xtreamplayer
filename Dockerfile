@@ -32,6 +32,11 @@ ENV HOSTNAME=0.0.0.0
 # Las listas y usuarios viven aquí: móntalo como volumen persistente
 ENV DATA_DIR=/data
 
+# ffmpeg: el conversor de compatibilidad (MKV/AVI → MP4 al vuelo) que hace
+# que las películas y series se vean también en Safari y iPhone
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system --gid 1001 nodejs \
     && useradd --system --uid 1001 --gid nodejs nextjs \
     && mkdir -p /data && chown nextjs:nodejs /data
