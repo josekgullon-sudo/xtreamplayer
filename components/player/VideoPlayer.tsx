@@ -168,6 +168,19 @@ function buildAttempts(src: PlaySource): Attempt[] {
     // Como HLS: es lo único que Safari/iPhone reproducen en streaming, y de
     // regalo permite saltar dentro de lo ya convertido
     attempts.push({ url: `/api/remux?url=${encodeURIComponent(src.url)}`, engine: "hls", label: "conversor de formato", direct: false, lento: true });
+    /*
+     * Plan C: si el dispositivo rechaza hasta la copia convertida (metadatos
+     * del códec rotos, perfiles raros), el conversor recodifica el vídeo a
+     * H.264 estándar — eso lo reproduce cualquier cosa con pantalla. Va en
+     * sesión aparte del servidor, así que no pisa la variante en copia.
+     */
+    attempts.push({
+      url: `/api/remux?url=${encodeURIComponent(src.url)}&transcodificar=1`,
+      engine: "hls",
+      label: "conversor (recodificando para este dispositivo)",
+      direct: false,
+      lento: true,
+    });
   }
   return attempts;
 }
@@ -401,14 +414,19 @@ export default function VideoPlayer({
       if (attempt.lento) {
         const limite = Date.now() + 120000;
         let preparado = false;
+        // El sondeo pregunta por la misma variante que se va a reproducir
+        const forzado = attempt.url.includes("transcodificar=1") ? "&transcodificar=1" : "";
         while (!cancelled && Date.now() < limite) {
           avanza(); // el sondeo cuenta como señal de vida para el plazo
           try {
-            const r = await fetch(`/api/remux/espera?url=${encodeURIComponent(source!.url)}`, {
+            const r = await fetch(`/api/remux/espera?url=${encodeURIComponent(source!.url)}${forzado}`, {
               signal: AbortSignal.timeout(15000),
             });
-            const est = (await r.json()) as { listo?: boolean; error?: string; detalle?: string };
+            const est = (await r.json()) as { listo?: boolean; error?: string; detalle?: string; playlist?: string };
             if (est.listo) {
+              // El playlist directo, sin la redirección 302 de /api/remux:
+              // Safari es capaz de rechazar un src que redirige
+              if (est.playlist) attempt.url = est.playlist;
               preparado = true;
               break;
             }

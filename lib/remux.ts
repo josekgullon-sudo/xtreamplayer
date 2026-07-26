@@ -21,6 +21,22 @@ const PLAYER_UA = "VLC/3.0.20 LibVLC/3.0.20";
  * reproduce). Segmentos fMP4: valen para H.264, HEVC y VP9 por igual.
  */
 
+/**
+ * Recodificación a H.264 de manual: perfil main, 8 bits, máximo 720p y
+ * fotogramas clave cada 4 s (los cortes del HLS los necesitan). Es el plan
+ * para lo que ningún iPhone decodifica tal cual — H.264 de 10 bits, perfiles
+ * rotos, códecs viejos — y para cuando el dispositivo rechaza la copia.
+ */
+const ARGS_RECODIFICAR = [
+  "-c:v", "libx264",
+  "-preset", "veryfast",
+  "-crf", "23",
+  "-pix_fmt", "yuv420p",
+  "-profile:v", "main",
+  "-vf", "scale=-2:min(720\\,ih)",
+  "-force_key_frames", "expr:gte(t,n_forced*4)",
+];
+
 interface Sesion {
   id: string;
   dir: string;
@@ -262,7 +278,7 @@ async function vigilarCodec(sesion: Sesion, url: string) {
     argsCorregidos = ["-c:v", "copy", "-tag:v", "hvc1"];
     sesion.codec = `${etiqueta} (reetiquetado hvc1)`;
   } else if ((v.codec === "h264" && diezBits) || ["mpeg4", "msmpeg4v3", "vc1", "wmv3", "mpeg2video"].includes(v.codec)) {
-    argsCorregidos = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"];
+    argsCorregidos = ARGS_RECODIFICAR;
     sesion.codec = `${etiqueta} → recodificado a H.264`;
   } else {
     sesion.codec = etiqueta || "desconocido";
@@ -283,9 +299,15 @@ async function vigilarCodec(sesion: Sesion, url: string) {
 }
 
 export async function obtenerSesionRemux(
-  url: string
+  url: string,
+  forzarH264 = false
 ): Promise<{ id: string } | { error: string; detalle?: string; status: number }> {
-  const id = createHash("sha1").update(url).digest("hex").slice(0, 16);
+  /*
+   * La recodificación forzada vive en una sesión aparte (sufijo en el hash):
+   * así no le pisa la conversión en copia a otro espectador cuyo navegador
+   * sí la reproduce, y cada variante conserva su caché.
+   */
+  const id = createHash("sha1").update(url + (forzarH264 ? "|h264" : "")).digest("hex").slice(0, 16);
   const dir = path.join(RAIZ, id);
 
   // Dos espectadores del mismo fichero comparten conversión
@@ -319,10 +341,23 @@ export async function obtenerSesionRemux(
    * reinicia la conversión corregida. Eso pasa antes del primer segmento,
    * así que ningún espectador llega a ver la versión mala.
    */
-  const sesion: Sesion = { id, dir, proc: null, ultimoUso: Date.now(), salida: "", fallo: "", codec: "detectando" };
+  const sesion: Sesion = {
+    id,
+    dir,
+    proc: null,
+    ultimoUso: Date.now(),
+    salida: "",
+    fallo: "",
+    codec: forzarH264 ? "recodificado a H.264 (a petición del dispositivo)" : "detectando",
+  };
   sesiones.set(id, sesion);
-  arrancarFfmpeg(sesion, url, ["-c:v", "copy"]);
-  vigilarCodec(sesion, url).catch((e) => console.error("[remux] vigilante de códec:", e));
+  if (forzarH264) {
+    // Recodificación directa: no hay nada que detectar ni corregir
+    arrancarFfmpeg(sesion, url, ARGS_RECODIFICAR);
+  } else {
+    arrancarFfmpeg(sesion, url, ["-c:v", "copy"]);
+    vigilarCodec(sesion, url).catch((e) => console.error("[remux] vigilante de códec:", e));
+  }
 
   /*
    * Espera corta, solo para cazar los fallos inmediatos (URL mala, códec

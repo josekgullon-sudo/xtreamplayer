@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const resultado = await obtenerSesionRemux(url);
+    const resultado = await obtenerSesionRemux(url, req.nextUrl.searchParams.get("transcodificar") === "1");
     if ("error" in resultado) {
       return NextResponse.json({ error: resultado.error, detalle: resultado.detalle || "" }, { status: resultado.status });
     }

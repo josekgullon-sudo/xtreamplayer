@@ -31,12 +31,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const resultado = await obtenerSesionRemux(url);
+    const resultado = await obtenerSesionRemux(url, req.nextUrl.searchParams.get("transcodificar") === "1");
     if ("error" in resultado) {
       return NextResponse.json({ listo: false, error: resultado.error, detalle: resultado.detalle || "" });
     }
     const estado = await esperarSesionLista(resultado.id, 2500);
-    if (estado.ok) return NextResponse.json({ listo: true, codec: estado.codec });
+    // El playlist directo, sin pasar por la redirección de /api/remux: a
+    // Safari los 302 en el src de un vídeo le dan motivos para quejarse
+    if (estado.ok) return NextResponse.json({ listo: true, codec: estado.codec, playlist: `/api/remux/${resultado.id}/index.m3u8` });
     if (estado.enMarcha) return NextResponse.json({ listo: false, codec: estado.codec });
     return NextResponse.json({ listo: false, error: "La conversión falló.", detalle: estado.detalle, codec: estado.codec });
   } catch (e) {
