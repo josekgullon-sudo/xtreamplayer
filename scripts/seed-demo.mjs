@@ -165,6 +165,71 @@ NOMBRES.forEach((nombre, i) => {
   }
 });
 
+// ---- Administrador de la plataforma (atiende los tickets en /admin) ----
+const ADMIN_EMAIL = "admin@totalplayer.app";
+db.prepare("DELETE FROM users WHERE email = ?").run(ADMIN_EMAIL);
+db.prepare("INSERT INTO users (email, password_hash, is_admin, created_at) VALUES (?, ?, 1, ?)").run(
+  ADMIN_EMAIL,
+  hash("admin12345"),
+  now - dias(200)
+);
+
+// ---- Tickets de soporte de muestra ----
+db.prepare("DELETE FROM ticket_messages WHERE ticket_id IN (SELECT id FROM tickets WHERE provider_id = ?)").run(providerId);
+db.prepare("DELETE FROM tickets WHERE provider_id = ?").run(providerId);
+const TICKETS = [
+  {
+    subject: "Un cliente no puede entrar desde su Smart TV",
+    status: "respondido",
+    hace: 6,
+    msgs: [
+      ["provider", "El usuario jose11tc dice que en su tele Samsung le da error de acceso, pero en el movil le funciona."],
+      ["admin", "Hola: hemos revisado sus accesos y la tele tenia guardada una contrasena antigua. Pidele que cierre sesion en la tele y vuelva a entrar; si sigue fallando, reinicia sus dispositivos desde la ficha del cliente."],
+    ],
+  },
+  {
+    subject: "Duda con la migracion de dominio",
+    status: "cerrado",
+    hace: 20,
+    msgs: [
+      ["provider", "Si cambio el dominio principal, cuanto tardan mis clientes en verse afectados?"],
+      ["admin", "Es inmediato: los clientes enganchados al dominio usan la nueva direccion en su siguiente carga de lista. No tienen que tocar nada."],
+      ["provider", "Perfecto, gracias."],
+    ],
+  },
+  {
+    subject: "Quiero ampliar el limite de un revendedor",
+    status: "abierto",
+    hace: 0.2,
+    msgs: [["provider", "Necesito que carlos@revendedor.com pueda dar de alta 100 clientes en vez de 40. Se puede desde el panel?"]],
+  },
+];
+for (const t of TICKETS) {
+  const creado = now - dias(t.hace);
+  const info = db
+    .prepare("INSERT INTO tickets (provider_id, subject, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+    .run(providerId, t.subject, t.status, creado, creado + 3600_000 * t.msgs.length);
+  t.msgs.forEach(([author, body], i) => {
+    db.prepare("INSERT INTO ticket_messages (ticket_id, author, body, created_at) VALUES (?, ?, ?, ?)").run(
+      info.lastInsertRowid,
+      author,
+      body,
+      creado + 3600_000 * i
+    );
+  });
+}
+
+// ---- Facturas de muestra: los tres ultimos meses del plan Premium ----
+db.prepare("DELETE FROM invoices WHERE provider_id = ?").run(providerId);
+for (let m = 3; m >= 1; m--) {
+  const fecha = now - dias(30 * m - 7);
+  const numero = `TP-${new Date(fecha).getFullYear()}-${String(9000 + m)}`;
+  db.prepare(
+    `INSERT INTO invoices (provider_id, number, concept, amount_cents, currency, period_start, period_end, status, created_at)
+     VALUES (?, ?, 'Plan Premium — hasta 600 clientes', 9000, 'EUR', ?, ?, 'pagada', ?)`
+  ).run(providerId, numero, fecha, fecha + dias(30), fecha);
+}
+
 console.log(`
 Datos de demostración creados:
   Proveedor : ${EMAIL} / ${PASSWORD}
@@ -173,6 +238,9 @@ Datos de demostración creados:
               ana@revendedor.com    / revendedor123  (ve todo, gestiona dominios)
               luis@revendedor.com   / revendedor123  (sin acceso a dominios)
   Marca     : /m/demo-iptv
+
+  Admin     : admin@totalplayer.app / admin12345  (bandeja de tickets en /admin)
+  Extras    : 3 tickets de soporte y 3 facturas de muestra en el panel
 
 Entra en /acceso y elige «Soy proveedor».
 `);

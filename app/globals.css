@@ -972,6 +972,74 @@ select.input { appearance: none; cursor: pointer; }
 .panel-table th { background: var(--bg-elev-2); font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-faint); }
 .panel-table tr:last-child td { border-bottom: none; }
 .panel-table tbody tr:hover { background: var(--bg-hover); }
+.row-click { cursor: pointer; }
+
+.section-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  flex-wrap: wrap; margin-bottom: 18px;
+}
+
+/* ---- Tickets de soporte ---- */
+.ticket-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.ticket-head h2 { font-size: 20px; }
+.ticket-hilo { display: flex; flex-direction: column; gap: 12px; margin: 18px 0 22px; max-width: 720px; }
+.ticket-msg {
+  padding: 13px 16px; border-radius: 14px; font-size: 14.5px; line-height: 1.55;
+  border: 1px solid var(--hairline);
+}
+.ticket-msg p { white-space: pre-wrap; }
+.ticket-msg.propio { background: var(--bg-elev); }
+.ticket-msg.soporte { background: var(--accent-tint-soft); border-color: var(--accent-tint); }
+.ticket-msg-meta { font-size: 12px; color: var(--text-faint); font-weight: 600; margin-bottom: 5px; }
+.ticket-respuesta { max-width: 720px; }
+.ticket-respuesta textarea { resize: vertical; }
+
+/* ---- Sección API ---- */
+.api-prefijo { background: var(--bg-elev-2); padding: 3px 9px; border-radius: 7px; font-size: 13.5px; }
+.api-aviso {
+  display: flex; align-items: center; gap: 8px; color: var(--warning);
+  font-size: 13.5px; font-weight: 600; margin-bottom: 10px;
+}
+.api-clave-caja {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  padding: 12px 14px; margin-bottom: 16px;
+}
+.api-clave-caja code { font-size: 13.5px; word-break: break-all; flex: 1; min-width: 220px; }
+.api-docs h4 { font-size: 14.5px; margin: 18px 0 8px; }
+.api-ejemplo {
+  background: var(--bg); border: 1px solid var(--hairline); border-radius: var(--radius-sm);
+  padding: 13px 15px; font-size: 12.8px; line-height: 1.6; overflow-x: auto;
+  color: var(--text-dim);
+}
+.api-nota { font-size: 13.5px; color: var(--text-dim); margin-bottom: 8px; }
+.api-nota code, .api-docs p code { background: var(--bg-elev-2); padding: 1px 6px; border-radius: 5px; font-size: 12.5px; }
+
+/* ---- Factura imprimible ---- */
+/* En pantalla no existe; al imprimir es lo único que existe. */
+.factura-print { display: none; }
+@media print {
+  body * { visibility: hidden; }
+  .factura-print, .factura-print * { visibility: visible; }
+  .factura-print {
+    display: block; position: absolute; inset: 0;
+    background: #fff; color: #111;
+  }
+  .factura-hoja { padding: 48px; font-size: 14px; max-width: 720px; }
+  .factura-cab { display: flex; justify-content: space-between; margin-bottom: 42px; }
+  .factura-marca { font-size: 22px; font-weight: 800; color: #b00d1e; }
+  .factura-emisor { color: #666; font-size: 12.5px; margin-top: 4px; }
+  .factura-num { text-align: right; }
+  .factura-num h1 { font-size: 18px; letter-spacing: 2px; text-transform: uppercase; color: #111; }
+  .factura-num p { color: #444; margin-top: 2px; }
+  .factura-partes { margin-bottom: 36px; }
+  .factura-partes h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 6px; }
+  .factura-lineas { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
+  .factura-lineas th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: #888; border-bottom: 2px solid #ddd; padding: 8px 6px; }
+  .factura-lineas td { padding: 12px 6px; border-bottom: 1px solid #eee; }
+  .factura-lineas tfoot td { font-weight: 700; border-bottom: none; border-top: 2px solid #111; }
+  .factura-pie { color: #888; font-size: 12px; }
+}
 
 .panel-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
 .panel-tab {

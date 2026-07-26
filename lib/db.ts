@@ -29,6 +29,38 @@ export interface UserRow {
   premium_until: number;
   stripe_customer_id: string;
   stripe_subscription_id: string;
+  is_admin: number;
+}
+
+export interface TicketRow {
+  id: number;
+  provider_id: number;
+  subject: string;
+  status: "abierto" | "respondido" | "cerrado";
+  created_at: number;
+  updated_at: number;
+}
+
+export interface TicketMessageRow {
+  id: number;
+  ticket_id: number;
+  author: "provider" | "admin";
+  body: string;
+  created_at: number;
+}
+
+export interface InvoiceRow {
+  id: number;
+  provider_id: number;
+  number: string;
+  concept: string;
+  amount_cents: number;
+  currency: string;
+  period_start: number;
+  period_end: number;
+  status: "pagada" | "pendiente" | "anulada";
+  stripe_invoice_id: string;
+  created_at: number;
 }
 
 export interface PlaylistRow {
@@ -76,6 +108,10 @@ export interface ProviderRow {
   panel_user: string;
   panel_pass: string;
   panel_checked_at: number;
+  /** Hash SHA-256 de la clave de la API pública; vacío = API desactivada */
+  api_key_hash: string;
+  /** Prefijo visible de la clave activa (tp_XXXX…), para mostrar sin revelarla */
+  api_key_prefix: string;
   status: string;
   created_at: number;
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getDb, UserRow, ProviderRow } from "@/lib/db";
 import { getStripe, stripeConfigured, STRIPE_WEBHOOK_SECRET } from "@/lib/stripe";
+import { registrarFactura } from "@/lib/invoices";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +85,25 @@ export async function POST(req: NextRequest) {
         if (subId) {
           const sub = await getStripe().subscriptions.retrieve(subId);
           applySubscription(sub);
+        }
+        // Cada cobro de proveedor queda como factura consultable en su panel
+        if (event.type === "invoice.paid" && invoice.amount_paid > 0) {
+          const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+          const provider = db.prepare("SELECT * FROM providers WHERE stripe_customer_id = ?").get(customerId || "") as
+            | ProviderRow
+            | undefined;
+          if (provider) {
+            const linea = invoice.lines?.data?.[0];
+            registrarFactura({
+              providerId: provider.id,
+              concept: linea?.description || "Suscripción TOTALplayer",
+              amountCents: invoice.amount_paid,
+              currency: (invoice.currency || "eur").toUpperCase(),
+              periodStart: (linea?.period?.start || 0) * 1000,
+              periodEnd: (linea?.period?.end || 0) * 1000,
+              stripeInvoiceId: invoice.id,
+            });
+          }
         }
         break;
       }

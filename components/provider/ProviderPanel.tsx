@@ -3,6 +3,9 @@
 import Link from "next/link";
 import Icon from "@/components/Icon";
 import CustomerDetail from "./CustomerDetail";
+import TicketsSection from "./TicketsSection";
+import ApiSection from "./ApiSection";
+import InvoicesSection from "./InvoicesSection";
 import Loading, { MENSAJES_PANEL } from "@/components/Loading";
 import { useCallback, useEffect, useState } from "react";
 
@@ -85,7 +88,7 @@ export default function ProviderPanel() {
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [perms, setPerms] = useState<Permissions | null>(null);
   const [role, setRole] = useState<"provider" | "reseller">("provider");
-  const [tab, setTab] = useState<"clientes" | "dominios" | "revendedores" | "marca" | "plan">("clientes");
+  const [tab, setTab] = useState<"clientes" | "dominios" | "revendedores" | "marca" | "plan" | "facturas" | "api" | "soporte">("clientes");
   const [branding, setBranding] = useState<{
     name: string;
     color: string;
@@ -432,6 +435,9 @@ export default function ProviderPanel() {
     dominios: "Dominios",
     marca: "Mi marca",
     plan: "Plan y facturación",
+    facturas: "Facturas",
+    api: "API",
+    soporte: "Soporte",
   };
 
   return (
@@ -490,6 +496,17 @@ export default function ProviderPanel() {
             <button className={`panel-nav-item ${tab === "plan" ? "active" : ""}`} onClick={() => setTab("plan")}>
               <Icon name="card" size={17} className="panel-nav-icon" /> Plan
             </button>
+            <button className={`panel-nav-item ${tab === "facturas" ? "active" : ""}`} onClick={() => setTab("facturas")}>
+              <Icon name="list" size={17} className="panel-nav-icon" /> Facturas
+            </button>
+
+            <div className="panel-nav-group">Herramientas</div>
+            <button className={`panel-nav-item ${tab === "api" ? "active" : ""}`} onClick={() => setTab("api")}>
+              <Icon name="external" size={17} className="panel-nav-icon" /> API
+            </button>
+            <button className={`panel-nav-item ${tab === "soporte" ? "active" : ""}`} onClick={() => setTab("soporte")}>
+              <Icon name="shield" size={17} className="panel-nav-icon" /> Soporte
+            </button>
           </>
         )}
 
@@ -535,6 +552,10 @@ export default function ProviderPanel() {
       )}
 
       {/* Plan y facturación */}
+      {tab === "facturas" && perms?.managePlan && <InvoicesSection />}
+      {tab === "api" && perms?.managePlan && <ApiSection />}
+      {tab === "soporte" && perms?.managePlan && <TicketsSection />}
+
       {tab === "plan" && perms?.managePlan && (
         <>
           <div className="panel-cards">
