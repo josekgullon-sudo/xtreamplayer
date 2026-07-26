@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   const resultado = await obtenerSesionRemux(url);
   if ("error" in resultado) {
-    return NextResponse.json({ error: resultado.error }, { status: resultado.status });
+    return NextResponse.json({ error: resultado.error, detalle: resultado.detalle || "" }, { status: resultado.status });
   }
 
   return NextResponse.redirect(new URL(`/api/remux/${resultado.id}/index.m3u8`, req.url), 302);

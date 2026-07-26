@@ -26,6 +26,9 @@ interface Sesion {
   dir: string;
   proc: ChildProcess | null;
   ultimoUso: number;
+  /** Cola del stderr de ffmpeg: si algo falla, aquí está el porqué */
+  salida: string;
+  fallo: string;
 }
 
 const RAIZ = path.join(os.tmpdir(), "tp-remux");
@@ -73,7 +76,9 @@ async function esperarPlaylist(dir: string, maxMs: number): Promise<boolean> {
   return false;
 }
 
-export async function obtenerSesionRemux(url: string): Promise<{ id: string } | { error: string; status: number }> {
+export async function obtenerSesionRemux(
+  url: string
+): Promise<{ id: string } | { error: string; detalle?: string; status: number }> {
   const id = createHash("sha1").update(url).digest("hex").slice(0, 16);
   const dir = path.join(RAIZ, id);
 
@@ -83,7 +88,9 @@ export async function obtenerSesionRemux(url: string): Promise<{ id: string } | 
     previa.ultimoUso = Date.now();
     if (fs.existsSync(path.join(dir, "index.m3u8")) || (previa.proc && previa.proc.exitCode === null)) {
       const lista = await esperarPlaylist(dir, 14000);
-      return lista ? { id } : { error: "La conversión no arranca. Prueba de nuevo.", status: 502 };
+      return lista
+        ? { id }
+        : { error: "La conversión no arranca. Prueba de nuevo.", detalle: previa.fallo || previa.salida.trim(), status: 502 };
     }
     sesiones.delete(id);
   }
@@ -98,8 +105,20 @@ export async function obtenerSesionRemux(url: string): Promise<{ id: string } | 
     [
       "-hide_banner",
       "-loglevel", "error",
+      "-nostdin",
       "-user_agent", PLAYER_UA,
       "-i", url,
+      /*
+       * Selección explícita de pistas: 0:V salta las carátulas incrustadas
+       * (attached_pic), el ? hace opcional el audio, y fuera subtítulos,
+       * datos y capítulos — nada de eso cabe en HLS y cualquiera puede
+       * tumbar la conversión con contenido real.
+       */
+      "-map", "0:V:0",
+      "-map", "0:a:0?",
+      "-sn",
+      "-dn",
+      "-map_chapters", "-1",
       "-c:v", "copy",
       "-c:a", "aac",
       "-b:a", "160k",
@@ -115,9 +134,14 @@ export async function obtenerSesionRemux(url: string): Promise<{ id: string } | 
     ],
     { stdio: ["ignore", "ignore", "pipe"] }
   );
-  proc.stderr?.on("data", () => {}); // drenar
-
-  const sesion: Sesion = { id, dir, proc, ultimoUso: Date.now() };
+  const sesion: Sesion = { id, dir, proc, ultimoUso: Date.now(), salida: "", fallo: "" };
+  proc.stderr?.on("data", (chunk: Buffer) => {
+    sesion.salida = (sesion.salida + chunk.toString()).slice(-600);
+  });
+  proc.on("error", (e) => {
+    // spawn falló: normalmente ffmpeg no está instalado en la imagen
+    sesion.fallo = `No se pudo lanzar ffmpeg: ${e.message}`;
+  });
   sesiones.set(id, sesion);
   proc.on("close", () => {
     // Los ficheros se quedan: el playlist terminado sigue sirviendo (y hasta
@@ -130,7 +154,14 @@ export async function obtenerSesionRemux(url: string): Promise<{ id: string } | 
     proc.kill("SIGKILL");
     fs.rm(dir, { recursive: true, force: true }, () => {});
     sesiones.delete(id);
-    return { error: "La conversión no arranca: el fichero no llega o su formato no se puede reenvolver.", status: 502 };
+    const detalle = sesion.fallo || sesion.salida.trim() || "sin salida de ffmpeg (¿el fichero tarda en llegar?)";
+    // Al log del servidor: es lo que se ve en Railway → Deploy Logs
+    console.error("[remux] conversión fallida:", url, "→", detalle);
+    return {
+      error: "La conversión no arranca.",
+      detalle,
+      status: 502,
+    };
   }
   return { id };
 }

@@ -109,6 +109,10 @@ function esFalloDeRed(v: HTMLVideoElement): boolean {
   return code === 2 || code === 4;
 }
 
+function engineDe(src: PlaySource): "hls" | "mpegts" | "native" {
+  return guessEngine(src.url, src.kind);
+}
+
 function guessEngine(url: string, kind: PlaySource["kind"]): "hls" | "mpegts" | "native" {
   if (kind === "hls") return "hls";
   if (kind === "ts") return "mpegts";
@@ -193,6 +197,25 @@ export default function VideoPlayer({
       const ext = (source.url.split("?")[0].match(/\.([a-z0-9]{2,4})$/i)?.[1] || "").toLowerCase();
       const esAppleSinSoporte = ["mkv", "avi", "wmv", "flv"].includes(ext);
       if (d.ok && d.bytes > 0) {
+        // El proveedor entrega: la siguiente pregunta es si el conversor pudo
+        if (engineDe(source) === "native") {
+          try {
+            const rc = await fetch(`/api/remux?url=${encodeURIComponent(source.url)}`);
+            if (rc.ok) {
+              setDiag(
+                "El proveedor entrega el vídeo y el conversor lo prepara sin problema. El fallo está en la reproducción en este dispositivo: recarga la página y prueba de nuevo; si persiste, dime qué dispositivo es."
+              );
+            } else {
+              const rj = await rc.json().catch(() => ({} as { error?: string; detalle?: string }));
+              setDiag(
+                `El proveedor entrega el vídeo, pero el conversor falló: ${rj.error || `HTTP ${rc.status}`}${rj.detalle ? ` — ${rj.detalle}` : ""}`
+              );
+            }
+            return;
+          } catch {
+            /* si el sondeo falla, cae al veredicto genérico */
+          }
+        }
         setDiag(
           esAppleSinSoporte
             ? `El proveedor entrega el vídeo sin problema, pero es un fichero .${ext} y ni este navegador ni el conversor han podido con su contenido. Suele ser el códec interno (p. ej. vídeo HEVC en un navegador sin soporte). Prueba desde otro dispositivo.`
