@@ -20,7 +20,7 @@ El repositorio ya incluye `Dockerfile` y `railway.json`, así que Railway lo det
 
 1. Entra en [railway.app](https://railway.app) y regístrate **con tu cuenta de GitHub**.
 2. **New Project → Deploy from GitHub repo →** elige el repositorio `xtreamplayer`.
-   - En **Settings → Source**, comprueba que la rama sea la que quieres desplegar (`main` una vez fusionado el PR).
+   - En **Settings → Source**, selecciona la rama `claude/xtream-m3u-web-player-pnl9pn`, que es donde está todo el desarrollo (la rama `main` está anticuada). Si más adelante la fusionas en `main`, cambia aquí la rama.
 3. **Añade un volumen persistente.** Es el paso más importante: sin él se borran proveedores, clientes y listas en cada despliegue.
    - **Settings → Volumes → + New Volume**
    - Mount path: `/data`
@@ -31,8 +31,9 @@ El repositorio ya incluye `Dockerfile` y `railway.json`, así que Railway lo det
    | `DATA_DIR` | `/data` |
    | `SESSION_SECRET` | Una cadena aleatoria larga: `openssl rand -hex 32` |
    | `NEXT_PUBLIC_SITE_URL` | `https://tudominio.com` (o la URL que te dé Railway) |
+   | `ADMIN_EMAILS` | Tu correo. Da acceso a la bandeja de soporte en `/admin` con tu cuenta de usuario normal |
 
-   > `SESSION_SECRET` firma las sesiones: si la cambias más adelante, todo el mundo tendrá que volver a entrar. Guárdala en un sitio seguro.
+   > `SESSION_SECRET` firma las sesiones **y cifra las contraseñas que el proveedor puede consultar**: si la cambias más adelante, las sesiones caducan y esas contraseñas guardadas dejan de poder mostrarse. Genérala una vez y guárdala en un sitio seguro.
 
 5. Railway construye y despliega solo. Cuando termine, **Settings → Networking → Generate Domain** te da una URL pública para probar.
 6. Cuando tengas dominio propio: **Custom Domain**, y copia el registro CNAME que te indique en el panel DNS de tu registrador. El certificado HTTPS se emite solo en unos minutos.
@@ -42,6 +43,9 @@ El repositorio ya incluye `Dockerfile` y `railway.json`, así que Railway lo det
 - `/` — debe cargar la portada
 - `/proveedores/registro` — crea tu cuenta de proveedor y verás el panel con la prueba de 7 días
 - Crea un cliente de prueba y entra con sus datos en `/acceso` desde una ventana privada
+- Regístrate como usuario en `/registro` con el correo de `ADMIN_EMAILS` y entra en `/admin`: es tu bandeja de tickets
+
+> En producción **no** definas `ALLOW_PRIVATE_NETWORKS`: es solo para instalaciones caseras y desactiva la protección del proxy frente a redes internas.
 
 Alternativas equivalentes: Render, Fly.io o un VPS (Hetzner ~4 €/mes) con `docker build` + `docker run -v tp-data:/data -p 3000:3000`.
 
