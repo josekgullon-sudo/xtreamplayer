@@ -20,6 +20,7 @@ import {
   RecentItem,
 } from "@/lib/storage";
 import { parseM3U, M3UChannel } from "@/lib/m3u";
+import { imgSrc } from "@/lib/img";
 import {
   XtreamCreds,
   XtreamCategory,
@@ -247,6 +248,13 @@ export default function PlayerApp() {
       setLoading(true);
       // Algunos paneles devuelven objetos de error en vez de arrays: nunca confiar en la forma
       const asArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+      /*
+       * Y a veces devuelven títulos con name: null. Un solo título sucio
+       * tumbaba la búsqueda entera (toLowerCase sobre nada): se sanea todo
+       * al entrar y el resto del código puede confiar en que name es texto.
+       */
+      const conNombre = <T extends { name?: unknown },>(xs: T[]): T[] =>
+        xs.map((x) => ({ ...x, name: typeof x.name === "string" ? x.name : "" }));
       try {
         if (t === "live") {
           const [cats, streams] = await Promise.all([
@@ -255,7 +263,7 @@ export default function PlayerApp() {
           ]);
           setXtreamData((prev) => ({
             ...prev,
-            [p.id]: { ...prev[p.id], liveCats: asArray<XtreamCategory>(cats), liveStreams: asArray<XtreamLiveStream>(streams) },
+            [p.id]: { ...prev[p.id], liveCats: asArray<XtreamCategory>(cats), liveStreams: conNombre(asArray<XtreamLiveStream>(streams)) },
           }));
         } else if (t === "vod") {
           const [cats, streams] = await Promise.all([
@@ -264,7 +272,7 @@ export default function PlayerApp() {
           ]);
           setXtreamData((prev) => ({
             ...prev,
-            [p.id]: { ...prev[p.id], vodCats: asArray<XtreamCategory>(cats), vodStreams: asArray<XtreamVodStream>(streams) },
+            [p.id]: { ...prev[p.id], vodCats: asArray<XtreamCategory>(cats), vodStreams: conNombre(asArray<XtreamVodStream>(streams)) },
           }));
         } else if (t === "series") {
           const [cats, list] = await Promise.all([
@@ -273,7 +281,7 @@ export default function PlayerApp() {
           ]);
           setXtreamData((prev) => ({
             ...prev,
-            [p.id]: { ...prev[p.id], seriesCats: asArray<XtreamCategory>(cats), seriesList: asArray<XtreamSeries>(list) },
+            [p.id]: { ...prev[p.id], seriesCats: asArray<XtreamCategory>(cats), seriesList: conNombre(asArray<XtreamSeries>(list)) },
           }));
         }
       } catch (e) {
@@ -513,7 +521,7 @@ export default function PlayerApp() {
       const channels = m3uData[active.id] || [];
       const byGroup = new Map<string, M3UChannel[]>();
       for (const ch of channels) {
-        if (q && !ch.name.toLowerCase().includes(q)) continue;
+        if (q && !(ch.name || "").toLowerCase().includes(q)) continue;
         const g = ch.group || "Sin categoría";
         if (!byGroup.has(g)) byGroup.set(g, []);
         byGroup.get(g)!.push(ch);
@@ -541,7 +549,7 @@ export default function PlayerApp() {
     const catName = new Map((cache.liveCats || []).map((c) => [c.category_id, c.category_name]));
     const byCat = new Map<string, XtreamLiveStream[]>();
     for (const ch of cache.liveStreams) {
-      if (q && !ch.name.toLowerCase().includes(q)) continue;
+      if (q && !(ch.name || "").toLowerCase().includes(q)) continue;
       const g = catName.get(ch.category_id || "") || "Otros";
       if (!byCat.has(g)) byCat.set(g, []);
       byCat.get(g)!.push(ch);
@@ -570,7 +578,7 @@ export default function PlayerApp() {
     if (!active || active.type !== "xtream") return [];
     const items = data?.vodStreams || [];
     return items.filter(
-      (v) => (catFilter === "all" || v.category_id === catFilter) && (!q || v.name.toLowerCase().includes(q))
+      (v) => (catFilter === "all" || v.category_id === catFilter) && (!q || (v.name || "").toLowerCase().includes(q))
     );
   }, [active, data, catFilter, q]);
 
@@ -578,7 +586,7 @@ export default function PlayerApp() {
     if (!active || active.type !== "xtream") return [];
     const items = data?.seriesList || [];
     return items.filter(
-      (s) => (catFilter === "all" || s.category_id === catFilter) && (!q || s.name.toLowerCase().includes(q))
+      (s) => (catFilter === "all" || s.category_id === catFilter) && (!q || (s.name || "").toLowerCase().includes(q))
     );
   }, [active, data, catFilter, q]);
 
@@ -788,7 +796,7 @@ export default function PlayerApp() {
                           onClick={ch.play}
                         >
                           {ch.logo ? (
-                            <img src={ch.logo} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
+                            <img src={imgSrc(ch.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
                           ) : (
                             <span className="ph"><Icon name="play" size={13} /></span>
                           )}
@@ -889,7 +897,7 @@ export default function PlayerApp() {
             >
               <Icon name="back" size={14} /> {current.kind === "vod" || current.kind === "episode" ? "Volver" : "Canales"}
             </button>
-            {current.logo && <img src={current.logo} alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />}
+            {imgSrc(current.logo) && <img src={imgSrc(current.logo)} alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="pa-now-title">{current.source.name}</div>
               {epg?.now && (
@@ -933,8 +941,8 @@ export default function PlayerApp() {
                         className={`pa-channel ${current?.favKey === ch.favKey ? "active" : ""}`}
                         onClick={ch.play}
                       >
-                        {ch.logo ? (
-                          <img src={ch.logo} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+                        {imgSrc(ch.logo) ? (
+                          <img src={imgSrc(ch.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
                         ) : (
                           <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
                         )}
@@ -1049,10 +1057,10 @@ export default function PlayerApp() {
                         <div className="canales-grid">
                           {canales.map((ch) => (
                             <button className="canal-card" key={ch.favKey} onClick={ch.play} title={ch.name}>
-                              {ch.logo ? (
+                              {imgSrc(ch.logo) ? (
                                 <img
                                   className="canal-logo"
-                                  src={ch.logo}
+                                  src={imgSrc(ch.logo)}
                                   alt=""
                                   loading="lazy"
                                   onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")}
@@ -1086,7 +1094,7 @@ export default function PlayerApp() {
                 {vodVisible.slice(0, 400).map((v) => (
                   <button className="pa-card" key={v.stream_id} onClick={() => openVod(active, v)} title={v.name}>
                     {v.stream_icon ? (
-                      <img className="poster" src={v.stream_icon} alt={v.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
+                      <img className="poster" src={imgSrc(v.stream_icon)} alt={v.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
                     ) : (
                       <div className="poster-ph"><Icon name="play" size={26} /></div>
                     )}
@@ -1112,7 +1120,7 @@ export default function PlayerApp() {
                 {seriesVisible.slice(0, 400).map((s) => (
                   <button className="pa-card" key={s.series_id} onClick={() => openSeries(active, s)} title={s.name}>
                     {s.cover ? (
-                      <img className="poster" src={s.cover} alt={s.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
+                      <img className="poster" src={imgSrc(s.cover)} alt={s.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
                     ) : (
                       <div className="poster-ph"><Icon name="tv" size={26} /></div>
                     )}
@@ -1131,8 +1139,8 @@ export default function PlayerApp() {
                 <Icon name="back" size={15} /> Volver a cine
               </button>
               <div className="pa-series-head">
-                {(vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon) && (
-                  <img src={vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon} alt={vodDetail.vod.name} />
+                {imgSrc(vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon) && (
+                  <img src={imgSrc(vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon)} alt={vodDetail.vod.name} />
                 )}
                 <div>
                   <h2>{vodDetail.vod.name}</h2>
@@ -1174,7 +1182,7 @@ export default function PlayerApp() {
                 ← Volver a series
               </button>
               <div className="pa-series-head">
-                {seriesDetail.series.cover && <img src={seriesDetail.series.cover} alt={seriesDetail.series.name} />}
+                {imgSrc(seriesDetail.info.info?.cover || seriesDetail.series.cover) && <img src={imgSrc(seriesDetail.info.info?.cover || seriesDetail.series.cover)} alt={seriesDetail.series.name} />}
                 <div>
                   <h2>{seriesDetail.series.name}</h2>
                   <FichaMeta
