@@ -38,7 +38,10 @@ const SIN_AVANCE_MS = 8000;
  * gracias a la memoria de sesión.
  */
 const SIN_AVANCE_DIRECTO_MS = 5000;
-const TECHO_INTENTO_MS = 28000;
+/* El último intento espera más sin señales: si falla, ya no hay nada detrás,
+   y un VOD pesado puede tardar en soltar el primer byte. */
+const SIN_AVANCE_ULTIMO_MS = 15000;
+const TECHO_INTENTO_MS = 40000;
 
 function proxied(url: string): string {
   return `/api/proxy?url=${encodeURIComponent(url)}`;
@@ -160,6 +163,45 @@ export default function VideoPlayer({
   const [state, setState] = useState<"idle" | "loading" | "playing" | "error">("idle");
   const [errorDetail, setErrorDetail] = useState<string>("");
   const [progress, setProgress] = useState<{ step: number; total: number; label: string } | null>(null);
+  const [diag, setDiag] = useState<string | null>(null);
+  const [diagnosticando, setDiagnosticando] = useState(false);
+
+  /**
+   * Pregunta al servidor qué le respondió el proveedor y lo traduce a un
+   * veredicto en cristiano. Distingue los dos fallos que por fuera se ven
+   * iguales: proveedor que bloquea IPs de servidores, y formato que este
+   * navegador no sabe decodificar.
+   */
+  async function diagnosticar() {
+    if (!source) return;
+    setDiagnosticando(true);
+    setDiag(null);
+    try {
+      const res = await fetch(`/api/diag?url=${encodeURIComponent(source.url)}`);
+      const d = await res.json();
+      const ext = (source.url.split("?")[0].match(/\.([a-z0-9]{2,4})$/i)?.[1] || "").toLowerCase();
+      const esAppleSinSoporte = ["mkv", "avi", "wmv", "flv"].includes(ext);
+      if (d.ok && d.bytes > 0) {
+        setDiag(
+          esAppleSinSoporte
+            ? `El proveedor entrega el vídeo sin problema, pero es un fichero .${ext} y este navegador no sabe decodificarlo (los iPhone y Safari no reproducen ${ext.toUpperCase()}). Prueba desde un ordenador con Chrome, o pide a tu proveedor la versión en MP4.`
+            : "El proveedor entrega datos al servidor sin problema. El fallo está en la decodificación en este dispositivo: prueba desde otro navegador o dispositivo."
+        );
+      } else if (d.timeout || d.status === 0) {
+        setDiag(
+          "Tu proveedor no responde a nuestro servidor (sí respondería a tu casa). Suele significar que bloquea las IPs de centros de datos: pídele que permita el acceso desde servidores, o desde la IP de este servicio."
+        );
+      } else {
+        setDiag(
+          `Tu proveedor respondió ${d.status} al servidor: rechaza la conexión (bloqueo de IPs de servidores, o suscripción sin conexiones libres).`
+        );
+      }
+    } catch {
+      setDiag("No se pudo completar el diagnóstico. Inténtalo de nuevo.");
+    } finally {
+      setDiagnosticando(false);
+    }
+  }
 
   useEffect(() => {
     const video = videoRef.current;
@@ -175,6 +217,7 @@ export default function VideoPlayer({
 
     setState("loading");
     setErrorDetail("");
+    setDiag(null);
 
     function clearWatchdog() {
       if (watchdog) clearInterval(watchdog);
@@ -264,7 +307,7 @@ export default function VideoPlayer({
         for (const evt of EVENTOS_AVANCE) v.removeEventListener(evt, avanza);
       };
 
-      const sinAvanceMax = attempt.direct ? SIN_AVANCE_DIRECTO_MS : SIN_AVANCE_MS;
+      const sinAvanceMax = esUltimo ? SIN_AVANCE_ULTIMO_MS : attempt.direct ? SIN_AVANCE_DIRECTO_MS : SIN_AVANCE_MS;
       watchdog = setInterval(() => {
         if (cancelled || arrancado) return;
         const ahora = Date.now();
@@ -422,13 +465,19 @@ export default function VideoPlayer({
           <p style={{ fontSize: 12.5, color: "var(--text-faint)", maxWidth: 560 }}>
             Intentos realizados — {errorDetail}
           </p>
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={() => navigator.clipboard?.writeText(source.url)}
-            style={{ pointerEvents: "auto" }}
-          >
-            Copiar URL del canal (para probarla en VLC)
-          </button>
+          {diag && (
+            <p style={{ fontSize: 13.5, maxWidth: 560, color: "var(--warning)", pointerEvents: "auto" }} role="status">
+              {diag}
+            </p>
+          )}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", pointerEvents: "auto" }}>
+            <button className="btn btn-primary btn-sm" onClick={diagnosticar} disabled={diagnosticando}>
+              {diagnosticando ? "Diagnosticando…" : "Diagnosticar conexión"}
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigator.clipboard?.writeText(source.url)}>
+              Copiar URL (para VLC)
+            </button>
+          </div>
         </div>
       )}
     </div>
