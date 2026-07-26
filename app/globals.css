@@ -716,6 +716,8 @@ select.input { appearance: none; cursor: pointer; }
   padding: 4px 6px; border-radius: 8px;
 }
 .canales-ver-todos:hover { background: var(--accent-tint-soft); }
+/* La flecha de plegar solo existe en el móvil; en escritorio se ve todo */
+.canales-plegar { display: none; }
 
 .canales-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
@@ -771,6 +773,34 @@ select.input { appearance: none; cursor: pointer; }
   /* Cabeceras de sección más discretas: la navegación ya la llevan las pastillas */
   .canales-seccion { margin-bottom: 20px; }
   .canales-seccion-head h3 { font-size: 14.5px; }
+
+  /*
+   * Las carpetas, cerradas por defecto: cada categoría es una fila que se
+   * abre al tocarla. Con todo desplegado, una lista real era un scroll
+   * infinito en el que ninguna carpeta se encontraba.
+   */
+  .canales-seccion.plegable { margin-bottom: 8px; }
+  .canales-seccion.plegable .canales-seccion-head {
+    align-items: center; margin-bottom: 0;
+    padding: 13px 14px; border-radius: 14px;
+    background: var(--bg-elev); border: 1px solid var(--hairline);
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .canales-seccion.plegable .canales-seccion-head:active { background: var(--bg-elev-2); }
+  .canales-seccion.plegable .canales-seccion-head h3 {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+  .canales-seccion.plegable .canales-plegar {
+    display: inline-flex; margin-left: auto; flex-shrink: 0;
+    color: var(--text-faint); transition: transform 0.16s ease;
+  }
+  .canales-seccion.plegable:not(.plegada) .canales-plegar { transform: rotate(90deg); }
+  .canales-seccion.plegada .canales-grid,
+  .canales-seccion.plegada .canales-ver-todos { display: none; }
+  /* Abierta: el «Ver todos» ya no empuja, lo hace la flecha */
+  .canales-seccion.plegable .canales-ver-todos { margin-left: auto; }
+  .canales-seccion.plegable:not(.plegada) .canales-plegar { margin-left: 8px; }
+  .canales-seccion.plegable:not(.plegada) .canales-grid { padding: 6px 2px 2px; }
 }
 .pa-card {
   background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-sm);

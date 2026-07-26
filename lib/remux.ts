@@ -87,7 +87,7 @@ export async function obtenerSesionRemux(
   if (previa) {
     previa.ultimoUso = Date.now();
     if (fs.existsSync(path.join(dir, "index.m3u8")) || (previa.proc && previa.proc.exitCode === null)) {
-      const lista = await esperarPlaylist(dir, 14000);
+      const lista = await esperarPlaylist(dir, 20000);
       return lista
         ? { id }
         : { error: "La conversión no arranca. Prueba de nuevo.", detalle: previa.fallo || previa.salida.trim(), status: 502 };
@@ -149,12 +149,22 @@ export async function obtenerSesionRemux(
     sesion.proc = null;
   });
 
-  const lista = await esperarPlaylist(dir, 14000);
+  /*
+   * 20 s de margen: con un proveedor real el primer byte de una película
+   * puede tardar varios segundos en llegar (y si el intento anterior del
+   * navegador dejó ocupada la única conexión de la suscripción, unos más
+   * hasta que el panel la libera). Con 14 s se caían conversiones que
+   * habrían arrancado un suspiro después.
+   */
+  const lista = await esperarPlaylist(dir, 20000);
   if (!lista) {
     proc.kill("SIGKILL");
     fs.rm(dir, { recursive: true, force: true }, () => {});
     sesiones.delete(id);
-    const detalle = sesion.fallo || sesion.salida.trim() || "sin salida de ffmpeg (¿el fichero tarda en llegar?)";
+    const detalle =
+      sesion.fallo ||
+      sesion.salida.trim() ||
+      "ffmpeg no recibió el fichero a tiempo (el proveedor tarda en soltar la conexión o entrega muy lento)";
     // Al log del servidor: es lo que se ve en Railway → Deploy Logs
     console.error("[remux] conversión fallida:", url, "→", detalle);
     return {

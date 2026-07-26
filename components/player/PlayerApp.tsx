@@ -97,6 +97,8 @@ export default function PlayerApp() {
   const [m3uData, setM3uData] = useState<Record<string, M3UChannel[]>>({});
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [catFilter, setCatFilter] = useState<string>("all");
+  /** Carpetas de canales abiertas en el móvil (cerradas por defecto) */
+  const [carpetasAbiertas, setCarpetasAbiertas] = useState<Record<string, boolean>>({});
 
   const [current, setCurrent] = useState<NowPlaying | null>(null);
   const [epg, setEpg] = useState<{ now?: string; next?: string } | null>(null);
@@ -1043,15 +1045,43 @@ export default function PlayerApp() {
                     // la página. Dentro de una carpeta se ve entera.
                     const adelanto = !grupoSel && g.channels.length > 12;
                     const canales = adelanto ? g.channels.slice(0, 12) : g.channels.slice(0, 1000);
+                    /*
+                     * En el móvil las carpetas salen cerradas: con una lista
+                     * real, todas desplegadas era un scroll infinito imposible
+                     * de navegar. Se toca una carpeta y se abre ahí mismo.
+                     * (El plegado solo actúa en pantallas pequeñas, vía CSS;
+                     * en escritorio se ve todo, como siempre.)
+                     */
+                    const plegable = !grupoSel && !q && liveGroups.length > 1;
+                    const abierta = !plegable || Boolean(carpetasAbiertas[g.name]);
                     return (
-                      <section className="canales-seccion" key={g.name}>
-                        <div className="canales-seccion-head">
+                      <section
+                        className={`canales-seccion${plegable ? " plegable" : ""}${abierta ? "" : " plegada"}`}
+                        key={g.name}
+                      >
+                        <div
+                          className="canales-seccion-head"
+                          onClick={() =>
+                            plegable && setCarpetasAbiertas((a) => ({ ...a, [g.name]: !a[g.name] }))
+                          }
+                        >
                           <h3>{g.name}</h3>
                           <span className="canales-seccion-n">{g.channels.length}</span>
                           {adelanto && (
-                            <button className="canales-ver-todos" onClick={() => setGrupoSel(g.name)}>
+                            <button
+                              className="canales-ver-todos"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setGrupoSel(g.name);
+                              }}
+                            >
                               Ver todos <Icon name="chevronRight" size={13} />
                             </button>
+                          )}
+                          {plegable && (
+                            <span className="canales-plegar" aria-hidden="true">
+                              <Icon name="chevronRight" size={15} />
+                            </span>
                           )}
                         </div>
                         <div className="canales-grid">

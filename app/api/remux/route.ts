@@ -24,10 +24,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "URL inválida" }, { status: 400 });
   }
 
-  const resultado = await obtenerSesionRemux(url);
-  if ("error" in resultado) {
-    return NextResponse.json({ error: resultado.error, detalle: resultado.detalle || "" }, { status: resultado.status });
+  try {
+    const resultado = await obtenerSesionRemux(url);
+    if ("error" in resultado) {
+      return NextResponse.json({ error: resultado.error, detalle: resultado.detalle || "" }, { status: resultado.status });
+    }
+    return NextResponse.redirect(new URL(`/api/remux/${resultado.id}/index.m3u8`, req.url), 302);
+  } catch (e) {
+    // Pase lo que pase, la respuesta es JSON con el motivo: una excepción
+    // suelta se convertía en una página de error que no contaba nada
+    console.error("[remux] error inesperado:", e);
+    return NextResponse.json(
+      { error: "El conversor falló de forma inesperada", detalle: e instanceof Error ? e.message : String(e) },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.redirect(new URL(`/api/remux/${resultado.id}/index.m3u8`, req.url), 302);
 }

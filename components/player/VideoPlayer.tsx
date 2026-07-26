@@ -16,6 +16,12 @@ type Attempt = {
   label: string;
   /** Va al servidor del proveedor sin pasar por nuestro proxy */
   direct: boolean;
+  /**
+   * Arranque lento por naturaleza: el conversor del servidor puede tardar
+   * 15-20 s en producir el primer trozo (descarga del proveedor incluida).
+   * Con los plazos normales lo matábamos justo antes de que respondiera.
+   */
+  lento?: boolean;
 };
 
 /**
@@ -161,7 +167,7 @@ function buildAttempts(src: PlaySource): Attempt[] {
   if (engine === "native") {
     // Como HLS: es lo único que Safari/iPhone reproducen en streaming, y de
     // regalo permite saltar dentro de lo ya convertido
-    attempts.push({ url: `/api/remux?url=${encodeURIComponent(src.url)}`, engine: "hls", label: "conversor de formato", direct: false });
+    attempts.push({ url: `/api/remux?url=${encodeURIComponent(src.url)}`, engine: "hls", label: "conversor de formato", direct: false, lento: true });
   }
   return attempts;
 }
@@ -200,7 +206,11 @@ export default function VideoPlayer({
         // El proveedor entrega: la siguiente pregunta es si el conversor pudo
         if (engineDe(source) === "native") {
           try {
-            const rc = await fetch(`/api/remux?url=${encodeURIComponent(source.url)}`);
+            // El conversor puede tardar hasta 20 s en contestar (espera a
+            // tener el primer segmento): el sondeo aguanta más que él
+            const rc = await fetch(`/api/remux?url=${encodeURIComponent(source.url)}`, {
+              signal: AbortSignal.timeout(30000),
+            });
             if (rc.ok) {
               setDiag(
                 "El proveedor entrega el vídeo y el conversor lo prepara sin problema. El fallo está en la reproducción en este dispositivo: recarga la página y prueba de nuevo; si persiste, dime qué dispositivo es."
@@ -212,8 +222,16 @@ export default function VideoPlayer({
               );
             }
             return;
-          } catch {
-            /* si el sondeo falla, cae al veredicto genérico */
+          } catch (e) {
+            // El sondeo se cortó sin respuesta: eso también es un dato
+            const porque =
+              e instanceof Error && e.name === "TimeoutError"
+                ? "no contestó en 30 segundos"
+                : "la conexión se cortó a mitad";
+            setDiag(
+              `El proveedor entrega el vídeo, pero el sondeo del conversor ${porque}. Vuelve a intentarlo en un minuto; si se repite, es un problema del servidor de conversión y los registros del despliegue dirán el motivo exacto.`
+            );
+            return;
           }
         }
         setDiag(
@@ -341,13 +359,20 @@ export default function VideoPlayer({
         for (const evt of EVENTOS_AVANCE) v.removeEventListener(evt, avanza);
       };
 
-      const sinAvanceMax = esUltimo ? SIN_AVANCE_ULTIMO_MS : attempt.direct ? SIN_AVANCE_DIRECTO_MS : SIN_AVANCE_MS;
+      const sinAvanceMax = attempt.lento
+        ? 35000
+        : esUltimo
+          ? SIN_AVANCE_ULTIMO_MS
+          : attempt.direct
+            ? SIN_AVANCE_DIRECTO_MS
+            : SIN_AVANCE_MS;
+      const techo = attempt.lento ? 70000 : TECHO_INTENTO_MS;
       watchdog = setInterval(() => {
         if (cancelled || arrancado) return;
         const ahora = Date.now();
         if (ahora - ultimoAvance > sinAvanceMax) {
           fail("el servidor dejó de responder", true);
-        } else if (ahora - inicio > TECHO_INTENTO_MS) {
+        } else if (ahora - inicio > techo) {
           fail("tarda demasiado en arrancar");
         }
       }, 1000);
@@ -364,8 +389,14 @@ export default function VideoPlayer({
              */
             manifestLoadingMaxRetry: esUltimo ? 2 : 0,
             levelLoadingMaxRetry: esUltimo ? 2 : 0,
-            manifestLoadingTimeOut: 12000,
-            levelLoadingTimeOut: 12000,
+            /*
+             * El manifiesto del conversor tarda lo que tarde ffmpeg en tener
+             * el primer segmento (el servidor espera hasta 20 s antes de
+             * contestar). Con 12 s el reproductor se rendía justo antes de
+             * la respuesta buena.
+             */
+            manifestLoadingTimeOut: attempt.lento ? 30000 : 12000,
+            levelLoadingTimeOut: attempt.lento ? 30000 : 12000,
             fragLoadingTimeOut: 25000,
           });
           // El manifiesto y cada trozo que llega son señales de vida
