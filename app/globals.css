@@ -731,10 +731,31 @@ select.input { appearance: none; cursor: pointer; }
 .canal-fav { color: var(--warning); flex-shrink: 0; display: inline-flex; }
 
 @media (max-width: 700px) {
-  .canales-cat { padding: 16px 14px 36px; }
-  .canales-grid { grid-template-columns: repeat(auto-fill, minmax(164px, 1fr)); gap: 8px; }
-  .canal-card { padding: 9px 11px; gap: 9px; }
-  .canal-logo { width: 32px; height: 32px; }
+  .canales-cat { padding: 14px 14px 96px; }
+
+  /*
+   * En el móvil, los canales a una sola columna: con dos, los nombres reales
+   * («M+ Campeones 4 UHD…») salían cortados y la pantalla parecía un mosaico
+   * de tarjetas idénticas. Una lista limpia se lee de un vistazo.
+   */
+  .canales-grid { grid-template-columns: 1fr; gap: 6px; }
+  .canal-card {
+    padding: 9px 12px; gap: 11px; border-radius: 12px;
+    background: transparent; border-color: transparent;
+  }
+  .canal-card:hover, .canal-card:focus-visible { background: var(--bg-elev); transform: none; }
+  .canal-card:active { background: var(--bg-elev-2); }
+  .canal-logo { width: 36px; height: 36px; }
+  .canal-nombre { font-size: 14.5px; }
+
+  /* «Seguir viendo» en una sola línea deslizable, no tres filas de pastillas */
+  .canales-recientes { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; }
+  .canales-recientes .btn { flex-shrink: 0; }
+  .canales-recientes-label { flex-shrink: 0; }
+
+  /* Cabeceras de sección más discretas: la navegación ya la llevan las pastillas */
+  .canales-seccion { margin-bottom: 20px; }
+  .canales-seccion-head h3 { font-size: 14.5px; }
 }
 .pa-card {
   background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -816,7 +837,7 @@ select.input { appearance: none; cursor: pointer; }
   .pa-sidebar-head { padding: 10px 14px; border-bottom: none; }
   /* Solo las pestañas de la barra lateral: el modal de añadir lista usa la
      misma clase para elegir Xtream/M3U y esas sí hacen falta */
-  .pa-sidebar .pa-tabs, .pa-inicio { display: none; }
+  .pa-sidebar .pa-tabs, .pa-sidebar .pa-inicio { display: none; }
   .pa-lists { display: none; }              /* la lista vive en la parrilla y en el zapeo */
   .pa-side-foot { display: none; }          /* la sesión vive en el menú de la cabecera */
 
