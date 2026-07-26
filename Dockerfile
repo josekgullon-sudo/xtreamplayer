@@ -36,6 +36,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 EXPOSE 3000
-VOLUME ["/data"]
+# Sin instrucción VOLUME: el builder de Railway la rechaza. El volumen se
+# monta desde la plataforma (Railway → Attach Volume → /data, o `docker run
+# -v tp-data:/data` en un VPS); la ruta la fija la variable DATA_DIR.
 
 CMD ["node", "server.js"]
