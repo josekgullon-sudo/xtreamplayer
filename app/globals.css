@@ -219,7 +219,10 @@ button { font-family: inherit; }
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border-bottom: 1px solid var(--hairline);
 }
-.site-header .container { display: flex; align-items: center; gap: 30px; width: 100%; }
+/* La cabecera va de borde a borde: el logotipo pegado a la izquierda de la
+   pantalla y la entrada a la derecha, no encajonados en el ancho del
+   contenido — en un monitor grande quedaban flotando hacia el centro. */
+.site-header .container { display: flex; align-items: center; gap: 30px; width: 100%; max-width: none; padding: 0 28px; }
 /* 44 px de alto: el mínimo para que un dedo acierte sin apuntar */
 .logo {
   display: flex; align-items: center; gap: 10px; min-height: 44px;

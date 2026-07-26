@@ -12,12 +12,15 @@ export default function SiteHeader() {
   const [loaded, setLoaded] = useState(false);
   const { tvMode, setTvMode } = useTvMode();
   /*
-   * Dentro del reproductor la cabecera se calla. Los enlaces de la web y el
-   * botón «Abrir reproductor» solo tienen sentido antes de entrar; una vez
-   * dentro son ruido encima del vídeo, y en una pantalla de portátil le
-   * quitan sitio a lo único que importa, que es lo que se está viendo.
+   * Dentro del reproductor y del panel de gestión la cabecera se calla.
+   * Los enlaces de la web pública solo tienen sentido antes de entrar; una
+   * vez dentro son ruido: encima del vídeo quitan sitio a lo que se está
+   * viendo, y en el panel ofrecen «Entrar» a quien ya está dentro.
    */
-  const enReproductor = (usePathname() || "").startsWith("/player");
+  const ruta = usePathname() || "";
+  const enReproductor = ruta.startsWith("/player");
+  const enPanel = ruta.startsWith("/panel") || ruta.startsWith("/admin");
+  const sinMenu = enReproductor || enPanel;
 
   /*
    * Hay dos formas de estar dentro: con cuenta propia (email) o con el
@@ -59,12 +62,13 @@ export default function SiteHeader() {
           <span className="logo-mark"><Icon name="play" size={15} /></span>
           TOTALplayer
         </Link>
-        {enReproductor ? (
+        {sinMenu ? (
           <span className="nav-links" aria-hidden="true" />
         ) : (
           <nav className="nav-links" aria-label="Navegación principal">
             <Link href="/player">Reproductor</Link>
-            <Link href="/acceso">Entrar</Link>
+            {/* Con sesión abierta, ofrecer «Entrar» es decirle que no ha entrado */}
+            {!(loaded && (email || customerUser || providerMail)) && <Link href="/acceso">Entrar</Link>}
             <Link href="/proveedores">Proveedores</Link>
             <Link href="/faq">FAQ</Link>
           </nav>
