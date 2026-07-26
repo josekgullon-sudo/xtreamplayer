@@ -23,6 +23,12 @@ FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
+# Docker define HOSTNAME con el id del contenedor y el server.js de Next se
+# ata a ese nombre en vez de a todas las interfaces; el proxy de la
+# plataforma llama por otra y no lo encuentra ("Application failed to
+# respond" con el log en Ready). Fijarlo a 0.0.0.0 lo deja escuchando donde
+# debe en cualquier plataforma.
+ENV HOSTNAME=0.0.0.0
 # Las listas y usuarios viven aquí: móntalo como volumen persistente
 ENV DATA_DIR=/data
 
