@@ -32,6 +32,8 @@ El repositorio ya incluye `Dockerfile` y `railway.json`, así que Railway lo det
    | `SESSION_SECRET` | Una cadena aleatoria larga: `openssl rand -hex 32` |
    | `NEXT_PUBLIC_SITE_URL` | `https://tudominio.com` (o la URL que te dé Railway) |
    | `ADMIN_EMAILS` | Tu correo. Da acceso a la bandeja de soporte en `/admin` con tu cuenta de usuario normal |
+   | `RAILWAY_RUN_UID` | `0` — Railway monta los volúmenes como root y sin esto la aplicación no puede escribir la base de datos en `/data` (el registro falla con «No se pudo conectar») |
+   | `HOSTNAME` | `0.0.0.0` — ya viene fijado en la imagen; añádelo solo si usas una imagen anterior |
 
    > `SESSION_SECRET` firma las sesiones **y cifra las contraseñas que el proveedor puede consultar**: si la cambias más adelante, las sesiones caducan y esas contraseñas guardadas dejan de poder mostrarse. Genérala una vez y guárdala en un sitio seguro.
 
