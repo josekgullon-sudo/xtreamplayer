@@ -378,7 +378,36 @@ export default function VideoPlayer({
       }, 1000);
 
       if (attempt.engine === "hls") {
-        if (Hls.isSupported()) {
+        /*
+         * En Safari (iPhone sobre todo) el HLS se entrega al reproductor
+         * nativo del sistema: es el cliente HLS original y el más fiable, y
+         * ahí hls.js corre sobre ManagedMediaSource con más papeletas de
+         * fallar. En el resto de navegadores no hay nativo, así que hls.js.
+         */
+        const hlsNativo = v.canPlayType("application/vnd.apple.mpegurl");
+        if (hlsNativo) {
+          const onError = () => fail("No se pudo cargar el stream HLS", esFalloDeRed(v));
+          v.addEventListener("error", onError);
+          v.src = attempt.url;
+          v.play().catch((e) => {
+            /*
+             * iOS bloquea el autoplay si el gesto del usuario ya caducó
+             * (llegar hasta aquí puede llevar varios intentos). El vídeo
+             * está listo; solo falta que pulse play. Eso no es un fallo.
+             */
+            if (e instanceof Error && e.name === "NotAllowedError") {
+              arrancado = true;
+              clearWatchdog();
+              setState("playing");
+            }
+          });
+          cleanupRef.current = () => {
+            soltarEventos();
+            v.removeEventListener("error", onError);
+            v.removeAttribute("src");
+            v.load();
+          };
+        } else if (Hls.isSupported()) {
           const hls = new Hls({
             maxBufferLength: 30,
             /*
@@ -423,18 +452,6 @@ export default function VideoPlayer({
           cleanupRef.current = () => {
             soltarEventos();
             hls.destroy();
-          };
-        } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
-          // Safari/iOS: HLS nativo
-          const onError = () => fail("No se pudo cargar el stream HLS", esFalloDeRed(v));
-          v.addEventListener("error", onError);
-          v.src = attempt.url;
-          v.play().catch(() => {});
-          cleanupRef.current = () => {
-            soltarEventos();
-            v.removeEventListener("error", onError);
-            v.removeAttribute("src");
-            v.load();
           };
         } else {
           fail("Este navegador no soporta HLS");
