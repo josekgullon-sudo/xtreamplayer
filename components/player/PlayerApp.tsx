@@ -295,11 +295,37 @@ export default function PlayerApp() {
     [m3uData, xtreamData]
   );
 
+  /*
+   * Cambiar de pestaña desde sus botones cierra lo que se estaba viendo y
+   * vuelve a la parrilla. Va en el gesto y no en un efecto sobre `tab`: la
+   * portada cambia de pestaña Y arranca un vídeo en el mismo clic, y un
+   * efecto que limpiara en cualquier cambio apagaba ese vídeo al nacer.
+   */
+  function irAPestana(t: typeof tab) {
+    setTab(t);
+    setViendo(false);
+    setGrupoSel(null);
+  }
+
   useEffect(() => {
     setViendo(false);
     setGrupoSel(null);
+  }, [activeId]);
+
+  /*
+   * Cada ficha vive en su pestaña: se cierra al SALIR de ella o al cambiar
+   * de lista, nunca al entrar. La portada abre una ficha y cambia de
+   * pestaña en el mismo gesto — limpiarla en cualquier cambio de pestaña la
+   * mataba antes de nacer.
+   */
+  useEffect(() => {
+    if (tab !== "vod") setVodDetail(null);
+    if (tab !== "series") setSeriesDetail(null);
+  }, [tab]);
+  useEffect(() => {
     setVodDetail(null);
-  }, [tab, activeId]);
+    setSeriesDetail(null);
+  }, [activeId]);
 
   useEffect(() => {
     if (!active) return;
@@ -647,6 +673,15 @@ export default function PlayerApp() {
     if (seccionGate !== "pendiente" || !perfilResuelto || !active) return;
     setSeccionGate(hayDondeElegir ? "mostrando" : "hecho");
   }, [seccionGate, perfilResuelto, active, hayDondeElegir]);
+
+  // La portada enseña cine y series sin entrar en sus pestañas: en cuanto se
+  // muestra el selector se precargan en segundo plano y las carátulas van
+  // apareciendo solas (el render es reactivo a xtreamData)
+  useEffect(() => {
+    if (seccionGate !== "mostrando" || !active || active.type !== "xtream") return;
+    loadTab(active, "vod");
+    loadTab(active, "series");
+  }, [seccionGate, active, loadTab]);
   const vodCats = data?.vodCats || [];
   const seriesCats = data?.seriesCats || [];
 
@@ -663,9 +698,51 @@ export default function PlayerApp() {
         conCine={isXtream}
         conFavoritos={Object.keys(favorites).length > 0}
         onElegir={(s) => {
-          setTab(s);
+          irAPestana(s);
           setSeccionGate("hecho");
         }}
+        portada={active ? {
+          recientes: recents.slice(0, 5).map((r) => ({
+            key: r.key,
+            nombre: r.name,
+            play: () => {
+              setSeccionGate("hecho");
+              playRecent(r);
+            },
+          })),
+          canales: flatChannels.filter((c) => c.name.trim()).slice(0, 14).map((c) => ({
+            key: c.favKey,
+            nombre: c.name,
+            logo: imgSrc(c.logo) || "",
+            play: () => {
+              setSeccionGate("hecho");
+              setTab("live");
+              c.play();
+            },
+          })),
+          pelis: vodVisible.filter((v) => v.name.trim()).slice(0, 12).map((v) => ({
+            key: v.stream_id,
+            nombre: v.name,
+            poster: imgSrc(v.stream_icon) || "",
+            abrir: () => {
+              setSeccionGate("hecho");
+              setTab("vod");
+              setViendo(false); // si había un canal sonando, la ficha manda
+              openVod(active, v);
+            },
+          })),
+          series: seriesVisible.filter((s) => s.name.trim()).slice(0, 12).map((s) => ({
+            key: s.series_id,
+            nombre: s.name,
+            poster: imgSrc(s.cover) || "",
+            abrir: () => {
+              setSeccionGate("hecho");
+              setTab("series");
+              setViendo(false);
+              openSeries(active, s);
+            },
+          })),
+        } : undefined}
       />
     )}
     <div className="player-app">
@@ -702,20 +779,20 @@ export default function PlayerApp() {
 
           {active && (
             <div className="pa-tabs" role="tablist">
-              <button role="tab" aria-selected={tab === "live"} className={`pa-tab ${tab === "live" ? "active" : ""}`} onClick={() => setTab("live")}>
+              <button role="tab" aria-selected={tab === "live"} className={`pa-tab ${tab === "live" ? "active" : ""}`} onClick={() => irAPestana("live")}>
                 {isXtream ? "Directo" : "Canales"}
               </button>
               {isXtream && (
                 <>
-                  <button role="tab" aria-selected={tab === "vod"} className={`pa-tab ${tab === "vod" ? "active" : ""}`} onClick={() => setTab("vod")}>
+                  <button role="tab" aria-selected={tab === "vod"} className={`pa-tab ${tab === "vod" ? "active" : ""}`} onClick={() => irAPestana("vod")}>
                     Cine
                   </button>
-                  <button role="tab" aria-selected={tab === "series"} className={`pa-tab ${tab === "series" ? "active" : ""}`} onClick={() => setTab("series")}>
+                  <button role="tab" aria-selected={tab === "series"} className={`pa-tab ${tab === "series" ? "active" : ""}`} onClick={() => irAPestana("series")}>
                     Series
                   </button>
                 </>
               )}
-              <button role="tab" aria-selected={tab === "favs"} className={`pa-tab ${tab === "favs" ? "active" : ""}`} onClick={() => setTab("favs")} title="Favoritos" aria-label="Favoritos">
+              <button role="tab" aria-selected={tab === "favs"} className={`pa-tab ${tab === "favs" ? "active" : ""}`} onClick={() => irAPestana("favs")} title="Favoritos" aria-label="Favoritos">
                 <Icon name="star" size={15} />
               </button>
             </div>
@@ -1258,7 +1335,7 @@ export default function PlayerApp() {
         <nav className="pa-bottomnav" aria-label="Secciones">
           <button
             className={`pa-bottomnav-item ${tab === "live" ? "active" : ""}`}
-            onClick={() => { setTab("live"); setSeccionGate("hecho"); }}
+            onClick={() => { irAPestana("live"); setSeccionGate("hecho"); }}
           >
             <Icon name="tv" size={21} />
             <span>{isXtream ? "Directo" : "Canales"}</span>
@@ -1267,14 +1344,14 @@ export default function PlayerApp() {
             <>
               <button
                 className={`pa-bottomnav-item ${tab === "vod" ? "active" : ""}`}
-                onClick={() => { setTab("vod"); setSeccionGate("hecho"); }}
+                onClick={() => { irAPestana("vod"); setSeccionGate("hecho"); }}
               >
                 <Icon name="film" size={21} />
                 <span>Cine</span>
               </button>
               <button
                 className={`pa-bottomnav-item ${tab === "series" ? "active" : ""}`}
-                onClick={() => { setTab("series"); setSeccionGate("hecho"); }}
+                onClick={() => { irAPestana("series"); setSeccionGate("hecho"); }}
               >
                 <Icon name="series" size={21} />
                 <span>Series</span>
@@ -1283,7 +1360,7 @@ export default function PlayerApp() {
           )}
           <button
             className={`pa-bottomnav-item ${tab === "favs" ? "active" : ""}`}
-            onClick={() => { setTab("favs"); setSeccionGate("hecho"); }}
+            onClick={() => { irAPestana("favs"); setSeccionGate("hecho"); }}
           >
             <Icon name="star" size={21} />
             <span>Favoritos</span>

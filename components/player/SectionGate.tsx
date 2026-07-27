@@ -12,6 +12,29 @@ interface Opcion {
   icono: IconName;
 }
 
+/** Un canal listo para pinchar desde la portada */
+export interface PortadaCanal {
+  key: string;
+  nombre: string;
+  logo: string;
+  play: () => void;
+}
+
+/** Una película o serie con su carátula, lista para abrir su ficha */
+export interface PortadaTitulo {
+  key: string | number;
+  nombre: string;
+  poster: string;
+  abrir: () => void;
+}
+
+export interface Portada {
+  canales: PortadaCanal[];
+  pelis: PortadaTitulo[];
+  series: PortadaTitulo[];
+  recientes: { key: string; nombre: string; play: () => void }[];
+}
+
 /**
  * Pantalla de entrada: «¿qué quieres ver?».
  *
@@ -29,12 +52,15 @@ export default function SectionGate({
   conCine,
   conFavoritos,
   onElegir,
+  portada,
 }: {
   marca: string;
   perfil?: string | null;
   conCine: boolean;
   conFavoritos: boolean;
   onElegir: (seccion: Seccion) => void;
+  /** Contenido real bajo las tarjetas (solo escritorio): canales y carátulas */
+  portada?: Portada;
 }) {
   const primeroRef = useRef<HTMLButtonElement>(null);
 
@@ -85,7 +111,102 @@ export default function SectionGate({
             </button>
           ))}
         </div>
+
+        {/*
+          La portada: contenido de verdad bajo las tarjetas, al estilo de los
+          reproductores de escritorio — canales numerados a un lado, carriles
+          de carátulas al otro. En el móvil se oculta por CSS: allí la
+          pantalla es de las tarjetas y la navegación inferior.
+        */}
+        {portada && portada.canales.length + portada.pelis.length + portada.series.length > 0 && (
+          <div className="portada">
+            {portada.recientes.length > 0 && (
+              <div className="portada-recientes">
+                <span className="canales-recientes-label">Seguir viendo</span>
+                {portada.recientes.map((r) => (
+                  <button key={r.key} className="btn btn-ghost btn-sm" onClick={r.play}>
+                    <><Icon name="play" size={13} /> {r.nombre}</>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="portada-cols">
+              {portada.canales.length > 0 && (
+                <section className="portada-canales">
+                  <div className="portada-head">
+                    <h3>TV en directo</h3>
+                    <button className="canales-ver-todos" onClick={() => onElegir("live")}>
+                      Ver todos <Icon name="chevronRight" size={13} />
+                    </button>
+                  </div>
+                  <div className="portada-lista">
+                    {portada.canales.map((c, i) => (
+                      <button key={c.key} className="portada-canal" onClick={c.play} title={c.nombre}>
+                        <span className="portada-num">{String(i + 1).padStart(3, "0")}</span>
+                        {c.logo ? (
+                          <img
+                            className="canal-logo"
+                            src={c.logo}
+                            alt=""
+                            loading="lazy"
+                            onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")}
+                          />
+                        ) : (
+                          <span className="canal-logo canal-logo-ph">{c.nombre.trim().slice(0, 1).toUpperCase()}</span>
+                        )}
+                        <span className="portada-canal-nombre">{c.nombre}</span>
+                        <Icon name="play" size={14} className="portada-play" />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {(portada.pelis.length > 0 || portada.series.length > 0) && (
+                <div className="portada-rails">
+                  {portada.pelis.length > 0 && (
+                    <PortadaRail titulo="Películas" titulos={portada.pelis} verTodo={() => onElegir("vod")} />
+                  )}
+                  {portada.series.length > 0 && (
+                    <PortadaRail titulo="Series" titulos={portada.series} verTodo={() => onElegir("series")} />
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function PortadaRail({ titulo, titulos, verTodo }: { titulo: string; titulos: PortadaTitulo[]; verTodo: () => void }) {
+  return (
+    <section className="portada-rail">
+      <div className="portada-head">
+        <h3>{titulo}</h3>
+        <button className="canales-ver-todos" onClick={verTodo}>
+          Ver todo <Icon name="chevronRight" size={13} />
+        </button>
+      </div>
+      <div className="portada-posters">
+        {titulos.map((t) => (
+          <button key={t.key} className="portada-poster" onClick={t.abrir} title={t.nombre}>
+            {t.poster ? (
+              <img
+                src={t.poster}
+                alt={t.nombre}
+                loading="lazy"
+                onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")}
+              />
+            ) : (
+              <span className="portada-poster-ph"><Icon name="film" size={22} /></span>
+            )}
+            <span className="portada-poster-nombre">{t.nombre}</span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
