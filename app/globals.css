@@ -8,19 +8,21 @@
 
 :root {
   /*
-   * Fondos en gris cálido, no en negro puro: el negro absoluto con texto
-   * claro cansa la vista y hunde los bordes. Estos tonos suben el contraste
-   * de las superficies entre sí y hacen las tablas mucho más legibles.
+   * Fondos en gris, no en negro. Y con distancia real entre niveles: el
+   * problema de una interfaz oscura no es que sea oscura, es que todo caiga
+   * en el mismo tono y no se distinga una tarjeta de su fondo. Cada escalón
+   * sube lo justo para verse sin encender la pantalla entera; los bordes
+   * acompañan, que son los que dibujan de verdad dónde acaba cada cosa.
    */
-  --bg: #17161a;
-  --bg-elev: #211f25;
-  --bg-elev-2: #2a272e;
-  --bg-hover: #332f38;
-  --border: #35313b;
-  --border-strong: #494352;
-  --text: #f6f4f7;
-  --text-dim: #b4adba;
-  --text-faint: #8b8394;
+  --bg: #201f28;
+  --bg-elev: #2e2b39;
+  --bg-elev-2: #3c3849;
+  --bg-hover: #4a4559;
+  --border: #565068;
+  --border-strong: #706888;
+  --text: #f7f5f9;
+  --text-dim: #bdb6c7;
+  --text-faint: #948ca1;
 
   /* Marca: rojo sobre negro */
   --accent: #e5192b;
@@ -31,8 +33,8 @@
   --accent-tint-strong: rgba(229, 25, 43, 0.28);
   --accent-halo: rgba(229, 25, 43, 0.20);
   --accent-halo-deep: rgba(143, 15, 28, 0.14);
-  --bg-blur: rgba(23, 22, 26, 0.88);
-  --bg-fade: rgba(23, 22, 26, 0.96);
+  --bg-blur: rgba(32, 31, 40, 0.88);
+  --bg-fade: rgba(32, 31, 40, 0.96);
   /* Paradas de degradado: cambiar estas tres reviste toda la marca */
   --accent-deep: #8f0f1c;
   --accent-soft: #ff8a95;
@@ -59,10 +61,14 @@
   --shadow-lg: 0 28px 80px rgba(0, 0, 0, 0.55);
   --header-h: 66px;
 
-  /* Línea de separación apenas perceptible y superficie de reposo */
-  --hairline: rgba(255, 255, 255, 0.07);
-  --hairline-strong: rgba(255, 255, 255, 0.12);
-  --surface-quiet: rgba(255, 255, 255, 0.035);
+  /*
+   * Las líneas de separación se ven: al 7% no dibujaban nada y las tarjetas
+   * flotaban sin contorno sobre el fondo, que es de donde venía la sensación
+   * de «todo negro, me pierdo».
+   */
+  --hairline: rgba(255, 255, 255, 0.11);
+  --hairline-strong: rgba(255, 255, 255, 0.19);
+  --surface-quiet: rgba(255, 255, 255, 0.06);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -248,6 +254,12 @@ button { font-family: inherit; }
   .logo { justify-self: start; }
   .nav-links { justify-self: center; }
   .header-actions { justify-self: end; }
+}
+/* Entre 900 y 1120 px las tres zonas caben, pero solo si «Modo TV» cede su
+   sitio: es una opción secundaria que además vive en el menú de cuenta */
+@media (min-width: 901px) and (max-width: 1120px) {
+  .site-header .container { gap: 14px; padding: 0 18px; }
+  .header-actions .btn-ghost.hide-sm { display: none; }
 }
 .nav-links a {
   color: var(--text-dim); font-weight: 500; font-size: 14.5px;
@@ -1596,3 +1608,126 @@ select.input { appearance: none; cursor: pointer; }
 .prose h2 { font-size: 21px; margin: 32px 0 12px; }
 .prose p, .prose li { color: var(--text-dim); margin-bottom: 12px; font-size: 15px; }
 .prose ul { padding-left: 22px; }
+
+/* ============ La aplicación de televisión ============ */
+
+/*
+ * Otra aplicación, no la web con la letra grande: cuatro flechas, un OK y
+ * tres metros de distancia. Todo se mide en vh para que quepa igual en un
+ * televisor de 1080p que en uno 4K, y el foco se ve desde el sofá.
+ */
+.tv-app {
+  position: fixed; inset: 0; z-index: 100;
+  background: #1a1921; color: #fff;
+  display: flex; flex-direction: column;
+  font-size: 1.35vw;
+}
+.tv-centro { align-items: center; justify-content: center; text-align: center; }
+.tv-marca {
+  font-size: 1.5vw; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent-bright); margin-bottom: 2vh;
+}
+.tv-cargando { font-size: 1.8vw; color: rgba(255, 255, 255, 0.6); padding: 4vh 4vw; }
+
+/* ---- Activación con código ---- */
+
+.tv-activar { max-width: 70vw; }
+.tv-activar h1 { font-size: 3.6vw; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 3vh; }
+.tv-activar-paso { font-size: 1.7vw; color: rgba(255, 255, 255, 0.75); margin-bottom: 1.2vh; }
+.tv-activar-paso strong { color: #fff; }
+.tv-codigo {
+  display: inline-block; margin: 2.5vh 0;
+  padding: 2.5vh 4vw; border-radius: 1.6vw;
+  background: rgba(255, 255, 255, 0.06);
+  border: 0.15vw solid var(--accent);
+  font-size: 6vw; font-weight: 800; letter-spacing: 0.6vw;
+  font-variant-numeric: tabular-nums;
+}
+.tv-activar-nota { font-size: 1.4vw; color: rgba(255, 255, 255, 0.5); }
+.tv-activar-error { font-size: 1.5vw; color: #ff6b6b; padding: 2vh 4vw; }
+
+/* ---- Portada: cuatro accesos y nada más ---- */
+
+.tv-portada { width: 100%; }
+.tv-tiles { display: flex; gap: 2.4vw; justify-content: center; margin-bottom: 5vh; flex-wrap: wrap; }
+.tv-tile {
+  width: 17vw; height: 17vw; max-width: 260px; max-height: 260px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.6vh;
+  background: rgba(255, 255, 255, 0.05);
+  border: 0.2vw solid transparent; border-radius: 1.6vw;
+  color: rgba(255, 255, 255, 0.75); font-size: 1.6vw; font-weight: 700;
+  cursor: pointer; transition: transform 0.12s, background 0.12s, border-color 0.12s, color 0.12s;
+}
+.tv-tile.foco {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent);
+  color: #fff; transform: scale(1.06);
+}
+.tv-pie { font-size: 1.25vw; color: rgba(255, 255, 255, 0.45); }
+
+/* ---- Listas: una columna, filas altas, foco imposible de perder ---- */
+
+.tv-cabecera {
+  display: flex; align-items: baseline; gap: 1.5vw;
+  padding: 3vh 4vw 2vh;
+}
+.tv-cabecera h2 { font-size: 2.4vw; font-weight: 800; letter-spacing: -0.02em; }
+.tv-cabecera-pista { font-size: 1.1vw; color: rgba(255, 255, 255, 0.4); margin-left: auto; }
+
+.tv-lista { flex: 1; overflow-y: auto; padding: 0 4vw 4vh; scrollbar-width: none; }
+.tv-lista::-webkit-scrollbar { display: none; }
+.tv-fila {
+  display: flex; align-items: center; gap: 1.6vw; width: 100%;
+  padding: 1.6vh 1.6vw; margin-bottom: 0.6vh; border-radius: 1vw;
+  background: rgba(255, 255, 255, 0.03); border: 0.15vw solid transparent;
+  color: rgba(255, 255, 255, 0.8); font-size: 1.5vw; font-weight: 600;
+  text-align: left; cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.tv-fila.foco {
+  background: rgba(255, 255, 255, 0.12); border-color: var(--accent); color: #fff;
+}
+.tv-fila-n {
+  font-size: 1.1vw; font-weight: 700; color: rgba(255, 255, 255, 0.35);
+  font-variant-numeric: tabular-nums; flex-shrink: 0;
+}
+.tv-fila img, .tv-fila-ph {
+  width: 3.4vw; height: 3.4vw; flex-shrink: 0; object-fit: contain;
+  border-radius: 0.6vw; background: rgba(0, 0, 0, 0.4);
+}
+.tv-fila-ph { display: flex; align-items: center; justify-content: center; font-size: 1.4vw; }
+.tv-fila-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- Vídeo a pantalla completa ---- */
+
+.tv-viendo { background: #000; }
+.tv-viendo .video-shell, .tv-viendo .pa-video-zone { flex: 1; }
+.tv-viendo video { width: 100%; height: 100%; object-fit: contain; }
+.tv-viendo-pie {
+  position: absolute; left: 0; right: 0; bottom: 2vh; text-align: center;
+  font-size: 1.2vw; color: rgba(255, 255, 255, 0.45); pointer-events: none;
+}
+
+/* En una tele pequeña o en el navegador de pruebas, los vw se quedan cortos */
+@media (max-width: 900px) {
+  .tv-app { font-size: 16px; }
+  .tv-tile { width: 38vw; height: 38vw; font-size: 15px; }
+  .tv-activar h1 { font-size: 26px; }
+  .tv-activar-paso, .tv-cargando { font-size: 15px; }
+  .tv-codigo { font-size: 42px; letter-spacing: 6px; padding: 18px 24px; border-radius: 14px; }
+  .tv-cabecera h2 { font-size: 20px; }
+  .tv-fila { font-size: 15px; gap: 12px; padding: 12px; border-radius: 12px; }
+  .tv-fila img, .tv-fila-ph { width: 34px; height: 34px; }
+  .tv-marca, .tv-pie, .tv-cabecera-pista, .tv-fila-n { font-size: 12px; }
+}
+
+/* Código de activación en el móvil: se teclea una vez, que se lea bien */
+.activar-code {
+  font-size: 28px; font-weight: 800; letter-spacing: 8px; text-align: center;
+  text-transform: uppercase; font-variant-numeric: tabular-nums;
+}
+.activar-ok {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 68px; height: 68px; border-radius: 20px; margin-bottom: 16px;
+  background: var(--success-tint); color: var(--success);
+}
