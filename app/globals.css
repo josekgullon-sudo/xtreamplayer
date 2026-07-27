@@ -2120,3 +2120,24 @@ select.input { appearance: none; cursor: pointer; }
 .primeros-pasos strong { font-size: 15px; font-weight: 700; }
 .primeros-pasos p { font-size: 13.5px; color: var(--text-dim); margin: 3px 0 10px; }
 .primeros-pasos .row-actions { gap: 8px; }
+
+@media (max-width: 900px) {
+  /*
+   * El menú del panel, en una tira que se desliza: apilado en varias filas
+   * se comía media pantalla antes de enseñar nada. Una sola línea deja el
+   * contenido arriba y las secciones a un dedo de distancia.
+   */
+  .panel-nav {
+    position: sticky; top: var(--header-h); z-index: 20;
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    padding: 8px 10px; gap: 4px;
+  }
+  .panel-nav::-webkit-scrollbar { display: none; }
+  .panel-nav-item {
+    flex-shrink: 0; white-space: nowrap;
+    padding: 9px 14px; border-radius: var(--radius-pill);
+  }
+  .panel-nav-foot { flex-shrink: 0; }
+  /* Tablas anchas: se deslizan solas en vez de romper la página */
+  .panel-table { min-width: 620px; }
+}
