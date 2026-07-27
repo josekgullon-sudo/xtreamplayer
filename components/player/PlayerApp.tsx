@@ -895,6 +895,20 @@ export default function PlayerApp() {
             <span className="pa-live-n">{liveGroups.reduce((n, g) => n + g.channels.length, 0)}</span>
           </div>
           <div className="pa-live-scroll">
+            {/* Lo último visto, primero: en la práctica se vuelve al mismo
+                puñado de canales, y buscarlos entre miles cada vez sobra */}
+            {recents.length > 0 && tab === "live" && (
+              <>
+                <p className="pa-live-sub">Seguir viendo</p>
+                {recents.slice(0, 4).map((r) => (
+                  <button key={r.key} className="pa-live-cat pa-live-reciente" onClick={() => playRecent(r)} title={r.name}>
+                    <Icon name="play" size={13} />
+                    <span className="name">{r.name}</span>
+                  </button>
+                ))}
+                <p className="pa-live-sub">Categorías</p>
+              </>
+            )}
             <button
               className={`pa-live-cat ${!grupoSel ? "activa" : ""}`}
               onClick={() => { setGrupoSel(null); setVerCanales(true); }}
@@ -961,7 +975,7 @@ export default function PlayerApp() {
                   <h2>{current.source.name}</h2>
                   <p>
                     {epg?.now ? `Ahora: ${epg.now}` : "En directo"}
-                    {epg?.next ? ` · Después: ${epg.next}` : ""}
+                    {epg?.next ? <span className="pa-epg-next"> · Después: {epg.next}</span> : null}
                   </p>
                 </div>
                 {current.favKey && (

@@ -2141,3 +2141,13 @@ select.input { appearance: none; cursor: pointer; }
   /* Tablas anchas: se deslizan solas en vez de romper la página */
   .panel-table { min-width: 620px; }
 }
+
+/* Encabezados dentro de la columna de categorías */
+.pa-live-sub {
+  font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-faint); padding: 12px 12px 6px;
+}
+.pa-live-sub:first-child { padding-top: 4px; }
+.pa-live-reciente { color: var(--text); gap: 10px; }
+.pa-live-reciente svg { color: var(--accent-bright); flex-shrink: 0; }
+.pa-epg-next { color: var(--text-faint); }
