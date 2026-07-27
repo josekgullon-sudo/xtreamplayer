@@ -971,6 +971,14 @@ export default function PlayerApp() {
                 <button className="pa-live-atras" onClick={() => { setCurrent(null); setViendo(false); }} aria-label="Cerrar el vídeo">
                   <Icon name="back" size={15} />
                 </button>
+                {imgSrc(current.logo) && (
+                  <img
+                    className="pa-live-titulo-logo"
+                    src={imgSrc(current.logo)}
+                    alt=""
+                    onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+                  />
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h2>{current.source.name}</h2>
                   <p>

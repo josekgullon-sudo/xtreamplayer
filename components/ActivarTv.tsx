@@ -1,17 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import Icon from "@/components/Icon";
 
-type Via = "codigo" | "mac";
+type Via = "codigo" | "mac" | "usuario";
 
 /**
  * El otro extremo de la activación: aquí se teclea, que es lo que en una
- * tele no se puede hacer. Hay dos caminos, y cada cual usa el suyo:
+ * tele no se puede hacer. Tres caminos, y cada cual usa el suyo:
  *
- *  - Código: quien tiene su usuario de proveedor. Escribe en el móvil el
- *    código que ve en la tele y listo.
+ *  - Usuario: entra con lo que le dio su proveedor, aquí mismo.
+ *  - Código: escribe en el móvil el código que ve en la tele y listo.
  *  - MAC: quien trae su propia lista. Copia la MAC de la tele, pega su URL
  *    M3U o su servidor Xtream, y la tele la carga sola. Sin cuenta, sin
  *    proveedor y sin escribir nada en el televisor.
@@ -47,6 +46,28 @@ export default function ActivarTv() {
       return;
     }
     setHecho("codigo");
+  }
+
+  /** Entrar con el usuario del proveedor sin salir de esta página */
+  async function entrar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    setEnviando(true);
+    const fd = new FormData(e.currentTarget);
+    const res = await fetch("/api/customer/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: fd.get("usuario"), password: fd.get("password"), deviceKey: "web-activar", platform: "web" }),
+    });
+    const data = await res.json();
+    setEnviando(false);
+    if (!res.ok) {
+      setError(data.error || "No hemos podido entrar con esos datos");
+      return;
+    }
+    // Con la sesión ya abierta, lo que toca es el código de la tele
+    setSesion("si");
+    setVia("codigo");
   }
 
   async function cargarLista(e: React.FormEvent<HTMLFormElement>) {
@@ -97,7 +118,7 @@ export default function ActivarTv() {
     <main className="auth-wrap">
       <div className="auth-card">
         <h1>Activar mi tele</h1>
-        <p className="auth-sub">Elige cómo prefieres hacerlo. Solo hace falta una de las dos.</p>
+        <p className="auth-sub">Elige cómo prefieres hacerlo. Con una de las tres basta.</p>
 
         <div className="pa-tabs" role="tablist" style={{ marginBottom: 20 }}>
           <button
@@ -116,6 +137,16 @@ export default function ActivarTv() {
           >
             Con la MAC y mi lista
           </button>
+          {sesion === "no" && (
+            <button
+              role="tab"
+              aria-selected={via === "usuario"}
+              className={`pa-tab ${via === "usuario" ? "active" : ""}`}
+              onClick={() => { setVia("usuario"); setError(""); }}
+            >
+              Con mi usuario
+            </button>
+          )}
         </div>
 
         {error && (
@@ -124,15 +155,33 @@ export default function ActivarTv() {
           </div>
         )}
 
-        {via === "codigo" ? (
+        {via === "usuario" ? (
+          <form onSubmit={entrar}>
+            <p className="auth-sub">
+              El usuario y la contraseña que te dio tu proveedor. Al entrar podrás activar la tele con su código.
+            </p>
+            <div className="auth-field">
+              <label className="label" htmlFor="ac-user">Usuario</label>
+              <input id="ac-user" name="usuario" className="input" required autoFocus autoComplete="username" />
+            </div>
+            <div className="auth-field">
+              <label className="label" htmlFor="ac-pass">Contraseña</label>
+              <input id="ac-pass" name="password" type="password" className="input" required autoComplete="current-password" />
+            </div>
+            <button className="btn btn-primary" style={{ width: "100%" }} disabled={enviando}>
+              {enviando ? "Entrando…" : "Entrar"}
+            </button>
+          </form>
+        ) : via === "codigo" ? (
           sesion === "no" ? (
             <>
               <p className="auth-sub">
-                Para activar con código necesitas tu usuario. Si lo que tienes es una lista M3U, usa la otra pestaña.
+                Para activar con código hace falta tu usuario. Entra en la pestaña «Con mi usuario», o usa la MAC si
+                lo que tienes es tu propia lista.
               </p>
-              <Link href="/acceso" className="btn btn-primary" style={{ width: "100%" }}>
+              <button className="btn btn-primary" style={{ width: "100%" }} onClick={() => setVia("usuario")}>
                 Entrar con mi usuario
-              </Link>
+              </button>
             </>
           ) : (
             <form onSubmit={activarConCodigo}>
