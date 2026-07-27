@@ -112,7 +112,9 @@ export default function ApiSection() {
         <h4>Dar de alta un cliente</h4>
         <p className="api-nota">
           Con <code>domainId</code> de tus dominios (consulta <code>/api/v1/domains</code>) el cliente queda enganchado al
-          dominio: si algún día lo cambias, todos migran de golpe.
+          dominio: si algún día lo cambias, todos migran de golpe. El <code>username</code> y la{" "}
+          <code>password</code> se usan también como credenciales de su lista; solo hace falta mandar{" "}
+          <code>playlistUsername</code> y <code>playlistPassword</code> si las tiene distintas.
         </p>
         <pre className="api-ejemplo">{`curl -X POST ${base}/api/v1/customers \\
   -H "Authorization: Bearer ${clave}" \\
@@ -121,8 +123,6 @@ export default function ApiSection() {
     "username": "cliente1",
     "password": "secreta123",
     "domainId": 1,
-    "playlistUsername": "usuario_iptv",
-    "playlistPassword": "clave_iptv",
     "expiresAt": 1790000000000,
     "maxProfiles": 3
   }'`}</pre>

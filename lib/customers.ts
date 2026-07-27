@@ -126,9 +126,15 @@ export async function crearCliente(actor: PanelActor, body: AltaClienteInput): P
       plUser = parsed.username;
       plPass = plPass || parsed.password;
     }
-    if (!plUser || !plPass) {
-      return { ok: false, error: "Indica el usuario y la contraseña IPTV del cliente", status: 400 };
-    }
+    /*
+     * Por defecto, el usuario y la contraseña del cliente SON los que tiene
+     * en el panel XUI. Pedirlos dos veces obligaba al proveedor a inventarse
+     * un segundo par y a explicarle a su cliente cuál era cuál. Quien los
+     * tenga distintos —una importación antigua— los sigue mandando aparte y
+     * mandan esos.
+     */
+    if (!plUser) plUser = username;
+    if (!plPass) plPass = password;
     domainId = domain.id;
     type = "xtream";
     url = "";
@@ -142,8 +148,11 @@ export async function crearCliente(actor: PanelActor, body: AltaClienteInput): P
     } else if (url) {
       url = normalizeBase(url);
     }
-    if (!url || !plUser || !plPass) {
-      return { ok: false, error: "Elige un dominio o indica servidor, usuario y contraseña", status: 400 };
+    // Igual que con dominio: si no se dicen aparte, son los mismos de acceso
+    if (!plUser) plUser = username;
+    if (!plPass) plPass = password;
+    if (!url) {
+      return { ok: false, error: "Elige un dominio o indica el servidor de la lista", status: 400 };
     }
   } else {
     const parsed = parseXtreamUrl(url);

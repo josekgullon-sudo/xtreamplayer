@@ -1110,17 +1110,18 @@ export default function ProviderPanel() {
           <div className="modal" role="dialog" aria-modal="true" aria-label="Nuevo cliente">
             <h2>Nuevo cliente</h2>
             <p className="modal-sub">
-              Crea el acceso y entrégaselo a tu cliente. Al entrar tendrá su lista ya cargada.
+              Escribe el usuario y la contraseña que ya tiene en tu panel: le sirven para entrar aquí y para su
+              lista. Al entrar la tendrá cargada.
             </p>
             <form onSubmit={createCustomer}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div className="auth-field">
-                  <label className="label" htmlFor="c-user">Usuario de acceso</label>
-                  <input id="c-user" name="username" className="input" required placeholder="cliente01" />
+                  <label className="label" htmlFor="c-user">Usuario</label>
+                  <input id="c-user" name="username" className="input" required placeholder="el de tu panel XUI" />
                 </div>
                 <div className="auth-field">
                   <label className="label" htmlFor="c-pass">Contraseña</label>
-                  <input id="c-pass" name="password" className="input" required placeholder="mínimo 4 caracteres" />
+                  <input id="c-pass" name="password" className="input" required placeholder="la de tu panel XUI" />
                 </div>
               </div>
               <div className="auth-field">
@@ -1146,16 +1147,23 @@ export default function ProviderPanel() {
                       {perms?.domainAccess === "full" && <option value="0">Otro (escribir a mano)</option>}
                     </select>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    <div className="auth-field">
-                      <label className="label" htmlFor="c-pluser">Usuario IPTV</label>
-                      <input id="c-pluser" name="playlistUsername" className="input" autoComplete="off" required />
+                  {/* El caso raro, escondido: credenciales de lista distintas
+                      de las de acceso (clientes venidos de otro sitio) */}
+                  <details style={{ marginBottom: 14 }}>
+                    <summary style={{ cursor: "pointer", fontSize: 13.5, color: "var(--text-dim)" }}>
+                      Su lista usa otro usuario y contraseña
+                    </summary>
+                    <div style={{ paddingTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <div className="auth-field">
+                        <label className="label" htmlFor="c-pluser">Usuario de la lista</label>
+                        <input id="c-pluser" name="playlistUsername" className="input" autoComplete="off" />
+                      </div>
+                      <div className="auth-field">
+                        <label className="label" htmlFor="c-plpass">Contraseña de la lista</label>
+                        <input id="c-plpass" name="playlistPassword" className="input" autoComplete="off" />
+                      </div>
                     </div>
-                    <div className="auth-field">
-                      <label className="label" htmlFor="c-plpass">Contraseña IPTV</label>
-                      <input id="c-plpass" name="playlistPassword" className="input" autoComplete="off" required />
-                    </div>
-                  </div>
+                  </details>
                   <details style={{ marginBottom: 14, display: perms?.domainAccess === "full" ? undefined : "none" }}>
                     <summary style={{ cursor: "pointer", fontSize: 13.5, color: "var(--text-dim)" }}>
                       Usar otro servidor o una lista M3U
@@ -1206,16 +1214,21 @@ export default function ProviderPanel() {
                       placeholder="http://servidor.com:8080 — o pega la URL get.php del cliente"
                     />
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    <div className="auth-field">
-                      <label className="label" htmlFor="c-pluser">Usuario IPTV</label>
-                      <input id="c-pluser" name="playlistUsername" className="input" autoComplete="off" />
+                  <details style={{ marginBottom: 14 }}>
+                    <summary style={{ cursor: "pointer", fontSize: 13.5, color: "var(--text-dim)" }}>
+                      Su lista usa otro usuario y contraseña
+                    </summary>
+                    <div style={{ paddingTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <div className="auth-field">
+                        <label className="label" htmlFor="c-pluser">Usuario de la lista</label>
+                        <input id="c-pluser" name="playlistUsername" className="input" autoComplete="off" />
+                      </div>
+                      <div className="auth-field">
+                        <label className="label" htmlFor="c-plpass">Contraseña de la lista</label>
+                        <input id="c-plpass" name="playlistPassword" className="input" autoComplete="off" />
+                      </div>
                     </div>
-                    <div className="auth-field">
-                      <label className="label" htmlFor="c-plpass">Contraseña IPTV</label>
-                      <input id="c-plpass" name="playlistPassword" className="input" autoComplete="off" />
-                    </div>
-                  </div>
+                  </details>
                 </>
               )}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
