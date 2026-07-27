@@ -62,6 +62,28 @@ function credsOf(p: StoredPlaylist): XtreamCreds {
   return { base: p.url, username: p.username || "", password: p.password || "" };
 }
 
+/** Categoría inventada por nosotros: lo último que ha subido el proveedor. */
+const NOVEDADES = "__nuevo__";
+/*
+ * Qué cuenta como novedad: dos meses. Sin ventana, «Novedades» acababa
+ * enseñando películas de hace tres años ordenadas por fecha —lo más nuevo
+ * de un catálogo parado sigue siendo viejo—, y eso es justo lo contrario de
+ * lo que se viene a mirar. Si no hay nada reciente se dice, que es honesto.
+ */
+const VENTANA_NOVEDADES = 60 * 86400000;
+
+/**
+ * Fecha de alta de un título. XUI la manda en segundos y, según la versión,
+ * como número o como texto; alguna devuelve cadenas vacías o ceros. Todo lo
+ * que no sea una fecha creíble vale 0 y se queda fuera de «Novedades».
+ */
+function alta(valor?: string | number): number {
+  const n = Number(valor);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  const ms = n > 1e11 ? n : n * 1000;
+  return ms > 946684800000 && ms < Date.now() + 86400000 ? ms : 0;
+}
+
 export default function PlayerApp() {
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [customer, setCustomer] = useState<{ username: string; brand: string } | null>(null);
@@ -661,18 +683,43 @@ export default function PlayerApp() {
   const vodVisible = useMemo(() => {
     if (!active || active.type !== "xtream") return [];
     const items = data?.vodStreams || [];
-    return items.filter(
-      (v) => (catFilter === "all" || v.category_id === catFilter) && (!q || (v.name || "").toLowerCase().includes(q))
+    const vistos = items.filter(
+      (v) => (catFilter === NOVEDADES || catFilter === "all" || v.category_id === catFilter) &&
+        (!q || (v.name || "").toLowerCase().includes(q))
     );
+    if (catFilter !== NOVEDADES) return vistos;
+    const desde = Date.now() - VENTANA_NOVEDADES;
+    return vistos
+      .filter((v) => alta(v.added) >= desde)
+      .sort((a, b) => alta(b.added) - alta(a.added))
+      .slice(0, 120);
   }, [active, data, catFilter, q]);
 
   const seriesVisible = useMemo(() => {
     if (!active || active.type !== "xtream") return [];
     const items = data?.seriesList || [];
-    return items.filter(
-      (s) => (catFilter === "all" || s.category_id === catFilter) && (!q || (s.name || "").toLowerCase().includes(q))
+    const vistas = items.filter(
+      (s) => (catFilter === NOVEDADES || catFilter === "all" || s.category_id === catFilter) &&
+        (!q || (s.name || "").toLowerCase().includes(q))
     );
+    if (catFilter !== NOVEDADES) return vistas;
+    const desde = Date.now() - VENTANA_NOVEDADES;
+    return vistas
+      .filter((s) => alta(s.last_modified) >= desde)
+      .sort((a, b) => alta(b.last_modified) - alta(a.last_modified))
+      .slice(0, 120);
   }, [active, data, catFilter, q]);
+
+  /* Sin nada reciente no se ofrece «Novedades»: un botón que solo lleva a
+     «no hay nada» es una promesa que la lista no puede cumplir */
+  const hayNovedades = useMemo(() => {
+    if (!active || active.type !== "xtream") return false;
+    const desde = Date.now() - VENTANA_NOVEDADES;
+    return (
+      (data?.vodStreams || []).some((v) => alta(v.added) >= desde) ||
+      (data?.seriesList || []).some((s) => alta(s.last_modified) >= desde)
+    );
+  }, [active, data]);
 
   /* ---------- Atajos de teclado ---------- */
 
@@ -809,7 +856,11 @@ export default function PlayerApp() {
               c.play();
             },
           })),
-          pelis: vodVisible.filter((v) => v.name.trim()).slice(0, 12).map((v) => ({
+          /* En la portada manda lo último subido: es lo que se viene a
+             mirar, y el orden del panel deja arriba lo de hace tres años */
+          pelis: [...vodVisible].filter((v) => v.name.trim())
+            .sort((a, b) => alta(b.added) - alta(a.added))
+            .slice(0, 12).map((v) => ({
             key: v.stream_id,
             nombre: v.name,
             poster: imgSrc(v.stream_icon) || "",
@@ -820,7 +871,9 @@ export default function PlayerApp() {
               openVod(active, v);
             },
           })),
-          series: seriesVisible.filter((s) => s.name.trim()).slice(0, 12).map((s) => ({
+          series: [...seriesVisible].filter((s) => s.name.trim())
+            .sort((a, b) => alta(b.last_modified) - alta(a.last_modified))
+            .slice(0, 12).map((s) => ({
             key: s.series_id,
             nombre: s.name,
             poster: imgSrc(s.cover) || "",
@@ -1150,6 +1203,18 @@ export default function PlayerApp() {
             >
               <span className="name">Todo</span>
             </button>
+            {/* Lo recién subido, arriba del todo: es a lo que se entra a
+                mirar, y hasta ahora había que sabérselo de memoria para
+                distinguirlo entre miles de títulos viejos */}
+            {hayNovedades && (
+              <button
+                className={`pa-live-cat pa-live-nuevo ${catFilter === NOVEDADES ? "activa" : ""}`}
+                onClick={() => setCatFilter(NOVEDADES)}
+              >
+                <Icon name="sparkle" size={13} />
+                <span className="name">Novedades</span>
+              </button>
+            )}
             {(tab === "vod" ? vodCats : seriesCats).map((c) => (
               <button
                 key={c.category_id}
@@ -1256,6 +1321,11 @@ export default function PlayerApp() {
                 </button>
               ))}
             </div>
+            {!loading && !loadError && !vodVisible.length && (
+              <p className="pa-empty">
+                {catFilter === NOVEDADES ? "Tu proveedor no ha subido nada últimamente." : "Aquí no hay películas."}
+              </p>
+            )}
             {vodVisible.length > 400 && (
               <p style={{ textAlign: "center", color: "var(--text-faint)", padding: "0 0 20px" }}>
                 Mostrando 400 de {vodVisible.length} — usa la búsqueda para afinar.
@@ -1270,7 +1340,12 @@ export default function PlayerApp() {
             {loading && <Loading messages={MENSAJES_SERIES} />}
             {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
             <div className="pa-grid">
-              {seriesVisible.slice(0, 400).map((s) => (
+              {!loading && !loadError && !seriesVisible.length && (
+              <p className="pa-empty">
+                {catFilter === NOVEDADES ? "Tu proveedor no ha subido nada últimamente." : "Aquí no hay series."}
+              </p>
+            )}
+            {seriesVisible.slice(0, 400).map((s) => (
                 <button className="pa-card" key={s.series_id} onClick={() => openSeries(active, s)} title={s.name}>
                   {s.cover ? (
                     <img className="poster" src={imgSrc(s.cover)} alt={s.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />

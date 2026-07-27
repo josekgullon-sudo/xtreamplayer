@@ -2164,6 +2164,10 @@ select.input { appearance: none; cursor: pointer; }
 }
 .pa-live-sub:first-child { padding-top: 4px; }
 .pa-live-reciente { color: var(--text); gap: 10px; }
+/* «Novedades» se distingue del resto de géneros: no es una categoría del
+   proveedor, es lo que acaba de subir */
+.pa-live-nuevo { color: var(--text); gap: 10px; }
+.pa-live-nuevo svg { color: var(--accent-bright); flex-shrink: 0; }
 .pa-live-reciente svg { color: var(--accent-bright); flex-shrink: 0; }
 .pa-epg-next { color: var(--text-faint); }
 

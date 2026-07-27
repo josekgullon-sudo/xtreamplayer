@@ -30,6 +30,8 @@ export interface XtreamVodStream {
   category_id?: string;
   container_extension?: string;
   rating?: string;
+  /** Cuándo lo subió el proveedor. XUI lo manda en segundos, y a veces como texto */
+  added?: string | number;
 }
 
 export interface XtreamSeries {
@@ -39,6 +41,8 @@ export interface XtreamSeries {
   category_id?: string;
   plot?: string;
   rating?: string;
+  /** Última vez que se le añadió algo (temporada o episodio), en segundos */
+  last_modified?: string | number;
 }
 
 export interface XtreamEpisode {
