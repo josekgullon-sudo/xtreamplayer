@@ -2099,3 +2099,24 @@ select.input { appearance: none; cursor: pointer; }
 /* En cine y series el botón de volver sí hace falta en escritorio: es la
    única salida del vídeo (en el directo se sale eligiendo otro canal) */
 .pa-watch .pa-live-atras { display: inline-flex; }
+
+/* ---- Primeros pasos del proveedor ---- */
+
+.primeros-pasos {
+  background: var(--bg-elev); border: 1px solid var(--hairline);
+  border-radius: var(--radius); padding: 26px; margin-bottom: 24px;
+}
+.primeros-pasos h3 { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+.primeros-pasos ol { list-style: none; display: grid; gap: 18px; }
+.primeros-pasos li { display: flex; gap: 14px; align-items: flex-start; }
+.primeros-pasos li.hecho { opacity: 0.55; }
+.paso-n {
+  width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-tint); color: var(--accent-bright);
+  font-size: 13.5px; font-weight: 800;
+}
+.primeros-pasos li.hecho .paso-n { background: var(--success-tint); color: var(--success); }
+.primeros-pasos strong { font-size: 15px; font-weight: 700; }
+.primeros-pasos p { font-size: 13.5px; color: var(--text-dim); margin: 3px 0 10px; }
+.primeros-pasos .row-actions { gap: 8px; }

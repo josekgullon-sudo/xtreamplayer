@@ -462,7 +462,7 @@ export default function ProviderPanel() {
           <div className="panel-nav-mail">{provider.email}</div>
         </div>
 
-        <div className="panel-nav-group">Usuarios</div>
+        <div className="panel-nav-group">Tu negocio</div>
         <button
           className={`panel-nav-item ${tab === "clientes" ? "active" : ""}`}
           onClick={() => setTab("clientes")}
@@ -482,7 +482,6 @@ export default function ProviderPanel() {
 
         {(perms?.domainAccess === "full" || perms?.managePlan) && (
           <>
-            <div className="panel-nav-group">Configuración</div>
             {perms?.domainAccess === "full" && (
               <button
                 className={`panel-nav-item ${tab === "dominios" ? "active" : ""}`}
@@ -505,7 +504,11 @@ export default function ProviderPanel() {
 
         {perms?.managePlan && (
           <>
-            <div className="panel-nav-group">Facturación</div>
+            <button className={`panel-nav-item ${tab === "panel" ? "active" : ""}`} onClick={() => setTab("panel")}>
+              <Icon name="device" size={17} className="panel-nav-icon" /> Mi panel XUI
+            </button>
+
+            <div className="panel-nav-group">Tu cuenta</div>
             <button className={`panel-nav-item ${tab === "plan" ? "active" : ""}`} onClick={() => setTab("plan")}>
               <Icon name="card" size={17} className="panel-nav-icon" /> Plan
             </button>
@@ -513,10 +516,6 @@ export default function ProviderPanel() {
               <Icon name="list" size={17} className="panel-nav-icon" /> Facturas
             </button>
 
-            <div className="panel-nav-group">Herramientas</div>
-            <button className={`panel-nav-item ${tab === "panel" ? "active" : ""}`} onClick={() => setTab("panel")}>
-              <Icon name="device" size={17} className="panel-nav-icon" /> Mi panel XUI
-            </button>
             <button className={`panel-nav-item ${tab === "api" ? "active" : ""}`} onClick={() => setTab("api")}>
               <Icon name="external" size={17} className="panel-nav-icon" /> API
             </button>
@@ -940,6 +939,52 @@ export default function ProviderPanel() {
       {/* Clientes */}
       {tab === "clientes" && detailId === null && (
       <>
+      {/* Primeros pasos: hasta que no hay clientes, el panel dice qué hacer
+          en vez de enseñar una tabla vacía. Es el momento en que un
+          proveedor decide si esto le sirve o no. */}
+      {!customers.length && !search && (
+        <div className="primeros-pasos">
+          <h3>Empieza en tres pasos</h3>
+          <ol>
+            <li className={domains.length ? "hecho" : ""}>
+              <span className="paso-n">{domains.length ? "✓" : "1"}</span>
+              <div>
+                <strong>Añade tu dominio</strong>
+                <p>El servidor de tu panel. Luego darás de alta clientes con solo elegirlo.</p>
+                {!domains.length && perms?.domainAccess === "full" && (
+                  <button className="btn btn-primary btn-sm" onClick={() => setTab("dominios")}>Añadir dominio</button>
+                )}
+              </div>
+            </li>
+            <li>
+              <span className="paso-n">2</span>
+              <div>
+                <strong>Trae a tus clientes</strong>
+                <p>Uno a uno, o todos de golpe desde tu panel XUI.</p>
+                <div className="row-actions">
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowNew(true)} disabled={!domains.length}>
+                    Nuevo cliente
+                  </button>
+                  {perms?.managePlan && (
+                    <button className="btn btn-ghost btn-sm" onClick={() => setTab("panel")}>Importar del panel</button>
+                  )}
+                </div>
+              </div>
+            </li>
+            <li className={branding?.name ? "hecho" : ""}>
+              <span className="paso-n">{branding?.name ? "✓" : "3"}</span>
+              <div>
+                <strong>Pon tu marca</strong>
+                <p>Tu nombre, tu color y tu enlace: tus clientes no verán el nuestro.</p>
+                {perms?.managePlan && !branding?.name && (
+                  <button className="btn btn-ghost btn-sm" onClick={() => setTab("marca")}>Personalizar</button>
+                )}
+              </div>
+            </li>
+          </ol>
+        </div>
+      )}
+
       <div className="panel-toolbar">
         <input
           className="input"
@@ -975,7 +1020,7 @@ export default function ProviderPanel() {
             {!customers.length && (
               <tr>
                 <td colSpan={7} style={{ textAlign: "center", color: "var(--text-faint)", padding: 30 }}>
-                  {search ? "Sin resultados" : "Aún no tienes clientes. Crea el primero."}
+                  {search ? "Sin resultados" : "Aún no tienes clientes."}
                 </td>
               </tr>
             )}
