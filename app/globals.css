@@ -1799,3 +1799,171 @@ select.input { appearance: none; cursor: pointer; }
   .tv-estado-linea { font-size: 14px; }
   .tv-acciones { flex-direction: column; }
 }
+
+/* ============ Directo en tres columnas ============ */
+/*
+ * Carpetas · canales · reproductor. Se navega igual que en cualquier
+ * reproductor de escritorio: se entra por una categoría, se ve la lista al
+ * lado y el vídeo se abre a la derecha sin perder de vista dónde estabas.
+ */
+
+.pa-live {
+  display: grid;
+  grid-template-columns: 268px 320px 1fr;
+  height: calc(100vh - var(--header-h));
+  overflow: hidden;
+  background: var(--bg);
+}
+.pa-live-cats, .pa-live-chans {
+  display: flex; flex-direction: column; overflow: hidden;
+  border-right: 1px solid var(--hairline);
+  background: var(--bg-elev);
+}
+.pa-live-chans { background: color-mix(in srgb, var(--bg-elev) 60%, var(--bg)); }
+.pa-live-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 15px 16px; border-bottom: 1px solid var(--hairline);
+  font-size: 13.5px; font-weight: 700; letter-spacing: 0.02em;
+  color: var(--text); flex-shrink: 0;
+}
+.pa-live-head > span:not(.pa-live-n) {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pa-live-n {
+  font-size: 11.5px; font-weight: 700; color: var(--text-faint);
+  background: var(--surface-quiet); border-radius: var(--radius-pill);
+  padding: 2px 8px; flex-shrink: 0;
+}
+.pa-live-scroll { flex: 1; overflow-y: auto; padding: 6px; }
+
+.pa-live-cat {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 10px 12px; border-radius: 10px; margin-bottom: 1px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 13.5px; font-weight: 600; text-align: left;
+  transition: background 0.12s, color 0.12s;
+}
+.pa-live-cat:hover { background: var(--bg-hover); color: var(--text); }
+.pa-live-cat.activa { background: var(--accent-tint); color: var(--accent-bright); }
+.pa-live-cat .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.pa-live-chan {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 8px 11px; border-radius: 10px; margin-bottom: 1px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 14px; font-weight: 500; text-align: left;
+  transition: background 0.12s, color 0.12s;
+}
+.pa-live-chan:hover { background: var(--bg-hover); color: var(--text); }
+.pa-live-chan.activo { background: var(--accent-tint); color: var(--text); }
+.pa-live-num {
+  font-size: 11.5px; font-weight: 700; color: var(--text-faint);
+  font-variant-numeric: tabular-nums; min-width: 22px; flex-shrink: 0;
+}
+.pa-live-chan img, .pa-live-chan .ph {
+  width: 30px; height: 30px; flex-shrink: 0; object-fit: contain;
+  border-radius: 7px; background: rgba(0, 0, 0, 0.3);
+}
+.pa-live-chan .ph {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12.5px; font-weight: 700; color: var(--text-faint);
+}
+.pa-live-chan .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pa-live-fav { color: var(--warning); flex-shrink: 0; }
+
+.pa-live-stage { display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.pa-live-titulo {
+  display: flex; align-items: center; gap: 12px;
+  padding: 15px 20px; border-bottom: 1px solid var(--hairline); flex-shrink: 0;
+}
+.pa-live-titulo h2 {
+  font-size: 18px; font-weight: 700;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pa-live-titulo p { font-size: 12.5px; color: var(--text-faint); }
+.pa-live-atras {
+  display: none; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  background: var(--surface-quiet); border: 1px solid var(--hairline);
+  color: var(--text-dim); cursor: pointer;
+}
+.pa-live-vacio {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; color: var(--text-faint); text-align: center; padding: 30px;
+}
+.pa-live-vacio svg { opacity: 0.45; }
+.pa-live-stage .pa-video-zone { max-height: none; flex: 1; aspect-ratio: auto; }
+
+/*
+ * En el móvil las tres columnas se convierten en tres pantallas: carpetas →
+ * canales → vídeo. Cada paso ocupa el ancho entero y el botón de atrás
+ * deshace el anterior; meter tres columnas en 390 px no lo arregla ningún
+ * tamaño de letra.
+ */
+@media (max-width: 900px) {
+  .pa-live { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: calc(100vh - var(--header-h) - 54px); }
+  .pa-live-cats, .pa-live-chans { grid-column: 1; grid-row: 1 / -1; border-right: none; }
+  .pa-live-stage { grid-column: 1; grid-row: 1; }
+  .pa-live-chans, .pa-live-stage { display: none; }
+  .pa-live.con-canales .pa-live-cats { display: none; }
+  .pa-live.con-canales .pa-live-chans { display: flex; }
+  /*
+   * Viendo un canal, la lista se queda DEBAJO del vídeo: zapear es lo que
+   * más se hace en el móvil y volver atrás cada vez para cambiar de canal
+   * convertía un gesto en tres.
+   */
+  .pa-live.con-video .pa-live-cats { display: none; }
+  .pa-live.con-video .pa-live-stage { display: flex; }
+  .pa-live.con-video .pa-live-chans { display: flex; grid-row: 2; }
+  .pa-live.con-video .pa-live-chans .pa-live-head { display: none; }
+  .pa-live-atras { display: inline-flex; }
+  .pa-live-scroll { padding: 6px 10px 90px; }
+  .pa-live-stage .pa-video-zone { flex: none; aspect-ratio: 16/9; }
+  .pa-live-titulo { padding: 11px 14px; }
+  .pa-live-titulo h2 { font-size: 15.5px; }
+}
+
+/* ---- Barra de secciones del reproductor ---- */
+
+.pa-nav {
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 18px; height: 54px; flex-shrink: 0;
+  background: var(--bg-elev); border-bottom: 1px solid var(--hairline);
+}
+.pa-nav-secciones { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.pa-nav-secciones::-webkit-scrollbar { display: none; }
+.pa-nav-item {
+  display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
+  padding: 8px 15px; border-radius: var(--radius-pill);
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 14px; font-weight: 600;
+  transition: background 0.13s, color 0.13s;
+}
+.pa-nav-item:hover { background: var(--bg-hover); color: var(--text); }
+.pa-nav-item.activo { background: var(--accent); color: #fff; }
+.pa-nav-busca { position: relative; margin-left: auto; width: 260px; flex-shrink: 0; }
+.pa-nav-busca .input { padding-left: 36px; height: 38px; }
+.pa-nav-busca .pa-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-faint); }
+.pa-nav-lista { width: 170px; height: 38px; flex-shrink: 0; }
+
+/* Con la barra arriba, las columnas ocupan lo que queda de pantalla */
+.pa-live { height: calc(100vh - var(--header-h) - 54px); }
+
+@media (max-width: 900px) {
+  /* En el móvil manda la barra inferior: arriba solo queda el buscador.
+     min-width:0 es lo que impide que el campo empuje la barra más allá del
+     ancho de la pantalla y deje la página desplazándose a lo ancho */
+  .pa-nav { padding: 0 12px; gap: 10px; overflow: hidden; }
+  .pa-nav-secciones { display: none; }
+  .pa-nav-busca { margin-left: 0; flex: 1; width: auto; min-width: 0; }
+  .pa-nav-lista { display: none; }
+  .pa-live { height: calc(100vh - var(--header-h) - 54px); }
+}
+
+/* Envoltorio sin efecto de caja: la barra inferior y los modales siguen
+   colocándose respecto a la ventana, no a él */
+.pa-flotantes { display: contents; }
+
+/* El botón de volver al selector, ahora en la barra de secciones */
+.pa-nav .pa-inicio { margin-top: 0; padding: 8px 12px; border-radius: var(--radius-pill); flex-shrink: 0; }
+.pa-nav .pa-inicio:hover { background: var(--bg-hover); }

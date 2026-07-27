@@ -87,6 +87,12 @@ export default function PlayerApp() {
   const [viendo, setViendo] = useState(false);
   /** Carpeta abierta en la parrilla de canales (null = todas) */
   const [grupoSel, setGrupoSel] = useState<string | null>(null);
+  /**
+   * En el móvil las tres columnas son tres pantallas. Este estado marca el
+   * paso «canales»; no vale mirar grupoSel porque «Todos los canales»
+   * también abre la lista y ahí no hay carpeta elegida.
+   */
+  const [verCanales, setVerCanales] = useState(false);
 
   const [tab, setTab] = useState<Tab>("live");
   const [search, setSearch] = useState("");
@@ -576,12 +582,21 @@ export default function PlayerApp() {
     if (!cache?.liveStreams) return [];
     const catName = new Map((cache.liveCats || []).map((c) => [c.category_id, c.category_name]));
     const byCat = new Map<string, XtreamLiveStream[]>();
+    /*
+     * Las carpetas salen en el orden que manda el panel, no en el que
+     * aparezcan los canales ni por orden alfabético: ese orden lo ha puesto
+     * el proveedor a propósito —sus destacados primero, luego TDT,
+     * autonómicos…— y reordenarlo le deshace el escaparate.
+     */
+    for (const c of cache.liveCats || []) byCat.set(c.category_name, []);
     for (const ch of cache.liveStreams) {
       if (q && !(ch.name || "").toLowerCase().includes(q)) continue;
       const g = catName.get(ch.category_id || "") || "Otros";
       if (!byCat.has(g)) byCat.set(g, []);
       byCat.get(g)!.push(ch);
     }
+    // Las categorías que se queden vacías (por la búsqueda) no se enseñan
+    for (const [nombre, chs] of byCat) if (!chs.length) byCat.delete(nombre);
     const groups = Array.from(byCat.entries()).map(([name, chs]) => ({
       name,
       channels: chs.map((ch) => ({
@@ -685,6 +700,17 @@ export default function PlayerApp() {
   const vodCats = data?.vodCats || [];
   const seriesCats = data?.seriesCats || [];
 
+  /*
+   * Canales de la carpeta abierta. Sin carpeta elegida se enseñan todos
+   * seguidos, con un tope: pintar diez mil botones de golpe deja el
+   * navegador clavado, y para eso están las categorías.
+   */
+  const canalesVisibles = useMemo(() => {
+    const grupo = grupoSel ? liveGroups.find((g) => g.name === grupoSel) : null;
+    if (grupo) return grupo.channels;
+    return liveGroups.flatMap((g) => g.channels).slice(0, 500);
+  }, [liveGroups, grupoSel]);
+
   return (
     <>
     <ProfileGate
@@ -745,6 +771,181 @@ export default function PlayerApp() {
         } : undefined}
       />
     )}
+    {/*
+      El directo, en tres columnas: carpetas, canales de la carpeta y
+      reproductor. Es la forma en que se usa una lista de verdad —se entra
+      por una categoría, se ve qué hay, se prueba un canal y se sigue
+      mirando sin perder el sitio— y la que usan los reproductores de
+      escritorio a los que ya está acostumbrado el cliente.
+    */}
+    {/* Barra de secciones: en escritorio es la única forma de cambiar de
+        sitio ahora que el directo ocupa las tres columnas */}
+    {active && (
+      <nav className="pa-nav" aria-label="Secciones">
+        {hayDondeElegir && (
+          <button
+            className="pa-inicio"
+            onClick={() => setSeccionGate("mostrando")}
+            title="Volver a elegir qué ver"
+          >
+            <Icon name="back" size={14} /> <span className="oculta-movil">Elegir qué ver</span>
+          </button>
+        )}
+        <div className="pa-nav-secciones">
+          <button className={`pa-nav-item ${tab === "live" ? "activo" : ""}`} onClick={() => irAPestana("live")}>
+            <Icon name="tv" size={16} /> {isXtream ? "TV en directo" : "Canales"}
+          </button>
+          {isXtream && (
+            <>
+              <button className={`pa-nav-item ${tab === "vod" ? "activo" : ""}`} onClick={() => irAPestana("vod")}>
+                <Icon name="film" size={16} /> Películas
+              </button>
+              <button className={`pa-nav-item ${tab === "series" ? "activo" : ""}`} onClick={() => irAPestana("series")}>
+                <Icon name="series" size={16} /> Series
+              </button>
+            </>
+          )}
+          <button className={`pa-nav-item ${tab === "favs" ? "activo" : ""}`} onClick={() => irAPestana("favs")}>
+            <Icon name="star" size={16} /> Favoritos
+          </button>
+        </div>
+        <div className="pa-nav-busca">
+          <Icon name="search" size={15} className="pa-search-icon" />
+          <input
+            ref={searchRef}
+            className="input"
+            placeholder="Buscar… (pulsa /)"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Buscar canales y contenido"
+          />
+        </div>
+        {/* Siempre visible, aunque solo haya una: es lo único que dice qué
+            lista se está viendo ahora que la barra lateral no está */}
+        {playlists.length > 0 && (
+          <select
+            className="input pa-nav-lista"
+            value={activeId || ""}
+            onChange={(e) => setActiveId(e.target.value || null)}
+            aria-label="Seleccionar lista"
+          >
+            {playlists.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        )}
+        {/* Añadir lista: sin esto, quien no tiene proveedor se quedaba sin
+            manera de meter otra desde el reproductor */}
+        <button className="pa-icon-btn" onClick={() => setShowAdd(true)} title="Añadir lista" aria-label="Añadir lista">
+          <Icon name="plus" size={16} />
+        </button>
+        {active && !active.managed && (
+          <button
+            className="pa-icon-btn pa-icon-btn-danger"
+            onClick={() => handleDeletePlaylist(active)}
+            title="Eliminar esta lista"
+            aria-label="Eliminar esta lista"
+          >
+            <Icon name="trash" size={15} />
+          </button>
+        )}
+      </nav>
+    )}
+
+    {active && (tab === "live" || tab === "favs") ? (
+      <div className={`pa-live ${current ? "con-video" : ""} ${verCanales ? "con-canales" : ""}`}>
+        <aside className="pa-live-cats" aria-label="Categorías">
+          <div className="pa-live-head">
+            <span>Categorías</span>
+            <span className="pa-live-n">{liveGroups.reduce((n, g) => n + g.channels.length, 0)}</span>
+          </div>
+          <div className="pa-live-scroll">
+            <button
+              className={`pa-live-cat ${!grupoSel ? "activa" : ""}`}
+              onClick={() => { setGrupoSel(null); setVerCanales(true); }}
+            >
+              <span className="name">Todos los canales</span>
+            </button>
+            {liveGroups.map((g) => (
+              <button
+                key={g.name}
+                className={`pa-live-cat ${grupoSel === g.name ? "activa" : ""}`}
+                onClick={() => { setGrupoSel(g.name); setVerCanales(true); }}
+                title={g.name}
+              >
+                <span className="name">{g.name}</span>
+                <span className="pa-live-n">{g.channels.length}</span>
+              </button>
+            ))}
+            {!liveGroups.length && !loading && (
+              <p className="pa-empty">
+                {tab === "favs" ? "Aún no tienes favoritos." : "No hay canales que coincidan."}
+              </p>
+            )}
+          </div>
+        </aside>
+
+        <section className="pa-live-chans" aria-label="Canales">
+          <div className="pa-live-head">
+            <button className="pa-live-atras" onClick={() => setVerCanales(false)} aria-label="Volver a categorías">
+              <Icon name="back" size={15} />
+            </button>
+            <span>{grupoSel || "Todos los canales"}</span>
+          </div>
+          <div className="pa-live-scroll">
+            {loading && <SkeletonList rows={8} />}
+            {canalesVisibles.map((ch, i) => (
+              <button
+                key={ch.favKey}
+                className={`pa-live-chan ${current?.favKey === ch.favKey ? "activo" : ""}`}
+                onClick={ch.play}
+                title={ch.name}
+              >
+                <span className="pa-live-num">{i + 1}</span>
+                {imgSrc(ch.logo) ? (
+                  <img src={imgSrc(ch.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+                ) : (
+                  <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
+                )}
+                <span className="name">{ch.name}</span>
+                {favorites[ch.favKey] && <Icon name="star" size={13} className="pa-live-fav" />}
+              </button>
+            ))}
+            {!loading && !canalesVisibles.length && <p className="pa-empty">Aquí no hay canales.</p>}
+          </div>
+        </section>
+
+        <main className="pa-live-stage">
+          {current ? (
+            <>
+              <div className="pa-live-titulo">
+                <button className="pa-live-atras" onClick={() => { setCurrent(null); setViendo(false); }} aria-label="Cerrar el vídeo">
+                  <Icon name="back" size={15} />
+                </button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h2>{current.source.name}</h2>
+                  <p>
+                    {epg?.now ? `Ahora: ${epg.now}` : "En directo"}
+                    {epg?.next ? ` · Después: ${epg.next}` : ""}
+                  </p>
+                </div>
+                {current.favKey && (
+                  <button className="btn btn-ghost btn-sm" onClick={() => onToggleFav(current.favKey!)}>
+                    <><Icon name="star" size={14} /> {favorites[current.favKey] ? "En favoritos" : "Favorito"}</>
+                  </button>
+                )}
+              </div>
+              <VideoPlayer source={current.source} />
+            </>
+          ) : (
+            <div className="pa-live-vacio">
+              <Icon name="tv" size={44} />
+              <p>Elige un canal y empieza a verlo aquí.</p>
+            </div>
+          )}
+        </main>
+      </div>
+    ) : (
     <div className="player-app">
       <aside className="pa-sidebar" aria-label="Listas y canales">
         <div className="pa-sidebar-head">
@@ -1330,7 +1531,10 @@ export default function PlayerApp() {
           )}
         </div>
       </main>
+    </div>
+    )}
 
+    <div className="pa-flotantes">
       {active && (
         <nav className="pa-bottomnav" aria-label="Secciones">
           <button
