@@ -45,11 +45,15 @@ interface Fila {
   id: string;
   nombre: string;
   logo: string;
+  /** Una carpeta se pinta distinto y al abrirla enseña lo que hay dentro */
+  carpeta?: boolean;
   /** Qué hacer al pulsar OK: reproducir, o abrir la lista de episodios */
   abrir: () => void;
 }
 
 const K_DEVICE = "xp.tvDevice.v1";
+const K_MAC = "xp.tvMac.v1";
+const K_LISTA_MANUAL = "xp.tvLista.v1";
 
 function deviceKey(): string {
   try {
@@ -61,6 +65,50 @@ function deviceKey(): string {
     return k;
   } catch {
     return "tv-anonimo";
+  }
+}
+
+/**
+ * La MAC del aparato, la que el cliente le pasa a su proveedor.
+ *
+ * Ningún navegador deja leer la MAC de verdad, así que se genera una propia
+ * y estable con forma de MAC — para el proveedor es lo mismo: copia lo que
+ * ve en la pantalla. En las apps nativas de Samsung o LG basta con
+ * sustituir esto por la MAC real del sistema.
+ */
+function macDelAparato(): string {
+  try {
+    let m = localStorage.getItem(K_MAC);
+    if (!m) {
+      const hex = "0123456789ABCDEF";
+      const bytes: string[] = [];
+      // Primer byte par: así es una MAC de aparato, no de difusión
+      bytes.push(hex[Math.floor(Math.random() * 16)] + hex[[0, 2, 4, 6, 8, 10, 12, 14][Math.floor(Math.random() * 8)]]);
+      for (let i = 1; i < 6; i++) {
+        bytes.push(hex[Math.floor(Math.random() * 16)] + hex[Math.floor(Math.random() * 16)]);
+      }
+      m = bytes.join(":");
+      localStorage.setItem(K_MAC, m);
+    }
+    return m;
+  } catch {
+    return "00:00:00:00:00:00";
+  }
+}
+
+interface ListaManual {
+  tipo: "xtream" | "m3u";
+  url: string;
+  usuario: string;
+  password: string;
+}
+
+function leerListaManual(): ListaManual | null {
+  try {
+    const raw = localStorage.getItem(K_LISTA_MANUAL);
+    return raw ? (JSON.parse(raw) as ListaManual) : null;
+  } catch {
+    return null;
   }
 }
 
@@ -81,6 +129,62 @@ export default function TvApp() {
   const [viendo, setViendo] = useState<{ source: PlaySource } | null>(null);
   /** Serie abierta: sus episodios sustituyen a la lista mientras dure */
   const [serieAbierta, setSerieAbierta] = useState<string>("");
+  /** Carpeta abierta dentro de una sección (null = viendo las carpetas) */
+  const [carpetaAbierta, setCarpetaAbierta] = useState<string>("");
+  const [poniendoLista, setPoniendoLista] = useState(false);
+  const [haciendoLogin, setHaciendoLogin] = useState(false);
+  const [entrando, setEntrando] = useState(false);
+
+  /** Entrar con el usuario del proveedor, desde la propia tele */
+  async function entrarConUsuario(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    setEntrando(true);
+    const fd = new FormData(e.currentTarget);
+    const res = await fetch("/api/customer/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: fd.get("usuario"),
+        password: fd.get("password"),
+        // La tele se identifica con su MAC: así el proveedor la reconoce
+        deviceKey: `mac-${macDelAparato()}`,
+        platform: "tv",
+      }),
+    });
+    const data = await res.json();
+    setEntrando(false);
+    if (!res.ok) {
+      setError(data.error || "No hemos podido entrar con esos datos");
+      return;
+    }
+    setHaciendoLogin(false);
+    await mirarSesion();
+  }
+
+  /** Lista puesta a mano en la propia tele, para quien no tiene proveedor */
+  function guardarListaManual(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    const fd = new FormData(e.currentTarget);
+    const url = String(fd.get("url") || "").trim();
+    const usuario = String(fd.get("usuario") || "").trim();
+    const password = String(fd.get("password") || "").trim();
+    if (!/^https?:\/\//i.test(url)) {
+      setError("La dirección debe empezar por http:// o https://");
+      return;
+    }
+    // Con usuario y contraseña es un panel Xtream; sin ellos, una lista M3U
+    const nueva: ListaManual = { tipo: usuario && password ? "xtream" : "m3u", url, usuario, password };
+    try {
+      localStorage.setItem(K_LISTA_MANUAL, JSON.stringify(nueva));
+    } catch {
+      /* almacenamiento bloqueado: se usa igual mientras dure la sesión */
+    }
+    setLista(nueva);
+    setPoniendoLista(false);
+    setSesion("dentro");
+  }
 
   const listaRef = useRef<HTMLDivElement>(null);
 
@@ -89,6 +193,16 @@ export default function TvApp() {
   const mirarSesion = useCallback(async () => {
     const d = await fetch("/api/customer/me").then((r) => r.json()).catch(() => ({}));
     if (!d.customer || !d.playlist) {
+      /*
+       * Sin cliente puede haber una lista puesta a mano en esta tele: quien
+       * compra la app sin proveedor detrás también tiene derecho a verla.
+       */
+      const manual = leerListaManual();
+      if (manual) {
+        setLista(manual);
+        setSesion("dentro");
+        return true;
+      }
       setSesion("sin-sesion");
       return false;
     }
@@ -122,10 +236,47 @@ export default function TvApp() {
     setCodigo(r.code || "");
   }
 
-  // Mientras se enseña el código, se pregunta si ya lo han reclamado
+  /*
+   * Mientras espera, la tele mira por los dos caminos a la vez: si su MAC ya
+   * está dada de alta por el proveedor, o si alguien ha reclamado su código.
+   * El cliente usa el que le resulte más cómodo y la tele no pregunta cuál.
+   */
   useEffect(() => {
-    if (sesion !== "sin-sesion" || !codigo) return;
+    if (sesion !== "sin-sesion") return;
     const t = setInterval(async () => {
+      const porMac = await fetch(`/api/tv/mac?mac=${encodeURIComponent(macDelAparato())}`)
+        .then((x) => x.json())
+        .catch(() => ({}));
+      if (porMac.estado === "listo") {
+        clearInterval(t);
+        await mirarSesion();
+        return;
+      }
+      // Lista cargada contra la MAC desde la web, sin proveedor de por medio
+      if (porMac.estado === "lista" && porMac.lista?.url) {
+        clearInterval(t);
+        const l: ListaManual = {
+          tipo: porMac.lista.tipo === "xtream" ? "xtream" : "m3u",
+          url: porMac.lista.url,
+          usuario: porMac.lista.usuario || "",
+          password: porMac.lista.password || "",
+        };
+        try {
+          localStorage.setItem(K_LISTA_MANUAL, JSON.stringify(l));
+        } catch {
+          /* almacenamiento bloqueado */
+        }
+        setMarca(porMac.lista.nombre || "TOTALplayer");
+        setLista(l);
+        setSesion("dentro");
+        return;
+      }
+      if (porMac.estado === "sin-hueco") {
+        clearInterval(t);
+        setAvisoCodigo(porMac.error || "No quedan dispositivos libres en tu cuenta");
+        return;
+      }
+      if (!codigo) return;
       const r = await fetch(`/api/tv/code?code=${codigo}`).then((x) => x.json()).catch(() => ({}));
       if (r.estado === "listo") {
         clearInterval(t);
@@ -151,6 +302,49 @@ export default function TvApp() {
     setPantalla("viendo");
   }, []);
 
+  /** Entra en una carpeta: su contenido sustituye a la lista de carpetas */
+  const entrarEnCarpeta = useCallback((nombre: string, contenido: Fila[]) => {
+    setCarpetaAbierta(nombre);
+    setFilas(contenido);
+    setFoco(0);
+  }, []);
+
+  /**
+   * Agrupa por categoría con el nombre que da el panel. Lo que no encaja en
+   * ninguna (pasa a menudo) va a una carpeta propia en vez de desaparecer.
+   */
+  const carpetasDe = useCallback(
+    function <T>(
+      cats: XtreamCategory[] | unknown,
+      elementos: T[],
+      catDe: (x: T) => string | undefined,
+      aFila: (x: T) => Fila
+    ): Fila[] {
+      const nombres = new Map<string, string>();
+      for (const c of Array.isArray(cats) ? (cats as XtreamCategory[]) : []) {
+        nombres.set(String(c.category_id), c.category_name || "Sin nombre");
+      }
+      const porCat = new Map<string, T[]>();
+      for (const el of elementos) {
+        const id = String(catDe(el) ?? "");
+        const clave = nombres.has(id) ? id : "__sueltos__";
+        if (!porCat.has(clave)) porCat.set(clave, []);
+        porCat.get(clave)!.push(el);
+      }
+      return [...porCat.entries()].map(([clave, suyos]) => {
+        const titulo = clave === "__sueltos__" ? "Otros" : nombres.get(clave) || "Sin nombre";
+        return {
+          id: `cat-${clave}`,
+          nombre: `${titulo}  (${suyos.length})`,
+          logo: "",
+          carpeta: true,
+          abrir: () => entrarEnCarpeta(titulo, suyos.map(aFila)),
+        };
+      });
+    },
+    [entrarEnCarpeta]
+  );
+
   const cargar = useCallback(
     async (destino: Pantalla) => {
       if (!lista) return;
@@ -159,62 +353,96 @@ export default function TvApp() {
       setFilas([]);
       setFoco(0);
       setSerieAbierta("");
+      setCarpetaAbierta("");
       try {
+        /*
+         * Primero las carpetas, nunca la lista entera de golpe. Con una lista
+         * real son miles de canales seguidos y encontrar uno con las flechas
+         * del mando es imposible: se entra por su categoría, como en
+         * cualquier reproductor de tele.
+         */
         if (lista.tipo === "m3u") {
           const texto = await fetch(`/api/proxy?url=${encodeURIComponent(lista.url)}`).then((r) => r.text());
           const canales = parseM3U(texto).channels;
+          const porGrupo = new Map<string, typeof canales>();
+          for (const c of canales) {
+            const g = c.group || "Sin carpeta";
+            if (!porGrupo.has(g)) porGrupo.set(g, []);
+            porGrupo.get(g)!.push(c);
+          }
           setFilas(
-            canales.map((c, i) => ({
-              id: `m3u-${i}`,
-              nombre: c.name || `Canal ${i + 1}`,
-              logo: c.logo || "",
-              abrir: () => reproducir({ url: c.url, name: c.name || "", kind: "auto" }),
+            [...porGrupo.entries()].map(([grupo, suyos]) => ({
+              id: `grupo-${grupo}`,
+              nombre: `${grupo}  (${suyos.length})`,
+              logo: "",
+              carpeta: true,
+              abrir: () =>
+                entrarEnCarpeta(
+                  grupo,
+                  suyos.map((c, i) => ({
+                    id: `m3u-${grupo}-${i}`,
+                    nombre: c.name || `Canal ${i + 1}`,
+                    logo: c.logo || "",
+                    abrir: () => reproducir({ url: c.url, name: c.name || "", kind: "auto" }),
+                  }))
+                ),
             }))
           );
           return;
         }
         if (!creds) return;
         if (destino === "directo") {
-          const canales = (await xtreamApi<XtreamLiveStream[]>(creds, "get_live_streams")) || [];
+          const [cats, canales] = await Promise.all([
+            xtreamApi<XtreamCategory[]>(creds, "get_live_categories"),
+            xtreamApi<XtreamLiveStream[]>(creds, "get_live_streams"),
+          ]);
+          const limpios = (Array.isArray(canales) ? canales : []).filter(
+            (c) => typeof c.name === "string" && c.name.trim()
+          );
           setFilas(
-            (Array.isArray(canales) ? canales : [])
-              .filter((c) => typeof c.name === "string" && c.name.trim())
-              .map((c) => ({
-                id: `live-${c.stream_id}`,
-                nombre: c.name,
-                logo: c.stream_icon || "",
-                abrir: () =>
-                  reproducir({ url: liveStreamUrl(creds, c.stream_id), name: c.name, kind: "hls" }),
-              }))
+            carpetasDe(cats, limpios, (c) => c.category_id, (c) => ({
+              id: `live-${c.stream_id}`,
+              nombre: c.name,
+              logo: c.stream_icon || "",
+              abrir: () => reproducir({ url: liveStreamUrl(creds, c.stream_id), name: c.name, kind: "hls" }),
+            }))
           );
         } else if (destino === "cine") {
-          const pelis = (await xtreamApi<XtreamVodStream[]>(creds, "get_vod_streams")) || [];
+          const [cats, pelis] = await Promise.all([
+            xtreamApi<XtreamCategory[]>(creds, "get_vod_categories"),
+            xtreamApi<XtreamVodStream[]>(creds, "get_vod_streams"),
+          ]);
+          const limpias = (Array.isArray(pelis) ? pelis : []).filter(
+            (v) => typeof v.name === "string" && v.name.trim()
+          );
           setFilas(
-            (Array.isArray(pelis) ? pelis : [])
-              .filter((v) => typeof v.name === "string" && v.name.trim())
-              .map((v) => ({
-                id: `vod-${v.stream_id}`,
-                nombre: v.name,
-                logo: v.stream_icon || "",
-                abrir: () =>
-                  reproducir({
-                    url: vodStreamUrl(creds, v.stream_id, v.container_extension || "mp4"),
-                    name: v.name,
-                    kind: "video",
-                  }),
-              }))
+            carpetasDe(cats, limpias, (v) => v.category_id, (v) => ({
+              id: `vod-${v.stream_id}`,
+              nombre: v.name,
+              logo: v.stream_icon || "",
+              abrir: () =>
+                reproducir({
+                  url: vodStreamUrl(creds, v.stream_id, v.container_extension || "mp4"),
+                  name: v.name,
+                  kind: "video",
+                }),
+            }))
           );
         } else if (destino === "series") {
-          const series = (await xtreamApi<XtreamSeries[]>(creds, "get_series")) || [];
+          const [cats, series] = await Promise.all([
+            xtreamApi<XtreamCategory[]>(creds, "get_series_categories"),
+            xtreamApi<XtreamSeries[]>(creds, "get_series"),
+          ]);
+          const limpias = (Array.isArray(series) ? series : []).filter(
+            (s) => typeof s.name === "string" && s.name.trim()
+          );
           setFilas(
-            (Array.isArray(series) ? series : [])
-              .filter((s) => typeof s.name === "string" && s.name.trim())
-              .map((s) => ({
-                id: `serie-${s.series_id}`,
-                nombre: s.name,
-                logo: s.cover || "",
-                abrir: () => abrirSerie(s),
-              }))
+            carpetasDe(cats, limpias, (s) => s.category_id, (s) => ({
+              id: `serie-${s.series_id}`,
+              nombre: s.name,
+              logo: s.cover || "",
+              abrir: () => abrirSerie(s),
+            }))
           );
         }
       } catch (e) {
@@ -264,17 +492,27 @@ export default function TvApp() {
     if (destino !== "portada" && destino !== "viendo") cargar(destino);
   }
 
+  /**
+   * ATRÁS deshace un paso cada vez, en el orden en que se entró:
+   * vídeo → episodios → carpeta → carpetas de la sección → portada.
+   */
   function atras() {
     if (pantalla === "viendo") {
       setViendo(null);
-      setPantalla(filas.length ? (serieAbierta ? "series" : pantalla) : "portada");
-      // Volver del vídeo devuelve a la lista de la que se salió
+      // Vuelve a la lista de la que se salió, no a la portada
       setPantalla(filas.length ? ultimaLista.current : "portada");
       return;
     }
     if (serieAbierta) {
       setSerieAbierta("");
+      // Los episodios se abrieron desde dentro de una carpeta de series
       cargar("series");
+      setCarpetaAbierta("");
+      return;
+    }
+    if (carpetaAbierta) {
+      setCarpetaAbierta("");
+      cargar(pantalla);
       return;
     }
     setPantalla("portada");
@@ -338,22 +576,113 @@ export default function TvApp() {
     return <div className="tv-app tv-centro"><p className="tv-cargando">Un momento…</p></div>;
   }
 
-  if (sesion === "sin-sesion") {
+  /*
+   * La pantalla de inicio es la misma en la tele, en el móvil y en el
+   * Firestick, y contesta de un vistazo a las tres preguntas que hace
+   * cualquiera al abrir la app: qué lista tengo y hasta cuándo, cuál es mi
+   * MAC (lo primero que pide el proveedor), y por dónde entro si tengo
+   * usuario. Solo se salta cuando ya está activada: entonces se va directo
+   * a ver la tele, que es a lo que se venía.
+   */
+  const caducado = caduca > 0 && caduca < Date.now();
+
+  if (sesion === "sin-sesion" || caducado) {
+    if (haciendoLogin) {
+      return (
+        <div className="tv-app tv-centro">
+          <form className="tv-activar tv-form" onSubmit={entrarConUsuario}>
+            <h1>Entrar con mi usuario</h1>
+            <p className="tv-activar-paso">El usuario y la contraseña que te dio tu proveedor.</p>
+            <input name="usuario" className="tv-input" placeholder="Usuario" required autoFocus autoComplete="off" />
+            <input name="password" className="tv-input" type="password" placeholder="Contraseña" required autoComplete="off" />
+            {error && <p className="tv-activar-error">{error}</p>}
+            <div className="tv-form-fila">
+              <button type="submit" className="tv-boton" disabled={entrando}>
+                {entrando ? "Entrando…" : "Entrar"}
+              </button>
+              <button type="button" className="tv-boton tv-boton-suave" onClick={() => setHaciendoLogin(false)}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      );
+    }
+    if (poniendoLista) {
+      return (
+        <div className="tv-app tv-centro">
+          <form className="tv-activar tv-form" onSubmit={guardarListaManual}>
+            <h1>Poner mi lista</h1>
+            <p className="tv-activar-paso">Pega tu URL M3U, o tu servidor Xtream con usuario y contraseña.</p>
+            <input name="url" className="tv-input" placeholder="http://servidor.com:8080  o  http://…/get.php?…" required autoFocus />
+            <div className="tv-form-fila">
+              <input name="usuario" className="tv-input" placeholder="Usuario (solo Xtream)" autoComplete="off" />
+              <input name="password" className="tv-input" placeholder="Contraseña (solo Xtream)" autoComplete="off" />
+            </div>
+            {error && <p className="tv-activar-error">{error}</p>}
+            <div className="tv-form-fila">
+              <button type="submit" className="tv-boton">Guardar y ver</button>
+              <button type="button" className="tv-boton tv-boton-suave" onClick={() => setPoniendoLista(false)}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      );
+    }
     return (
       <div className="tv-app tv-centro">
         <div className="tv-activar">
           <p className="tv-marca">{marca}</p>
-          <h1>Activa esta tele</h1>
-          <p className="tv-activar-paso">
-            1. Entra en <strong>{sitio()}/activar</strong> desde tu móvil
-          </p>
-          <p className="tv-activar-paso">2. Escribe este código:</p>
-          <div className="tv-codigo">{codigo || "······"}</div>
+
+          {/* Lo primero y en grande: qué tengo y hasta cuándo */}
+          <div className={`tv-estado ${caducado ? "caducado" : ""}`}>
+            {caducado ? (
+              <>
+                <h1>Tu lista ha caducado</h1>
+                <p className="tv-estado-linea">
+                  Venció el {new Date(caduca).toLocaleDateString("es-ES")}
+                  {soporte ? ` · Renueva con ${soporte}` : ""}
+                </p>
+              </>
+            ) : (
+              <>
+                <h1>Activa esta tele</h1>
+                <p className="tv-estado-linea">Aún no tiene ninguna lista. Elige una de estas tres formas.</p>
+              </>
+            )}
+          </div>
+
+          <div className="tv-dos-caminos">
+            <div className="tv-camino">
+              <p className="tv-camino-t">Con tu proveedor</p>
+              <p className="tv-activar-paso">Pásale esta MAC y te activará la tele:</p>
+              <div className="tv-mac">{macDelAparato()}</div>
+            </div>
+            <div className="tv-camino">
+              <p className="tv-camino-t">Tú mismo, desde el móvil</p>
+              <p className="tv-activar-paso">
+                Entra en <strong>{sitio()}/activar</strong> y escribe:
+              </p>
+              <div className="tv-codigo">{codigo || "······"}</div>
+            </div>
+          </div>
+
           {avisoCodigo ? (
             <p className="tv-activar-error">{avisoCodigo}</p>
           ) : (
-            <p className="tv-activar-nota">La tele se activará sola en cuanto lo introduzcas.</p>
+            <p className="tv-activar-nota">La tele entrará sola por cualquiera de las dos vías.</p>
           )}
+
+          {/* Y siempre a la vista, sin esconderse: entrar con usuario */}
+          <div className="tv-form-fila tv-acciones">
+            <button className="tv-boton" onClick={() => { setError(""); setHaciendoLogin(true); }}>
+              Entrar con usuario y contraseña
+            </button>
+            <button className="tv-boton tv-boton-suave" onClick={() => setPoniendoLista(true)}>
+              Tengo mi propia lista M3U
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -390,6 +719,9 @@ export default function TvApp() {
             {caduca ? `Tu acceso vence el ${new Date(caduca).toLocaleDateString("es-ES")}` : "Acceso sin fecha de fin"}
             {soporte ? ` · Soporte: ${soporte}` : ""}
           </p>
+          {/* La MAC siempre a la vista, como en los reproductores de siempre:
+              es lo primero que le pide el proveedor cuando algo falla */}
+          <p className="tv-pie tv-pie-mac">MAC: {macDelAparato()}</p>
         </div>
       </div>
     );
@@ -398,7 +730,8 @@ export default function TvApp() {
   return (
     <div className="tv-app">
       <header className="tv-cabecera">
-        <h2>{serieAbierta || TITULOS[pantalla]}</h2>
+        <h2>{serieAbierta || carpetaAbierta || TITULOS[pantalla]}</h2>
+        {(serieAbierta || carpetaAbierta) && <span className="tv-cabecera-de">{TITULOS[pantalla]}</span>}
         <span className="tv-cabecera-pista">ATRÁS para volver</span>
       </header>
       {cargando && <p className="tv-cargando">Cargando…</p>}
@@ -408,12 +741,14 @@ export default function TvApp() {
           <button
             key={f.id}
             data-i={i}
-            className={`tv-fila ${foco === i ? "foco" : ""}`}
+            className={`tv-fila ${foco === i ? "foco" : ""} ${f.carpeta ? "tv-carpeta" : ""}`}
             onMouseEnter={() => setFoco(i)}
             onClick={f.abrir}
           >
             <span className="tv-fila-n">{String(i + 1).padStart(3, "0")}</span>
-            {imgSrc(f.logo) ? (
+            {f.carpeta ? (
+              <span className="tv-fila-ph"><Icon name="globe" size={20} /></span>
+            ) : imgSrc(f.logo) ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={imgSrc(f.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
             ) : (

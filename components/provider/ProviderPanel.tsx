@@ -400,6 +400,17 @@ export default function ProviderPanel() {
     loadBranding();
   }
 
+  async function restablecerMarca() {
+    if (!confirm("¿Volver a los colores y el logotipo de fábrica?\n\nTu enlace de acceso no cambia y tus clientes no pierden nada.")) return;
+    const res = await fetch("/api/provider/branding", { method: "DELETE" });
+    if (!res.ok) {
+      setError("No se pudo restablecer la marca");
+      return;
+    }
+    setNotice("Marca restablecida a los valores de fábrica.");
+    loadBranding();
+  }
+
   async function subscribe(planId: string) {
     const res = await fetch("/api/provider/subscribe", {
       method: "POST",
@@ -750,7 +761,10 @@ export default function ProviderPanel() {
       {/* Mi marca */}
       {tab === "marca" && perms?.managePlan && branding && (
         <div style={{ display: "grid", gridTemplateColumns: "minmax(300px, 520px) 1fr", gap: 28, alignItems: "start" }}>
-          <form className="card" onSubmit={saveBranding}>
+          {/* La clave fuerza a repintar los campos cuando la marca cambia
+              desde fuera del formulario (restablecer): con defaultValue, si
+              no, seguirían enseñando lo que había antes */}
+          <form className="card" key={`${branding.name}|${branding.color}|${branding.logo}`} onSubmit={saveBranding}>
             <h3 style={{ marginBottom: 6 }}>Marca blanca</h3>
             <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 20 }}>
               Tus clientes verán tu nombre, tu color y tu logotipo, tanto al entrar como dentro del reproductor.
@@ -789,7 +803,15 @@ export default function ProviderPanel() {
               <input id="b-support" name="brandSupport" className="input" defaultValue={branding.support} placeholder="soporte@miiptv.com o un WhatsApp" />
             </div>
 
-            <button className="btn btn-primary" style={{ width: "100%" }}>Guardar marca</button>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="btn btn-primary" style={{ flex: 1 }}>Guardar marca</button>
+              <button type="button" className="btn btn-ghost" onClick={restablecerMarca}>
+                Valores de fábrica
+              </button>
+            </div>
+            <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 10 }}>
+              Restablecer deja el nombre, el color y el logotipo como venían. Tu enlace de acceso no cambia.
+            </p>
           </form>
 
           <div>

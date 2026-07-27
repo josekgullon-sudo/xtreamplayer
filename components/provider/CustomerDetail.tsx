@@ -105,6 +105,8 @@ export default function CustomerDetail({
   const [data, setData] = useState<Detail | null>(null);
   const [tab, setTab] = useState<"lista" | "dispositivos" | "actividad">("lista");
   const [error, setError] = useState<string | null>(null);
+  const [teles, setTeles] = useState<{ id: number; mac: string; label: string; visto: number }[]>([]);
+  const [errorTele, setErrorTele] = useState("");
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/provider/customers/${customerId}`);
@@ -115,9 +117,39 @@ export default function CustomerDetail({
     setData(await res.json());
   }, [customerId]);
 
+  const cargarTeles = useCallback(async () => {
+    const res = await fetch(`/api/provider/customers/${customerId}/tv`);
+    if (res.ok) setTeles((await res.json()).teles || []);
+  }, [customerId]);
+
   useEffect(() => {
     load();
-  }, [load]);
+    cargarTeles();
+  }, [load, cargarTeles]);
+
+  async function anadirTele(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setErrorTele("");
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const res = await fetch(`/api/provider/customers/${customerId}/tv`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mac: fd.get("mac"), label: fd.get("label") }),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      setErrorTele(body.error || "No se pudo dar de alta");
+      return;
+    }
+    form.reset();
+    cargarTeles();
+  }
+
+  async function borrarTele(id: number) {
+    await fetch(`/api/provider/customers/${customerId}/tv?teleId=${id}`, { method: "DELETE" });
+    cargarTeles();
+  }
 
   async function patch(body: Record<string, unknown>) {
     const res = await fetch(`/api/provider/customers/${customerId}`, {
@@ -321,6 +353,58 @@ export default function CustomerDetail({
               ))}
             </div>
           )}
+
+          {/*
+            Televisores por MAC: el cliente lee la MAC en su tele, se la pasa
+            por WhatsApp y aquí queda dada de alta. Desde entonces esa tele
+            entra sola, sin que nadie escriba nada con el mando.
+          */}
+          <div style={{ marginTop: 26, paddingTop: 22, borderTop: "1px solid var(--hairline)" }}>
+            <h3 className="detail-card-title">
+              <Icon name="tv" size={16} /> Televisores por MAC
+            </h3>
+            <p className="detail-card-sub">
+              Pide a tu cliente la MAC que aparece en la pantalla de su tele y dala de alta aquí.
+            </p>
+
+            {teles.length > 0 && (
+              <div className="device-grid" style={{ marginBottom: 14 }}>
+                {teles.map((t) => (
+                  <div className="device-card" key={t.id}>
+                    <div className="device-icon"><Icon name="tv" size={20} /></div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14.5, fontVariantNumeric: "tabular-nums" }}>{t.mac}</div>
+                      <div style={{ fontSize: 12.5, color: "var(--text-faint)" }}>
+                        {t.label || "Sin nombre"} · {t.visto ? timeAgo(t.visto) : "aún no ha entrado"}
+                      </div>
+                    </div>
+                    <button
+                      className="icon-btn"
+                      onClick={() => {
+                        if (confirm(`¿Dar de baja la tele ${t.mac}?`)) borrarTele(t.id);
+                      }}
+                      title="Dar de baja"
+                    >
+                      <Icon name="trash" size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={anadirTele} style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+              <div className="auth-field" style={{ flex: "1 1 220px", marginBottom: 0 }}>
+                <label className="label" htmlFor="tv-mac-add">MAC de la tele</label>
+                <input id="tv-mac-add" name="mac" className="input" required placeholder="1A:2B:3C:4D:5E:6F" autoComplete="off" />
+              </div>
+              <div className="auth-field" style={{ flex: "1 1 160px", marginBottom: 0 }}>
+                <label className="label" htmlFor="tv-label-add">Nombre (opcional)</label>
+                <input id="tv-label-add" name="label" className="input" maxLength={60} placeholder="Salón" />
+              </div>
+              <button className="btn btn-primary btn-sm" type="submit">Dar de alta</button>
+            </form>
+            {errorTele && <p className="detail-card-sub" style={{ color: "var(--danger)", marginTop: 10 }}>{errorTele}</p>}
+          </div>
         </div>
       )}
 

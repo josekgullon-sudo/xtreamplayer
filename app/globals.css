@@ -1731,3 +1731,71 @@ select.input { appearance: none; cursor: pointer; }
   width: 68px; height: 68px; border-radius: 20px; margin-bottom: 16px;
   background: var(--success-tint); color: var(--success);
 }
+
+/* ---- Tele: MAC, carpetas y formulario de lista ---- */
+
+.tv-dos-caminos {
+  display: flex; gap: 3vw; justify-content: center; align-items: flex-start;
+  margin: 2vh 0 1vh; flex-wrap: wrap;
+}
+.tv-camino { flex: 1; min-width: 24vw; }
+.tv-camino-t {
+  font-size: 1.3vw; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45); margin-bottom: 1.2vh;
+}
+.tv-mac {
+  display: inline-block; margin-top: 1vh;
+  padding: 1.8vh 2.4vw; border-radius: 1.2vw;
+  background: rgba(255, 255, 255, 0.06); border: 0.15vw solid rgba(255, 255, 255, 0.25);
+  font-size: 3vw; font-weight: 800; letter-spacing: 0.25vw;
+  font-variant-numeric: tabular-nums;
+}
+.tv-pie-mac { margin-top: 0.8vh; opacity: 0.7; font-variant-numeric: tabular-nums; }
+
+.tv-boton {
+  margin-top: 3vh; padding: 1.6vh 3vw; border-radius: var(--radius-pill);
+  background: var(--accent); color: #fff; border: none;
+  font-size: 1.5vw; font-weight: 700; cursor: pointer;
+}
+.tv-boton-suave { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.85); }
+.tv-boton:focus-visible { outline: 0.2vw solid #fff; outline-offset: 0.3vw; }
+
+.tv-form { display: flex; flex-direction: column; gap: 1.6vh; text-align: left; }
+.tv-form-fila { display: flex; gap: 1.2vw; }
+.tv-form-fila > * { flex: 1; }
+.tv-input {
+  width: 100%; padding: 1.6vh 1.6vw; border-radius: 1vw;
+  background: rgba(255, 255, 255, 0.08); border: 0.15vw solid rgba(255, 255, 255, 0.2);
+  color: #fff; font-size: 1.5vw; font-family: inherit;
+}
+.tv-input:focus { outline: none; border-color: var(--accent); background: rgba(255, 255, 255, 0.12); }
+
+.tv-carpeta { font-weight: 700; }
+.tv-carpeta .tv-fila-ph { background: var(--accent-tint); color: var(--accent-bright); }
+.tv-cabecera-de { font-size: 1.2vw; color: rgba(255, 255, 255, 0.4); }
+
+@media (max-width: 900px) {
+  /* En un móvil las dos vías van una debajo de otra: en dos columnas, la
+     MAC y el código se salían de la pantalla */
+  .tv-dos-caminos { flex-direction: column; gap: 3vh; }
+  .tv-camino { min-width: 0; width: 100%; }
+  .tv-camino-t { font-size: 12px; }
+  .tv-mac { font-size: 20px; letter-spacing: 1px; padding: 12px 14px; border-radius: 12px; max-width: 100%; }
+  .tv-boton { font-size: 15px; padding: 12px 22px; }
+  .tv-input { font-size: 15px; padding: 12px; border-radius: 10px; }
+  .tv-cabecera-de { font-size: 12px; }
+  .tv-activar { max-width: 100%; }
+}
+
+/* Estado de la lista, lo primero que se ve al abrir cualquier app nuestra */
+.tv-estado { margin-bottom: 2.5vh; }
+.tv-estado h1 { margin-bottom: 1vh; }
+.tv-estado-linea { font-size: 1.6vw; color: rgba(255, 255, 255, 0.65); }
+.tv-estado.caducado h1 { color: var(--danger); }
+.tv-acciones { justify-content: center; margin-top: 3vh; }
+.tv-acciones .tv-boton { flex: 0 1 auto; }
+
+@media (max-width: 900px) {
+  .tv-estado-linea { font-size: 14px; }
+  .tv-acciones { flex-direction: column; }
+}

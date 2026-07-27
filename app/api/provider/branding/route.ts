@@ -77,3 +77,20 @@ export async function PUT(req: NextRequest) {
     accessUrl: slug ? `${SITE_URL}/m/${slug}` : "",
   });
 }
+
+/**
+ * Vuelta a los valores de fábrica. Probar colores y logotipos es la clase de
+ * cosa que se hace a las tantas, y sin un camino de vuelta claro uno se
+ * queda con un tono que no le gusta por miedo a empeorarlo. El enlace de
+ * acceso (el slug) se conserva: es el que ya han repartido sus clientes.
+ */
+export async function DELETE() {
+  const provider = await getCurrentProvider();
+  if (!provider) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+
+  getDb()
+    .prepare("UPDATE providers SET brand_name = '', brand_color = '', brand_logo = '', brand_support = '' WHERE id = ?")
+    .run(provider.id);
+
+  return NextResponse.json({ ok: true, accessUrl: provider.brand_slug ? `${SITE_URL}/m/${provider.brand_slug}` : "" });
+}
