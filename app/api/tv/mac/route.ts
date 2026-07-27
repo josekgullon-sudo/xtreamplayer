@@ -22,11 +22,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       estado: "lista",
       lista: {
-        tipo: propia.playlist_type || "m3u",
-        url: propia.playlist_url,
-        usuario: propia.playlist_user,
-        password: propia.playlist_pass,
-        nombre: propia.label,
+        id: propia.id,
+        tipo: propia.type || "m3u",
+        url: propia.url,
+        usuario: propia.username,
+        password: propia.password,
+        nombre: propia.name,
       },
     });
   }

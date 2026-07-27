@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Icon from "@/components/Icon";
 
 type Via = "codigo" | "mac" | "usuario";
@@ -21,6 +21,10 @@ export default function ActivarTv() {
   const [hecho, setHecho] = useState<"" | "codigo" | "mac">("");
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
+  /** MAC en el campo: con ella se listan y gestionan las listas del aparato */
+  const [mac, setMac] = useState("");
+  const [listas, setListas] = useState<{ id: number; nombre: string; tipo: string; url: string; activa: boolean }[]>([]);
+  const [aviso, setAviso] = useState("");
 
   useEffect(() => {
     fetch("/api/customer/me")
@@ -70,11 +74,22 @@ export default function ActivarTv() {
     setVia("codigo");
   }
 
+  /** Las listas que ya tiene ese aparato, para poder gestionarlas */
+  const cargarListas = useCallback(async (m: string) => {
+    if (m.replace(/[^0-9A-Fa-f]/g, "").length !== 12) {
+      setListas([]);
+      return;
+    }
+    const d = await fetch(`/api/tv/lista?mac=${encodeURIComponent(m)}`).then((r) => r.json()).catch(() => ({}));
+    setListas(d.listas || []);
+  }, []);
+
   async function cargarLista(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setEnviando(true);
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const res = await fetch("/api/tv/lista", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -92,7 +107,27 @@ export default function ActivarTv() {
       setError(data.error || "No se pudo cargar la lista");
       return;
     }
-    setHecho("mac");
+    // Se queda en la página: acaba de añadir una y probablemente quiera ver
+    // las que tiene, o añadir otra
+    form.querySelectorAll("input").forEach((i) => { if (i.name !== "mac") i.value = ""; });
+    await cargarListas(mac);
+    setAviso("Lista cargada. La tele entrará con ella.");
+  }
+
+  async function activar(id: number) {
+    await fetch("/api/tv/lista", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mac, id }),
+    });
+    await cargarListas(mac);
+    setAviso("Hecho. La tele entrará con esa lista.");
+  }
+
+  async function borrar(id: number) {
+    if (!confirm("¿Quitar esta lista de la tele?")) return;
+    await fetch(`/api/tv/lista?mac=${encodeURIComponent(mac)}&id=${id}`, { method: "DELETE" });
+    await cargarListas(mac);
   }
 
   if (sesion === "cargando") return <main className="auth-wrap" />;
@@ -207,6 +242,11 @@ export default function ActivarTv() {
           )
         ) : (
           <form onSubmit={cargarLista}>
+            {aviso && (
+              <div className="badge badge-success" style={{ display: "block", padding: "10px 14px", marginBottom: 14 }} role="status">
+                {aviso}
+              </div>
+            )}
             <div className="auth-field">
               <label className="label" htmlFor="tv-mac">MAC que aparece en la tele</label>
               <input
@@ -218,6 +258,8 @@ export default function ActivarTv() {
                 autoComplete="off"
                 spellCheck={false}
                 placeholder="1A:2B:3C:4D:5E:6F"
+                value={mac}
+                onChange={(e) => { setMac(e.target.value); cargarListas(e.target.value); }}
               />
             </div>
             <div className="auth-field">
@@ -249,8 +291,32 @@ export default function ActivarTv() {
               <input id="tv-nombre" name="nombre" className="input" maxLength={60} placeholder="Mi lista" />
             </div>
             <button className="btn btn-primary" style={{ width: "100%" }} disabled={enviando}>
-              {enviando ? "Cargando…" : "Cargar la lista en mi tele"}
+              {enviando ? "Cargando…" : listas.length ? "Añadir esta lista" : "Cargar la lista en mi tele"}
             </button>
+
+            {listas.length > 0 && (
+              <div className="listas-tele">
+                <p className="label" style={{ marginBottom: 10 }}>Listas de esta tele</p>
+                {listas.map((l) => (
+                  <div className={`lista-tele ${l.activa ? "activa" : ""}`} key={l.id}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <strong>{l.nombre || "Sin nombre"}</strong>
+                      <span>{l.tipo === "xtream" ? "Xtream" : "M3U"} · {l.url}</span>
+                    </div>
+                    {l.activa ? (
+                      <span className="badge badge-success">En uso</span>
+                    ) : (
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => activar(l.id)}>
+                        Usar esta
+                      </button>
+                    )}
+                    <button type="button" className="icon-btn" onClick={() => borrar(l.id)} aria-label="Quitar">
+                      <Icon name="trash" size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </form>
         )}
       </div>

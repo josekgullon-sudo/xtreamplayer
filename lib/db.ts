@@ -110,6 +110,8 @@ export interface ProviderRow {
   panel_checked_at: number;
   /** Clave de la API de administración del panel XUI, para importar clientes */
   panel_api_key: string;
+  /** Precio en céntimos de cada perfil adicional; 0 = no los ofrece */
+  extra_profile_price: number;
   /** Hash SHA-256 de la clave de la API pública; vacío = API desactivada */
   api_key_hash: string;
   /** Prefijo visible de la clave activa (tp_XXXX…), para mostrar sin revelarla */

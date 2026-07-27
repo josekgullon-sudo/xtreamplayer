@@ -32,7 +32,7 @@ import {
  * móvil, donde escribir es gratis.
  */
 
-type Pantalla = "portada" | "directo" | "cine" | "series" | "viendo";
+type Pantalla = "portada" | "directo" | "cine" | "series" | "viendo" | "salir";
 
 interface Lista {
   tipo: "xtream" | "m3u";
@@ -487,6 +487,34 @@ export default function TvApp() {
     }
   }
 
+  /**
+   * «Salir» cierra de verdad: suelta la sesión del cliente y la lista que
+   * tuviera puesta este aparato, y vuelve a la pantalla de activación. Antes
+   * llevaba a la web, que en una tele no sirve de nada.
+   */
+  async function salir() {
+    if (!confirm("¿Salir de esta lista? Tendrás que volver a activar la tele.")) return;
+    await fetch("/api/customer/me", { method: "DELETE" }).catch(() => {});
+    try {
+      localStorage.removeItem(K_LISTA_MANUAL);
+    } catch {
+      /* almacenamiento bloqueado */
+    }
+    // La lista guardada contra la MAC también se suelta: si no, la tele
+    // volvería a entrar sola con ella en el siguiente sondeo
+    await fetch(`/api/tv/lista?mac=${encodeURIComponent(macDelAparato())}`, { method: "DELETE" }).catch(() => {});
+    window.location.reload();
+  }
+
+  function elegirDestino(destino?: Pantalla) {
+    if (!destino) return;
+    if (destino === "salir") {
+      salir();
+      return;
+    }
+    ir(destino);
+  }
+
   function ir(destino: Pantalla) {
     setPantalla(destino);
     if (destino !== "portada" && destino !== "viendo") cargar(destino);
@@ -556,7 +584,7 @@ export default function TvApp() {
         setFoco((f) => Math.max(0, f - 8));
       } else if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        if (pantalla === "portada") DESTINOS[foco]?.abrir(ir);
+        if (pantalla === "portada") elegirDestino(DESTINOS[foco]?.id);
         else filas[foco]?.abrir();
       }
     }
@@ -708,7 +736,7 @@ export default function TvApp() {
                 key={d.id}
                 className={`tv-tile ${foco === i ? "foco" : ""}`}
                 onMouseEnter={() => setFoco(i)}
-                onClick={() => d.abrir(ir)}
+                onClick={() => elegirDestino(d.id)}
               >
                 <Icon name={d.icono} size={64} />
                 <span>{d.titulo}</span>
@@ -769,11 +797,11 @@ const TITULOS: Record<string, string> = {
   series: "Series",
 };
 
-const DESTINOS: { id: Pantalla; titulo: string; icono: IconName; abrir: (ir: (p: Pantalla) => void) => void }[] = [
-  { id: "directo", titulo: "TV en directo", icono: "tv", abrir: (ir) => ir("directo") },
-  { id: "cine", titulo: "Películas", icono: "film", abrir: (ir) => ir("cine") },
-  { id: "series", titulo: "Series", icono: "series", abrir: (ir) => ir("series") },
-  { id: "portada", titulo: "Salir", icono: "power", abrir: () => (window.location.href = "/") },
+const DESTINOS: { id: Pantalla; titulo: string; icono: IconName }[] = [
+  { id: "directo", titulo: "TV en directo", icono: "tv" },
+  { id: "cine", titulo: "Películas", icono: "film" },
+  { id: "series", titulo: "Series", icono: "series" },
+  { id: "salir", titulo: "Salir", icono: "power" },
 ];
 
 function sitio(): string {

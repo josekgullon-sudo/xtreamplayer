@@ -46,6 +46,8 @@ export async function GET() {
       nombre: branding.name,
       soporte: branding.support,
       logo: branding.logo,
+      /** Lo que cobra por cada perfil de más; 0 = no los vende */
+      precioPerfil: (provider?.extra_profile_price || 0) / 100,
     },
     dispositivos: dispositivos.map((d) => ({
       id: d.id,

@@ -19,6 +19,7 @@ export async function GET() {
       logo: provider.brand_logo || "",
       slug: provider.brand_slug || "",
       support: provider.brand_support || "",
+      precioPerfil: (provider.extra_profile_price || 0) / 100,
     },
     accessUrl: branding.slug ? `${SITE_URL}/m/${branding.slug}` : "",
   });
@@ -28,7 +29,7 @@ export async function PUT(req: NextRequest) {
   const provider = await getCurrentProvider();
   if (!provider) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  let body: { name?: string; color?: string; logo?: string; slug?: string; support?: string };
+  let body: { name?: string; color?: string; logo?: string; slug?: string; support?: string; precioPerfil?: number };
   try {
     body = await req.json();
   } catch {
@@ -66,11 +67,15 @@ export async function PUT(req: NextRequest) {
     if (dup) return NextResponse.json({ error: "Ese identificador ya está en uso" }, { status: 409 });
   }
 
+  // El precio llega en euros y se guarda en céntimos: los redondeos con
+  // decimales flotantes acaban cobrando 4,99 donde el proveedor puso 5
+  const precio = Math.max(0, Math.round(Number(body.precioPerfil ?? 0) * 100)) || 0;
+
   getDb()
     .prepare(
-      "UPDATE providers SET brand_name = ?, brand_color = ?, brand_logo = ?, brand_slug = ?, brand_support = ? WHERE id = ?"
+      "UPDATE providers SET brand_name = ?, brand_color = ?, brand_logo = ?, brand_slug = ?, brand_support = ?, extra_profile_price = ? WHERE id = ?"
     )
-    .run(name, normalizeHexColor(color), logo, slug, (body.support || "").trim().slice(0, 200), provider.id);
+    .run(name, normalizeHexColor(color), logo, slug, (body.support || "").trim().slice(0, 200), precio, provider.id);
 
   return NextResponse.json({
     ok: true,
@@ -89,7 +94,7 @@ export async function DELETE() {
   if (!provider) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   getDb()
-    .prepare("UPDATE providers SET brand_name = '', brand_color = '', brand_logo = '', brand_support = '' WHERE id = ?")
+    .prepare("UPDATE providers SET brand_name = '', brand_color = '', brand_logo = '', brand_support = '', extra_profile_price = 0 WHERE id = ?")
     .run(provider.id);
 
   return NextResponse.json({ ok: true, accessUrl: provider.brand_slug ? `${SITE_URL}/m/${provider.brand_slug}` : "" });

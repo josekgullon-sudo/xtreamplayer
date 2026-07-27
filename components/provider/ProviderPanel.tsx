@@ -96,6 +96,7 @@ export default function ProviderPanel() {
     logo: string;
     slug: string;
     support: string;
+    precioPerfil: number;
   } | null>(null);
   const [accessUrl, setAccessUrl] = useState("");
   const [showReseller, setShowReseller] = useState<Reseller | "new" | null>(null);
@@ -389,6 +390,7 @@ export default function ProviderPanel() {
         logo: String(form.get("brandLogo") || ""),
         slug: String(form.get("brandSlug") || ""),
         support: String(form.get("brandSupport") || ""),
+        precioPerfil: Number(form.get("precioPerfil") || 0),
       }),
     });
     const data = await res.json();
@@ -763,7 +765,7 @@ export default function ProviderPanel() {
           {/* La clave fuerza a repintar los campos cuando la marca cambia
               desde fuera del formulario (restablecer): con defaultValue, si
               no, seguirían enseñando lo que había antes */}
-          <form className="card" key={`${branding.name}|${branding.color}|${branding.logo}`} onSubmit={saveBranding}>
+          <form className="card" key={`${branding.name}|${branding.color}|${branding.logo}|${branding.precioPerfil}`} onSubmit={saveBranding}>
             <h3 style={{ marginBottom: 6 }}>Marca blanca</h3>
             <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 20 }}>
               Tus clientes verán tu nombre, tu color y tu logotipo, tanto al entrar como dentro del reproductor.
@@ -800,6 +802,23 @@ export default function ProviderPanel() {
             <div className="auth-field">
               <label className="label" htmlFor="b-support">Contacto de soporte para tus clientes</label>
               <input id="b-support" name="brandSupport" className="input" defaultValue={branding.support} placeholder="soporte@miiptv.com o un WhatsApp" />
+            </div>
+
+            <div className="auth-field">
+              <label className="label" htmlFor="b-perfil">Precio de cada perfil adicional (€/mes)</label>
+              <input
+                id="b-perfil"
+                name="precioPerfil"
+                className="input"
+                type="number"
+                min={0}
+                step="0.5"
+                defaultValue={branding.precioPerfil || 0}
+                placeholder="0"
+              />
+              <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 6 }}>
+                Si lo pones, tus clientes verán el precio en su cuenta y podrán pedírtelo. Con 0 no se ofrece.
+              </p>
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>

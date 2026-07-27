@@ -38,6 +38,62 @@ export interface TvDevice {
   last_seen: number;
 }
 
+export interface TvLista {
+  id: number;
+  mac: string;
+  name: string;
+  type: string;
+  url: string;
+  username: string;
+  password: string;
+  activa: number;
+  created_at: number;
+}
+
+/** Todas las listas cargadas en un aparato, la activa primero. */
+export function listarListas(mac: string): TvLista[] {
+  const limpia = normalizarMac(mac);
+  if (!limpia) return [];
+  return getDb()
+    .prepare("SELECT * FROM tv_playlists WHERE mac = ? ORDER BY activa DESC, created_at DESC")
+    .all(limpia) as TvLista[];
+}
+
+/** La lista con la que entra el aparato ahora mismo. */
+export function listaActiva(mac: string): TvLista | null {
+  const limpia = normalizarMac(mac);
+  if (!limpia) return null;
+  const db = getDb();
+  const activa = db.prepare("SELECT * FROM tv_playlists WHERE mac = ? AND activa = 1").get(limpia) as
+    | TvLista
+    | undefined;
+  if (activa) return activa;
+  // Sin ninguna marcada, vale la primera que haya: nunca dejar el aparato
+  // con listas guardadas y sin nada que reproducir
+  const primera = db
+    .prepare("SELECT * FROM tv_playlists WHERE mac = ? ORDER BY created_at DESC LIMIT 1")
+    .get(limpia) as TvLista | undefined;
+  return primera || null;
+}
+
+/** Marca cuál es la lista con la que entra el aparato. */
+export function activarLista(mac: string, id: number): boolean {
+  const limpia = normalizarMac(mac);
+  if (!limpia) return false;
+  const db = getDb();
+  const suya = db.prepare("SELECT id FROM tv_playlists WHERE id = ? AND mac = ?").get(id, limpia);
+  if (!suya) return false;
+  db.prepare("UPDATE tv_playlists SET activa = 0 WHERE mac = ?").run(limpia);
+  db.prepare("UPDATE tv_playlists SET activa = 1 WHERE id = ?").run(id);
+  return true;
+}
+
+export function borrarLista(mac: string, id: number): boolean {
+  const limpia = normalizarMac(mac);
+  if (!limpia) return false;
+  return getDb().prepare("DELETE FROM tv_playlists WHERE id = ? AND mac = ?").run(id, limpia).changes > 0;
+}
+
 /**
  * Carga una lista contra una MAC, sin proveedor: el flujo de los
  * reproductores de siempre — el usuario lee la MAC en su tele, entra en la
@@ -66,16 +122,14 @@ export function cargarListaEnMac(
   if (previa?.customer_id) {
     return { ok: false, error: "Esa tele ya está dada de alta por un proveedor. Pídele a él el cambio de lista." };
   }
-  if (previa) {
-    db.prepare(
-      "UPDATE tv_devices SET playlist_type = ?, playlist_url = ?, playlist_user = ?, playlist_pass = ?, label = ? WHERE id = ?"
-    ).run(tipo, url, usuario, password, nombre, previa.id);
-  } else {
-    db.prepare(
-      `INSERT INTO tv_devices (provider_id, customer_id, mac, label, playlist_type, playlist_url, playlist_user, playlist_pass, created_at)
-       VALUES (0, 0, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(limpia, nombre, tipo, url, usuario, password, Date.now());
-  }
+
+  // Se añade a las que ya tenga y pasa a ser la activa: quien acaba de
+  // cargarla quiere verla ahora, no dentro de dos menús
+  const yaHabia = db.prepare("SELECT COUNT(*) AS c FROM tv_playlists WHERE mac = ?").get(limpia) as { c: number };
+  db.prepare("UPDATE tv_playlists SET activa = 0 WHERE mac = ?").run(limpia);
+  db.prepare(
+    "INSERT INTO tv_playlists (mac, name, type, url, username, password, activa, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?)"
+  ).run(limpia, nombre || (yaHabia.c ? `Lista ${yaHabia.c + 1}` : "Mi lista"), tipo, url, usuario, password, Date.now());
   return { ok: true, mac: limpia };
 }
 
@@ -84,22 +138,23 @@ export function vaciarMac(mac: string): { ok: true } | { ok: false; error: strin
   const limpia = normalizarMac(mac);
   if (!limpia) return { ok: false, error: "Esa MAC no es válida" };
   const fila = getDb().prepare("SELECT * FROM tv_devices WHERE mac = ?").get(limpia) as TvDevice | undefined;
-  if (!fila) return { ok: false, error: "Esa MAC no tiene ninguna lista cargada" };
-  if (fila.customer_id) {
+  if (fila?.customer_id) {
     return { ok: false, error: "Esa tele la gestiona un proveedor. Pídeselo a él." };
   }
-  getDb().prepare("DELETE FROM tv_devices WHERE id = ?").run(fila.id);
+  const borradas = getDb().prepare("DELETE FROM tv_playlists WHERE mac = ?").run(limpia).changes;
+  if (fila) getDb().prepare("DELETE FROM tv_devices WHERE id = ?").run(fila.id);
+  if (!borradas && !fila) return { ok: false, error: "Esa MAC no tiene ninguna lista cargada" };
   return { ok: true };
 }
 
-/** La lista cargada contra una MAC, si la hay. */
-export function listaDeMac(mac: string): TvDevice | null {
+/** La lista con la que debe entrar este aparato, si tiene alguna. */
+export function listaDeMac(mac: string): TvLista | null {
   const limpia = normalizarMac(mac);
   if (!limpia) return null;
-  const fila = getDb().prepare("SELECT * FROM tv_devices WHERE mac = ?").get(limpia) as TvDevice | undefined;
-  if (!fila || fila.customer_id || !fila.playlist_url) return null;
-  getDb().prepare("UPDATE tv_devices SET last_seen = ? WHERE id = ?").run(Date.now(), fila.id);
-  return fila;
+  // Una MAC dada de alta por un proveedor no usa listas propias
+  const device = getDb().prepare("SELECT * FROM tv_devices WHERE mac = ?").get(limpia) as TvDevice | undefined;
+  if (device?.customer_id) return null;
+  return listaActiva(limpia);
 }
 
 /** Da de alta un televisor para un cliente. */
