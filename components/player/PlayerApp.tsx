@@ -93,6 +93,8 @@ export default function PlayerApp() {
    * también abre la lista y ahí no hay carpeta elegida.
    */
   const [verCanales, setVerCanales] = useState(false);
+  /** El buscador vive plegado en una lupa hasta que se pide */
+  const [buscando, setBuscando] = useState(false);
 
   const [tab, setTab] = useState<Tab>("live");
   const [search, setSearch] = useState("");
@@ -644,7 +646,8 @@ export default function PlayerApp() {
       }
       if (e.key === "/") {
         e.preventDefault();
-        searchRef.current?.focus();
+        setBuscando(true);
+        setTimeout(() => searchRef.current?.focus(), 0);
       } else if (e.key === "f" || e.key === "F") {
         document.querySelector<HTMLVideoElement>(".pa-video-zone video")?.requestFullscreen?.().catch(() => {});
       } else if (e.key === "m" || e.key === "M") {
@@ -705,6 +708,27 @@ export default function PlayerApp() {
    * seguidos, con un tope: pintar diez mil botones de golpe deja el
    * navegador clavado, y para eso están las categorías.
    */
+  /**
+   * Episodios de la temporada abierta. Van al lado del vídeo para pasar al
+   * siguiente sin volver a la ficha, que es como se ve una serie de verdad.
+   */
+  const episodiosDeLaSerie = useMemo(
+    () => (seriesDetail ? seriesDetail.info.episodes?.[seriesDetail.season] || [] : []),
+    [seriesDetail]
+  );
+
+  /** Al acabar un episodio, encadena con el siguiente de la temporada */
+  function siguienteEpisodio() {
+    if (!active || !seriesDetail || !current) return;
+    const i = episodiosDeLaSerie.findIndex((ep) =>
+      current.source.name.includes(ep.title || `Episodio ${ep.episode_num}`)
+    );
+    const sig = episodiosDeLaSerie[i + 1];
+    if (sig) {
+      playEpisode(active, seriesDetail.series, sig.id, sig.title || `Episodio ${sig.episode_num}`, sig.container_extension);
+    }
+  }
+
   const canalesVisibles = useMemo(() => {
     const grupo = grupoSel ? liveGroups.find((g) => g.name === grupoSel) : null;
     if (grupo) return grupo.channels;
@@ -809,14 +833,25 @@ export default function PlayerApp() {
             <Icon name="star" size={16} /> Favoritos
           </button>
         </div>
-        <div className="pa-nav-busca">
-          <Icon name="search" size={15} className="pa-search-icon" />
+        {/* Una lupa, y el campo solo cuando hace falta: un buscador siempre
+            abierto con su texto de ayuda ocupaba media barra para algo que
+            se usa de vez en cuando */}
+        <div className={`pa-nav-busca ${buscando || search ? "abierta" : ""}`}>
+          <button
+            className="pa-icon-btn"
+            onClick={() => { setBuscando(true); setTimeout(() => searchRef.current?.focus(), 0); }}
+            title="Buscar"
+            aria-label="Buscar"
+          >
+            <Icon name="search" size={16} />
+          </button>
           <input
             ref={searchRef}
             className="input"
-            placeholder="Buscar… (pulsa /)"
+            placeholder="Buscar…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onBlur={() => { if (!search) setBuscando(false); }}
             aria-label="Buscar canales y contenido"
           />
         </div>
@@ -946,592 +981,264 @@ export default function PlayerApp() {
         </main>
       </div>
     ) : (
-    <div className="player-app">
-      <aside className="pa-sidebar" aria-label="Listas y canales">
-        <div className="pa-sidebar-head">
-          <div className="pa-playlist-select">
-            <select
-              className="input"
-              value={activeId || ""}
-              onChange={(e) => setActiveId(e.target.value || null)}
-              aria-label="Seleccionar lista"
-            >
-              {!playlists.length && <option value="">Sin listas</option>}
-              {playlists.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.remote ? "☁ " : ""}{p.name}
-                </option>
-              ))}
-            </select>
-            <button className="pa-icon-btn" onClick={() => setShowAdd(true)} title="Añadir lista" aria-label="Añadir lista">
-              <Icon name="plus" size={16} />
-            </button>
-            {active && !active.managed && (
-              <button
-                className="pa-icon-btn pa-icon-btn-danger"
-                onClick={() => handleDeletePlaylist(active)}
-                title="Eliminar lista"
-                aria-label="Eliminar lista"
-              >
-                <Icon name="trash" size={15} />
-              </button>
-            )}
+    <div className="pa-cat-layout">
+      {/* Cine y series comparten esqueleto con el directo: géneros a la
+          izquierda y el contenido a la derecha. Un solo lenguaje para toda
+          la aplicación en vez de una pantalla distinta por sección. */}
+      {active && (tab === "vod" || tab === "series") && (
+        <aside className="pa-live-cats" aria-label="Géneros">
+          <div className="pa-live-head">
+            <span>{tab === "vod" ? "Géneros" : "Categorías"}</span>
+            <span className="pa-live-n">{(tab === "vod" ? vodVisible : seriesVisible).length}</span>
           </div>
-
-          {active && (
-            <div className="pa-tabs" role="tablist">
-              <button role="tab" aria-selected={tab === "live"} className={`pa-tab ${tab === "live" ? "active" : ""}`} onClick={() => irAPestana("live")}>
-                {isXtream ? "Directo" : "Canales"}
-              </button>
-              {isXtream && (
-                <>
-                  <button role="tab" aria-selected={tab === "vod"} className={`pa-tab ${tab === "vod" ? "active" : ""}`} onClick={() => irAPestana("vod")}>
-                    Cine
-                  </button>
-                  <button role="tab" aria-selected={tab === "series"} className={`pa-tab ${tab === "series" ? "active" : ""}`} onClick={() => irAPestana("series")}>
-                    Series
-                  </button>
-                </>
-              )}
-              <button role="tab" aria-selected={tab === "favs"} className={`pa-tab ${tab === "favs" ? "active" : ""}`} onClick={() => irAPestana("favs")} title="Favoritos" aria-label="Favoritos">
-                <Icon name="star" size={15} />
-              </button>
-            </div>
-          )}
-
-          {active && hayDondeElegir && (
+          <div className="pa-live-scroll">
             <button
-              className="pa-inicio"
-              onClick={() => setSeccionGate("mostrando")}
-              title="Volver a elegir qué ver"
+              className={`pa-live-cat ${catFilter === "all" ? "activa" : ""}`}
+              onClick={() => setCatFilter("all")}
             >
-              <Icon name="back" size={14} /> Elegir qué ver
+              <span className="name">Todo</span>
             </button>
-          )}
-
-          {active && (
-            <div className="pa-search">
-              <Icon name="search" size={15} className="pa-search-icon" />
-              <input
-                ref={searchRef}
-                className="input"
-                placeholder="Buscar… (pulsa /)"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                aria-label="Buscar canales y contenido"
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="pa-lists">
-          {!active && (
-            <div className="pa-empty">
-              Añade tu primera lista M3U o Xtream Codes para empezar.
-              <div style={{ marginTop: 12 }}>
-                <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
-                  <><Icon name="plus" size={15} /> Añadir lista</>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {active && loading && (tab === "live" || tab === "favs") && (
-            <div data-testid="cargando-canales">
-              <Loading messages={MENSAJES_CANALES} compact />
-              <SkeletonList rows={7} />
-            </div>
-          )}
-
-          {active && loadError && (tab === "live" || tab === "favs") && (
-            <div className="pa-empty">
-              <div className="error-box">{loadError}</div>
-            </div>
-          )}
-
-          {active && showSidebar && !loading && !loadError && (tab === "live" || tab === "favs") && (
-            <>
-              {!liveGroups.length && (
-                <div className="pa-empty">
-                  {tab === "favs" ? "Aún no tienes favoritos. Pasa el ratón por un canal y pulsa la estrella." : "No hay canales que coincidan."}
-                </div>
-              )}
-              {liveGroups.map((g) => {
-                const open = q ? true : tab === "favs" ? true : openGroups[`${active.id}:${g.name}`] ?? false;
-                return (
-                  <div className="pa-group" key={g.name}>
-                    <button
-                      className="pa-group-head"
-                      onClick={() => setOpenGroups((prev) => ({ ...prev, [`${active.id}:${g.name}`]: !open }))}
-                      aria-expanded={open}
-                    >
-                      <span>{g.name}</span>
-                      <span className="count">{g.channels.length}</span>
-                    </button>
-                    {open &&
-                      g.channels.map((ch) => (
-                        <button
-                          key={ch.favKey}
-                          className={`pa-channel ${current?.favKey === ch.favKey ? "active" : ""}`}
-                          onClick={ch.play}
-                        >
-                          {ch.logo ? (
-                            <img src={imgSrc(ch.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
-                          ) : (
-                            <span className="ph"><Icon name="play" size={13} /></span>
-                          )}
-                          <span className="name">{ch.name}</span>
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            className={`fav-btn ${favorites[ch.favKey] ? "on" : ""}`}
-                            title="Favorito"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onToggleFav(ch.favKey);
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.stopPropagation();
-                                onToggleFav(ch.favKey);
-                              }
-                            }}
-                          >
-                            <Icon name="star" size={13} />
-                          </span>
-                        </button>
-                      ))}
-                  </div>
-                );
-              })}
-            </>
-          )}
-
-          {active && isXtream && (tab === "vod" || tab === "series") && (
-            <div style={{ padding: 8 }}>
-              <label className="label" style={{ padding: "0 4px" }}>Categorías</label>
+            {(tab === "vod" ? vodCats : seriesCats).map((c) => (
               <button
-                className={`pa-channel ${catFilter === "all" ? "active" : ""}`}
-                onClick={() => setCatFilter("all")}
+                key={c.category_id}
+                className={`pa-live-cat ${catFilter === c.category_id ? "activa" : ""}`}
+                onClick={() => setCatFilter(c.category_id)}
+                title={c.category_name}
               >
-                <span className="name">Todas</span>
+                <span className="name">{c.category_name}</span>
               </button>
-              {(tab === "vod" ? vodCats : seriesCats).map((c) => (
+            ))}
+          </div>
+        </aside>
+      )}
+
+      <main className="pa-cat-main">
+        {!active && (
+          <div className="pa-welcome">
+            <h2>Bienvenido a TOTALplayer</h2>
+            <p>
+              Añade tu lista M3U o tus credenciales Xtream Codes y empieza a ver TV en directo, películas y series
+              directamente en el navegador.
+            </p>
+            <button className="btn btn-primary btn-lg" onClick={() => setShowAdd(true)}>
+              <><Icon name="plus" size={17} /> Añadir mi primera lista</>
+            </button>
+            {recents.length > 0 && (
+              <>
+                <h3 style={{ marginTop: 20, fontSize: 15, color: "var(--text-dim)" }}>Visto recientemente</h3>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  {recents.slice(0, 6).map((r) => (
+                    <button key={r.key} className="btn btn-ghost btn-sm" onClick={() => playRecent(r)}>
+                      <><Icon name="play" size={13} /> {r.name}</>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            <div className="pa-shortcuts">
+              <span><span className="kbd">↑↓</span> Zapping</span>
+              <span><span className="kbd">/</span> Buscar</span>
+              <span><span className="kbd">F</span> Pantalla completa</span>
+              <span><span className="kbd">M</span> Silenciar</span>
+            </div>
+          </div>
+        )}
+
+        {/* Viendo una película o un episodio: el vídeo manda, y al lado
+            quedan los episodios para pasar al siguiente sin volver atrás */}
+        {active && viendo && current && (
+          <div className={`pa-watch ${episodiosDeLaSerie.length ? "con-episodios" : ""}`}>
+            <div className="pa-watch-video">
+              <div className="pa-live-titulo">
                 <button
-                  key={c.category_id}
-                  className={`pa-channel ${catFilter === c.category_id ? "active" : ""}`}
-                  onClick={() => setCatFilter(c.category_id)}
+                  className="pa-live-atras"
+                  onClick={() => { setViendo(false); setCurrent(null); }}
+                  aria-label="Volver"
                 >
-                  <span className="name">{c.category_name}</span>
+                  <Icon name="back" size={15} />
                 </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {customer ? (
-          <div className="pa-side-foot" style={{ padding: 12, borderTop: "1px solid var(--border)", fontSize: 13, color: "var(--text-dim)" }}>
-            {profile ? (
-              <>
-                Perfil <strong>{profile.name}</strong> · {customer.username}
-              </>
-            ) : (
-              <>
-                Conectado como <strong>{customer.username}</strong>
-                {customer.brand ? ` · ${customer.brand}` : ""}
-              </>
-            )}
-            <button
-              className="btn btn-ghost btn-sm"
-              style={{ marginLeft: 8 }}
-              onClick={async () => {
-                await fetch("/api/customer/me", { method: "DELETE" });
-                window.location.href = "/acceso";
-              }}
-            >
-              Salir
-            </button>
-          </div>
-        ) : authLoaded && !user ? (
-          <div className="pa-side-foot" style={{ padding: 12, borderTop: "1px solid var(--border)", fontSize: 13, color: "var(--text-dim)" }}>
-            Modo invitado — <Link href="/registro">crea una cuenta</Link> para sincronizar tus listas.
-          </div>
-        ) : null}
-      </aside>
-
-      <main className={`pa-main ${current && !explorando ? "pa-main-full" : ""}`}>
-        {/* Mientras se explora no hay reproductor: desmontarlo detiene el
-            stream anterior, que seguía sonando encima mientras se buscaba */}
-        {!explorando && <VideoPlayer source={current?.source || null} />}
-
-        {!explorando && current && (
-          <div className="pa-now-playing">
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => {
-                setViendo(false);
-                setCurrent(null);
-                if (current.kind === "vod") setTab("vod");
-                else if (current.kind === "episode") setTab("series");
-              }}
-            >
-              <Icon name="back" size={14} /> {current.kind === "vod" || current.kind === "episode" ? "Volver" : "Canales"}
-            </button>
-            {imgSrc(current.logo) && <img src={imgSrc(current.logo)} alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="pa-now-title">{current.source.name}</div>
-              {epg?.now && (
-                <div className="pa-now-epg">
-                  Ahora: {epg.now}
-                  {epg.next ? <span className="epg-next"> · Después: {epg.next}</span> : null}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h2>{current.source.name}</h2>
                 </div>
-              )}
-            </div>
-            {current.favKey && (
-              <button
-                className={`btn btn-ghost btn-sm`}
-                onClick={() => onToggleFav(current.favKey!)}
-                title="Añadir a favoritos"
-              >
-                <><Icon name="star" size={14} /> {favorites[current.favKey] ? "En favoritos" : "Añadir a favoritos"}</>
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* En el móvil no hay barra lateral: la lista para zapear va bajo el vídeo */}
-        {!explorando && current && showSidebar && (
-          <div className="pa-zap" aria-label="Cambiar de canal">
-            {liveGroups.map((g) => {
-              const abierto = openGroups[`${active?.id}:zap:${g.name}`] ?? false;
-              return (
-                <div key={g.name}>
-                  <button
-                    className="pa-group-head"
-                    onClick={() => setOpenGroups((prev) => ({ ...prev, [`${active?.id}:zap:${g.name}`]: !abierto }))}
-                    aria-expanded={abierto}
-                  >
-                    <span>{g.name}</span>
-                    <span className="count">{g.channels.length}</span>
-                  </button>
-                  {abierto &&
-                    g.channels.slice(0, 300).map((ch) => (
-                      <button
-                        key={ch.favKey}
-                        className={`pa-channel ${current?.favKey === ch.favKey ? "active" : ""}`}
-                        onClick={ch.play}
-                      >
-                        {imgSrc(ch.logo) ? (
-                          <img src={imgSrc(ch.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
-                        ) : (
-                          <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
-                        )}
-                        <span className="name">{ch.name}</span>
-                      </button>
-                    ))}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        <div className={`pa-content ${explorando ? "pa-catalogo" : ""}`}>
-          {!active && (
-            <div className="pa-welcome">
-              <h2>Bienvenido a TOTALplayer</h2>
-              <p>
-                Añade tu lista M3U o tus credenciales Xtream Codes y empieza a ver TV en directo, películas y series
-                directamente en el navegador.
-              </p>
-              <button className="btn btn-primary btn-lg" onClick={() => setShowAdd(true)}>
-                <><Icon name="plus" size={17} /> Añadir mi primera lista</>
-              </button>
-              {recents.length > 0 && (
-                <>
-                  <h3 style={{ marginTop: 20, fontSize: 15, color: "var(--text-dim)" }}>Visto recientemente</h3>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                    {recents.slice(0, 6).map((r) => (
-                      <button key={r.key} className="btn btn-ghost btn-sm" onClick={() => playRecent(r)}>
-                        <><Icon name="play" size={13} /> {r.name}</>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-              <div className="pa-shortcuts">
-                <span><span className="kbd">↑↓</span> Zapping</span>
-                <span><span className="kbd">/</span> Buscar</span>
-                <span><span className="kbd">F</span> Pantalla completa</span>
-                <span><span className="kbd">M</span> Silenciar</span>
               </div>
+              <VideoPlayer source={current.source} onEnded={siguienteEpisodio} />
             </div>
-          )}
-
-          {modoCanales && (
-            <div className="canales-cat">
-              {loading && !liveGroups.length && <Loading messages={MENSAJES_CANALES} />}
-              {!loading && !liveGroups.length && (
-                <div className="pa-empty">
-                  {tab === "favs"
-                    ? "Aún no tienes favoritos. Pulsa la estrella de cualquier canal para guardarlo aquí."
-                    : "No hay canales que coincidan."}
-                </div>
-              )}
-
-              {liveGroups.length > 0 && (
-                <>
-                  {recents.length > 0 && tab === "live" && !grupoSel && !q && (
-                    <div className="canales-recientes">
-                      <span className="canales-recientes-label">Seguir viendo</span>
-                      {recents.slice(0, 5).map((r) => (
-                        <button key={r.key} className="btn btn-ghost btn-sm" onClick={() => playRecent(r)}>
-                          <><Icon name="play" size={13} /> {r.name}</>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Las carpetas, como pastillas: una pulsación y ves solo esa */}
-                  <div className="canales-chips" role="tablist" aria-label="Categorías de canales">
+            {episodiosDeLaSerie.length > 0 && (
+              <aside className="pa-watch-eps" aria-label="Episodios">
+                <div className="pa-live-head"><span>Episodios</span></div>
+                <div className="pa-live-scroll">
+                  {episodiosDeLaSerie.map((ep) => (
                     <button
-                      className={`canal-chip ${!grupoSel ? "active" : ""}`}
-                      onClick={() => setGrupoSel(null)}
-                      role="tab"
-                      aria-selected={!grupoSel}
+                      key={ep.id}
+                      className={`pa-ep-fila ${current.source.name.includes(ep.title || `Episodio ${ep.episode_num}`) ? "activo" : ""}`}
+                      onClick={() =>
+                        playEpisode(active, seriesDetail!.series, ep.id, ep.title || `Episodio ${ep.episode_num}`, ep.container_extension)
+                      }
                     >
-                      Todas
+                      <span className="pa-ep-n">{ep.episode_num}</span>
+                      <span className="pa-ep-t">{ep.title || `Episodio ${ep.episode_num}`}</span>
                     </button>
-                    {liveGroups.map((g) => (
-                      <button
-                        key={g.name}
-                        className={`canal-chip ${grupoSel === g.name ? "active" : ""}`}
-                        onClick={() => setGrupoSel(g.name)}
-                        role="tab"
-                        aria-selected={grupoSel === g.name}
-                      >
-                        {g.name} <span className="canal-chip-n">{g.channels.length}</span>
-                      </button>
-                    ))}
-                  </div>
+                  ))}
+                </div>
+              </aside>
+            )}
+          </div>
+        )}
 
-                  {(grupoSel && liveGroups.some((g) => g.name === grupoSel)
-                    ? liveGroups.filter((g) => g.name === grupoSel)
-                    : liveGroups
-                  ).map((g) => {
-                    // Con todas las carpetas a la vez se enseña un adelanto de
-                    // cada una: pintar diez mil tarjetas de golpe congelaría
-                    // la página. Dentro de una carpeta se ve entera.
-                    const adelanto = !grupoSel && g.channels.length > 12;
-                    const canales = adelanto ? g.channels.slice(0, 12) : g.channels.slice(0, 1000);
-                    /*
-                     * En el móvil las carpetas salen cerradas: con una lista
-                     * real, todas desplegadas era un scroll infinito imposible
-                     * de navegar. Se toca una carpeta y se abre ahí mismo.
-                     * (El plegado solo actúa en pantallas pequeñas, vía CSS;
-                     * en escritorio se ve todo, como siempre.)
-                     */
-                    const plegable = !grupoSel && !q && liveGroups.length > 1;
-                    const abierta = !plegable || Boolean(carpetasAbiertas[g.name]);
-                    return (
-                      <section
-                        className={`canales-seccion${plegable ? " plegable" : ""}${abierta ? "" : " plegada"}`}
-                        key={g.name}
-                      >
-                        <div
-                          className="canales-seccion-head"
-                          onClick={() =>
-                            plegable && setCarpetasAbiertas((a) => ({ ...a, [g.name]: !a[g.name] }))
-                          }
-                        >
-                          <h3>{g.name}</h3>
-                          <span className="canales-seccion-n">{g.channels.length}</span>
-                          {adelanto && (
-                            <button
-                              className="canales-ver-todos"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setGrupoSel(g.name);
-                              }}
-                            >
-                              Ver todos <Icon name="chevronRight" size={13} />
-                            </button>
-                          )}
-                          {plegable && (
-                            <span className="canales-plegar" aria-hidden="true">
-                              <Icon name="chevronRight" size={15} />
-                            </span>
-                          )}
-                        </div>
-                        <div className="canales-grid">
-                          {canales.map((ch) => (
-                            <button className="canal-card" key={ch.favKey} onClick={ch.play} title={ch.name}>
-                              {imgSrc(ch.logo) ? (
-                                <img
-                                  className="canal-logo"
-                                  src={imgSrc(ch.logo)}
-                                  alt=""
-                                  loading="lazy"
-                                  onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")}
-                                />
-                              ) : (
-                                <span className="canal-logo canal-logo-ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
-                              )}
-                              <span className="canal-nombre">{ch.name}</span>
-                              {favorites[ch.favKey] && (
-                                <span className="canal-fav" aria-label="En favoritos">
-                                  <Icon name="star" size={13} />
-                                </span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      </section>
-                    );
-                  })}
-                </>
-              )}
-              <AdSlot slot="player-welcome" />
-            </div>
-          )}
-
-          {active && modoCatalogo && tab === "vod" && !seriesDetail && !vodDetail && (
-            <>
-              {loading && <Loading messages={MENSAJES_CINE} />}
-              {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
-              <div className="pa-grid">
-                {vodVisible.slice(0, 400).map((v) => (
-                  <button className="pa-card" key={v.stream_id} onClick={() => openVod(active, v)} title={v.name}>
-                    {v.stream_icon ? (
-                      <img className="poster" src={imgSrc(v.stream_icon)} alt={v.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
-                    ) : (
-                      <div className="poster-ph"><Icon name="play" size={26} /></div>
-                    )}
-                    <div className="meta">
-                      <div className="title">{v.name}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              {vodVisible.length > 400 && (
-                <p style={{ textAlign: "center", color: "var(--text-faint)", padding: "0 0 20px" }}>
-                  Mostrando 400 de {vodVisible.length} — usa la búsqueda para afinar.
-                </p>
-              )}
-            </>
-          )}
-
-          {active && modoCatalogo && tab === "series" && !seriesDetail && (
-            <>
-              {loading && <Loading messages={MENSAJES_SERIES} />}
-              {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
-              <div className="pa-grid">
-                {seriesVisible.slice(0, 400).map((s) => (
-                  <button className="pa-card" key={s.series_id} onClick={() => openSeries(active, s)} title={s.name}>
-                    {s.cover ? (
-                      <img className="poster" src={imgSrc(s.cover)} alt={s.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
-                    ) : (
-                      <div className="poster-ph"><Icon name="tv" size={26} /></div>
-                    )}
-                    <div className="meta">
-                      <div className="title">{s.name}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {active && modoCatalogo && tab === "vod" && vodDetail && (
-            <div className="pa-series-detail">
-              <button className="btn btn-ghost btn-sm" onClick={() => setVodDetail(null)} style={{ marginBottom: 16 }}>
-                <Icon name="back" size={15} /> Volver a cine
-              </button>
-              <div className="pa-series-head">
-                {imgSrc(vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon) && (
-                  <img src={imgSrc(vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon)} alt={vodDetail.vod.name} />
-                )}
-                <div>
-                  <h2>{vodDetail.vod.name}</h2>
-                  <FichaMeta
-                    genero={vodDetail.info?.info?.genre}
-                    fecha={vodDetail.info?.info?.releasedate || vodDetail.info?.info?.release_date}
-                    duracion={vodDetail.info?.info?.duration}
-                    nota={vodDetail.info?.info?.rating || vodDetail.vod.rating}
-                  />
-                  {vodDetail.info === null ? (
-                    <p className="ficha-cargando">Cargando la ficha…</p>
+        {/* Catálogo de cine */}
+        {active && modoCatalogo && tab === "vod" && !vodDetail && (
+          <div className="pa-cat-scroll">
+            {loading && <Loading messages={MENSAJES_CINE} />}
+            {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
+            <div className="pa-grid">
+              {vodVisible.slice(0, 400).map((v) => (
+                <button className="pa-card" key={v.stream_id} onClick={() => openVod(active, v)} title={v.name}>
+                  {v.stream_icon ? (
+                    <img className="poster" src={imgSrc(v.stream_icon)} alt={v.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
                   ) : (
-                    <>
-                      {(vodDetail.info.info?.plot || vodDetail.info.info?.description) && (
-                        <p>{vodDetail.info.info?.plot || vodDetail.info.info?.description}</p>
-                      )}
-                      <FichaCredito etiqueta="Reparto" valor={vodDetail.info.info?.cast || vodDetail.info.info?.actors} />
-                      <FichaCredito etiqueta="Dirección" valor={vodDetail.info.info?.director} />
-                    </>
+                    <div className="poster-ph"><Icon name="play" size={26} /></div>
                   )}
-                  <button
-                    className="btn btn-primary"
-                    style={{ marginTop: 18 }}
-                    onClick={() => playVod(active, {
-                      ...vodDetail.vod,
-                      container_extension: vodDetail.info?.movie_data?.container_extension || vodDetail.vod.container_extension,
-                    })}
-                  >
-                    <Icon name="play" size={16} /> Reproducir
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {active && modoCatalogo && seriesDetail && (
-            <div className="pa-series-detail">
-              <button className="btn btn-ghost btn-sm" onClick={() => setSeriesDetail(null)} style={{ marginBottom: 16 }}>
-                ← Volver a series
-              </button>
-              <div className="pa-series-head">
-                {imgSrc(seriesDetail.info.info?.cover || seriesDetail.series.cover) && <img src={imgSrc(seriesDetail.info.info?.cover || seriesDetail.series.cover)} alt={seriesDetail.series.name} />}
-                <div>
-                  <h2>{seriesDetail.series.name}</h2>
-                  <FichaMeta
-                    genero={seriesDetail.info.info?.genre}
-                    fecha={seriesDetail.info.info?.releaseDate || seriesDetail.info.info?.release_date}
-                    duracion={seriesDetail.info.info?.episode_run_time ? `${seriesDetail.info.info.episode_run_time} min/ep` : undefined}
-                    nota={seriesDetail.info.info?.rating || seriesDetail.series.rating}
-                  />
-                  <p>{seriesDetail.info.info?.plot || seriesDetail.series.plot || ""}</p>
-                  <FichaCredito etiqueta="Reparto" valor={seriesDetail.info.info?.cast} />
-                  <FichaCredito etiqueta="Dirección" valor={seriesDetail.info.info?.director} />
-                </div>
-              </div>
-              <div className="pa-season-tabs">
-                {Object.keys(seriesDetail.info.episodes || {}).map((season) => (
-                  <button
-                    key={season}
-                    className={`btn btn-sm ${seriesDetail.season === season ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => setSeriesDetail({ ...seriesDetail, season })}
-                  >
-                    Temporada {season}
-                  </button>
-                ))}
-              </div>
-              {(seriesDetail.info.episodes?.[seriesDetail.season] || []).map((ep) => (
-                <button
-                  key={ep.id}
-                  className="pa-episode"
-                  onClick={() =>
-                    playEpisode(active, seriesDetail.series, ep.id, ep.title || `Episodio ${ep.episode_num}`, ep.container_extension)
-                  }
-                >
-                  <span className="ep-num">{ep.episode_num}.</span>
-                  <span>{ep.title || `Episodio ${ep.episode_num}`}</span>
+                  <div className="meta">
+                    <div className="title">{v.name}</div>
+                  </div>
                 </button>
               ))}
             </div>
-          )}
-        </div>
+            {vodVisible.length > 400 && (
+              <p style={{ textAlign: "center", color: "var(--text-faint)", padding: "0 0 20px" }}>
+                Mostrando 400 de {vodVisible.length} — usa la búsqueda para afinar.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Catálogo de series */}
+        {active && modoCatalogo && tab === "series" && !seriesDetail && (
+          <div className="pa-cat-scroll">
+            {loading && <Loading messages={MENSAJES_SERIES} />}
+            {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
+            <div className="pa-grid">
+              {seriesVisible.slice(0, 400).map((s) => (
+                <button className="pa-card" key={s.series_id} onClick={() => openSeries(active, s)} title={s.name}>
+                  {s.cover ? (
+                    <img className="poster" src={imgSrc(s.cover)} alt={s.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
+                  ) : (
+                    <div className="poster-ph"><Icon name="tv" size={26} /></div>
+                  )}
+                  <div className="meta">
+                    <div className="title">{s.name}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
+    )}
+
+    {/* Ficha en ventana: la carátula, la sinopsis y los episodios encima de
+        lo que estabas viendo, sin cambiar de pantalla ni perder el sitio */}
+    {/* Mientras se ve, la ficha se aparta; al volver sigue ahí, que es
+        donde el usuario estaba */}
+    {active && vodDetail && !viendo && (
+      <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setVodDetail(null)}>
+        <div className="ficha" role="dialog" aria-modal="true" aria-label={vodDetail.vod.name}>
+          <button className="ficha-cerrar" onClick={() => setVodDetail(null)} aria-label="Cerrar">
+            <Icon name="cerrar" size={18} />
+          </button>
+          <div className="ficha-cabeza">
+            {imgSrc(vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon) && (
+              <img src={imgSrc(vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon)} alt="" />
+            )}
+            <div className="ficha-datos">
+              <h2>{vodDetail.vod.name}</h2>
+              <FichaMeta
+                genero={vodDetail.info?.info?.genre}
+                fecha={vodDetail.info?.info?.releasedate || vodDetail.info?.info?.release_date}
+                duracion={vodDetail.info?.info?.duration}
+                nota={vodDetail.info?.info?.rating || vodDetail.vod.rating}
+              />
+              {vodDetail.info === null ? (
+                <p className="ficha-cargando">Cargando la ficha…</p>
+              ) : (
+                <>
+                  {(vodDetail.info.info?.plot || vodDetail.info.info?.description) && (
+                    <p className="ficha-plot">{vodDetail.info.info?.plot || vodDetail.info.info?.description}</p>
+                  )}
+                  <FichaCredito etiqueta="Reparto" valor={vodDetail.info.info?.cast || vodDetail.info.info?.actors} />
+                  <FichaCredito etiqueta="Dirección" valor={vodDetail.info.info?.director} />
+                </>
+              )}
+              <button
+                className="btn btn-primary"
+                style={{ marginTop: 18 }}
+                onClick={() => playVod(active, {
+                  ...vodDetail.vod,
+                  container_extension: vodDetail.info?.movie_data?.container_extension || vodDetail.vod.container_extension,
+                })}
+              >
+                <Icon name="play" size={16} /> Reproducir
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {active && seriesDetail && !viendo && (
+      <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setSeriesDetail(null)}>
+        <div className="ficha" role="dialog" aria-modal="true" aria-label={seriesDetail.series.name}>
+          <button className="ficha-cerrar" onClick={() => setSeriesDetail(null)} aria-label="Cerrar">
+            <Icon name="cerrar" size={18} />
+          </button>
+          <div className="ficha-cabeza">
+            {imgSrc(seriesDetail.info.info?.cover || seriesDetail.series.cover) && (
+              <img src={imgSrc(seriesDetail.info.info?.cover || seriesDetail.series.cover)} alt="" />
+            )}
+            <div className="ficha-datos">
+              <h2>{seriesDetail.series.name}</h2>
+              <FichaMeta
+                genero={seriesDetail.info.info?.genre}
+                fecha={seriesDetail.info.info?.releaseDate || seriesDetail.info.info?.release_date}
+                duracion={seriesDetail.info.info?.episode_run_time ? `${seriesDetail.info.info.episode_run_time} min/ep` : undefined}
+                nota={seriesDetail.info.info?.rating || seriesDetail.series.rating}
+              />
+              <p className="ficha-plot">{seriesDetail.info.info?.plot || seriesDetail.series.plot || ""}</p>
+              <FichaCredito etiqueta="Reparto" valor={seriesDetail.info.info?.cast} />
+              <FichaCredito etiqueta="Dirección" valor={seriesDetail.info.info?.director} />
+            </div>
+          </div>
+
+          <div className="ficha-temporadas">
+            {Object.keys(seriesDetail.info.episodes || {}).map((season) => (
+              <button
+                key={season}
+                className={`ficha-temporada ${seriesDetail.season === season ? "activa" : ""}`}
+                onClick={() => setSeriesDetail({ ...seriesDetail, season })}
+              >
+                Temporada {season}
+              </button>
+            ))}
+          </div>
+
+          <div className="ficha-episodios">
+            {(seriesDetail.info.episodes?.[seriesDetail.season] || []).map((ep) => (
+              <button
+                key={ep.id}
+                className="pa-episode"
+                onClick={() =>
+                  playEpisode(active, seriesDetail.series, ep.id, ep.title || `Episodio ${ep.episode_num}`, ep.container_extension)
+                }
+              >
+                <span className="ep-num">{ep.episode_num}</span>
+                <span className="ep-t">{ep.title || `Episodio ${ep.episode_num}`}</span>
+                <Icon name="play" size={15} />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
     )}
 
     <div className="pa-flotantes">

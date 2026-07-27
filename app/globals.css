@@ -1967,3 +1967,135 @@ select.input { appearance: none; cursor: pointer; }
 /* El botón de volver al selector, ahora en la barra de secciones */
 .pa-nav .pa-inicio { margin-top: 0; padding: 8px 12px; border-radius: var(--radius-pill); flex-shrink: 0; }
 .pa-nav .pa-inicio:hover { background: var(--bg-hover); }
+
+/* ---- Buscador plegable, selector de lista y vídeo que cabe ---- */
+
+.pa-nav-busca {
+  display: flex; align-items: center; gap: 0;
+  margin-left: auto; width: auto; position: static; flex-shrink: 0;
+}
+.pa-nav-busca .input {
+  width: 0; padding: 0; border: none; opacity: 0; height: 38px;
+  transition: width 0.18s ease, padding 0.18s ease, opacity 0.15s;
+}
+.pa-nav-busca.abierta .input {
+  width: 240px; padding: 0 14px; opacity: 1;
+  border: 1px solid var(--border); margin-left: 8px;
+}
+.pa-nav-busca.abierta .pa-icon-btn { display: none; }
+
+/* El nombre de la lista se lee entero: el ancho fijo lo cortaba */
+.pa-nav-lista {
+  width: auto; min-width: 120px; max-width: 200px;
+  padding: 0 32px 0 12px; height: 38px;
+}
+
+/*
+ * min-height: 0 en el hijo flexible es lo que impide que el vídeo empuje
+ * sus propios controles fuera de la pantalla: sin él, un flex-item no baja
+ * de su tamaño de contenido y la barra de volumen quedaba cortada abajo.
+ */
+.pa-live-stage .pa-video-zone { min-height: 0; }
+.pa-live-stage .pa-video-zone video { height: 100%; object-fit: contain; }
+
+/* ============ Cine y series con el mismo esqueleto ============ */
+
+.pa-cat-layout {
+  display: grid; grid-template-columns: 268px 1fr;
+  height: calc(100vh - var(--header-h) - 54px); overflow: hidden; background: var(--bg);
+}
+.pa-cat-layout:not(:has(.pa-live-cats)) { grid-template-columns: 1fr; }
+.pa-cat-main { display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.pa-cat-scroll { flex: 1; overflow-y: auto; }
+
+/* Viendo una película o episodio: vídeo y, al lado, los episodios */
+.pa-watch { flex: 1; display: grid; grid-template-columns: 1fr; overflow: hidden; min-height: 0; }
+.pa-watch.con-episodios { grid-template-columns: 1fr 320px; }
+.pa-watch-video { display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.pa-watch-video .pa-video-zone { flex: 1; min-height: 0; max-height: none; aspect-ratio: auto; }
+.pa-watch-video .pa-video-zone video { height: 100%; object-fit: contain; }
+.pa-watch-eps {
+  display: flex; flex-direction: column; overflow: hidden;
+  border-left: 1px solid var(--hairline); background: var(--bg-elev);
+}
+.pa-ep-fila {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 11px; border-radius: 10px; margin-bottom: 2px;
+  background: none; border: none; cursor: pointer; text-align: left;
+  color: var(--text-dim); font-size: 13.5px; font-weight: 500;
+}
+.pa-ep-fila:hover { background: var(--bg-hover); color: var(--text); }
+.pa-ep-fila.activo { background: var(--accent-tint); color: var(--text); }
+.pa-ep-n {
+  font-size: 12px; font-weight: 700; color: var(--text-faint);
+  min-width: 22px; flex-shrink: 0; font-variant-numeric: tabular-nums;
+}
+.pa-ep-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- La ficha, en ventana ---- */
+
+.ficha {
+  position: relative; width: min(900px, 94vw); max-height: 88vh; overflow-y: auto;
+  background: var(--bg-elev); border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 28px;
+}
+.ficha-cerrar {
+  position: absolute; top: 16px; right: 16px; z-index: 2;
+  width: 36px; height: 36px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-quiet); border: 1px solid var(--hairline);
+  color: var(--text-dim); cursor: pointer;
+}
+.ficha-cerrar:hover { background: var(--bg-hover); color: var(--text); }
+.ficha-cabeza { display: flex; gap: 24px; align-items: flex-start; }
+.ficha-cabeza > img {
+  width: 190px; flex-shrink: 0; border-radius: var(--radius);
+  aspect-ratio: 2/3; object-fit: cover; background: var(--bg-elev-2);
+}
+.ficha-datos { flex: 1; min-width: 0; }
+.ficha-datos h2 { font-size: 25px; font-weight: 800; margin-bottom: 12px; }
+.ficha-plot { font-size: 14.5px; line-height: 1.6; color: var(--text-dim); margin: 12px 0; }
+
+.ficha-temporadas { display: flex; gap: 8px; flex-wrap: wrap; margin: 26px 0 16px; }
+.ficha-temporada {
+  padding: 8px 16px; border-radius: var(--radius-pill);
+  background: var(--surface-quiet); border: 1px solid var(--hairline);
+  color: var(--text-dim); font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.ficha-temporada:hover { background: var(--bg-hover); color: var(--text); }
+.ficha-temporada.activa { background: var(--accent); border-color: transparent; color: #fff; }
+
+.ficha-episodios { display: flex; flex-direction: column; gap: 6px; }
+.ficha-episodios .pa-episode {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  padding: 13px 15px; border-radius: var(--radius-sm);
+  background: var(--surface-quiet); border: 1px solid var(--hairline);
+  color: var(--text); font-size: 14.5px; font-weight: 600; cursor: pointer; text-align: left;
+}
+.ficha-episodios .pa-episode:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+.ficha-episodios .ep-num {
+  width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-tint); color: var(--accent-bright);
+  font-size: 12.5px; font-weight: 700;
+}
+.ficha-episodios .ep-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ficha-episodios .pa-episode svg { color: var(--text-faint); flex-shrink: 0; }
+
+@media (max-width: 900px) {
+  .pa-cat-layout { grid-template-columns: 1fr; height: calc(100vh - var(--header-h) - 54px); }
+  .pa-cat-layout .pa-live-cats { display: none; }
+  .pa-watch.con-episodios { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .pa-watch-video .pa-video-zone { flex: none; aspect-ratio: 16/9; }
+  .pa-watch-eps { border-left: none; border-top: 1px solid var(--hairline); }
+  .ficha { padding: 20px; width: 96vw; }
+  .ficha-cabeza { flex-direction: column; gap: 16px; }
+  .ficha-cabeza > img { width: 130px; }
+  .ficha-datos h2 { font-size: 20px; }
+  .pa-nav-busca.abierta .input { width: 100%; }
+  .pa-nav-busca.abierta { flex: 1; }
+}
+
+/* En cine y series el botón de volver sí hace falta en escritorio: es la
+   única salida del vídeo (en el directo se sale eligiendo otro canal) */
+.pa-watch .pa-live-atras { display: inline-flex; }

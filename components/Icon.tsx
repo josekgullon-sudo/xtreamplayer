@@ -26,6 +26,7 @@ export type IconName =
   | "eye"
   | "eyeOff"
   | "back"
+  | "cerrar"
   | "device"
   | "clock"
   | "shield"
@@ -136,6 +137,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   back: <path d="M19 12H5M11 6l-6 6 6 6" />,
+  cerrar: <path d="M18 6 6 18M6 6l12 12" />,
   device: (
     <>
       <rect x="2" y="5" width="14" height="10" rx="1.5" />
