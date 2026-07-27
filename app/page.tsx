@@ -73,16 +73,19 @@ export default function HomePage() {
               Pega tu URL M3U o tus credenciales Xtream Codes y empieza a ver TV en directo, películas y series.
               Sin instalar nada, sin registro obligatorio y gratis.
             </p>
+            {/*
+              Una sola llamada grande. Dos botones del mismo tamaño obligan a
+              decidir antes de saber qué hay dentro; el segundo camino se
+              ofrece como enlace, para quien ya sabe que quiere cuenta.
+            */}
             <div className="hero-cta">
               <Link href="/player" className="btn btn-primary btn-lg">
-                <><Icon name="play" size={18} /> Reproducir mi lista ahora</>
-              </Link>
-              <Link href="/registro" className="btn btn-ghost btn-lg">
-                Crear cuenta gratis
+                <><Icon name="play" size={18} /> Ver mi lista ahora</>
               </Link>
             </div>
             <p className="hero-note">
-              Sin tarjeta · Sin descargas · Tus credenciales no salen de tu dispositivo en modo invitado
+              Gratis y sin instalar nada · <Link href="/registro">Crear cuenta</Link> para guardar tus listas ·{" "}
+              <Link href="/proveedores">¿Eres proveedor?</Link>
             </p>
           </div>
         </section>
@@ -115,10 +118,8 @@ export default function HomePage() {
 
         <section className="section" id="caracteristicas">
           <div className="container">
-            <h2 className="section-title">Todo lo que esperas de un gran reproductor IPTV</h2>
-            <p className="section-sub">
-              Diseñado estudiando lo mejor (y lo peor) de los reproductores actuales para que no eches nada de menos.
-            </p>
+            <h2 className="section-title">Lo que hace falta, y funcionando</h2>
+            <p className="section-sub">Sin listas de la compra: esto es lo que se usa todos los días.</p>
             <div className="features-grid">
               <div className="feature-card">
                 <div className="feature-icon"><Icon name="tv" size={22} /></div>
@@ -150,50 +151,6 @@ export default function HomePage() {
                 <h3>Compatibilidad automática</h3>
                 <p>Si un stream falla por CORS o formato, lo reintentamos automáticamente con nuestro motor de compatibilidad. Menos pantallas negras, más tele.</p>
               </div>
-              <div className="feature-card">
-                <div className="feature-icon"><Icon name="upload" size={22} /></div>
-                <h3>Tus listas en la nube</h3>
-                <p>Con una cuenta gratuita, tus listas te siguen a cualquier dispositivo: portátil, móvil, tablet o la tele del salón.</p>
-              </div>
-              <div className="feature-card">
-                <div className="feature-icon"><Icon name="star" size={22} /></div>
-                <h3>Favoritos e historial</h3>
-                <p>Marca tus canales de siempre y retoma lo último que estabas viendo. Todo sincronizado y sin esfuerzo.</p>
-              </div>
-              <div className="feature-card">
-                <div className="feature-icon"><Icon name="device" size={22} /></div>
-                <h3>Multiplataforma real</h3>
-                <p>Un navegador es todo lo que necesitas: PC, Mac, Linux, Android, iPhone o Smart TV. Siempre actualizado.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="section" id="comparativa">
-          <div className="container">
-            <h2 className="section-title">¿Por qué TOTALplayer y no otro?</h2>
-            <p className="section-sub">Comparado con los reproductores IPTV web más usados.</p>
-            <div style={{ overflowX: "auto" }}>
-              <table className="compare-table">
-                <thead>
-                  <tr>
-                    <th>Característica</th>
-                    <th>TOTALplayer</th>
-                    <th>Players web típicos</th>
-                    <th>Apps de escritorio</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td>Sin instalación</td><td className="check">✓</td><td className="check">✓</td><td className="cross">✗</td></tr>
-                  <tr><td>Xtream: directo + VOD + series</td><td className="check">✓</td><td className="cross">Parcial</td><td className="check">✓</td></tr>
-                  <tr><td>Reintento automático anti-CORS</td><td className="check">✓</td><td className="cross">✗</td><td className="cross">N/A</td></tr>
-                  <tr><td>Modo invitado 100% privado</td><td className="check">✓</td><td className="cross">Varía</td><td className="check">✓</td></tr>
-                  <tr><td>Listas sincronizadas en la nube</td><td className="check">✓ Gratis</td><td className="cross">✗ o de pago</td><td className="cross">✗</td></tr>
-                  <tr><td>Atajos de teclado</td><td className="check">✓</td><td className="cross">Pocos</td><td className="check">✓</td></tr>
-                  <tr><td>Mensajes de error útiles</td><td className="check">✓</td><td className="cross">✗</td><td className="cross">Varía</td></tr>
-                  <tr><td>En español</td><td className="check">✓</td><td className="cross">Casi nunca</td><td className="cross">Varía</td></tr>
-                </tbody>
-              </table>
             </div>
           </div>
         </section>
@@ -201,7 +158,7 @@ export default function HomePage() {
         <section className="section" id="faq">
           <div className="container">
             <h2 className="section-title">Preguntas frecuentes</h2>
-            <p className="section-sub">Todo lo que necesitas saber antes de darle al play.</p>
+            <p className="section-sub">Lo que más se pregunta antes de empezar.</p>
             <div className="faq-list">
               {FAQS.map((f) => (
                 <details className="faq-item" key={f.q}>
@@ -218,7 +175,7 @@ export default function HomePage() {
             <h2 className="section-title">¿Listo para ver tu lista?</h2>
             <p className="section-sub">Gratis, al momento y desde cualquier dispositivo.</p>
             <Link href="/player" className="btn btn-primary btn-lg">
-              <><Icon name="play" size={18} /> Abrir el reproductor</>
+              <><Icon name="play" size={18} /> Ver mi lista ahora</>
             </Link>
           </div>
         </section>

@@ -947,7 +947,8 @@ select.input { appearance: none; cursor: pointer; }
   border-radius: var(--radius-sm);
   box-shadow: 0 0 0 8px var(--accent-tint-strong) !important;
 }
-.tv-mode .pa-channel:focus,
+.tv-mode .pa-live-chan:focus,
+.tv-mode .pa-live-cat:focus,
 .tv-mode .pa-card:focus,
 .tv-mode .pa-episode:focus {
   background: var(--accent-tint-strong);
@@ -971,17 +972,16 @@ select.input { appearance: none; cursor: pointer; }
 .tv-mode .logo-mark { width: 44px; height: 44px; font-size: 22px; }
 .tv-mode .nav-links a { font-size: 19px; }
 
-/* Reproductor en TV: barra lateral más ancha y textos legibles a 3 m */
-.tv-mode .player-app { grid-template-columns: 420px 1fr; }
-.tv-mode .pa-channel { padding: 14px 16px; font-size: 19px; }
-.tv-mode .pa-channel img,
-.tv-mode .pa-channel .ph { width: 40px; height: 40px; }
-.tv-mode .pa-group-head { font-size: 17px; padding: 14px 16px; }
+/* Reproductor en TV: columnas más anchas y textos legibles a 3 m */
+.tv-mode .pa-live { grid-template-columns: 380px 420px 1fr; }
+.tv-mode .pa-live-chan { padding: 14px 16px; font-size: 19px; }
+.tv-mode .pa-live-chan img,
+.tv-mode .pa-live-chan .ph { width: 40px; height: 40px; }
+.tv-mode .pa-live-cat { font-size: 18px; padding: 14px 16px; }
+.tv-mode .pa-live-head { font-size: 17px; }
+.tv-mode .pa-nav-item { padding: 12px 18px; font-size: 18px; }
 .tv-mode .pa-tab { padding: 12px 8px; font-size: 17px; }
-.tv-mode .pa-search .input { padding-left: 46px; padding-top: 13px; padding-bottom: 13px; }
-.tv-mode .pa-search-icon { left: 16px; font-size: 18px; }
-.tv-mode .pa-now-title { font-size: 22px; }
-.tv-mode .pa-now-epg { font-size: 17px; }
+.tv-mode .pa-nav-busca input { font-size: 18px; padding-top: 12px; padding-bottom: 12px; }
 .tv-mode .pa-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 22px; padding: 28px; }
 .tv-mode .pa-card .title { font-size: 17px; }
 .tv-mode .pa-welcome h2 { font-size: 34px; }
@@ -990,7 +990,7 @@ select.input { appearance: none; cursor: pointer; }
 .tv-mode .pa-video-overlay p { font-size: 19px; max-width: 620px; }
 
 /* Los favoritos se manejan con el mando: siempre visibles */
-.tv-mode .pa-channel .fav-btn { opacity: 1; font-size: 20px; }
+.tv-mode .pa-live-fav { opacity: 1; }
 
 .tv-mode .modal { max-width: 640px; padding: 40px; }
 .tv-mode .modal h2 { font-size: 28px; }
@@ -1264,6 +1264,139 @@ select.input { appearance: none; cursor: pointer; }
 }
 .profile-recordar:hover { color: var(--text); border-color: var(--border-strong); }
 .profile-recordar input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+
+/* ---- «¿Qué quieres ver?»: directo, cine o series ---- */
+/*
+ * Se pinta encima de todo, igual que la elección de perfil, para que la
+ * decisión sea una sola y no compita con la lista de canales de detrás.
+ */
+.section-gate {
+  position: fixed; inset: 0; z-index: 85;
+  background: var(--bg);
+  display: flex; justify-content: center;
+  padding: 40px 20px; overflow-y: auto;
+}
+/* margin auto y no align-items center: centra cuando sobra sitio y permite
+   hacer scroll cuando la portada hace la pantalla alta (center recorta) */
+.section-gate-inner { width: 100%; max-width: 900px; text-align: center; margin: auto; }
+.section-gate-inner:has(.portada) { max-width: 1240px; }
+.section-gate-brand {
+  font-size: 13px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;
+  color: var(--accent-bright); margin-bottom: 14px;
+}
+.section-gate h1 { font-size: clamp(24px, 4vw, 38px); font-weight: 800; letter-spacing: -0.6px; }
+.section-gate-sub { color: var(--text-dim); margin: 10px 0 36px; font-size: 15px; }
+.section-gate-cambiar {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 15px; font-weight: 600; color: var(--accent-bright);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+
+.section-gate-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 18px; max-width: 820px; margin: 0 auto;
+}
+.section-card {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 32px 20px 26px; cursor: pointer; text-align: center;
+  background: var(--bg-elev); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+.section-card:hover, .section-card:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  background: var(--bg-elev-2);
+}
+.section-card-icon {
+  width: 68px; height: 68px; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-tint); color: var(--accent-bright);
+  transition: background 0.15s;
+}
+.section-card:hover .section-card-icon, .section-card:focus-visible .section-card-icon {
+  background: var(--accent-tint-strong);
+}
+.section-card-title { font-size: 17px; font-weight: 700; }
+.section-card-desc { font-size: 13px; color: var(--text-dim); line-height: 1.4; max-width: 210px; }
+
+/* ---- La portada: contenido real bajo las tarjetas de sección ---- */
+
+.portada { margin-top: 40px; text-align: left; }
+.portada-recientes {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; margin-bottom: 22px;
+}
+.portada-recientes .btn { flex-shrink: 0; }
+.portada-cols {
+  display: grid; grid-template-columns: minmax(300px, 5fr) 7fr;
+  gap: 28px; align-items: start;
+}
+.portada-head {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px;
+}
+.portada-head h3 { font-size: 15.5px; font-weight: 700; letter-spacing: -0.01em; }
+.portada-head .canales-ver-todos { margin-left: auto; }
+
+.portada-lista {
+  border: 1px solid var(--hairline); border-radius: var(--radius);
+  background: var(--bg-elev); overflow: hidden;
+}
+.portada-canal {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 9px 14px; text-align: left;
+  background: none; border: none; border-bottom: 1px solid var(--hairline);
+  color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer;
+  transition: background 0.13s;
+}
+.portada-canal:last-child { border-bottom: none; }
+.portada-canal:hover, .portada-canal:focus-visible { background: var(--bg-hover); }
+.portada-num {
+  font-size: 11.5px; font-weight: 700; color: var(--text-faint);
+  font-variant-numeric: tabular-nums; flex-shrink: 0;
+}
+.portada-canal .canal-logo { width: 30px; height: 30px; border-radius: 7px; }
+.portada-canal-nombre {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.portada-play { color: var(--text-faint); flex-shrink: 0; opacity: 0; transition: opacity 0.13s; }
+.portada-canal:hover .portada-play { opacity: 1; color: var(--accent-bright); }
+
+.portada-rails { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.portada-posters {
+  display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+.portada-poster {
+  flex: 0 0 118px; width: 118px;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--text); text-align: left;
+}
+.portada-poster img, .portada-poster-ph {
+  width: 118px; aspect-ratio: 2/3; object-fit: cover; display: block;
+  border-radius: 10px; background: var(--bg-elev-2);
+  border: 1px solid var(--hairline);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.portada-poster-ph { display: flex; align-items: center; justify-content: center; color: var(--text-faint); }
+.portada-poster:hover img, .portada-poster:focus-visible img { transform: translateY(-3px); border-color: var(--accent); }
+.portada-poster-nombre {
+  display: block; margin-top: 7px; font-size: 12.5px; font-weight: 600; line-height: 1.3;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+
+/* En el móvil la portada sobra: las tarjetas y la barra inferior ya guían */
+@media (max-width: 860px) {
+  .portada { display: none; }
+}
+
+@media (max-width: 560px) {
+  .section-gate-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .section-card { padding: 22px 12px 18px; }
+  .section-card-icon { width: 54px; height: 54px; border-radius: 14px; }
+  .section-card-desc { display: none; }
+}
 
 /* ---- Botones de icono y enlaces en tabla ---- */
 
@@ -2044,3 +2177,7 @@ select.input { appearance: none; cursor: pointer; }
   .cuenta-hero-acciones { width: 100%; }
   .cuenta-hero-acciones .btn { flex: 1; justify-content: center; }
 }
+
+/* La nota bajo la llamada principal lleva los caminos secundarios */
+.hero-note a { color: var(--text-dim); text-decoration: underline; text-underline-offset: 3px; }
+.hero-note a:hover { color: var(--accent-bright); }

@@ -18,8 +18,6 @@ export default function AccountMenu({
   esCliente = false,
   esProveedor = false,
   onLogout,
-  tvMode,
-  onTvMode,
 }: {
   /** Correo de la cuenta propia, o nombre de usuario si viene del proveedor */
   email: string;
@@ -28,8 +26,6 @@ export default function AccountMenu({
   /** Sesión de proveedor: su casa es el panel, no «Mi cuenta» */
   esProveedor?: boolean;
   onLogout: () => void;
-  tvMode: boolean;
-  onTvMode: () => void;
 }) {
   const [abierto, setAbierto] = useState(false);
   const cajaRef = useRef<HTMLDivElement>(null);
@@ -112,18 +108,11 @@ export default function AccountMenu({
           >
             <Icon name="users" size={16} /> Cambiar de perfil
           </button>
-          {!tvMode && (
-            <button
-              className="account-pop-item"
-              role="menuitem"
-              onClick={() => {
-                onTvMode();
-                setAbierto(false);
-              }}
-            >
-              <Icon name="tv" size={16} /> Modo TV
-            </button>
-          )}
+          {/* La tele tiene su propia aplicación: mantener además la web con
+              la letra grande era ofrecer dos cosas para lo mismo */}
+          <Link href="/tv" className="account-pop-item" role="menuitem" onClick={() => setAbierto(false)}>
+            <Icon name="tv" size={16} /> Ver en la tele
+          </Link>
 
           <div className="account-pop-sep" />
 

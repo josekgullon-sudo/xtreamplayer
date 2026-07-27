@@ -3,14 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useTvMode } from "./TvModeProvider";
 import Icon from "./Icon";
 import AccountMenu from "./AccountMenu";
 
 export default function SiteHeader() {
   const [email, setEmail] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const { tvMode, setTvMode } = useTvMode();
   /*
    * Dentro del reproductor y del panel de gestión la cabecera se calla.
    * Los enlaces de la web pública solo tienen sentido antes de entrar; una
@@ -62,36 +60,28 @@ export default function SiteHeader() {
           <span className="logo-mark"><Icon name="play" size={15} /></span>
           TOTALplayer
         </Link>
+        {/*
+          El menú solo lleva a lo que NO está ya en los botones de la
+          derecha. Tenerlo repetido —«Reproductor» y «Entrar» dos veces cada
+          uno— obligaba a leerlo entero para descubrir que daba igual dónde
+          pulsaras.
+        */}
         {sinMenu ? (
           <span className="nav-links" aria-hidden="true" />
         ) : (
           <nav className="nav-links" aria-label="Navegación principal">
-            <Link href="/player">Reproductor</Link>
-            {/* Con sesión abierta, ofrecer «Entrar» es decirle que no ha entrado */}
-            {!(loaded && (email || customerUser || providerMail)) && <Link href="/acceso">Entrar</Link>}
-            <Link href="/proveedores">Proveedores</Link>
-            <Link href="/faq">FAQ</Link>
+            <Link href="/precios">Precios</Link>
+            <Link href="/proveedores">Para proveedores</Link>
+            <Link href="/faq">Ayuda</Link>
           </nav>
         )}
         <div className="header-actions">
-          {/* Con sesión abierta, el modo TV vive dentro del menú de cuenta */}
-          {!tvMode && !(loaded && (email || customerUser || providerMail)) && (
-            <button
-              className="btn btn-ghost btn-sm hide-sm"
-              onClick={() => setTvMode(true)}
-              title="Interfaz grande con navegación por mando"
-            >
-              <><Icon name="tv" size={15} /> Modo TV</>
-            </button>
-          )}
           {loaded && (email || customerUser || providerMail) ? (
             <AccountMenu
               email={email || customerUser || providerMail || ""}
               esCliente={!email && Boolean(customerUser)}
               esProveedor={!email && !customerUser && Boolean(providerMail)}
               onLogout={logout}
-              tvMode={tvMode}
-              onTvMode={() => setTvMode(true)}
             />
           ) : (
             <>
@@ -102,8 +92,8 @@ export default function SiteHeader() {
               </Link>
               {!enReproductor && (
                 <Link href="/player" className="btn btn-primary btn-sm">
-                  <span className="oculta-movil">Abrir reproductor</span>
-                  <span className="solo-movil">Reproductor</span>
+                  <span className="oculta-movil">Ver mi lista</span>
+                  <span className="solo-movil">Ver lista</span>
                 </Link>
               )}
             </>
