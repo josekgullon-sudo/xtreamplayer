@@ -54,6 +54,11 @@ export default function AccessChooser({ initial = "cliente" }: { initial?: "clie
           ¿Solo quieres usar tu propia lista M3U o Xtream?{" "}
           <Link href="/player">Entra sin registro</Link>
         </p>
+        {/* Tercera puerta, la de quien se registró aquí mismo. Sin esto no
+            había ninguna: solo se entraba como cliente o como proveedor */}
+        <p style={{ textAlign: "center", marginTop: 8, fontSize: 13.5, color: "var(--text-dim)" }}>
+          ¿Tienes una cuenta de TOTALplayer? <Link href="/login">Inicia sesión</Link>
+        </p>
       </div>
     </div>
   );
