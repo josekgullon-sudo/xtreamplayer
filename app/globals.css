@@ -1243,6 +1243,73 @@ select.input { appearance: none; cursor: pointer; }
 }
 .profile-name { font-size: 15.5px; font-weight: 600; }
 .profile-limit { margin-top: 32px; font-size: 13.5px; color: var(--text-faint); }
+.profile-recordar {
+  display: inline-flex; align-items: center; gap: 9px;
+  margin-top: 30px; padding: 9px 15px; border-radius: var(--radius-pill);
+  background: var(--surface-quiet); border: 1px solid var(--hairline);
+  font-size: 13.5px; color: var(--text-dim); cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.profile-recordar:hover { color: var(--text); border-color: var(--border-strong); }
+.profile-recordar input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+/* ---- La cuenta del cliente final ---- */
+
+.cuenta-cliente { padding: 44px 0 70px; }
+.cuenta-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 20px; flex-wrap: wrap; margin-bottom: 30px;
+}
+.cuenta-head h1 { font-size: clamp(26px, 4vw, 34px); font-weight: 800; letter-spacing: -0.7px; }
+.cuenta-marca {
+  font-size: 12.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase;
+  color: var(--accent-bright); margin-bottom: 8px;
+}
+.cuenta-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 20px; align-items: start;
+}
+.cuenta-grid h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+
+.cuenta-datos { display: flex; flex-direction: column; gap: 14px; }
+.cuenta-datos > div { display: flex; align-items: baseline; gap: 12px; }
+.cuenta-datos dt {
+  flex: 0 0 108px; font-size: 12.5px; font-weight: 600;
+  color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.cuenta-datos dd { font-size: 14.5px; font-weight: 500; min-width: 0; }
+.cuenta-quedan {
+  margin-left: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-faint);
+}
+.cuenta-quedan.urgente { color: var(--danger); }
+
+.cuenta-acciones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+.cuenta-form { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--hairline); }
+
+.cuenta-limites { display: flex; gap: 26px; margin-bottom: 20px; }
+.cuenta-limite { display: flex; flex-direction: column; gap: 2px; }
+.cuenta-limite-n { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
+.cuenta-limite-n small { font-size: 15px; font-weight: 600; color: var(--text-faint); }
+.cuenta-limite-t { font-size: 12.5px; color: var(--text-faint); font-weight: 600; }
+
+.cuenta-dispositivos { list-style: none; display: flex; flex-direction: column; }
+.cuenta-dispositivos li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-top: 1px solid var(--hairline); font-size: 14px;
+}
+.cuenta-dispositivos svg { color: var(--text-faint); flex-shrink: 0; }
+.cuenta-disp-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cuenta-disp-visto { font-size: 12.5px; color: var(--text-faint); flex-shrink: 0; }
+
+.cuenta-proveedor { font-size: 19px; font-weight: 700; margin-bottom: 10px; }
+.cuenta-nota { font-size: 13.5px; color: var(--text-dim); line-height: 1.5; margin-top: 14px; }
+.cuenta-nota + .btn { margin-top: 12px; }
+
+@media (max-width: 560px) {
+  .cuenta-cliente { padding: 26px 0 90px; }
+  .cuenta-head { align-items: flex-start; }
+  .cuenta-datos > div { flex-direction: column; gap: 3px; }
+  .cuenta-datos dt { flex: none; }
+}
 
 @media (max-width: 520px) {
   .profile-list { gap: 18px; }
@@ -1270,6 +1337,11 @@ select.input { appearance: none; cursor: pointer; }
 }
 .section-gate h1 { font-size: clamp(24px, 4vw, 38px); font-weight: 800; letter-spacing: -0.6px; }
 .section-gate-sub { color: var(--text-dim); margin: 10px 0 36px; font-size: 15px; }
+.section-gate-cambiar {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 15px; font-weight: 600; color: var(--accent-bright);
+  text-decoration: underline; text-underline-offset: 3px;
+}
 
 .section-gate-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));

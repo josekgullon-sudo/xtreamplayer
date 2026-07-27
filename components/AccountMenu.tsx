@@ -81,6 +81,13 @@ export default function AccountMenu({
               <Icon name="users" size={16} /> Mi panel
             </Link>
           )}
+          {/* El cliente de un proveedor tiene su propia cuenta: su acceso,
+              sus dispositivos y a quién escribir — no el plan de TOTALplayer */}
+          {esCliente && (
+            <Link href="/mi-cuenta" className="account-pop-item" role="menuitem" onClick={() => setAbierto(false)}>
+              <Icon name="users" size={16} /> Mi cuenta
+            </Link>
+          )}
           {!esCliente && !esProveedor && (
             <Link href="/cuenta" className="account-pop-item" role="menuitem" onClick={() => setAbierto(false)}>
               <Icon name="users" size={16} /> Mi cuenta
@@ -89,6 +96,22 @@ export default function AccountMenu({
           <Link href="/player" className="account-pop-item" role="menuitem" onClick={() => setAbierto(false)}>
             <Icon name="play" size={16} /> Reproductor
           </Link>
+          {/* Salida para quien fijó su perfil en este aparato: sin esto, la
+              casilla «entrar siempre con este perfil» no tendría vuelta atrás */}
+          <button
+            className="account-pop-item"
+            role="menuitem"
+            onClick={() => {
+              try {
+                localStorage.removeItem("xp.perfilFijo.v1");
+              } catch {
+                /* almacenamiento bloqueado */
+              }
+              window.location.href = "/player";
+            }}
+          >
+            <Icon name="users" size={16} /> Cambiar de perfil
+          </button>
           {!tvMode && (
             <button
               className="account-pop-item"

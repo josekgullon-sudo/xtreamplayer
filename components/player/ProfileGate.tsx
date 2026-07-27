@@ -12,6 +12,14 @@ interface Profile {
 
 const COLORES = ["#e5192b", "#2ecc8f", "#3b82f6", "#f59e0b", "#a855f7"];
 
+/**
+ * Perfil recordado en este aparato. Quien ve la tele solo en su casa no
+ * quiere elegirse a sí mismo cada noche; quien comparte cuenta, sí. Lo
+ * decide el usuario con la casilla, y se guarda por aparato: recordarlo en
+ * el salón no obliga a nadie en el móvil.
+ */
+const K_PERFIL_FIJO = "xp.perfilFijo.v1";
+
 function inicial(nombre: string) {
   return nombre.trim().slice(0, 1).toUpperCase() || "?";
 }
@@ -39,6 +47,7 @@ export default function ProfileGate({
   const [owner, setOwner] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [recordar, setRecordar] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Guardamos el callback en una referencia: si dependiéramos de él, cada
@@ -61,6 +70,21 @@ export default function ProfileGate({
     setProfiles(data.profiles);
     setMax(data.max);
 
+    // Perfil fijado en este aparato: se entra directo con él
+    const fijo = Number(localStorage.getItem(K_PERFIL_FIJO) || 0);
+    const recordado = fijo ? data.profiles.find((p: Profile) => p.id === fijo) : null;
+    if (recordado) {
+      await fetch("/api/profiles", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId: recordado.id }),
+      }).catch(() => {});
+      onReadyRef.current(recordado);
+      setVisible(false);
+      onResueltoRef.current?.();
+      return;
+    }
+
     /*
      * Se pregunta siempre al entrar, también con un solo perfil: quien comparte
      * la cuenta necesita ver de quién es la sesión antes de empezar, y es el
@@ -81,6 +105,14 @@ export default function ProfileGate({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ profileId: p.id }),
     });
+    // La casilla se lee al elegir, no al marcarla: así fijar el perfil es
+    // parte del mismo gesto de entrar, sin un botón de guardar aparte
+    try {
+      if (recordar) localStorage.setItem(K_PERFIL_FIJO, String(p.id));
+      else localStorage.removeItem(K_PERFIL_FIJO);
+    } catch {
+      /* almacenamiento bloqueado: se entra igual, solo que sin recordar */
+    }
     onReadyRef.current(p);
     setVisible(false);
     onResueltoRef.current?.();
@@ -141,6 +173,11 @@ export default function ProfileGate({
             </button>
           )}
         </div>
+
+        <label className="profile-recordar">
+          <input type="checkbox" checked={recordar} onChange={(e) => setRecordar(e.target.checked)} />
+          <span>Entrar siempre con este perfil en este dispositivo</span>
+        </label>
 
         {profiles.length >= max && (
           <p className="profile-limit">

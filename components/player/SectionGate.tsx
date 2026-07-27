@@ -64,6 +64,16 @@ export default function SectionGate({
 }) {
   const primeroRef = useRef<HTMLButtonElement>(null);
 
+  /** Suelta el perfil fijado en este aparato y vuelve a preguntar */
+  function cambiarPerfil() {
+    try {
+      localStorage.removeItem("xp.perfilFijo.v1");
+    } catch {
+      /* almacenamiento bloqueado */
+    }
+    window.location.reload();
+  }
+
   // El foco arranca en la primera tarjeta para poder elegir con el mando o
   // con el teclado sin tener que tabular desde el principio de la página.
   useEffect(() => {
@@ -93,7 +103,19 @@ export default function SectionGate({
       <div className="section-gate-inner">
         <p className="section-gate-brand">{marca}</p>
         <h1>{perfil ? `Hola, ${perfil}. ¿Qué te apetece ver?` : "¿Qué te apetece ver?"}</h1>
-        <p className="section-gate-sub">Elige por dónde empezar. Podrás cambiar cuando quieras.</p>
+        <p className="section-gate-sub">
+          Elige por dónde empezar. Podrás cambiar cuando quieras.
+          {/* Aquí y no solo en el menú de cuenta: esta pantalla lo tapa todo,
+              así que quien fijó su perfil se quedaría sin salida */}
+          {perfil && (
+            <>
+              {" · "}
+              <button className="section-gate-cambiar" onClick={cambiarPerfil}>
+                No soy {perfil}
+              </button>
+            </>
+          )}
+        </p>
 
         <div className="section-gate-grid">
           {opciones.map((o, i) => (
