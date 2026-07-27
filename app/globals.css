@@ -209,6 +209,7 @@ button { font-family: inherit; }
 }
 .badge-accent { background: var(--accent-tint); color: var(--accent-bright); }
 .badge-success { background: var(--success-tint); color: var(--success); }
+.badge-danger { background: var(--danger-tint); color: var(--danger); }
 
 /* ============ Header global ============ */
 
@@ -1115,6 +1116,61 @@ select.input { appearance: none; cursor: pointer; }
 .panel-table tr:last-child td { border-bottom: none; }
 .panel-table tbody tr:hover { background: var(--bg-hover); }
 .row-click { cursor: pointer; }
+/* Tablas anchas dentro de una columna estrecha: se deslizan ellas, no la página */
+.tabla-scroll { overflow-x: auto; }
+
+/* ============ Panel de administración de la plataforma ============ */
+/*
+ * Mismo esqueleto que el panel del proveedor (panel-nav, panel-table, tarjetas)
+ * y aquí solo lo que este necesita de más: la letra pequeña de cada fila, la
+ * gráfica de altas y el cajón que se abre bajo un proveedor para tocarle el
+ * plan sin salir de la tabla.
+ */
+
+.admin-sub { font-size: 12.5px; color: var(--text-faint); font-weight: 500; }
+.admin-ojo { color: var(--danger); font-weight: 700; }
+.admin-card-pie { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
+
+.admin-grafica { padding: 20px; margin-bottom: 24px; }
+.admin-grafica h3 { font-size: 15.5px; font-weight: 700; }
+.admin-barras {
+  display: flex; align-items: flex-end; gap: 3px;
+  height: 108px; padding-top: 8px;
+}
+.admin-barra {
+  flex: 1; min-width: 0; border-radius: 3px 3px 0 0;
+  background: linear-gradient(to top, var(--accent), var(--accent-bright));
+  opacity: 0.85; transition: opacity 0.13s;
+}
+.admin-barra:hover { opacity: 1; }
+
+.admin-atajos { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+
+/* El cajón de un proveedor: sus datos a la izquierda, lo que se puede
+   cambiar a la derecha, sin abrir otra pantalla */
+.admin-detalle-fila td { background: var(--bg-elev-2); }
+.admin-detalle {
+  display: grid; grid-template-columns: minmax(220px, 1fr) minmax(320px, 1.2fr);
+  gap: 22px; align-items: start; padding: 6px 2px;
+}
+.admin-detalle-datos { display: flex; flex-direction: column; gap: 7px; font-size: 13.5px; color: var(--text-dim); }
+.admin-detalle-datos b { color: var(--text); font-weight: 700; }
+.admin-detalle-acciones {
+  display: grid; grid-template-columns: auto 1fr; gap: 9px 12px; align-items: center;
+}
+.admin-detalle-acciones .label { margin: 0; white-space: nowrap; }
+.admin-detalle-acciones .input { max-width: 280px; }
+.admin-detalle-acciones .btn { grid-column: 1 / -1; justify-self: start; }
+
+.admin-check {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13.5px; color: var(--text-dim); cursor: pointer; white-space: nowrap;
+}
+.admin-check input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+@media (max-width: 700px) {
+  .admin-detalle { grid-template-columns: 1fr; }
+}
 
 .section-toolbar {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;

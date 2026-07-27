@@ -31,7 +31,7 @@ El repositorio ya incluye `Dockerfile` y `railway.json`, así que Railway lo det
    | `DATA_DIR` | `/data` |
    | `SESSION_SECRET` | Una cadena aleatoria larga: `openssl rand -hex 32` |
    | `NEXT_PUBLIC_SITE_URL` | `https://tudominio.com` (o la URL que te dé Railway) |
-   | `ADMIN_EMAILS` | Tu correo. Da acceso a la bandeja de soporte en `/admin` con tu cuenta de usuario normal |
+   | `ADMIN_EMAILS` | Tu correo (varios separados por comas). Da acceso al panel de administración en `/admin` con tu cuenta de usuario normal |
    | `RAILWAY_RUN_UID` | `0` — Railway monta los volúmenes como root y sin esto la aplicación no puede escribir la base de datos en `/data` (el registro falla con «No se pudo conectar») |
    | `HOSTNAME` | `0.0.0.0` — ya viene fijado en la imagen; añádelo solo si usas una imagen anterior |
 
@@ -45,7 +45,7 @@ El repositorio ya incluye `Dockerfile` y `railway.json`, así que Railway lo det
 - `/` — debe cargar la portada
 - `/proveedores/registro` — crea tu cuenta de proveedor y verás el panel con la prueba de 7 días
 - Crea un cliente de prueba y entra con sus datos en `/acceso` desde una ventana privada
-- Regístrate como usuario en `/registro` con el correo de `ADMIN_EMAILS` y entra en `/admin`: es tu bandeja de tickets
+- Regístrate como usuario en `/registro` con el correo de `ADMIN_EMAILS` y entra en `/admin`: el panel de la plataforma —resumen, proveedores, revendedores, clientes, dominios, registro de accesos, facturación y tickets—. Si la sesión caduca, se vuelve por `/login`
 
 > En producción **no** definas `ALLOW_PRIVATE_NETWORKS`: es solo para instalaciones caseras y desactiva la protección del proxy frente a redes internas.
 

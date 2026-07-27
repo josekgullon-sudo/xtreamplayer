@@ -32,8 +32,18 @@ export async function POST(req: NextRequest) {
     if (await bcrypt.compare(password, row.password_hash)) matches.push(row);
   }
   if (!matches.length) {
-    // Coste constante aproximado aunque no exista el usuario
-    if (!candidates.length) await bcrypt.compare(password, "$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinv");
+    /*
+     * Contraseña fallada contra un usuario que sí existe: es el intento que
+     * de verdad interesa ver luego en el registro —alguien probando claves
+     * contra una cuenta real—, y hasta ahora no se anotaba en ninguna parte.
+     * Si el usuario ni existe no hay a quién atribuirlo, y tampoco importa.
+     */
+    if (candidates.length) {
+      recordLogin(candidates[0].id, (body.deviceKey || "").trim(), body.platform || "web", clientIp(req.headers), false);
+    } else {
+      // Coste constante aproximado aunque no exista el usuario
+      await bcrypt.compare(password, "$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinv");
+    }
     return NextResponse.json({ error: "Usuario o contraseña incorrectos" }, { status: 401 });
   }
 

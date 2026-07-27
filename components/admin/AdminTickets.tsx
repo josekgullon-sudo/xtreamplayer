@@ -32,7 +32,7 @@ const BADGE: Record<Ticket["status"], string> = { abierto: "badge-accent", respo
  * Bandeja de soporte de la plataforma. Solo administradores (users.is_admin
  * o ADMIN_EMAILS); a cualquier otro se le enseña el acceso, no la bandeja.
  */
-export default function AdminTickets() {
+export default function AdminTickets({ embedded = false }: { embedded?: boolean }) {
   const [tickets, setTickets] = useState<Ticket[] | null>(null);
   const [denegado, setDenegado] = useState(false);
   const [abierto, setAbierto] = useState<Ticket | null>(null);
@@ -98,10 +98,12 @@ export default function AdminTickets() {
   if (tickets === null) return <div className="auth-wrap"><Loading messages={["Cargando la bandeja de soporte…"]} /></div>;
 
   return (
-    <div className="container" style={{ padding: "34px 24px 60px" }}>
+    <div className={embedded ? "" : "container"} style={embedded ? undefined : { padding: "34px 24px 60px" }}>
       <div className="section-toolbar">
         <div>
-          <h1 style={{ fontSize: 26 }}>Soporte</h1>
+          {/* Dentro del panel la cabecera ya la pone el panel: repetirla aquí
+              dejaba dos títulos «Soporte» seguidos */}
+          {!embedded && <h1 style={{ fontSize: 26 }}>Soporte</h1>}
           <p className="panel-sub">Tickets de los proveedores. Los abiertos van primero.</p>
         </div>
         <select className="input" style={{ width: 180 }} value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Filtrar por estado">

@@ -38,7 +38,8 @@ export type IconName =
   | "alert"
   | "film"
   | "series"
-  | "star";
+  | "star"
+  | "chart";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   users: (
@@ -161,6 +162,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M8 6h13M8 12h13M8 18h13" />
       <path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+    </>
+  ),
+  chart: (
+    <>
+      <path d="M3 3v16.5a1.5 1.5 0 0 0 1.5 1.5H21" />
+      <path d="M7.5 15.5v2M12 10.5v7M16.5 6.5v11" />
     </>
   ),
   lock: (
