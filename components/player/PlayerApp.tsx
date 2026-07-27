@@ -619,6 +619,45 @@ export default function PlayerApp() {
 
   const flatChannels = useMemo(() => liveGroups.flatMap((g) => g.channels), [liveGroups]);
 
+  /*
+   * Búsqueda global. Hasta ahora el buscador solo miraba dentro de la
+   * pestaña abierta: escribir el nombre de una película estando en el
+   * directo no daba nada, y no había forma de saber que había que cambiar
+   * de sección antes de buscar. Con dos letras se busca en todo a la vez y
+   * los resultados salen separados por tipo.
+   */
+  const canalesTodos = useMemo(() => {
+    if (!active) return [] as { id: string; name: string; logo?: string; favKey: string; play: () => void }[];
+    if (active.type === "m3u") {
+      return (m3uData[active.id] || []).map((ch) => ({
+        id: ch.id,
+        name: ch.name,
+        logo: ch.logo,
+        favKey: `${active.id}:m3u:${ch.url}`,
+        play: () => playM3u(active, ch),
+      }));
+    }
+    return (xtreamData[active.id]?.liveStreams || []).map((ch) => ({
+      id: String(ch.stream_id),
+      name: ch.name,
+      logo: ch.stream_icon,
+      favKey: `${active.id}:live:${ch.stream_id}`,
+      play: () => playLive(active, ch),
+    }));
+  }, [active, m3uData, xtreamData, playLive, playM3u]);
+
+  /** Con menos de dos letras no se busca: media lista coincide con una sola */
+  const buscandoTodo = q.length >= 2;
+
+  const resultados = useMemo(() => {
+    if (!buscandoTodo) return { canales: [], pelis: [], series: [], total: 0 };
+    const coincide = (n?: string) => (n || "").toLowerCase().includes(q);
+    const canales = canalesTodos.filter((c) => coincide(c.name));
+    const pelis = (data?.vodStreams || []).filter((v) => coincide(v.name));
+    const series = (data?.seriesList || []).filter((s) => coincide(s.name));
+    return { canales, pelis, series, total: canales.length + pelis.length + series.length };
+  }, [buscandoTodo, q, canalesTodos, data]);
+
   const vodVisible = useMemo(() => {
     if (!active || active.type !== "xtream") return [];
     const items = data?.vodStreams || [];
@@ -887,7 +926,98 @@ export default function PlayerApp() {
       </nav>
     )}
 
-    {active && (tab === "live" || tab === "favs") ? (
+    {active && buscandoTodo ? (
+      /* Resultados de la búsqueda global, en lugar del contenido de la
+         pestaña: lo que se busca manda sobre dónde se estaba */
+      <div className="pa-buscador">
+        <div className="pa-buscador-cab">
+          <h2>
+            {resultados.total} resultado{resultados.total === 1 ? "" : "s"} para «{search.trim()}»
+          </h2>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setSearch(""); setBuscando(false); }}>
+            <Icon name="cerrar" size={14} /> Limpiar
+          </button>
+        </div>
+
+        {resultados.total === 0 ? (
+          <p className="pa-empty">Nada con ese nombre en esta lista.</p>
+        ) : (
+          <div className="pa-buscador-cuerpo">
+            {resultados.canales.length > 0 && (
+              <section className="pa-buscador-bloque">
+                <h3><Icon name="tv" size={15} /> Canales <span>{resultados.canales.length}</span></h3>
+                <div className="pa-buscador-canales">
+                  {resultados.canales.slice(0, 60).map((ch) => (
+                    <button
+                      key={ch.favKey}
+                      className="pa-live-chan"
+                      onClick={() => { setTab("live"); setSearch(""); setBuscando(false); ch.play(); }}
+                      title={ch.name}
+                    >
+                      {imgSrc(ch.logo) ? (
+                        <img src={imgSrc(ch.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+                      ) : (
+                        <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
+                      )}
+                      <span className="name">{ch.name}</span>
+                    </button>
+                  ))}
+                </div>
+                {resultados.canales.length > 60 && (
+                  <p className="pa-buscador-mas">y {resultados.canales.length - 60} más — afina un poco la búsqueda</p>
+                )}
+              </section>
+            )}
+
+            {resultados.pelis.length > 0 && (
+              <section className="pa-buscador-bloque">
+                <h3><Icon name="film" size={15} /> Películas <span>{resultados.pelis.length}</span></h3>
+                <div className="portada-posters">
+                  {resultados.pelis.slice(0, 30).map((v) => (
+                    <button
+                      key={v.stream_id}
+                      className="portada-poster"
+                      onClick={() => { setTab("vod"); setSearch(""); setBuscando(false); setViendo(false); openVod(active, v); }}
+                      title={v.name}
+                    >
+                      {imgSrc(v.stream_icon) ? (
+                        <img src={imgSrc(v.stream_icon)} alt="" loading="lazy" />
+                      ) : (
+                        <span className="portada-poster-ph"><Icon name="film" size={22} /></span>
+                      )}
+                      <span className="portada-poster-nombre">{v.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {resultados.series.length > 0 && (
+              <section className="pa-buscador-bloque">
+                <h3><Icon name="series" size={15} /> Series <span>{resultados.series.length}</span></h3>
+                <div className="portada-posters">
+                  {resultados.series.slice(0, 30).map((se) => (
+                    <button
+                      key={se.series_id}
+                      className="portada-poster"
+                      onClick={() => { setTab("series"); setSearch(""); setBuscando(false); setViendo(false); openSeries(active, se); }}
+                      title={se.name}
+                    >
+                      {imgSrc(se.cover) ? (
+                        <img src={imgSrc(se.cover)} alt="" loading="lazy" />
+                      ) : (
+                        <span className="portada-poster-ph"><Icon name="series" size={22} /></span>
+                      )}
+                      <span className="portada-poster-nombre">{se.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+      </div>
+    ) : active && (tab === "live" || tab === "favs") ? (
       <div className={`pa-live ${current ? "con-video" : ""} ${verCanales ? "con-canales" : ""}`}>
         <aside className="pa-live-cats" aria-label="Categorías">
           <div className="pa-live-head">

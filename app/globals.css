@@ -2126,6 +2126,37 @@ select.input { appearance: none; cursor: pointer; }
   .panel-table { min-width: 620px; }
 }
 
+/* ---- Búsqueda global: canales, cine y series a la vez ---- */
+.pa-buscador { padding: 20px 24px 40px; overflow-y: auto; }
+.pa-buscador-cab {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap; margin-bottom: 20px;
+}
+.pa-buscador-cab h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+.pa-buscador-cuerpo { display: flex; flex-direction: column; gap: 28px; }
+.pa-buscador-bloque h3 {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+.pa-buscador-bloque h3 svg { color: var(--accent-bright); }
+.pa-buscador-bloque h3 span {
+  font-size: 12px; font-weight: 700; color: var(--text-faint);
+  background: var(--surface-quiet); border-radius: 999px; padding: 2px 8px;
+}
+/* Los canales en rejilla: en una búsqueda se comparan de un vistazo, no se
+   recorren en columna como cuando se está zapeando por una categoría */
+.pa-buscador-canales {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px;
+}
+.pa-buscador-canales .pa-live-chan { border-radius: var(--radius-sm); }
+.pa-buscador-mas { font-size: 13px; color: var(--text-faint); margin-top: 10px; }
+
+@media (max-width: 700px) {
+  .pa-buscador { padding: 16px 14px 90px; }
+  .pa-buscador-canales { grid-template-columns: 1fr; }
+}
+
 /* Encabezados dentro de la columna de categorías */
 .pa-live-sub {
   font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
