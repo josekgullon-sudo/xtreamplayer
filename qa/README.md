@@ -73,3 +73,4 @@ falla, así que valen tal cual para un CI.
 | `facturas-fiscales.js` | Que la factura lleve emisor, receptor e IVA y le sirva a un gestor |
 | `acceso.js` | Las tres puertas de entrada y la vuelta a donde ibas |
 | `alta-simple.js` | Que el alta de un cliente pida un solo usuario y contraseña |
+| `entrega-acceso.js` | El mensaje ya escrito para entregarle el acceso al cliente |
