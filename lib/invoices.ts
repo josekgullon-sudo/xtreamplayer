@@ -16,6 +16,9 @@ export function registrarFactura(datos: {
   periodEnd?: number;
   stripeInvoiceId?: string;
   createdAt?: number;
+  /** «pagada» por defecto: lo que llega de Stripe ya está cobrado. Una
+   *  factura emitida a mano desde administración puede nacer pendiente. */
+  status?: "pagada" | "pendiente";
 }): InvoiceRow {
   const db = getDb();
 
@@ -38,7 +41,7 @@ export function registrarFactura(datos: {
     const info = db
       .prepare(
         `INSERT INTO invoices (provider_id, number, concept, amount_cents, currency, period_start, period_end, status, stripe_invoice_id, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'pagada', ?, ?)`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         datos.providerId,
@@ -48,6 +51,7 @@ export function registrarFactura(datos: {
         datos.currency || "EUR",
         datos.periodStart || 0,
         datos.periodEnd || 0,
+        datos.status === "pendiente" ? "pendiente" : "pagada",
         datos.stripeInvoiceId || "",
         creada
       );

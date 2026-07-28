@@ -115,6 +115,15 @@ export default function ProviderPanel() {
   } | null>(null);
   const [importing, setImporting] = useState(false);
   const [showPlans, setShowPlans] = useState(false);
+  /* Si un administrador está mirando este panel, que se vea. Entrar en la
+     cuenta de otro sin que la pantalla lo diga es la clase de cosa que
+     acaba en un cambio hecho en la casa equivocada. */
+  const [suplantando, setSuplantando] = useState<string | null>(null);
+  useEffect(() => {
+    const m = document.cookie.match(/(?:^|; )xp_suplantando=([^;]*)/);
+    setSuplantando(m ? decodeURIComponent(m[1]) : null);
+  }, []);
+
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<{ username: string; password: string } | null>(null);
@@ -457,6 +466,22 @@ export default function ProviderPanel() {
 
   return (
     <div className="panel-layout">
+      {suplantando && (
+        <div className="panel-suplantando" role="status">
+          <span>
+            Estás viendo el panel de <strong>{suplantando}</strong> como administrador.
+          </span>
+          <button
+            className="btn btn-sm"
+            onClick={async () => {
+              await fetch("/api/admin/suplantar", { method: "DELETE" });
+              window.location.href = "/admin";
+            }}
+          >
+            Salir y volver a administración
+          </button>
+        </div>
+      )}
       {/* Menú lateral */}
       <aside className="panel-nav" aria-label="Secciones del panel">
         <div className="panel-nav-head">

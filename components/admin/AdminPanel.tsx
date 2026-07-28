@@ -190,6 +190,7 @@ export default function AdminPanel() {
   const [soloFallidos, setSoloFallidos] = useState(false);
   const [verAuditoria, setVerAuditoria] = useState(false);
   const [abierto, setAbierto] = useState<number | null>(null);
+  const [nuevaFactura, setNuevaFactura] = useState(false);
 
   /** Una sola puerta para todas las llamadas: si no eres admin, se acabó. */
   const pedir = useCallback(async (url: string) => {
@@ -298,6 +299,65 @@ export default function AdminPanel() {
     setAviso("Cambio guardado y anotado en el registro.");
     const d = await pedir(`/api/admin/proveedores?buscar=${encodeURIComponent(buscar)}`);
     if (d) setProveedores(d.proveedores);
+  }
+
+  /** Abrir el panel de un proveedor con sus mismos ojos */
+  async function entrarComo(p: Proveedor) {
+    setError(null);
+    const res = await fetch("/api/admin/suplantar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: p.id }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.error || "No se pudo abrir su panel");
+      return;
+    }
+    window.location.href = data.panel || "/panel";
+  }
+
+  async function emitirFactura(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setAviso(null);
+    setError(null);
+    const fd = new FormData(e.currentTarget);
+    const res = await fetch("/api/admin/facturas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        proveedorId: Number(fd.get("proveedorId")),
+        concepto: String(fd.get("concepto") || ""),
+        importe: Number(fd.get("importe")),
+        estado: String(fd.get("estado") || "pagada"),
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.error || "No se pudo emitir");
+      return;
+    }
+    setNuevaFactura(false);
+    setAviso(`Factura ${data.numero} emitida.`);
+    const d = await pedir(`/api/admin/facturas?estado=${estadoFactura}`);
+    if (d) setFacturas(d.facturas);
+  }
+
+  async function cambiarFactura(id: number, estado: string) {
+    setAviso(null);
+    setError(null);
+    const res = await fetch("/api/admin/facturas", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, estado }),
+    });
+    if (!res.ok) {
+      setError("No se pudo cambiar el estado");
+      return;
+    }
+    setAviso("Estado guardado y anotado en el registro.");
+    const d = await pedir(`/api/admin/facturas?estado=${estadoFactura}`);
+    if (d) setFacturas(d.facturas);
   }
 
   if (denegado) {
@@ -584,14 +644,21 @@ export default function AdminPanel() {
                                       }
                                     />
 
-                                    <button
-                                      className={`btn btn-sm ${p.estado === "active" ? "btn-ghost" : "btn-primary"}`}
-                                      onClick={() =>
-                                        cambiarProveedor(p.id, { estado: p.estado === "active" ? "suspended" : "active" })
-                                      }
-                                    >
-                                      {p.estado === "active" ? "Suspender" : "Reactivar"}
-                                    </button>
+                                    <div className="admin-detalle-botones">
+                                      <button
+                                        className={`btn btn-sm ${p.estado === "active" ? "btn-ghost" : "btn-primary"}`}
+                                        onClick={() =>
+                                          cambiarProveedor(p.id, { estado: p.estado === "active" ? "suspended" : "active" })
+                                        }
+                                      >
+                                        {p.estado === "active" ? "Suspender" : "Reactivar"}
+                                      </button>
+                                      {/* Ver su panel con sus mismos ojos ahorra media hora de
+                                          ida y vuelta cuando dice «no me deja» */}
+                                      <button className="btn btn-ghost btn-sm" onClick={() => entrarComo(p)}>
+                                        <Icon name="eye" size={15} /> Abrir su panel
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
                               </td>
@@ -876,7 +943,50 @@ export default function AdminPanel() {
                   <span className="panel-sub" style={{ marginLeft: "auto" }}>
                     {euros(facturas.reduce((s, f) => s + (f.estado === "anulada" ? 0 : f.importeCents), 0))} en pantalla
                   </span>
+                  {/* Lo de Stripe entra solo por su webhook; una transferencia
+                      o un acuerdo aparte había que apuntarlo en la base a mano */}
+                  <button className="btn btn-primary btn-sm" onClick={() => setNuevaFactura((v) => !v)}>
+                    <Icon name="plus" size={15} /> Emitir factura
+                  </button>
                 </div>
+
+                {nuevaFactura && (
+                  <form className="card admin-factura-form" onSubmit={emitirFactura}>
+                    <div className="auth-field">
+                      <label className="label" htmlFor="fa-prov">Proveedor</label>
+                      <select id="fa-prov" name="proveedorId" className="input" required defaultValue="">
+                        <option value="" disabled>Elige uno</option>
+                        {proveedores.map((p) => (
+                          <option key={p.id} value={p.id}>{p.empresa || p.marca || p.email}</option>
+                        ))}
+                      </select>
+                      {proveedores.length === 0 && (
+                        <p className="admin-sub">Abre antes «Proveedores» para poder elegir.</p>
+                      )}
+                    </div>
+                    <div className="auth-field">
+                      <label className="label" htmlFor="fa-concepto">Concepto</label>
+                      <input id="fa-concepto" name="concepto" className="input" required placeholder="Plan Basic — julio" />
+                    </div>
+                    <div className="auth-field">
+                      <label className="label" htmlFor="fa-importe">Importe (€)</label>
+                      <input id="fa-importe" name="importe" className="input" type="number" min="0.01" step="0.01" required placeholder="45" />
+                    </div>
+                    <div className="auth-field">
+                      <label className="label" htmlFor="fa-estado">Estado</label>
+                      <select id="fa-estado" name="estado" className="input" defaultValue="pagada">
+                        <option value="pagada">Cobrada</option>
+                        <option value="pendiente">Pendiente de cobro</option>
+                      </select>
+                    </div>
+                    <div className="admin-detalle-botones">
+                      <button className="btn btn-primary btn-sm" type="submit">Emitir</button>
+                      <button className="btn btn-ghost btn-sm" type="button" onClick={() => setNuevaFactura(false)}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                )}
                 {facturas.length === 0 ? (
                   <div className="pa-empty">Todavía no hay facturas{estadoFactura ? " con ese estado" : ""}.</div>
                 ) : (
@@ -889,6 +999,7 @@ export default function AdminPanel() {
                         <th>Importe</th>
                         <th>Emitida</th>
                         <th>Estado</th>
+                        <th />
                       </tr>
                     </thead>
                     <tbody>
@@ -903,6 +1014,23 @@ export default function AdminPanel() {
                             <span className={`badge ${f.estado === "pagada" ? "badge-success" : f.estado === "pendiente" ? "badge-accent" : ""}`}>
                               {f.estado}
                             </span>
+                          </td>
+                          <td>
+                            {/* No se borran: una factura emitida deja rastro
+                                aunque se anule, que es lo que exige cualquier
+                                contabilidad y lo que explica un número que falta */}
+                            <div className="admin-detalle-botones">
+                              {f.estado !== "pagada" && f.estado !== "anulada" && (
+                                <button className="btn btn-ghost btn-sm" onClick={() => cambiarFactura(f.id, "pagada")}>
+                                  Marcar cobrada
+                                </button>
+                              )}
+                              {f.estado !== "anulada" && (
+                                <button className="btn btn-danger btn-sm" onClick={() => cambiarFactura(f.id, "anulada")}>
+                                  Anular
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
