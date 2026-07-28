@@ -67,10 +67,10 @@ export default function AppsPage() {
               <h3>Desde el navegador de la tele</h3>
               <p>
                 Ábrelo y escribe la dirección del reproductor añadiéndole <strong>/tv</strong> al final. La
-                pantalla es la misma que la de la aplicación: letra grande y todo con el mando. Las de Tizen y
-                webOS están en camino.
+                pantalla es la misma que la de la aplicación: letra grande y todo con el mando, y el ATRÁS del
+                mando funciona igual.
               </p>
-              <span className="app-card-mas app-card-pronto">Aplicación: próximamente</span>
+              <span className="app-card-mas app-card-pronto">Aplicación: pendiente de publicar en sus tiendas</span>
             </div>
 
             <div className="feature-card">

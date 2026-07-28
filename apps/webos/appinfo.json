@@ -1,0 +1,15 @@
+{
+  "id": "app.totalplayer.tv",
+  "version": "1.0.0",
+  "vendor": "TOTALplayer",
+  "type": "web",
+  "main": "index.html",
+  "title": "TOTALplayer",
+  "icon": "icon.png",
+  "largeIcon": "icon-large.png",
+  "bgColor": "#14131a",
+  "iconColor": "#e5192b",
+  "disableBackHistoryAPI": true,
+  "supportPortraitMode": false,
+  "requiredPermissions": ["time.query"]
+}

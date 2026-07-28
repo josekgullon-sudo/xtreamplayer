@@ -149,6 +149,65 @@ interface ListaManual {
   password: string;
 }
 
+/**
+ * Qué ha pulsado el mando, diga lo que diga el televisor.
+ *
+ * Cada fabricante manda lo suyo: un navegador de escritorio da `e.key`
+ * («ArrowUp», «Escape»); una Samsung con Tizen manda el 10009 para ATRÁS y
+ * una LG con webOS el 461, y ninguno de los dos rellena `e.key` con nada
+ * reconocible. Traduciéndolo aquí, el resto de la aplicación no se entera de
+ * en qué tele está: pregunta por «Atrás» o por «Ok» y sigue.
+ */
+type Tecla = "Atras" | "Ok" | "Arriba" | "Abajo" | "Izquierda" | "Derecha" | "PaginaArriba" | "PaginaAbajo" | "";
+
+function normalizarTecla(e: KeyboardEvent): Tecla {
+  switch (e.key) {
+    case "Escape":
+    case "Backspace":
+    case "GoBack":
+    case "BrowserBack":
+      return "Atras";
+    case "Enter":
+    case " ":
+      return "Ok";
+    case "ArrowUp":
+      return "Arriba";
+    case "ArrowDown":
+      return "Abajo";
+    case "ArrowLeft":
+      return "Izquierda";
+    case "ArrowRight":
+      return "Derecha";
+    case "PageUp":
+      return "PaginaArriba";
+    case "PageDown":
+      return "PaginaAbajo";
+  }
+  switch (e.keyCode) {
+    case 10009: // ATRÁS de Samsung (Tizen)
+    case 461: // ATRÁS de LG (webOS)
+    case 8:
+    case 27:
+      return "Atras";
+    case 13:
+      return "Ok";
+    case 38:
+      return "Arriba";
+    case 40:
+      return "Abajo";
+    case 37:
+      return "Izquierda";
+    case 39:
+      return "Derecha";
+    case 33:
+      return "PaginaArriba";
+    case 34:
+      return "PaginaAbajo";
+    default:
+      return "";
+  }
+}
+
 function leerListaManual(): ListaManual | null {
   try {
     const raw = localStorage.getItem(K_LISTA_MANUAL);
@@ -715,7 +774,9 @@ export default function TvApp() {
       const el = document.activeElement as HTMLElement | null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
 
-      if (e.key === "Escape" || e.key === "Backspace" || e.key === "GoBack" || e.key === "BrowserBack") {
+      const tecla = normalizarTecla(e);
+
+      if (tecla === "Atras") {
         e.preventDefault();
         atras();
         return;
@@ -736,25 +797,25 @@ export default function TvApp() {
       const siguiente = (f: number) => (f + 1 > total - 1 ? primero : f + 1);
       const anterior = (f: number) => (f - 1 < primero ? total - 1 : f - 1);
 
-      if (e.key === "ArrowRight") {
+      if (tecla === "Derecha") {
         e.preventDefault();
         setFoco(siguiente);
-      } else if (e.key === "ArrowLeft") {
+      } else if (tecla === "Izquierda") {
         e.preventDefault();
         setFoco(anterior);
-      } else if (e.key === "ArrowDown") {
+      } else if (tecla === "Abajo") {
         e.preventDefault();
         setFoco((f) => (cols > 1 ? Math.min(total - 1, f + cols) : siguiente(f)));
-      } else if (e.key === "ArrowUp") {
+      } else if (tecla === "Arriba") {
         e.preventDefault();
         setFoco((f) => (cols > 1 ? Math.max(0, f - cols) : anterior(f)));
-      } else if (e.key === "PageDown") {
+      } else if (tecla === "PaginaAbajo") {
         e.preventDefault();
         setFoco((f) => Math.min(total - 1, f + salto));
-      } else if (e.key === "PageUp") {
+      } else if (tecla === "PaginaArriba") {
         e.preventDefault();
         setFoco((f) => Math.max(primero, f - salto));
-      } else if (e.key === "Enter" || e.key === " ") {
+      } else if (tecla === "Ok") {
         e.preventDefault();
         if (pantalla === "portada") {
           if (foco === -1 && ultimo) reproducir(ultimo.source);

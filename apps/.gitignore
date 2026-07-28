@@ -1,0 +1,9 @@
+# Los iconos se regeneran con preparar-graficos-tele.sh y cada marca tiene
+# los suyos: en el repositorio solo estorban
+tizen/icon.png
+webos/icon.png
+webos/icon-large.png
+webos/icon-tienda.png
+tizen/.buildResult/
+tizen/*.wgt
+webos/*.ipk

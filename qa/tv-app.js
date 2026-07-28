@@ -111,6 +111,26 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
   check("Y otra vez, a la portada", true);
 
+  /* --- El mando de cada fabricante ---
+     Un televisor no manda «Escape»: Samsung manda el código 10009 y LG el
+     461, y ninguno rellena e.key con nada reconocible. Sin traducirlos, el
+     botón ATRÁS de esas teles no hacía absolutamente nada. */
+  const pulsaCodigo = (codigo) =>
+    tv.evaluate((c) => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { keyCode: c, which: c, bubbles: true, cancelable: true }));
+    }, codigo);
+
+  for (const [marca, codigo] of [["Samsung (Tizen)", 10009], ["LG (webOS)", 461]]) {
+    await tv.locator(".tv-tile:has-text('TV en directo')").click();
+    await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 20000 });
+    await pulsaCodigo(codigo);
+    const volvio = await tv
+      .waitForSelector(".tv-tiles", { timeout: 8000 })
+      .then(() => true)
+      .catch(() => false);
+    check(`El ATRÁS del mando de ${marca} vuelve atrás`, volvio, `código ${codigo}`);
+  }
+
   // --- Cine y series: se eligen por la carátula, no leyendo una lista ---
   await tv.locator(".tv-tile:has-text('Películas')").click();
   await tv.waitForSelector(".tv-fila", { timeout: 20000 });

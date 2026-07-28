@@ -115,7 +115,8 @@ export default function AndroidTvPage() {
               <summary>Mi tele es Samsung o LG</summary>
               <p>
                 Esas no llevan Android. Abre el navegador de la tele y entra en la dirección del reproductor:
-                se ve igual. Las aplicaciones de Tizen y webOS están en camino.
+                se ve igual, con el mando y con su botón de ATRÁS. Sus aplicaciones —Tizen para Samsung y
+                webOS para LG— están hechas y a la espera de publicarse en sus tiendas.
               </p>
             </details>
             <details className="faq-item">

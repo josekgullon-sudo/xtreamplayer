@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  La aplicación para televisores Samsung (Tizen).
+
+  Igual que la de Android TV: por dentro va la misma /tv que funciona en el
+  navegador de cualquier tele, así que lo que se arregla en la web queda
+  arreglado en el televisor sin volver a pasar por la tienda de Samsung, que
+  tarda semanas en revisar cada versión.
+
+  El identificador de aplicación lo da Samsung al crear el proyecto en su
+  portal: los diez caracteres de delante son suyos y hay que sustituirlos.
+-->
+<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets"
+        id="http://totalplayer.app/tv" version="1.0.0" viewmodes="maximized">
+  <tizen:application id="0000000000.TOTALplayer" package="0000000000" required_version="6.0"/>
+  <content src="index.html"/>
+  <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
+  <icon src="icon.png"/>
+  <name>TOTALplayer</name>
+  <tizen:profile name="tv"/>
+
+  <!-- Sin esto la tele no deja salir a internet, que es todo lo que hace -->
+  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <!-- Para apagar el salvapantallas mientras se ve algo -->
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+  <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+
+  <!-- La aplicación carga una web de fuera: hay que permitirlo explícitamente -->
+  <access origin="*" subdomains="true"/>
+  <tizen:allow-navigation>*</tizen:allow-navigation>
+
+  <tizen:setting screen-orientation="landscape" background-support="disable"
+                 encryption="disable" install-location="auto" hwkey-event="enable"/>
+</widget>

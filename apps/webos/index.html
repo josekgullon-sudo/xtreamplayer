@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<title>TOTALplayer</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #14131a; overflow: hidden; }
+  #marco { border: 0; width: 100%; height: 100%; display: block; }
+  #aviso {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2vh;
+    color: #fff; font-family: system-ui, sans-serif; text-align: center;
+  }
+  #aviso b { color: #e5192b; letter-spacing: .18em; font-size: 1.6vw; }
+  #aviso p { color: rgba(255,255,255,.55); font-size: 1.4vw; }
+</style>
+</head>
+<body>
+<!--
+  La aplicación para televisores LG (webOS). Lo mismo que la de Samsung: la
+  web dentro, y aquí solo lo que la web no puede hacer desde fuera.
+-->
+<div id="aviso"><b>TOTALPLAYER</b><p>Encendiendo…</p></div>
+<iframe id="marco" allow="autoplay; fullscreen" allowfullscreen></iframe>
+<script>
+(function () {
+  // La dirección de tu instalación: lo único que cambia una marca blanca
+  var INICIO = "https://xtreamplayer-production.up.railway.app/tv";
+
+  var marco = document.getElementById("marco");
+  var aviso = document.getElementById("aviso");
+
+  var intentos = 0;
+  function cargar() { marco.src = INICIO + (intentos ? "?r=" + intentos : ""); }
+  marco.onload = function () { aviso.style.display = "none"; };
+  marco.onerror = function () { reintentar(); };
+  function reintentar() {
+    if (intentos++ > 40) return;
+    aviso.style.display = "flex";
+    setTimeout(cargar, 3000);
+  }
+  // Una tele enciende antes que el router: se reintenta en vez de quedarse negra
+  setTimeout(function () { if (aviso.style.display !== "none") reintentar(); }, 15000);
+
+  /* Salvapantallas fuera mientras la aplicación esté delante: ver una
+     película es estar dos horas sin tocar el mando */
+  try {
+    if (window.webOS && webOS.service) {
+      webOS.service.request("luna://com.webos.settingsservice", {
+        method: "setSystemSettings",
+        parameters: { category: "option", settings: { screenSaverTime: "0" } },
+      });
+    }
+  } catch (e) { /* fuera de la tele no existe */ }
+
+  /* El ATRÁS del mando de LG es el 461 y lo recibe la web, que tiene el
+     foco: allí ya sabe deshacer un paso cada vez. Aquí solo se atiende
+     cuando la web ya no puede retroceder más, para cerrar la aplicación. */
+  window.addEventListener("popstate", function () {
+    try { window.close(); } catch (e) {}
+  });
+
+  cargar();
+})();
+</script>
+</body>
+</html>
