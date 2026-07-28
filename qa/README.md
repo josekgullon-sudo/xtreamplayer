@@ -50,6 +50,7 @@ falla, así que valen tal cual para un CI.
 | --- | --- |
 | `e2e.js` | Añadir listas, zapear, cine y series, favoritos, EPG del canal |
 | `parrilla-epg.js` | La guía: horas, programa en emisión, moverse en el tiempo |
+| `catchup.js` | Volver a ver lo ya emitido en los canales que lo guardan |
 | `movil.js` | El reproductor en un teléfono: barra inferior, nada que desborde |
 | `portada.js` | La pantalla de «¿qué quieres ver?» y sus carátulas |
 | `busqueda.js` | Listas con datos sucios: títulos sin nombre, carátulas rotas |

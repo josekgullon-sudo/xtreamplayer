@@ -31,6 +31,7 @@ import {
   XtreamVodInfo,
   xtreamApi,
   liveStreamUrl,
+  timeshiftUrl,
   vodStreamUrl,
   seriesEpisodeUrl,
   decodeBase64Maybe,
@@ -502,6 +503,31 @@ export default function PlayerApp() {
     []
   );
 
+  /**
+   * Catch Up: volver a poner un programa que ya se emitió. El panel guarda
+   * los últimos días de cada canal que lo tenga activado, y hasta ahora esa
+   * grabación no había forma de pedirla desde aquí.
+   */
+  const playArchivo = useCallback(
+    (p: StoredPlaylist, streamId: number, logo: string | undefined, titulo: string, ini: number, fin: number) => {
+      const minutos = Math.max(1, Math.round((fin - ini) / 60000));
+      setViendo(true);
+      setCurrent({
+        source: {
+          url: timeshiftUrl(credsOf(p), streamId, new Date(ini), minutos),
+          name: titulo,
+          kind: "hls",
+        },
+        logo,
+        playlistId: p.id,
+        kind: "live",
+        streamId,
+        favKey: "",
+      });
+    },
+    []
+  );
+
   const playM3u = useCallback((p: StoredPlaylist, ch: M3UChannel) => {
     const favKey = `${p.id}:m3u:${ch.url}`;
     setViendo(true);
@@ -610,7 +636,11 @@ export default function PlayerApp() {
   const q = search.trim().toLowerCase();
 
   const liveGroups = useMemo(() => {
-    if (!active) return [] as { name: string; channels: { id: string; name: string; logo?: string; favKey: string; play: () => void }[] }[];
+    if (!active)
+      return [] as {
+        name: string;
+        channels: { id: string; name: string; logo?: string; favKey: string; archivo: boolean; play: () => void }[];
+      }[];
 
     if (active.type === "m3u") {
       const channels = m3uData[active.id] || [];
@@ -628,6 +658,7 @@ export default function PlayerApp() {
           name: ch.name,
           logo: ch.logo,
           favKey: `${active.id}:m3u:${ch.url}`,
+          archivo: false,
           play: () => playM3u(active, ch),
         })),
       }));
@@ -665,6 +696,7 @@ export default function PlayerApp() {
         name: ch.name,
         logo: ch.stream_icon,
         favKey: `${active.id}:live:${ch.stream_id}`,
+        archivo: Number(ch.tv_archive) > 0,
         play: () => playLive(active, ch),
       })),
     }));
@@ -1287,6 +1319,11 @@ export default function PlayerApp() {
                         <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
                       )}
                       <span className="name">{ch.name}</span>
+                      {ch.archivo && (
+                        <span className="pa-guia-marca" title="Guarda lo emitido: puedes volver atrás">
+                          <Icon name="clock" size={12} />
+                        </span>
+                      )}
                     </button>
                     <div className="pa-guia-progs">
                       {progs.length === 0 && (
@@ -1296,10 +1333,14 @@ export default function PlayerApp() {
                         const ini = Math.max(pr.ini, guiaDesde);
                         const fin = Math.min(pr.fin, guiaDesde + VENTANA_GUIA);
                         const ahora = Date.now() >= pr.ini && Date.now() < pr.fin;
+                        /* Ya emitido y el canal lo guarda: se puede volver a
+                           ver. Sin Catch Up, pulsarlo pone el directo, que es
+                           lo único que hay */
+                        const recuperable = !ahora && pr.fin <= Date.now() && ch.archivo;
                         return (
                           <button
                             key={pr.id}
-                            className={`pa-guia-prog ${ahora ? "emitiendo" : ""}`}
+                            className={`pa-guia-prog ${ahora ? "emitiendo" : ""} ${recuperable ? "recuperable" : ""}`}
                             style={{
                               left: `${((ini - guiaDesde) / VENTANA_GUIA) * 100}%`,
                               width: `${((fin - ini) / VENTANA_GUIA) * 100}%`,
@@ -1307,10 +1348,26 @@ export default function PlayerApp() {
                             /* setTab y no irAPestana: irAPestana limpia lo que
                                se esté viendo, y aquí el vídeo nace en este
                                mismo clic */
-                            onClick={() => { setTab("live"); ch.play(); }}
-                            title={`${hhmm(pr.ini)}–${hhmm(pr.fin)} · ${pr.titulo}${pr.desc ? `\n\n${pr.desc}` : ""}`}
+                            onClick={() => {
+                              setTab("live");
+                              if (recuperable) {
+                                playArchivo(active, Number(ch.id), ch.logo, pr.titulo, pr.ini, pr.fin);
+                              } else {
+                                ch.play();
+                              }
+                            }}
+                            title={
+                              `${hhmm(pr.ini)}–${hhmm(pr.fin)} · ${pr.titulo}` +
+                              (recuperable ? "\n\nYa emitido: se puede volver a ver" : "") +
+                              (pr.desc ? `\n\n${pr.desc}` : "")
+                            }
                           >
-                            <span className="pa-guia-prog-hora">{hhmm(pr.ini)}</span>
+                            <span className="pa-guia-prog-hora">
+                              {hhmm(pr.ini)}
+                              {recuperable && (
+                                <Icon name="back" size={10} className="pa-guia-rec" aria-label="Se puede volver a ver" />
+                              )}
+                            </span>
                             <span className="pa-guia-prog-titulo">{pr.titulo}</span>
                           </button>
                         );

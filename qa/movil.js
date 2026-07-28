@@ -17,6 +17,16 @@ async function abrirCanales(p) {
     await p.locator(".section-card").first().click();
   }
   await p.waitForSelector(".pa-live", { timeout: 20000 });
+  /* En el móvil se ve una cosa u otra, nunca las dos, y cuál de ellas depende
+     de por dónde se venía. Esperamos a que haya algo a la vista y decidimos
+     entonces; mirar solo una de las dos hacía fallar la prueba a ratos. */
+  await p.waitForFunction(() => {
+    const visible = (el) => el && el.getClientRects().length > 0;
+    return (
+      visible(document.querySelector(".pa-live-chan")) ||
+      visible(document.querySelector(".pa-live-cat:not(.pa-live-reciente)"))
+    );
+  }, { timeout: 25000 });
   if (await p.locator(".pa-live-chan").first().isVisible().catch(() => false)) return;
   await p.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();
   await p.waitForSelector(".pa-live-chan", { timeout: 20000 });

@@ -21,6 +21,10 @@ export interface XtreamLiveStream {
   stream_icon?: string;
   category_id?: string;
   epg_channel_id?: string;
+  /** 1 si el canal guarda lo emitido (Catch Up); 0 o ausente si no */
+  tv_archive?: string | number;
+  /** Cuántos días hacia atrás lo guarda */
+  tv_archive_duration?: string | number;
 }
 
 export interface XtreamVodStream {
@@ -151,6 +155,31 @@ export async function xtreamApi<T>(
 
 export function liveStreamUrl(creds: XtreamCreds, streamId: number, ext: "m3u8" | "ts" = "m3u8"): string {
   return `${creds.base}/live/${encodeURIComponent(creds.username)}/${encodeURIComponent(creds.password)}/${streamId}.${ext}`;
+}
+
+/**
+ * Catch Up: lo que ya se emitió. El panel lo sirve por su propio guion, con
+ * la hora de inicio en la del servidor y la duración en minutos. Devuelve un
+ * HLS normal, así que se reproduce por el mismo camino que el directo.
+ */
+export function timeshiftUrl(
+  creds: XtreamCreds,
+  streamId: number,
+  inicio: Date,
+  minutos: number
+): string {
+  const dosCifras = (n: number) => String(n).padStart(2, "0");
+  const cuando =
+    `${inicio.getFullYear()}-${dosCifras(inicio.getMonth() + 1)}-${dosCifras(inicio.getDate())}:` +
+    `${dosCifras(inicio.getHours())}-${dosCifras(inicio.getMinutes())}`;
+  const q = new URLSearchParams({
+    username: creds.username,
+    password: creds.password,
+    stream: String(streamId),
+    start: cuando,
+    duration: String(Math.max(1, Math.round(minutos))),
+  });
+  return `${creds.base}/streaming/timeshift.php?${q.toString()}`;
 }
 
 export function vodStreamUrl(creds: XtreamCreds, streamId: number, ext = "mp4"): string {

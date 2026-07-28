@@ -143,7 +143,8 @@ const server = http.createServer((req, res) => {
         { category_id: "2", category_name: "Deportes" },
       ],
       get_live_streams: [
-        { stream_id: 1, name: "La Uno Test", stream_icon: "", category_id: "1", epg_channel_id: "uno.test" },
+        // Con Catch Up, como los canales que guardan los últimos días
+        { stream_id: 1, name: "La Uno Test", stream_icon: "", category_id: "1", epg_channel_id: "uno.test", tv_archive: 1, tv_archive_duration: 7 },
         { stream_id: 2, name: "Deportes Test HD", stream_icon: "", category_id: "2" },
         { stream_id: 3, name: null, stream_icon: "", category_id: "2" },
       ],
@@ -217,6 +218,18 @@ const server = http.createServer((req, res) => {
       },
     };
     return res.end(JSON.stringify(data[action] ?? []));
+  }
+
+  // Catch Up: el panel lo sirve por su propio guion, con hora y duración
+  if (p === "/streaming/timeshift.php") {
+    const start = url.searchParams.get("start") || "";
+    const dur = url.searchParams.get("duration") || "";
+    if (!/^\d{4}-\d{2}-\d{2}:\d{2}-\d{2}$/.test(start) || !/^\d+$/.test(dur)) {
+      res.writeHead(400, { "Content-Type": "text/plain" });
+      return res.end("start o duration mal formados");
+    }
+    res.writeHead(200, { "Content-Type": "video/webm", "Content-Length": WEBM.length });
+    return res.end(WEBM);
   }
 
   // Streams: /live/u/p/1.m3u8|.ts, /movie/u/p/100.webm, /series/u/p/300.webm, /media/*.webm
