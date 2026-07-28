@@ -2269,3 +2269,24 @@ select.input { appearance: none; cursor: pointer; }
 /* La nota bajo la llamada principal lleva los caminos secundarios */
 .hero-note a { color: var(--text-dim); text-decoration: underline; text-underline-offset: 3px; }
 .hero-note a:hover { color: var(--accent-bright); }
+.hero-note a:hover { color: var(--accent-bright); }
+
+/* ---- En qué aparatos se ve ---- */
+
+/* La tarjeta que además es un enlace: el hover de la tarjeta ya avisa, así
+   que el subrayado del enlace sobra y ensucia el titular */
+.app-card { display: block; color: inherit; }
+.app-card:hover { text-decoration: none; }
+.app-card-mas {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 16px;
+  font-size: 14.5px; font-weight: 600; color: var(--accent-bright);
+}
+.app-card-pronto { color: var(--text-faint); }
+
+/* La descarga, o lo que hay mientras no la haya */
+.apk-caja {
+  max-width: 720px; margin: 0 auto; text-align: center;
+  background: var(--bg-elev); border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg); padding: 34px 30px;
+}
+.apk-txt { color: var(--text-dim); font-size: 15.5px; line-height: 1.65; margin-bottom: 24px; }
