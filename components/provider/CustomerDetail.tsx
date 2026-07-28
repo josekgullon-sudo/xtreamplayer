@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Icon, { IconName } from "@/components/Icon";
 import Loading, { MENSAJES_CLIENTE } from "@/components/Loading";
+import EntregaAcceso from "./EntregaAcceso";
 
 interface Detail {
   customer: {
@@ -97,8 +98,14 @@ export default function CustomerDetail({
   customerId,
   onBack,
   onChanged,
+  marca = "",
+  enlace = "",
 }: {
   customerId: number;
+  /** Nombre con el que le conoce su cliente, para el mensaje de entrega */
+  marca?: string;
+  /** Su enlace de marca, si lo tiene */
+  enlace?: string;
   onBack: () => void;
   onChanged: () => void;
 }) {
@@ -280,6 +287,15 @@ export default function CustomerDetail({
               <span className="detail-key">Alta</span>
               <span className="detail-val">{fullDate(customer.createdAt)}</span>
             </div>
+            {/* «Se me ha perdido el mensaje» es de las cosas que más se
+                preguntan: reenviarlo no puede costar teclearlo otra vez */}
+            <EntregaAcceso
+              usuario={customer.username}
+              password={customer.password}
+              marca={marca || "tu proveedor"}
+              enlace={enlace || (typeof window === "undefined" ? "" : `${window.location.origin}/acceso`)}
+              compacto
+            />
           </div>
 
           <div className="card">

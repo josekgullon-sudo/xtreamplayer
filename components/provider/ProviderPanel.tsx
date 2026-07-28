@@ -7,6 +7,7 @@ import TicketsSection from "./TicketsSection";
 import ApiSection from "./ApiSection";
 import InvoicesSection from "./InvoicesSection";
 import PanelSection from "./PanelSection";
+import EntregaAcceso from "./EntregaAcceso";
 import Loading, { MENSAJES_PANEL } from "@/components/Loading";
 import { useCallback, useEffect, useState } from "react";
 
@@ -99,6 +100,8 @@ export default function ProviderPanel() {
     precioPerfil: number;
   } | null>(null);
   const [accessUrl, setAccessUrl] = useState("");
+  /* Con enlace de marca se manda ese; sin él, el acceso general */
+  const sitio = typeof window === "undefined" ? "" : window.location.origin;
   const [showReseller, setShowReseller] = useState<Reseller | "new" | null>(null);
   const [createdReseller, setCreatedReseller] = useState<{ email: string; password: string } | null>(null);
   const [search, setSearch] = useState("");
@@ -115,11 +118,11 @@ export default function ProviderPanel() {
   } | null>(null);
   const [importing, setImporting] = useState(false);
   const [showPlans, setShowPlans] = useState(false);
+  /** Tickets que ya tienen respuesta y el proveedor aún no ha visto */
+  const [respondidos, setRespondidos] = useState(0);
   /* Si un administrador está mirando este panel, que se vea. Entrar en la
      cuenta de otro sin que la pantalla lo diga es la clase de cosa que
      acaba en un cambio hecho en la casa equivocada. */
-  /** Tickets que ya tienen respuesta y el proveedor aún no ha visto */
-  const [respondidos, setRespondidos] = useState(0);
   const [suplantando, setSuplantando] = useState<string | null>(null);
   useEffect(() => {
     const m = document.cookie.match(/(?:^|; )xp_suplantando=([^;]*)/);
@@ -677,21 +680,18 @@ export default function ProviderPanel() {
               <span className="label">Contraseña</span>
               <code className="cred">{created.password}</code>
             </div>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() =>
-                navigator.clipboard?.writeText(`Usuario: ${created.username}\nContraseña: ${created.password}`)
-              }
-            >
-              Copiar
-            </button>
             <button className="btn btn-ghost btn-sm" onClick={() => setCreated(null)}>
               Cerrar
             </button>
           </div>
-          <p style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 12 }}>
-            Tu cliente entra en <strong>/acceso</strong> con estos datos y verá su lista cargada automáticamente.
-          </p>
+          {/* El mensaje ya escrito: teclearlo a mano en cada alta era el
+              paso más aburrido del día, y donde se colaba alguna letra */}
+          <EntregaAcceso
+            usuario={created.username}
+            password={created.password}
+            marca={branding?.name || provider.company || "tu proveedor"}
+            enlace={accessUrl || `${sitio}/acceso`}
+          />
         </div>
       )}
 
@@ -993,6 +993,8 @@ export default function ProviderPanel() {
       {tab === "clientes" && detailId !== null && (
         <CustomerDetail
           customerId={detailId}
+          marca={branding?.name || provider.company || ""}
+          enlace={accessUrl || `${sitio}/acceso`}
           onBack={() => setDetailId(null)}
           onChanged={() => loadCustomers(search)}
         />

@@ -843,6 +843,16 @@ select.input { appearance: none; cursor: pointer; }
   border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 700;
 }
 .panel-nav-item.active .panel-nav-count { background: var(--accent-tint-strong); color: var(--accent-bright); }
+/* Entregar el acceso al cliente con el mensaje ya escrito */
+.entrega { margin-top: 14px; }
+.entrega-previa {
+  white-space: pre-line; font-size: 13px; line-height: 1.55; color: var(--text-dim);
+  background: var(--surface-quiet); border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 12px;
+}
+.entrega-botones { display: flex; gap: 8px; flex-wrap: wrap; }
+.entrega.compacta { margin-top: 12px; }
+
 /* Datos fiscales del proveedor: sin ellos su factura no vale */
 .factura-fiscales {
   display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
