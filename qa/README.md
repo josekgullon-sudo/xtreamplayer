@@ -24,6 +24,8 @@ DATA_DIR=/tmp/qa-datos node scripts/seed-demo.mjs
 cd .next/standalone && cp -r ../static .next/ && cp -r ../../public .
 DATA_DIR=/tmp/qa-datos PORT=3101 ALLOW_PRIVATE_NETWORKS=1 \
   ADMIN_WEBHOOK_URL=http://127.0.0.1:8099/aviso \
+  BILLING_NAME="TOTALplayer SL" BILLING_TAX_ID="B00000000" \
+  BILLING_ADDRESS="Calle Mayor 1, Madrid" BILLING_VAT_PERCENT=21 \
   SESSION_SECRET=cualquier-cadena-larga-para-pruebas node server.js &
 ```
 
@@ -68,5 +70,6 @@ falla, así que valen tal cual para un CI.
 | `novedades.js` | Lo recién subido por el proveedor, con su ventana de tiempo |
 | `admin-panel.js` | El panel de la plataforma y quién puede entrar en él |
 | `admin-facturas.js` | Emitir y anular facturas, y abrir el panel de un proveedor |
+| `facturas-fiscales.js` | Que la factura lleve emisor, receptor e IVA y le sirva a un gestor |
 | `acceso.js` | Las tres puertas de entrada y la vuelta a donde ibas |
 | `alta-simple.js` | Que el alta de un cliente pida un solo usuario y contraseña |
