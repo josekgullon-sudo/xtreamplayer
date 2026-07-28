@@ -66,5 +66,6 @@ falla, así que valen tal cual para un CI.
 | `busqueda-global.js` | Buscar una vez y encontrar canales, cine y series |
 | `novedades.js` | Lo recién subido por el proveedor, con su ventana de tiempo |
 | `admin-panel.js` | El panel de la plataforma y quién puede entrar en él |
+| `admin-facturas.js` | Emitir y anular facturas, y abrir el panel de un proveedor |
 | `acceso.js` | Las tres puertas de entrada y la vuelta a donde ibas |
 | `alta-simple.js` | Que el alta de un cliente pida un solo usuario y contraseña |
