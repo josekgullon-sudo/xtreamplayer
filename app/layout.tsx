@@ -37,12 +37,27 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
   },
   robots: { index: true, follow: true },
+  manifest: "/manifest.webmanifest",
+  /*
+   * Instalada en un iPhone, se abre a pantalla completa y sin la barra de
+   * Safari. Es la única vía en Apple —su tienda no admite reproductores IPTV
+   * genéricos— y sin estas tres líneas «Añadir a pantalla de inicio» dejaba
+   * un acceso directo que abría el navegador de siempre.
+   */
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
   themeColor: "#08080a",
   width: "device-width",
   initialScale: 1,
+  /* En un móvil con muesca, el vídeo llega hasta el borde en vez de dejar
+     dos franjas negras a los lados */
+  viewportFit: "cover",
 };
 
 const JSON_LD = {

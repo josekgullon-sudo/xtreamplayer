@@ -66,6 +66,28 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   check("Y son dibujos, no imágenes traídas de fuera",
     (await p.locator(".marca svg").count()) >= 6 && (await p.locator(".marca img").count()) === 0);
 
+  /* Instalarlo en el móvil es la única vía en Apple —su tienda no admite
+     reproductores IPTV genéricos—, así que tiene que estar explicado */
+  await p.goto(BASE + "/apps/movil", { waitUntil: "networkidle" });
+  const movil = await p.locator("main").innerText();
+  check("La página del móvil explica las dos formas de instalarlo",
+    movil.includes("Safari") && movil.includes("pantalla de inicio") && movil.includes("Chrome"));
+  check("Y dice por qué no está en la App Store", movil.includes("App Store"));
+
+  // El manifiesto es lo que hace que, instalada, se abra como aplicación
+  const manifiesto = await (await fetch(BASE + "/manifest.webmanifest")).json();
+  check("El manifiesto la declara instalable",
+    manifiesto.display === "standalone" && manifiesto.start_url === "/player",
+    `${manifiesto.display} · arranca en ${manifiesto.start_url}`);
+  check("Con iconos propios, y uno recortable para Android",
+    manifiesto.icons?.length >= 2 && manifiesto.icons.some((i) => i.purpose === "maskable"),
+    `${manifiesto.icons?.length} iconos`);
+  for (const icono of manifiesto.icons || []) {
+    const r = await fetch(BASE + icono.src);
+    check(`El icono ${icono.sizes} existe de verdad`, r.status === 200 && (r.headers.get("content-type") || "").includes("image"));
+  }
+
+  await p.goto(BASE + "/apps", { waitUntil: "networkidle" });
   await p.locator(".app-card").first().click();
   await p.waitForURL("**/apps/androidtv", { timeout: 10000 });
   const tele = await p.locator("main").innerText();

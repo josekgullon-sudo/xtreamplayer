@@ -73,7 +73,7 @@ export default function AppsPage() {
               <span className="app-card-mas app-card-pronto">Aplicación: pendiente de publicar en sus tiendas</span>
             </div>
 
-            <div className="feature-card">
+            <Link href="/apps/movil" className="feature-card app-card">
               <div className="marcas">
                 <span className="marca">
                   <LogoAparato nombre="android" size={19} /> Android
@@ -84,13 +84,13 @@ export default function AppsPage() {
               </div>
               <h3>Móvil y tablet</h3>
               <p>
-                Entra en la web y añádela a la pantalla de inicio: se abre a pantalla completa, como cualquier
-                otra aplicación. No hay nada que descargar.
+                Se añade a la pantalla de inicio y se abre a pantalla completa, con su icono, como cualquier
+                otra aplicación. No hay nada que descargar de ninguna tienda.
               </p>
-              <Link href="/player" className="app-card-mas">
-                Abrir el reproductor <Icon name="external" size={14} />
-              </Link>
-            </div>
+              <span className="app-card-mas">
+                Cómo instalarla <Icon name="external" size={14} />
+              </span>
+            </Link>
 
             <div className="feature-card">
               <div className="marcas">

@@ -2319,3 +2319,9 @@ select.input { appearance: none; cursor: pointer; }
 .compat-fila { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .compat .marca { background: transparent; color: var(--text-dim); }
 .compat-pie { text-align: center; font-size: 14px; }
+
+/* Los pasos de «cómo se instala»: una lista numerada que se lee de un vistazo */
+.pasos-lista { margin: 0 0 14px; padding-left: 20px; color: var(--text-dim); font-size: 15px; line-height: 1.7; }
+.pasos-lista li { margin-bottom: 6px; }
+.pasos-lista strong { color: var(--text); }
+.pasos-nota { font-size: 13.5px; color: var(--text-faint); line-height: 1.55; }
