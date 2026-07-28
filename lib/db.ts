@@ -112,6 +112,10 @@ export interface ProviderRow {
   panel_api_key: string;
   /** Precio en céntimos de cada perfil adicional; 0 = no los ofrece */
   extra_profile_price: number;
+  /** Datos fiscales para sus facturas: razón social, NIF y dirección */
+  tax_name: string;
+  tax_id: string;
+  tax_address: string;
   /** Hash SHA-256 de la clave de la API pública; vacío = API desactivada */
   api_key_hash: string;
   /** Prefijo visible de la clave activa (tp_XXXX…), para mostrar sin revelarla */

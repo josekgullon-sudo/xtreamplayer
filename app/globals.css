@@ -843,6 +843,19 @@ select.input { appearance: none; cursor: pointer; }
   border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 700;
 }
 .panel-nav-item.active .panel-nav-count { background: var(--accent-tint-strong); color: var(--accent-bright); }
+/* Datos fiscales del proveedor: sin ellos su factura no vale */
+.factura-fiscales {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 16px 20px; margin-bottom: 16px;
+}
+.factura-fiscales h3 { font-size: 15.5px; font-weight: 700; }
+.factura-fiscales.incompleto { border-color: var(--danger-border); background: var(--danger-tint); }
+.factura-form {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px; padding: 18px; margin-bottom: 18px;
+}
+.factura-form .auth-field { margin: 0; }
+
 /* Los dos bloques de la página de precios, cada uno con su público */
 .precios-titulo {
   display: flex; align-items: center; justify-content: center; gap: 10px;

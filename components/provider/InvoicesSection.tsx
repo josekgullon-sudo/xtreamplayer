@@ -14,6 +14,25 @@ interface Factura {
   periodEnd: number;
   status: "pagada" | "pendiente" | "anulada";
   createdAt: number;
+  baseCents: number | null;
+  ivaCents: number | null;
+  ivaPorcentaje: number;
+}
+
+interface Facturacion {
+  company: string;
+  email: string;
+  taxName: string;
+  taxId: string;
+  taxAddress: string;
+}
+
+interface Emisor {
+  nombre: string;
+  nif: string;
+  direccion: string;
+  email: string;
+  web: string;
 }
 
 function euros(cents: number, currency: string) {
@@ -26,8 +45,10 @@ function fecha(ms: number) {
 
 /** Facturas del proveedor, con vista imprimible (imprimir → guardar como PDF). */
 export default function InvoicesSection() {
-  const [datos, setDatos] = useState<{ invoices: Factura[]; billing: { company: string; email: string } } | null>(null);
+  const [datos, setDatos] = useState<{ invoices: Factura[]; billing: Facturacion; emisor: Emisor } | null>(null);
   const [imprimiendo, setImprimiendo] = useState<Factura | null>(null);
+  const [editando, setEditando] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/provider/invoices")
@@ -48,10 +69,80 @@ export default function InvoicesSection() {
     };
   }, [imprimiendo]);
 
+  async function guardarFiscales(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const cuerpo = {
+      taxName: String(fd.get("taxName") || ""),
+      taxId: String(fd.get("taxId") || ""),
+      taxAddress: String(fd.get("taxAddress") || ""),
+    };
+    const res = await fetch("/api/provider/invoices", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cuerpo),
+    });
+    if (!res.ok) return;
+    setDatos((d) => (d ? { ...d, billing: { ...d.billing, ...cuerpo } } : d));
+    setEditando(false);
+    setAviso("Datos guardados. Las facturas que descargues los llevarán.");
+  }
+
   if (!datos) return <Loading messages={["Cargando tus facturas…"]} compact />;
+
+  const { billing, emisor } = datos;
+  const faltanDatos = !billing.taxName || !billing.taxId;
 
   return (
     <>
+      {aviso && (
+        <div className="badge badge-success" style={{ display: "block", padding: "12px 16px", marginBottom: 16 }} role="status">
+          {aviso}
+        </div>
+      )}
+
+      {/* Sin NIF ni razón social la factura no le vale a su gestor, y acaba
+          pidiéndola rehecha por correo */}
+      <div className={`card factura-fiscales ${faltanDatos ? "incompleto" : ""}`}>
+        <div>
+          <h3>Tus datos de facturación</h3>
+          {faltanDatos ? (
+            <p className="panel-sub">
+              Añade tu razón social y tu NIF: sin ellos, tus facturas no le sirven a tu gestor.
+            </p>
+          ) : (
+            <p className="panel-sub">
+              {billing.taxName} · {billing.taxId}
+              {billing.taxAddress ? ` · ${billing.taxAddress}` : ""}
+            </p>
+          )}
+        </div>
+        <button className={`btn btn-sm ${faltanDatos ? "btn-primary" : "btn-ghost"}`} onClick={() => setEditando((v) => !v)}>
+          {faltanDatos ? "Añadir" : "Editar"}
+        </button>
+      </div>
+
+      {editando && (
+        <form className="card factura-form" onSubmit={guardarFiscales}>
+          <div className="auth-field">
+            <label className="label" htmlFor="fi-nombre">Razón social o nombre</label>
+            <input id="fi-nombre" name="taxName" className="input" defaultValue={billing.taxName} placeholder="Mi Empresa S.L." />
+          </div>
+          <div className="auth-field">
+            <label className="label" htmlFor="fi-nif">NIF / CIF</label>
+            <input id="fi-nif" name="taxId" className="input" defaultValue={billing.taxId} placeholder="B12345678" />
+          </div>
+          <div className="auth-field" style={{ gridColumn: "1 / -1" }}>
+            <label className="label" htmlFor="fi-dir">Dirección fiscal</label>
+            <input id="fi-dir" name="taxAddress" className="input" defaultValue={billing.taxAddress} placeholder="Calle Mayor 1, 28013 Madrid" />
+          </div>
+          <div className="row-actions" style={{ gridColumn: "1 / -1" }}>
+            <button className="btn btn-primary btn-sm" type="submit">Guardar</button>
+            <button className="btn btn-ghost btn-sm" type="button" onClick={() => setEditando(false)}>Cancelar</button>
+          </div>
+        </form>
+      )}
+
       {datos.invoices.length === 0 ? (
         <div className="pa-empty">
           Aún no hay facturas. Aparecerán aquí con cada cobro de tu plan.
@@ -98,8 +189,12 @@ export default function InvoicesSection() {
           <div className="factura-hoja">
             <div className="factura-cab">
               <div>
-                <div className="factura-marca">TOTALplayer</div>
-                <div className="factura-emisor">totalplayer.app · soporte@totalplayer.app</div>
+                <div className="factura-marca">{emisor.nombre}</div>
+                <div className="factura-emisor">
+                  {emisor.nif && <>NIF {emisor.nif}<br /></>}
+                  {emisor.direccion && <>{emisor.direccion}<br /></>}
+                  {emisor.web} · {emisor.email}
+                </div>
               </div>
               <div className="factura-num">
                 <h1>Factura</h1>
@@ -111,8 +206,10 @@ export default function InvoicesSection() {
             <div className="factura-partes">
               <div>
                 <h3>Facturar a</h3>
-                <p>{datos.billing.company}</p>
-                <p>{datos.billing.email}</p>
+                <p>{billing.taxName || billing.company}</p>
+                {billing.taxId && <p>NIF {billing.taxId}</p>}
+                {billing.taxAddress && <p>{billing.taxAddress}</p>}
+                <p>{billing.email}</p>
               </div>
             </div>
 
@@ -124,10 +221,24 @@ export default function InvoicesSection() {
                 <tr>
                   <td>{imprimiendo.concept}</td>
                   <td>{imprimiendo.periodStart ? `${fecha(imprimiendo.periodStart)} — ${fecha(imprimiendo.periodEnd)}` : "—"}</td>
-                  <td>{euros(imprimiendo.amountCents, imprimiendo.currency)}</td>
+                  <td>{euros(imprimiendo.baseCents ?? imprimiendo.amountCents, imprimiendo.currency)}</td>
                 </tr>
               </tbody>
               <tfoot>
+                {/* El desglose, solo si sabemos el tipo: mejor callarlo que
+                    poner un IVA que no es el que se repercute */}
+                {imprimiendo.ivaCents !== null && (
+                  <>
+                    <tr>
+                      <td colSpan={2}>Base imponible</td>
+                      <td>{euros(imprimiendo.baseCents!, imprimiendo.currency)}</td>
+                    </tr>
+                    <tr>
+                      <td colSpan={2}>IVA ({imprimiendo.ivaPorcentaje}%)</td>
+                      <td>{euros(imprimiendo.ivaCents, imprimiendo.currency)}</td>
+                    </tr>
+                  </>
+                )}
                 <tr>
                   <td colSpan={2}>Total ({imprimiendo.status})</td>
                   <td>{euros(imprimiendo.amountCents, imprimiendo.currency)}</td>
@@ -135,7 +246,10 @@ export default function InvoicesSection() {
               </tfoot>
             </table>
 
-            <p className="factura-pie">IVA incluido cuando aplique. Gracias por confiar en TOTALplayer.</p>
+            <p className="factura-pie">
+              {imprimiendo.ivaCents === null && "IVA incluido cuando aplique. "}
+              Gracias por confiar en {emisor.nombre}.
+            </p>
           </div>
         </div>
       )}
