@@ -36,7 +36,7 @@ import {
   decodeBase64Maybe,
 } from "@/lib/xtream";
 
-type Tab = "live" | "vod" | "series" | "favs";
+type Tab = "live" | "guia" | "vod" | "series" | "favs";
 
 interface NowPlaying {
   source: PlaySource;
@@ -60,6 +60,43 @@ const K_LAST_PLAYLIST = "xp.lastPlaylist.v1";
 
 function credsOf(p: StoredPlaylist): XtreamCreds {
   return { base: p.url, username: p.username || "", password: p.password || "" };
+}
+
+/* ---------- Parrilla ---------- */
+
+/** Media hora: la unidad en la que piensa cualquiera al mirar una parrilla */
+const MEDIA_HORA = 1800000;
+/** Lo que se ve de una vez; con más, los títulos no caben */
+const VENTANA_GUIA = 4 * 3600000;
+
+interface ProgramaGuia {
+  id: string;
+  titulo: string;
+  desc: string;
+  ini: number;
+  fin: number;
+}
+
+/**
+ * Hora de un programa. XUI la manda de dos maneras a la vez: unix en
+ * segundos (a veces como texto) y «2026-07-28 21:00:00» en la hora del
+ * servidor. Se prefiere la unix, que no depende de husos horarios.
+ */
+function horaEpg(unix?: string | number, texto?: string): number {
+  const n = Number(unix);
+  if (Number.isFinite(n) && n > 0) return n > 1e11 ? n : n * 1000;
+  const m = (texto || "").match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return 0;
+  return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime();
+}
+
+/** A la media hora en punto, para que la regla empiece donde se espera */
+function aMediaHora(ms: number) {
+  return Math.floor(ms / MEDIA_HORA) * MEDIA_HORA;
+}
+
+function hhmm(ms: number) {
+  return new Date(ms).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 }
 
 /** Categoría inventada por nosotros: lo último que ha subido el proveedor. */
@@ -668,6 +705,92 @@ export default function PlayerApp() {
     }));
   }, [active, m3uData, xtreamData, playLive, playM3u]);
 
+  /* ---------- Parrilla: el EPG de muchos canales a la vez ---------- */
+
+  const [guiaDesde, setGuiaDesde] = useState(() => aMediaHora(Date.now()) - MEDIA_HORA);
+  const [guiaEpg, setGuiaEpg] = useState<Record<string, ProgramaGuia[]>>({});
+  const [guiaCargando, setGuiaCargando] = useState(false);
+
+  /* Una parrilla de cinco mil canales no la lee nadie: se enseña la de la
+     categoría elegida, igual que en el directo, y de treinta en treinta */
+  const canalesGuia = useMemo(() => {
+    if (tab !== "guia" || !liveGroups.length) return [];
+    const grupo = liveGroups.find((g) => g.name === grupoSel) || liveGroups[0];
+    return grupo.channels.slice(0, 30);
+  }, [tab, liveGroups, grupoSel]);
+
+  useEffect(() => {
+    setGuiaEpg({});
+  }, [activeId]);
+
+  useEffect(() => {
+    if (tab !== "guia" || !active || active.type !== "xtream" || !canalesGuia.length) return;
+    const faltan = canalesGuia.filter((c) => !guiaEpg[c.id]).map((c) => c.id);
+    if (!faltan.length) return;
+
+    let cancelado = false;
+    setGuiaCargando(true);
+    const creds = credsOf(active);
+
+    /*
+     * De seis en seis. Treinta peticiones a la vez contra un panel modesto
+     * acaban en tiempos de espera y en una parrilla a medio pintar; así
+     * tarda un poco más y llega entera.
+     */
+    (async () => {
+      for (let i = 0; i < faltan.length && !cancelado; i += 6) {
+        const tanda = faltan.slice(i, i + 6);
+        const hechas = await Promise.all(
+          tanda.map(async (id) => {
+            try {
+              const res = await xtreamApi<{
+                epg_listings?: {
+                  id?: string;
+                  title?: string;
+                  description?: string;
+                  start?: string;
+                  end?: string;
+                  start_timestamp?: string | number;
+                  stop_timestamp?: string | number;
+                }[];
+              }>(creds, "get_short_epg", { stream_id: id, limit: "24" });
+              const progs = (res.epg_listings || [])
+                .map((pr, n) => ({
+                  id: pr.id || `${id}-${n}`,
+                  titulo: decodeBase64Maybe(pr.title) || "Sin título",
+                  desc: decodeBase64Maybe(pr.description) || "",
+                  ini: horaEpg(pr.start_timestamp, pr.start),
+                  fin: horaEpg(pr.stop_timestamp, pr.end),
+                }))
+                .filter((pr) => pr.ini > 0 && pr.fin > pr.ini);
+              return [id, progs] as const;
+            } catch {
+              // Un canal sin EPG no puede dejar toda la parrilla en blanco
+              return [id, [] as ProgramaGuia[]] as const;
+            }
+          })
+        );
+        if (cancelado) return;
+        setGuiaEpg((prev) => {
+          const siguiente = { ...prev };
+          for (const [id, progs] of hechas) siguiente[id] = progs;
+          return siguiente;
+        });
+      }
+      if (!cancelado) setGuiaCargando(false);
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [tab, active, canalesGuia, guiaEpg]);
+
+  /** Franjas de media hora de la ventana visible, para la regla de arriba */
+  const franjas = useMemo(
+    () => Array.from({ length: VENTANA_GUIA / MEDIA_HORA }, (_, i) => guiaDesde + i * MEDIA_HORA),
+    [guiaDesde]
+  );
+
   /** Con menos de dos letras no se busca: media lista coincide con una sola */
   const buscandoTodo = q.length >= 2;
 
@@ -913,6 +1036,9 @@ export default function PlayerApp() {
           </button>
           {isXtream && (
             <>
+              <button className={`pa-nav-item ${tab === "guia" ? "activo" : ""}`} onClick={() => irAPestana("guia")}>
+                <Icon name="clock" size={16} /> Guía
+              </button>
               <button className={`pa-nav-item ${tab === "vod" ? "activo" : ""}`} onClick={() => irAPestana("vod")}>
                 <Icon name="film" size={16} /> Películas
               </button>
@@ -1069,6 +1195,135 @@ export default function PlayerApp() {
             )}
           </div>
         )}
+      </div>
+    ) : active && tab === "guia" ? (
+      /* La parrilla: qué echan ahora y en las próximas horas, de un vistazo.
+         Categorías a la izquierda como en el directo, y a la derecha una
+         rejilla que se desliza en el tiempo. */
+      <div className="pa-guia">
+        <aside className="pa-live-cats" aria-label="Categorías">
+          <div className="pa-live-head">
+            <span>Categorías</span>
+            <span className="pa-live-n">{canalesGuia.length}</span>
+          </div>
+          <div className="pa-live-scroll">
+            {liveGroups.map((g) => (
+              <button
+                key={g.name}
+                className={`pa-live-cat ${(grupoSel || liveGroups[0]?.name) === g.name ? "activa" : ""}`}
+                onClick={() => setGrupoSel(g.name)}
+                title={g.name}
+              >
+                <span className="name">{g.name}</span>
+                <span className="pa-live-n">{g.channels.length}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <section className="pa-guia-main">
+          <div className="pa-guia-barra">
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setGuiaDesde((d) => d - 2 * MEDIA_HORA)}
+              aria-label="Una hora antes"
+            >
+              <Icon name="back" size={14} /> 1 h
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setGuiaDesde(aMediaHora(Date.now()) - MEDIA_HORA)}
+            >
+              Ahora
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setGuiaDesde((d) => d + 2 * MEDIA_HORA)}
+              aria-label="Una hora después"
+            >
+              1 h <Icon name="chevronRight" size={14} />
+            </button>
+            <span className="pa-guia-dia">
+              {new Date(guiaDesde).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
+            </span>
+            {guiaCargando && <span className="pa-guia-cargando">Cargando la parrilla…</span>}
+          </div>
+
+          <div className="pa-guia-scroll">
+            <div className="pa-guia-rejilla">
+              <div className="pa-guia-regla">
+                <div className="pa-guia-esquina" />
+                <div className="pa-guia-horas">
+                  {franjas.map((f) => (
+                    <span key={f} className="pa-guia-hora" style={{ width: `${(MEDIA_HORA / VENTANA_GUIA) * 100}%` }}>
+                      {hhmm(f)}
+                    </span>
+                  ))}
+                  {/* La línea de ahora solo se pinta si «ahora» cae dentro */}
+                  {Date.now() >= guiaDesde && Date.now() <= guiaDesde + VENTANA_GUIA && (
+                    <span
+                      className="pa-guia-ahora"
+                      style={{ left: `${((Date.now() - guiaDesde) / VENTANA_GUIA) * 100}%` }}
+                      aria-hidden="true"
+                    />
+                  )}
+                </div>
+              </div>
+
+              {canalesGuia.map((ch) => {
+                const progs = (guiaEpg[ch.id] || []).filter(
+                  (pr) => pr.fin > guiaDesde && pr.ini < guiaDesde + VENTANA_GUIA
+                );
+                return (
+                  <div className="pa-guia-fila" key={ch.favKey}>
+                    <button
+                      className="pa-guia-canal"
+                      onClick={() => { setTab("live"); ch.play(); }}
+                      title={`Ver ${ch.name}`}
+                    >
+                      {imgSrc(ch.logo) ? (
+                        <img src={imgSrc(ch.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+                      ) : (
+                        <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
+                      )}
+                      <span className="name">{ch.name}</span>
+                    </button>
+                    <div className="pa-guia-progs">
+                      {progs.length === 0 && (
+                        <span className="pa-guia-vacio">{guiaEpg[ch.id] ? "Sin guía" : "…"}</span>
+                      )}
+                      {progs.map((pr) => {
+                        const ini = Math.max(pr.ini, guiaDesde);
+                        const fin = Math.min(pr.fin, guiaDesde + VENTANA_GUIA);
+                        const ahora = Date.now() >= pr.ini && Date.now() < pr.fin;
+                        return (
+                          <button
+                            key={pr.id}
+                            className={`pa-guia-prog ${ahora ? "emitiendo" : ""}`}
+                            style={{
+                              left: `${((ini - guiaDesde) / VENTANA_GUIA) * 100}%`,
+                              width: `${((fin - ini) / VENTANA_GUIA) * 100}%`,
+                            }}
+                            /* setTab y no irAPestana: irAPestana limpia lo que
+                               se esté viendo, y aquí el vídeo nace en este
+                               mismo clic */
+                            onClick={() => { setTab("live"); ch.play(); }}
+                            title={`${hhmm(pr.ini)}–${hhmm(pr.fin)} · ${pr.titulo}${pr.desc ? `\n\n${pr.desc}` : ""}`}
+                          >
+                            <span className="pa-guia-prog-hora">{hhmm(pr.ini)}</span>
+                            <span className="pa-guia-prog-titulo">{pr.titulo}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {!canalesGuia.length && <p className="pa-empty">Esta lista no trae canales de televisión.</p>}
+            </div>
+          </div>
+        </section>
       </div>
     ) : active && (tab === "live" || tab === "favs") ? (
       <div className={`pa-live ${current ? "con-video" : ""} ${verCanales ? "con-canales" : ""}`}>
@@ -1480,6 +1735,15 @@ export default function PlayerApp() {
           </button>
           {isXtream && (
             <>
+              {/* La parrilla también abajo: en el móvil esta barra es la
+                  única forma de cambiar de sección */}
+              <button
+                className={`pa-bottomnav-item ${tab === "guia" ? "active" : ""}`}
+                onClick={() => { irAPestana("guia"); setSeccionGate("hecho"); }}
+              >
+                <Icon name="clock" size={21} />
+                <span>Guía</span>
+              </button>
               <button
                 className={`pa-bottomnav-item ${tab === "vod" ? "active" : ""}`}
                 onClick={() => { irAPestana("vod"); setSeccionGate("hecho"); }}

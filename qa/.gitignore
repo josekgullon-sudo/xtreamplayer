@@ -1,0 +1,4 @@
+# Capturas y vídeos de prueba: se generan, no se guardan
+*.png
+*.webm
+*.mkv

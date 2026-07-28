@@ -1,0 +1,61 @@
+# Pruebas de extremo a extremo
+
+Suites de Playwright que abren la aplicación de verdad en un navegador y
+comprueban lo que ve el cliente: que un canal suena, que la parrilla se pinta
+a su hora, que un revendedor no ve lo que no debe.
+
+Viven aquí, en el repositorio, y no en un directorio temporal: escribirlas
+cuesta más que el código que prueban, y un contenedor que se reinicia se las
+llevaba por delante.
+
+## Preparar el entorno
+
+```bash
+# 1. Vídeos de prueba (una vez; necesita ffmpeg)
+bash qa/preparar-medios.sh
+
+# 2. Servidor IPTV simulado, en el 8090
+node qa/mock-iptv.js &
+
+# 3. La aplicación compilada, con datos de ejemplo
+npm run build
+DATA_DIR=/tmp/qa-datos node scripts/seed-demo.mjs
+cd .next/standalone && cp -r ../static .next/ && cp -r ../../public .
+DATA_DIR=/tmp/qa-datos PORT=3101 ALLOW_PRIVATE_NETWORKS=1 \
+  SESSION_SECRET=cualquier-cadena-larga-para-pruebas node server.js &
+```
+
+`ALLOW_PRIVATE_NETWORKS=1` es **solo para esto**: desactiva la protección que
+impide que el proxy hable con direcciones internas, y en producción no se pone
+nunca.
+
+## Lanzarlas
+
+```bash
+node qa/e2e.js          # el recorrido completo del reproductor
+node qa/parrilla-epg.js # la guía de programación
+node qa/movil.js        # todo lo anterior en un móvil
+...
+```
+
+Cada suite imprime una línea por comprobación y sale con código 1 si alguna
+falla, así que valen tal cual para un CI.
+
+`QA_BASE` cambia la dirección contra la que se prueba (por defecto
+`http://localhost:3101`).
+
+## Las suites
+
+| Fichero | Qué vigila |
+| --- | --- |
+| `e2e.js` | Añadir listas, zapear, cine y series, favoritos, EPG del canal |
+| `parrilla-epg.js` | La guía: horas, programa en emisión, moverse en el tiempo |
+| `movil.js` | El reproductor en un teléfono: barra inferior, nada que desborde |
+| `portada.js` | La pantalla de «¿qué quieres ver?» y sus carátulas |
+| `busqueda.js` | Listas con datos sucios: títulos sin nombre, carátulas rotas |
+| `tv.js` | Detección de televisores y navegación con mando |
+| `cliente-ux.js` | Lo que ve el cliente de un proveedor, de principio a fin |
+| `b2b.js` | Proveedores, revendedores, cupos y permisos |
+| `panel-ui.js`, `panel-importa.js` | El panel del proveedor y la importación desde XUI |
+| `soporte-api-facturas.js` | Tickets, API pública y facturas |
+| `qa-diseno.js` | Accesibilidad, contraste y que la cabecera no se rompa |
