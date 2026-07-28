@@ -84,3 +84,4 @@ falla, así que valen tal cual para un CI.
 | `sesiones-mezcladas.js` | Estar dentro de varias formas a la vez sin confundir a la cabecera |
 | `alta-simple.js` | Que el alta de un cliente pida un solo usuario y contraseña |
 | `entrega-acceso.js` | El mensaje ya escrito para entregarle el acceso al cliente |
+| `apps-proveedor.js` | «Aplicaciones» del panel: qué le manda el proveedor a cada cliente |

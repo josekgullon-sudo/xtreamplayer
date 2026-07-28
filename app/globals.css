@@ -2325,3 +2325,19 @@ select.input { appearance: none; cursor: pointer; }
 .pasos-lista li { margin-bottom: 6px; }
 .pasos-lista strong { color: var(--text); }
 .pasos-nota { font-size: 13.5px; color: var(--text-faint); line-height: 1.55; }
+
+/* ---- «Aplicaciones» del panel: lo que el proveedor le manda a su cliente ---- */
+
+.apps-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: 16px; }
+.apps-tarjeta h3 { font-size: 16px; font-weight: 650; margin: 12px 0 10px; }
+/* El texto tal cual se pega en el WhatsApp: monoespaciado y con sus saltos,
+   para que se vea exactamente lo que va a recibir el cliente */
+.apps-texto {
+  background: var(--bg-elev-2); border: 1px solid var(--hairline); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.6;
+  color: var(--text-dim); white-space: pre-wrap; word-break: break-word;
+}
+.apps-marca { margin-top: 20px; }
+.apps-marca h3 { font-size: 16px; font-weight: 650; margin-bottom: 8px; }
+.apps-marca .btn { margin-top: 14px; }
