@@ -63,6 +63,7 @@ falla, así que valen tal cual para un CI.
 | `soporte-api-facturas.js` | Tickets, API pública y facturas |
 | `avisos.js` | Que un ticket nuevo avise, sin hacer esperar a quien lo abre |
 | `qa-diseno.js` | Accesibilidad, contraste y que la cabecera no se rompa |
+| `web-publica.js` | Precios, proveedores y ayuda: lo que ve quien aún no es cliente |
 | `busqueda-global.js` | Buscar una vez y encontrar canales, cine y series |
 | `novedades.js` | Lo recién subido por el proveedor, con su ventana de tiempo |
 | `admin-panel.js` | El panel de la plataforma y quién puede entrar en él |
