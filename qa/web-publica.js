@@ -52,9 +52,31 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   check("La página de proveedores sigue en pie", (await p.locator(".compare-table tbody tr").count()) >= 4);
   check("Con su prueba sin tarjeta", (await p.locator("main").innerText()).includes("Sin tarjeta"));
 
+  // --- En qué aparatos se ve ---
+  /* La pregunta que hace todo el mundo —«¿y esto en mi tele?»— no tenía
+     página: había que saber de memoria que existía /tv */
+  await p.goto(BASE + "/apps", { waitUntil: "networkidle" });
+  const aparatos = (await p.locator(".feature-card h3").allInnerTexts()).join(" | ");
+  check("La página de aparatos los nombra todos",
+    /Android TV/.test(aparatos) && /Samsung/.test(aparatos) && /vil/.test(aparatos) && /Ordenador/.test(aparatos),
+    aparatos);
+
+  await p.locator(".app-card").first().click();
+  await p.waitForURL("**/apps/androidtv", { timeout: 10000 });
+  const tele = await p.locator("main").innerText();
+  check("La de la tele explica cómo se activa", tele.includes("MAC") && tele.includes("código"));
+  check("Y lleva al reproductor de tele mientras no haya aplicación",
+    (await p.locator("a[href='/tv']").count()) >= 1);
+  /* Sin esta frase, la ficha de Google Play se cae: es el motivo de rechazo
+     más habitual en reproductores de este tipo */
+  await p.locator(".faq-item:has-text('canales')").click();
+  check("Y deja claro que no incluye canales",
+    (await p.locator(".faq-item:has-text('canales')").innerText()).includes("No"),
+    "");
+
   // --- Que se llegue desde el menú ---
   await p.goto(BASE + "/", { waitUntil: "networkidle" });
-  for (const [texto, ruta] of [["Precios", "/precios"], ["Para proveedores", "/proveedores"], ["Ayuda", "/faq"]]) {
+  for (const [texto, ruta] of [["Precios", "/precios"], ["En tu tele", "/apps"], ["Para proveedores", "/proveedores"], ["Ayuda", "/faq"]]) {
     await p.locator(`.nav-links a:has-text("${texto}")`).click();
     await p.waitForURL(`**${ruta}`, { timeout: 10000 });
     check(`Desde el menú se llega a ${texto}`, true);
