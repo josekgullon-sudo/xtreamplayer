@@ -96,7 +96,7 @@ export default function SiteHeader() {
         ) : (
           <nav className="nav-links" aria-label="Navegación principal">
             <Link href="/precios">Precios</Link>
-            <Link href="/apps">En tu tele</Link>
+            <Link href="/apps">Aplicaciones</Link>
             <Link href="/proveedores">Para proveedores</Link>
             <Link href="/faq">Ayuda</Link>
           </nav>

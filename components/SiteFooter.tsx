@@ -18,7 +18,7 @@ export default function SiteFooter() {
           <div className="footer-col">
             <h4>Producto</h4>
             <Link href="/player">Reproductor web</Link>
-            <Link href="/apps">En tu tele y tu móvil</Link>
+            <Link href="/apps">Aplicaciones</Link>
             <Link href="/precios">Planes y precios</Link>
             <Link href="/faq">Preguntas frecuentes</Link>
           </div>

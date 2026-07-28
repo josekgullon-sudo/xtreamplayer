@@ -2290,3 +2290,16 @@ select.input { appearance: none; cursor: pointer; }
   border-radius: var(--radius-lg); padding: 34px 30px;
 }
 .apk-txt { color: var(--text-dim); font-size: 15.5px; line-height: 1.65; margin-bottom: 24px; }
+
+/* Los logotipos de cada aparato, en fila sobre el titular de la tarjeta.
+   Se reconoce antes un logotipo que un titular: quien entra busca el suyo. */
+.marcas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.marca {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 13px; border-radius: var(--radius-pill);
+  background: var(--bg-elev-2); border: 1px solid var(--hairline);
+  font-size: 13px; font-weight: 600; color: var(--text);
+}
+/* Samsung, LG y compañía no tienen símbolo: su logotipo es su nombre */
+.marca-nombre { letter-spacing: 0.06em; }
+.marcas-centro { justify-content: center; margin: -34px auto 44px; }

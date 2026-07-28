@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import Icon from "@/components/Icon";
+import LogoAparato from "@/components/LogoAparato";
 
 export const metadata: Metadata = {
   title: "TOTALplayer para Android TV y Fire TV",
@@ -29,6 +30,18 @@ export default function AndroidTvPage() {
             Para teles con Android TV o Google TV, y para el Fire TV Stick de Amazon. Con el mando de siempre:
             flechas para moverte, OK para entrar, ATRÁS para volver.
           </p>
+
+          <div className="marcas marcas-centro">
+            <span className="marca">
+              <LogoAparato nombre="android" size={19} /> Android TV
+            </span>
+            <span className="marca">
+              <LogoAparato nombre="google" size={19} /> Google TV
+            </span>
+            <span className="marca">
+              <LogoAparato nombre="fuego" size={19} /> Fire TV
+            </span>
+          </div>
 
           {APK ? (
             <div className="apk-caja">

@@ -56,10 +56,15 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   /* La pregunta que hace todo el mundo —«¿y esto en mi tele?»— no tenía
      página: había que saber de memoria que existía /tv */
   await p.goto(BASE + "/apps", { waitUntil: "networkidle" });
-  const aparatos = (await p.locator(".feature-card h3").allInnerTexts()).join(" | ");
-  check("La página de aparatos los nombra todos",
-    /Android TV/.test(aparatos) && /Samsung/.test(aparatos) && /vil/.test(aparatos) && /Ordenador/.test(aparatos),
+  /* Se comprueban los logotipos, no los titulares: es lo que mira quien
+     entra buscando si su aparato está en la lista */
+  const aparatos = (await p.locator(".marca").allInnerTexts()).map((t) => t.trim()).join(" | ");
+  check("La página enseña el logotipo de cada aparato",
+    ["Android TV", "Google TV", "Fire TV", "Samsung", "LG", "iPhone", "Windows", "Mac", "Linux"]
+      .every((m) => aparatos.includes(m)),
     aparatos);
+  check("Y son dibujos, no imágenes traídas de fuera",
+    (await p.locator(".marca svg").count()) >= 6 && (await p.locator(".marca img").count()) === 0);
 
   await p.locator(".app-card").first().click();
   await p.waitForURL("**/apps/androidtv", { timeout: 10000 });
@@ -76,7 +81,7 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
 
   // --- Que se llegue desde el menú ---
   await p.goto(BASE + "/", { waitUntil: "networkidle" });
-  for (const [texto, ruta] of [["Precios", "/precios"], ["En tu tele", "/apps"], ["Para proveedores", "/proveedores"], ["Ayuda", "/faq"]]) {
+  for (const [texto, ruta] of [["Precios", "/precios"], ["Aplicaciones", "/apps"], ["Para proveedores", "/proveedores"], ["Ayuda", "/faq"]]) {
     await p.locator(`.nav-links a:has-text("${texto}")`).click();
     await p.waitForURL(`**${ruta}`, { timeout: 10000 });
     check(`Desde el menú se llega a ${texto}`, true);

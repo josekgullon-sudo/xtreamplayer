@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import Icon from "@/components/Icon";
+import LogoAparato from "@/components/LogoAparato";
 
 export const metadata: Metadata = {
   title: "Aplicaciones — TOTALplayer en la tele, el móvil y el ordenador",
@@ -30,15 +31,26 @@ export default function AppsPage() {
             caminos: el navegador que ya trae, o la aplicación.
           </p>
 
+          {/* Cada tarjeta enseña de quién es cada aparato: se reconoce antes
+              un logotipo que un titular, y aquí lo que busca el visitante es
+              el suyo */}
           <div className="features-grid">
             <Link href="/apps/androidtv" className="feature-card app-card">
-              <div className="feature-icon">
-                <Icon name="tv" size={22} />
+              <div className="marcas">
+                <span className="marca">
+                  <LogoAparato nombre="android" size={19} /> Android TV
+                </span>
+                <span className="marca">
+                  <LogoAparato nombre="google" size={19} /> Google TV
+                </span>
+                <span className="marca">
+                  <LogoAparato nombre="fuego" size={19} /> Fire TV
+                </span>
               </div>
-              <h3>Android TV y Fire TV</h3>
+              <h3>Con aplicación propia</h3>
               <p>
-                Aplicación propia, con su icono en el menú de la tele y manejo con el mando. Es la mejor
-                forma de verlo en un televisor.
+                Con su icono en el menú de la tele y manejo con el mando. Es la mejor forma de verlo en un
+                televisor.
               </p>
               <span className="app-card-mas">
                 Cómo instalarla <Icon name="external" size={14} />
@@ -46,21 +58,29 @@ export default function AppsPage() {
             </Link>
 
             <div className="feature-card">
-              <div className="feature-icon">
-                <Icon name="tv" size={22} />
+              <div className="marcas">
+                <span className="marca marca-nombre">Samsung</span>
+                <span className="marca marca-nombre">LG</span>
+                <span className="marca marca-nombre">Philips</span>
+                <span className="marca marca-nombre">Sony</span>
               </div>
-              <h3>Samsung, LG y otras teles</h3>
+              <h3>Desde el navegador de la tele</h3>
               <p>
-                Abre el navegador que trae la tele y escribe la dirección del reproductor añadiéndole{" "}
-                <strong>/tv</strong> al final. La pantalla es la misma que la de la aplicación: letra grande y
-                todo con el mando. Las de Tizen y webOS están en camino.
+                Ábrelo y escribe la dirección del reproductor añadiéndole <strong>/tv</strong> al final. La
+                pantalla es la misma que la de la aplicación: letra grande y todo con el mando. Las de Tizen y
+                webOS están en camino.
               </p>
               <span className="app-card-mas app-card-pronto">Aplicación: próximamente</span>
             </div>
 
             <div className="feature-card">
-              <div className="feature-icon">
-                <Icon name="device" size={22} />
+              <div className="marcas">
+                <span className="marca">
+                  <LogoAparato nombre="android" size={19} /> Android
+                </span>
+                <span className="marca">
+                  <LogoAparato nombre="apple" size={19} /> iPhone y iPad
+                </span>
               </div>
               <h3>Móvil y tablet</h3>
               <p>
@@ -73,13 +93,21 @@ export default function AppsPage() {
             </div>
 
             <div className="feature-card">
-              <div className="feature-icon">
-                <Icon name="play" size={22} />
+              <div className="marcas">
+                <span className="marca">
+                  <LogoAparato nombre="windows" size={19} /> Windows
+                </span>
+                <span className="marca">
+                  <LogoAparato nombre="apple" size={19} /> Mac
+                </span>
+                <span className="marca">
+                  <LogoAparato nombre="linux" size={19} /> Linux
+                </span>
               </div>
               <h3>Ordenador</h3>
               <p>
-                Cualquier navegador moderno, en Windows, Mac o Linux. Es donde va todo más fino: teclado para
-                buscar y la guía de programación entera de un vistazo.
+                Cualquier navegador moderno. Es donde va todo más fino: teclado para buscar y la guía de
+                programación entera de un vistazo.
               </p>
               <Link href="/player" className="app-card-mas">
                 Abrir el reproductor <Icon name="external" size={14} />
