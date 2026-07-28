@@ -843,6 +843,9 @@ select.input { appearance: none; cursor: pointer; }
   border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 700;
 }
 .panel-nav-item.active .panel-nav-count { background: var(--accent-tint-strong); color: var(--accent-bright); }
+/* Un número que pide que lo mires, no uno que solo informa */
+.panel-nav-aviso { background: var(--accent); color: #fff; font-weight: 800; }
+.panel-nav-item.active .panel-nav-aviso { background: var(--accent); color: #fff; }
 .panel-nav-foot { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
 
 .panel-main { padding: 28px 32px 80px; min-width: 0; }

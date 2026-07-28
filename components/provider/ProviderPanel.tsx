@@ -118,6 +118,8 @@ export default function ProviderPanel() {
   /* Si un administrador está mirando este panel, que se vea. Entrar en la
      cuenta de otro sin que la pantalla lo diga es la clase de cosa que
      acaba en un cambio hecho en la casa equivocada. */
+  /** Tickets que ya tienen respuesta y el proveedor aún no ha visto */
+  const [respondidos, setRespondidos] = useState(0);
   const [suplantando, setSuplantando] = useState<string | null>(null);
   useEffect(() => {
     const m = document.cookie.match(/(?:^|; )xp_suplantando=([^;]*)/);
@@ -182,11 +184,23 @@ export default function ProviderPanel() {
         if (d.permissions?.managePlan) {
           const p = await fetch("/api/provider/plans").then((r) => r.json());
           setPlans(p.plans || []);
+          /*
+           * Tickets contestados y sin leer. La respuesta llegaba y el
+           * proveedor solo se enteraba si entraba en Soporte a mirar: podía
+           * pasar una semana con la solución esperándole dentro.
+           */
+          const t = await fetch("/api/provider/tickets").then((r) => r.json()).catch(() => ({}));
+          setRespondidos((t.tickets || []).filter((x: { status: string }) => x.status === "respondido").length);
         }
       })
       .catch(() => setError("No se pudo cargar el panel"))
       .finally(() => setLoaded(true));
   }, [loadCustomers, loadDomains, loadResellers, loadBranding]);
+
+  /* También en el título de la pestaña: el panel se deja abierto de fondo */
+  useEffect(() => {
+    document.title = respondidos ? `(${respondidos}) Panel de proveedor` : "Panel de proveedor";
+  }, [respondidos]);
 
   useEffect(() => {
     const t = setTimeout(() => loadCustomers(search), 300);
@@ -546,8 +560,12 @@ export default function ProviderPanel() {
             <button className={`panel-nav-item ${tab === "api" ? "active" : ""}`} onClick={() => setTab("api")}>
               <Icon name="external" size={17} className="panel-nav-icon" /> API
             </button>
-            <button className={`panel-nav-item ${tab === "soporte" ? "active" : ""}`} onClick={() => setTab("soporte")}>
+            <button
+              className={`panel-nav-item ${tab === "soporte" ? "active" : ""}`}
+              onClick={() => { setTab("soporte"); setRespondidos(0); }}
+            >
               <Icon name="shield" size={17} className="panel-nav-icon" /> Soporte
+              {respondidos > 0 && <span className="panel-nav-count panel-nav-aviso">{respondidos}</span>}
             </button>
           </>
         )}
