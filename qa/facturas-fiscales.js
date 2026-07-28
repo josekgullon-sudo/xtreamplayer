@@ -65,7 +65,14 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   check("Con los datos puestos ya no avisa de que faltan",
     (await p.locator(".factura-fiscales.incompleto").count()) === 0);
 
-  await p.locator("button:has-text('Descargar')").first().click();
+  /* Lo que se le manda al gestor es el PDF del servidor; «Ver» es la hoja
+     de la propia página, para comprobar un dato de un vistazo */
+  const enlacePdf = p.locator("a:has-text('Descargar PDF')").first();
+  check("Cada factura se baja en PDF de un clic",
+    (await enlacePdf.getAttribute("href"))?.includes("/api/facturas/"),
+    await enlacePdf.getAttribute("href"));
+
+  await p.locator("button:has-text('Ver')").first().click();
   await p.waitForSelector(".factura-hoja", { state: "attached", timeout: 10000 });
   /* La hoja solo se ve al imprimir: en pantalla está montada pero oculta, así
      que le decimos al navegador que está imprimiendo y ya la leemos */

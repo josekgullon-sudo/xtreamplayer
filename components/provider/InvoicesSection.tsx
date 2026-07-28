@@ -43,7 +43,14 @@ function fecha(ms: number) {
   return ms ? new Date(ms).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 }
 
-/** Facturas del proveedor, con vista imprimible (imprimir → guardar como PDF). */
+/**
+ * Facturas del proveedor.
+ *
+ * «Descargar PDF» baja el archivo hecho en el servidor, que es lo que se le
+ * reenvía al gestor. «Ver» sigue abriendo la vista de la propia página, que
+ * es más rápida para comprobar un dato de un vistazo y para imprimirla en
+ * papel si a alguien le hace falta.
+ */
 export default function InvoicesSection() {
   const [datos, setDatos] = useState<{ invoices: Factura[]; billing: Facturacion; emisor: Emisor } | null>(null);
   const [imprimiendo, setImprimiendo] = useState<Factura | null>(null);
@@ -174,8 +181,14 @@ export default function InvoicesSection() {
                   </span>
                 </td>
                 <td className="col-actions">
+                  {/* Un enlace de verdad, no un botón que abre el diálogo de
+                      imprimir: se puede pulsar, guardar o abrir en otra pestaña,
+                      y en un móvil funciona igual que en un ordenador */}
+                  <a className="btn btn-ghost btn-sm" href={`/api/facturas/${f.id}/pdf`} download>
+                    <Icon name="upload" size={14} /> Descargar PDF
+                  </a>
                   <button className="btn btn-ghost btn-sm" onClick={() => setImprimiendo(f)}>
-                    <Icon name="external" size={14} /> Descargar
+                    <Icon name="external" size={14} /> Ver
                   </button>
                 </td>
               </tr>

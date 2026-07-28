@@ -1020,6 +1020,12 @@ export default function AdminPanel() {
                                 aunque se anule, que es lo que exige cualquier
                                 contabilidad y lo que explica un número que falta */}
                             <div className="admin-detalle-botones">
+                              {/* El mismo PDF que se baja el proveedor: dos
+                                  documentos distintos con el mismo número es
+                                  justo lo que no puede pasar */}
+                              <a className="btn btn-ghost btn-sm" href={`/api/facturas/${f.id}/pdf`} download>
+                                PDF
+                              </a>
                               {f.estado !== "pagada" && f.estado !== "anulada" && (
                                 <button className="btn btn-ghost btn-sm" onClick={() => cambiarFactura(f.id, "pagada")}>
                                   Marcar cobrada
