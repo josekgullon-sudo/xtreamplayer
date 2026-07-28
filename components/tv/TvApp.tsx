@@ -54,6 +54,46 @@ interface Fila {
 const K_DEVICE = "xp.tvDevice.v1";
 const K_MAC = "xp.tvMac.v1";
 const K_LISTA_MANUAL = "xp.tvLista.v1";
+/**
+ * La última sesión que funcionó y el último canal que se puso.
+ *
+ * Una tele enciende antes de tener red: cuando la app arranca, el wifi lleva
+ * un par de segundos negociando. Preguntando al servidor y creyéndonos el
+ * fallo, lo que salía era la pantalla de activación —a alguien que lleva
+ * meses activado— o una espera en blanco. Con lo de la última vez se entra
+ * igual y la comprobación se hace por detrás.
+ */
+const K_SESION = "xp.tvSesion.v1";
+const K_ULTIMO = "xp.tvUltimo.v1";
+
+interface SesionGuardada {
+  marca: string;
+  caduca: number;
+  soporte: string;
+  lista: Lista;
+}
+
+interface UltimoCanal {
+  nombre: string;
+  source: PlaySource;
+}
+
+function guardar<T>(clave: string, valor: T) {
+  try {
+    localStorage.setItem(clave, JSON.stringify(valor));
+  } catch {
+    /* almacenamiento lleno o bloqueado: no es motivo para romper nada */
+  }
+}
+
+function leer<T>(clave: string): T | null {
+  try {
+    const raw = localStorage.getItem(clave);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
 
 function deviceKey(): string {
   try {
@@ -134,6 +174,14 @@ export default function TvApp() {
   const [poniendoLista, setPoniendoLista] = useState(false);
   const [haciendoLogin, setHaciendoLogin] = useState(false);
   const [entrando, setEntrando] = useState(false);
+  /** Arrancamos con lo de la última vez porque no hubo forma de preguntar */
+  const [sinRed, setSinRed] = useState(false);
+  /** Lo último que se estaba viendo, para volver con un solo OK */
+  const [ultimo, setUltimo] = useState<UltimoCanal | null>(null);
+
+  useEffect(() => {
+    setUltimo(leer<UltimoCanal>(K_ULTIMO));
+  }, []);
 
   /** Entrar con el usuario del proveedor, desde la propia tele */
   async function entrarConUsuario(e: React.FormEvent<HTMLFormElement>) {
@@ -191,8 +239,38 @@ export default function TvApp() {
   /* ---------- Sesión: o ya la hay, o se empareja con un código ---------- */
 
   const mirarSesion = useCallback(async () => {
-    const d = await fetch("/api/customer/me").then((r) => r.json()).catch(() => ({}));
-    if (!d.customer || !d.playlist) {
+    /*
+     * Distinguimos «el servidor dice que no hay sesión» de «no hemos podido
+     * preguntar». Antes las dos acababan en la pantalla de activación, y la
+     * segunda es lo que le pasa a una tele que enciende antes que el wifi.
+     */
+    let d: Record<string, unknown> | null = null;
+    try {
+      d = await fetch("/api/customer/me").then((r) => r.json());
+    } catch {
+      const guardada = leer<SesionGuardada>(K_SESION);
+      if (guardada) {
+        setMarca(guardada.marca);
+        setCaduca(guardada.caduca);
+        setSoporte(guardada.soporte);
+        setLista(guardada.lista);
+        setSesion("dentro");
+        setSinRed(true);
+        return true;
+      }
+      const manualSinRed = leerListaManual();
+      if (manualSinRed) {
+        setLista(manualSinRed);
+        setSesion("dentro");
+        setSinRed(true);
+        return true;
+      }
+      setSesion("sin-sesion");
+      setSinRed(true);
+      return false;
+    }
+    setSinRed(false);
+    if (!d || !d.customer || !d.playlist) {
       /*
        * Sin cliente puede haber una lista puesta a mano en esta tele: quien
        * compra la app sin proveedor detrás también tiene derecho a verla.
@@ -206,15 +284,29 @@ export default function TvApp() {
       setSesion("sin-sesion");
       return false;
     }
-    setMarca(d.brand || "TOTALplayer");
-    setCaduca(d.customer.expiresAt || 0);
-    setSoporte(d.branding?.support || "");
-    setLista({
-      tipo: d.playlist.type,
-      url: d.playlist.url,
-      usuario: d.playlist.username || "",
-      password: d.playlist.password || "",
-    });
+    const respuesta = d as unknown as {
+      brand?: string;
+      customer?: { expiresAt?: number };
+      branding?: { support?: string };
+      playlist: { type: "xtream" | "m3u"; url: string; username?: string; password?: string };
+    };
+    const nueva: SesionGuardada = {
+      marca: respuesta.brand || "TOTALplayer",
+      caduca: respuesta.customer?.expiresAt || 0,
+      soporte: respuesta.branding?.support || "",
+      lista: {
+        tipo: respuesta.playlist.type,
+        url: respuesta.playlist.url,
+        usuario: respuesta.playlist.username || "",
+        password: respuesta.playlist.password || "",
+      },
+    };
+    setMarca(nueva.marca);
+    setCaduca(nueva.caduca);
+    setSoporte(nueva.soporte);
+    setLista(nueva.lista);
+    // Guardada para el próximo encendido, que puede ser sin red todavía
+    guardar(K_SESION, nueva);
     setSesion("dentro");
     return true;
   }, []);
@@ -300,6 +392,11 @@ export default function TvApp() {
   const reproducir = useCallback((source: PlaySource) => {
     setViendo({ source });
     setPantalla("viendo");
+    /* En una tele se vuelve casi siempre a lo mismo. Guardarlo cuesta una
+       línea y ahorra recorrer otra vez carpeta, categoría y canal */
+    const ultimoCanal: UltimoCanal = { nombre: source.name, source };
+    setUltimo(ultimoCanal);
+    guardar(K_ULTIMO, ultimoCanal);
   }, []);
 
   /** Entra en una carpeta: su contenido sustituye a la lista de carpetas */
@@ -569,29 +666,34 @@ export default function TvApp() {
 
       const total = pantalla === "portada" ? 4 : filas.length;
       if (!total) return;
+      /* «Seguir viendo» es el −1 de la portada: por encima de los cuatro
+         accesos, que es donde lo busca quien enciende para seguir con lo suyo */
+      const primero = pantalla === "portada" && ultimo ? -1 : 0;
 
       if (e.key === "ArrowDown" || e.key === "ArrowRight") {
         e.preventDefault();
-        setFoco((f) => (f + 1) % total);
+        setFoco((f) => (f + 1 > total - 1 ? primero : f + 1));
       } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
         e.preventDefault();
-        setFoco((f) => (f - 1 + total) % total);
+        setFoco((f) => (f - 1 < primero ? total - 1 : f - 1));
       } else if (e.key === "PageDown") {
         e.preventDefault();
         setFoco((f) => Math.min(total - 1, f + 8));
       } else if (e.key === "PageUp") {
         e.preventDefault();
-        setFoco((f) => Math.max(0, f - 8));
+        setFoco((f) => Math.max(primero, f - 8));
       } else if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        if (pantalla === "portada") elegirDestino(DESTINOS[foco]?.id);
-        else filas[foco]?.abrir();
+        if (pantalla === "portada") {
+          if (foco === -1 && ultimo) reproducir(ultimo.source);
+          else elegirDestino(DESTINOS[foco]?.id);
+        } else filas[foco]?.abrir();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, foco]);
+  }, [pantalla, filas, foco, ultimo, reproducir]);
 
   // La fila con el foco siempre a la vista, sin que el usuario persiga nada
   useEffect(() => {
@@ -601,7 +703,18 @@ export default function TvApp() {
   /* ---------- Pantallas ---------- */
 
   if (sesion === "cargando") {
-    return <div className="tv-app tv-centro"><p className="tv-cargando">Un momento…</p></div>;
+    /* Presentación con la marca mientras se comprueba la sesión: una tele
+       tarda un par de segundos en tener red y «Un momento…» sobre negro se
+       parece demasiado a una app que no arranca */
+    return (
+      <div className="tv-app tv-centro">
+        <div className="tv-splash">
+          <span className="tv-splash-marca">{marca}</span>
+          <span className="tv-splash-barra" aria-hidden="true" />
+          <p className="tv-cargando">Encendiendo…</p>
+        </div>
+      </div>
+    );
   }
 
   /*
@@ -730,6 +843,24 @@ export default function TvApp() {
       <div className="tv-app tv-centro">
         <div className="tv-portada">
           <p className="tv-marca">{marca}</p>
+          {sinRed && (
+            <p className="tv-sinred" role="status">
+              Sin conexión: estás viendo lo de la última vez. Se reintenta solo.
+            </p>
+          )}
+          {ultimo && (
+            <button
+              className={`tv-seguir ${foco === -1 ? "foco" : ""}`}
+              onMouseEnter={() => setFoco(-1)}
+              onClick={() => reproducir(ultimo.source)}
+            >
+              <Icon name="play" size={28} />
+              <span>
+                Seguir viendo
+                <b>{ultimo.nombre}</b>
+              </span>
+            </button>
+          )}
           <div className="tv-tiles">
             {DESTINOS.map((d, i) => (
               <button

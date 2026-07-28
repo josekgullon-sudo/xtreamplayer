@@ -1451,6 +1451,45 @@ select.input { appearance: none; cursor: pointer; }
 /* ---- Portada: cuatro accesos y nada más ---- */
 
 .tv-portada { width: 100%; }
+
+/* La presentación de arranque, con la marca de quien vende el servicio */
+.tv-splash { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.tv-splash-marca {
+  font-size: 54px; font-weight: 900; letter-spacing: -0.03em;
+  color: var(--accent-bright);
+}
+.tv-splash-barra {
+  width: 220px; height: 5px; border-radius: 999px; overflow: hidden;
+  background: var(--surface-quiet); position: relative;
+}
+.tv-splash-barra::after {
+  content: ""; position: absolute; inset: 0; width: 40%;
+  background: var(--accent-bright); border-radius: 999px;
+  animation: tv-splash-va 1.1s ease-in-out infinite;
+}
+@keyframes tv-splash-va {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(260%); }
+}
+
+/* Volver a lo de ayer sin recorrer carpetas: lo primero de la portada */
+.tv-seguir {
+  display: inline-flex; align-items: center; gap: 16px;
+  margin: 0 auto 26px; padding: 16px 30px;
+  background: var(--bg-elev); border: 3px solid transparent; border-radius: 18px;
+  color: var(--text); font-size: 24px; text-align: left; cursor: pointer;
+}
+.tv-seguir svg { color: var(--accent-bright); flex-shrink: 0; }
+.tv-seguir span { display: flex; flex-direction: column; gap: 2px; font-size: 19px; color: var(--text-dim); }
+.tv-seguir b { font-size: 26px; font-weight: 800; color: var(--text); }
+.tv-seguir.foco { border-color: var(--accent-bright); background: var(--accent-tint); }
+
+/* Se entró con lo guardado porque la tele aún no tenía red */
+.tv-sinred {
+  margin: 0 auto 22px; padding: 10px 22px; max-width: 900px;
+  background: var(--danger-tint); border: 1px solid var(--danger-border); border-radius: 14px;
+  color: var(--danger); font-size: 19px;
+}
 .tv-tiles { display: flex; gap: 2.4vw; justify-content: center; margin-bottom: 5vh; flex-wrap: wrap; }
 .tv-tile {
   width: 17vw; height: 17vw; max-width: 260px; max-height: 260px;
