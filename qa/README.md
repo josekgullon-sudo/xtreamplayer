@@ -85,3 +85,4 @@ falla, así que valen tal cual para un CI.
 | `alta-simple.js` | Que el alta de un cliente pida un solo usuario y contraseña |
 | `entrega-acceso.js` | El mensaje ya escrito para entregarle el acceso al cliente |
 | `apps-proveedor.js` | «Aplicaciones» del panel: qué le manda el proveedor a cada cliente |
+| `envoltorios.js` | Las apps de Samsung, LG y Android TV, probadas antes de subirlas a ninguna tienda |

@@ -43,6 +43,23 @@ bash apps/preparar-graficos-tele.sh      "MiMarca" "#e5192b"   # iconos de Samsu
 No se guardan en el repositorio: se regeneran en un segundo y cada proveedor
 tiene los suyos.
 
+## Probarlas antes de subirlas
+
+Sin televisor y sin compilar nada:
+
+```bash
+node qa/envoltorios.js
+```
+
+Abre los envoltorios de Samsung y de LG tal y como se ejecutan en la tele
+—desde `file://`—, pero contra el servidor de pruebas, y comprueba que la web
+se abra, que sin red esperen en vez de dar un error, y que el ATRÁS de cada
+mando llegue a la aplicación. La de Android TV se prueba con el agente y la
+pantalla de un Fire TV.
+
+Con televisor, cada README explica cómo instalarla con el modo desarrollador:
+es media hora la primera vez y luego es un comando.
+
 ## Publicar
 
 Los textos de las cuatro fichas, ya escritos, están en

@@ -7,51 +7,53 @@
   /* Negro desde el primer fotograma: un fogonazo blanco en una tele de 55
      pulgadas se ve desde la cocina y parece que la aplicación ha fallado */
   html, body { margin: 0; height: 100%; background: #14131a; overflow: hidden; }
-  #marco { border: 0; width: 100%; height: 100%; display: block; }
   #aviso {
     position: absolute; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 2vh;
     color: #fff; font-family: system-ui, sans-serif; text-align: center;
   }
-  #aviso b { color: #e5192b; letter-spacing: .18em; font-size: 1.6vw; }
+  #aviso b { color: #e5192b; letter-spacing: .18em; font-size: 1.8vw; }
   #aviso p { color: rgba(255,255,255,.55); font-size: 1.4vw; }
 </style>
 </head>
 <body>
 <!--
-  Todo lo que hace esta aplicación es abrir la web dentro del televisor.
-  Lo nativo —el salvapantallas y las teclas del mando que Tizen se queda para
-  sí— se resuelve aquí; lo demás es la misma /tv de siempre.
+  La aplicación para televisores Samsung (Tizen).
+
+  Abre la web dentro del televisor. Y la abre navegando, no dentro de un
+  iframe: el sitio manda «X-Frame-Options: SAMEORIGIN» —que es lo que impide
+  que un tercero lo meta en su página para robar contraseñas— y un televisor
+  es, para el navegador, un origen distinto. Enmarcada, la aplicación salía
+  en negro. Se comprueba que haya red, y solo entonces se salta.
 -->
-<div id="aviso"><b>TOTALPLAYER</b><p>Encendiendo…</p></div>
-<iframe id="marco" allow="autoplay; fullscreen" allowfullscreen></iframe>
+<div id="aviso"><b>TOTALPLAYER</b><p id="estado">Encendiendo…</p></div>
 <script>
 (function () {
   // La dirección de tu instalación. Es lo único que cambia un proveedor que
   // quiera esta misma aplicación con su marca.
   var INICIO = "https://xtreamplayer-production.up.railway.app/tv";
 
-  var marco = document.getElementById("marco");
-  var aviso = document.getElementById("aviso");
-
-  /* Una tele enciende antes que el router: si la web no carga, se reintenta
-     en vez de dejar una pantalla negra para siempre */
+  var estado = document.getElementById("estado");
   var intentos = 0;
-  function cargar() {
-    marco.src = INICIO + (intentos ? "?r=" + intentos : "");
+
+  /* Una tele enciende antes que el router: preguntamos si la web contesta y
+     no saltamos hasta que lo haga. Saltar a ciegas deja al cliente mirando
+     la pantalla de error del navegador, que no dice nada y no se reintenta. */
+  function entrar() {
+    intentos++;
+    fetch(INICIO, { method: "HEAD", cache: "no-store", mode: "no-cors" })
+      .then(function () { window.location.replace(INICIO); })
+      .catch(function () {
+        // A la segunda ya se dice qué pasa: tres segundos mirando
+        // «Encendiendo…» es cuando se empieza a dudar del aparato
+        estado.textContent = intentos < 2 ? "Encendiendo…" : "Buscando la conexión…";
+        setTimeout(entrar, 3000);
+      });
   }
-  marco.onload = function () { aviso.style.display = "none"; };
-  marco.onerror = function () { reintentar(); };
-  function reintentar() {
-    if (intentos++ > 40) return;
-    aviso.style.display = "flex";
-    setTimeout(cargar, 3000);
-  }
-  // Si a los 15 segundos no ha cargado nada, tampoco va a cargar solo
-  setTimeout(function () { if (aviso.style.display !== "none") reintentar(); }, 15000);
 
   /* El mando: Tizen se queda las teclas de reproducción salvo que se las
-     pidas una por una, y ATRÁS (10009) hay que registrarlo igual */
+     pidas una por una. Se registran aquí, antes de saltar, porque siguen
+     valiendo para toda la aplicación. */
   try {
     if (window.tizen && tizen.tvinputdevice) {
       ["MediaPlayPause", "MediaPlay", "MediaPause", "MediaStop",
@@ -68,12 +70,11 @@
     }
   } catch (e) { /* idem */ }
 
-  /* El ATRÁS del mando (10009) lo recibe directamente la web, que es quien
-     tiene el foco, y allí ya sabe deshacer un paso cada vez. Aquí no hay que
-     hacer nada: intentar gestionarlo también desde fuera es lo que provoca
-     que un solo ATRÁS retroceda dos pantallas. */
+  /* El ATRÁS del mando (10009) lo recibe la web, que sabe deshacer un paso
+     cada vez. Aquí no se toca: gestionarlo también desde fuera es lo que
+     hace que un solo ATRÁS retroceda dos pantallas. */
 
-  cargar();
+  entrar();
 })();
 </script>
 </body>
