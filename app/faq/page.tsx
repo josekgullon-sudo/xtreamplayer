@@ -10,9 +10,17 @@ export const metadata: Metadata = {
   alternates: { canonical: "/faq" },
 };
 
-const FAQS: { q: string; a: React.ReactNode }[] = [
+/*
+ * Cada pregunta lleva su respuesta en JSX (la que se lee) y en texto plano
+ * (la que se le da a Google). Antes, para las respuestas con enlaces, los
+ * datos estructurados decían «Consulta la respuesta completa en
+ * TOTALplayer»: una respuesta que no responde nada.
+ */
+const FAQS: { q: string; a: React.ReactNode; texto: string }[] = [
   {
     q: "¿Cómo reproduzco una lista M3U online?",
+    texto:
+      "Abre el reproductor, pulsa «Añadir lista», elige la pestaña M3U y pega la URL de tu lista (normalmente termina en .m3u o .m3u8, o es un enlace get.php de tu proveedor). En segundos verás todos tus canales organizados por grupos.",
     a: (
       <p>
         Abre el <Link href="/player">reproductor</Link>, pulsa «Añadir lista», elige la pestaña M3U y pega la URL de
@@ -23,6 +31,8 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "¿Cómo conecto mi cuenta Xtream Codes?",
+    texto:
+      "Necesitas tres datos de tu proveedor: la URL del servidor, tu usuario y tu contraseña. Introdúcelos en «Añadir lista» y elige Xtream Codes. Si tu proveedor te dio una URL get.php completa, pégala tal cual y extraemos los datos automáticamente.",
     a: (
       <p>
         Necesitas tres datos de tu proveedor: la URL del servidor (por ejemplo http://servidor.com:8080), tu usuario
@@ -33,6 +43,8 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "¿Por qué un canal no se reproduce?",
+    texto:
+      "Lo más habitual: la suscripción ha caducado, el proveedor limita las conexiones simultáneas, el canal está caído o el servidor bloquea la reproducción desde navegadores. TOTALplayer reintenta solo con su motor de compatibilidad; si aun así falla, prueba el canal en VLC para descartar que sea cosa del proveedor.",
     a: (
       <p>
         Las causas más habituales: la suscripción ha caducado, el proveedor limita las conexiones simultáneas, el
@@ -44,6 +56,8 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "¿Guardáis mis credenciales IPTV?",
+    texto:
+      "En modo invitado no: viven en el almacenamiento local de tu navegador y puedes borrarlas cuando quieras. Si creas una cuenta y guardas listas en la nube, se almacenan cifradas en tránsito y solo se usan para conectar con tu proveedor cuando tú lo pides.",
     a: (
       <p>
         En modo invitado, no: viven en el almacenamiento local de tu navegador y puedes borrarlas cuando quieras. Si
@@ -54,15 +68,21 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "¿Puedo usarlo en el móvil o en la tele?",
+    texto:
+      "Sí. Funciona en cualquier navegador moderno, incluidos móviles y muchas Smart TV. En la tele hay una aplicación propia en /tv que se maneja con el mando y se activa con un código, con la MAC del aparato o con tu usuario y contraseña. En iPhone y iPad la reproducción usa el reproductor nativo de Safari.",
     a: (
       <p>
         Sí. Funciona en cualquier navegador moderno (Chrome, Safari, Firefox, Edge), incluidos móviles y muchas
-        Smart TV. En iPhone/iPad la reproducción HLS usa el reproductor nativo de Safari.
+        Smart TV. Para la tele hay una <Link href="/tv">aplicación propia</Link> que se maneja con el mando y se
+        activa con un código, con la MAC del aparato o con tu usuario y contraseña. En iPhone y iPad la reproducción
+        HLS usa el reproductor nativo de Safari.
       </p>
     ),
   },
   {
     q: "¿TOTALplayer vende canales o listas IPTV?",
+    texto:
+      "No. Somos un reproductor, igual que VLC o Kodi: tú pones tu lista y nosotros la reproducimos lo mejor posible. No proporcionamos contenido ni recomendamos proveedores.",
     a: (
       <p>
         No. Somos un reproductor, igual que VLC o Kodi: tú pones tu lista, nosotros la reproducimos con la mejor
@@ -72,11 +92,60 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
   },
   {
     q: "¿Qué diferencia hay entre usarlo como invitado y con cuenta?",
+    texto:
+      "Como invitado tienes el reproductor completo y tus listas se guardan solo en ese navegador. Con una cuenta gratuita se sincronizan en la nube y las tienes en todos tus dispositivos al iniciar sesión.",
     a: (
       <p>
         Como invitado tienes el reproductor completo y tus listas se guardan solo en ese navegador. Con una cuenta
         gratuita, tus listas se sincronizan en la nube y las tienes disponibles en todos tus dispositivos al iniciar
         sesión.
+      </p>
+    ),
+  },
+  {
+    q: "¿Puedo ver la guía de programación y lo que ya se emitió?",
+    texto:
+      "Sí. La sección «Guía» enseña qué echan ahora y en las próximas horas, un canal por fila. En los canales cuyo proveedor guarda la emisión, los programas ya pasados se pueden volver a ver: salen marcados y basta con pulsarlos.",
+    a: (
+      <p>
+        Sí. La sección «Guía» del <Link href="/player">reproductor</Link> enseña qué echan ahora y en las próximas
+        horas, un canal por fila y media hora por columna. Y en los canales cuyo proveedor guarda lo emitido, los
+        programas ya pasados se pueden volver a ver: salen marcados y basta con pulsarlos.
+      </p>
+    ),
+  },
+  {
+    q: "Mi proveedor me ha dado un usuario y una contraseña, ¿qué hago?",
+    texto:
+      "Entra en /acceso, elige «Soy cliente» y escríbelos: tu lista aparece cargada, sin URLs ni configuraciones. Los mismos datos sirven en el móvil y en la tele.",
+    a: (
+      <p>
+        Entra en <Link href="/acceso">Entrar</Link>, elige «Soy cliente» y escríbelos. Tu lista aparece ya cargada:
+        sin URLs, sin get.php y sin configurar nada. Los mismos datos sirven en el móvil y en la tele.
+      </p>
+    ),
+  },
+  {
+    q: "¿Puede cada uno de casa tener lo suyo?",
+    texto:
+      "Sí. Se pueden crear perfiles, cada uno con sus favoritos y su historial, y uno de ellos puede ser infantil. Cuántos perfiles hay disponibles lo decide tu proveedor.",
+    a: (
+      <p>
+        Sí. Se crean perfiles y cada uno tiene sus favoritos y su historial, con la opción de marcar uno como
+        infantil. Cuántos puedes tener lo decide tu proveedor, y algunos venden perfiles adicionales.
+      </p>
+    ),
+  },
+  {
+    q: "Soy proveedor de IPTV, ¿esto me sirve?",
+    texto:
+      "Sí: das de alta a tus clientes desde un panel, o los importas de golpe desde tu panel XUI, y entran con usuario y contraseña en un reproductor con tu nombre y tus colores. Hay siete días de prueba con diez clientes, sin tarjeta.",
+    a: (
+      <p>
+        Sí. Das de alta a tus clientes desde un panel —o los importas de golpe desde tu panel XUI— y entran con
+        usuario y contraseña en un reproductor con tu nombre y tus colores.{" "}
+        <Link href="/proveedores">Mira lo que incluye</Link>: hay siete días de prueba con diez clientes, sin
+        tarjeta.
       </p>
     ),
   },
@@ -91,7 +160,7 @@ export default function FaqPage() {
       name: f.q,
       acceptedAnswer: {
         "@type": "Answer",
-        text: typeof f.a === "string" ? f.a : "Consulta la respuesta completa en TOTALplayer.",
+        text: f.texto,
       },
     })),
   };
