@@ -26,6 +26,8 @@ for m in colgado lento cors cuelga tardon; do node qa/mock-$m.js & done
 # 3. La aplicación compilada, con datos de ejemplo
 npm run build
 DATA_DIR=/tmp/qa-datos node scripts/seed-demo.mjs
+# El `public` hay que volver a copiarlo en cada compilación: si no, los
+# iconos de la aplicación instalable dan 404 y parece que se han perdido
 cd .next/standalone && cp -r ../static .next/ && cp -r ../../public .
 DATA_DIR=/tmp/qa-datos PORT=3101 ALLOW_PRIVATE_NETWORKS=1 \
   ADMIN_WEBHOOK_URL=http://127.0.0.1:8099/aviso \

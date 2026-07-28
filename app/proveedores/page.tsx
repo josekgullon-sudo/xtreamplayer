@@ -88,6 +88,18 @@ export default function ProvidersPage() {
                 <h3>Web y televisores</h3>
                 <p>El mismo acceso funciona en navegador, móvil y Smart TV con navegación por mando a distancia.</p>
               </div>
+              {/* La pregunta que hace todo proveedor en la primera llamada:
+                  «¿y una app con mi nombre?». Estaba contestada en el
+                  repositorio y en ninguna parte donde él pudiera leerla */}
+              <div className="feature-card">
+                <div className="feature-icon"><Icon name="device" size={22} /></div>
+                <h3>Aplicaciones con tu marca</h3>
+                <p>
+                  Android TV, Fire TV, Samsung y LG: se publican con tu nombre, tu icono y tu dominio, y tus
+                  clientes no ven TOTALplayer por ningún lado. En el móvil se instala desde el navegador, sin
+                  tienda. <Link href="/apps">Ver los aparatos</Link>.
+                </p>
+              </div>
               <div className="feature-card">
                 <div className="feature-icon"><Icon name="play" size={22} /></div>
                 <h3>Directo, cine y series</h3>
