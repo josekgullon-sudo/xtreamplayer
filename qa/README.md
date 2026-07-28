@@ -59,3 +59,8 @@ falla, así que valen tal cual para un CI.
 | `panel-ui.js`, `panel-importa.js` | El panel del proveedor y la importación desde XUI |
 | `soporte-api-facturas.js` | Tickets, API pública y facturas |
 | `qa-diseno.js` | Accesibilidad, contraste y que la cabecera no se rompa |
+| `busqueda-global.js` | Buscar una vez y encontrar canales, cine y series |
+| `novedades.js` | Lo recién subido por el proveedor, con su ventana de tiempo |
+| `admin-panel.js` | El panel de la plataforma y quién puede entrar en él |
+| `acceso.js` | Las tres puertas de entrada y la vuelta a donde ibas |
+| `alta-simple.js` | Que el alta de un cliente pida un solo usuario y contraseña |
