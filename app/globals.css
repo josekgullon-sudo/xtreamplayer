@@ -1434,18 +1434,10 @@ select.input { appearance: none; cursor: pointer; }
 /* ---- Activación con código ---- */
 
 .tv-activar { max-width: 70vw; }
-.tv-activar h1 { font-size: 3.6vw; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 3vh; }
-.tv-activar-paso { font-size: 1.7vw; color: rgba(255, 255, 255, 0.75); margin-bottom: 1.2vh; }
+.tv-activar h1 { font-size: 3vw; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 3vh; }
+.tv-activar-paso { font-size: 1.5vw; color: rgba(255, 255, 255, 0.75); margin-bottom: 1.2vh; }
 .tv-activar-paso strong { color: #fff; }
-.tv-codigo {
-  display: inline-block; margin: 2.5vh 0;
-  padding: 2.5vh 4vw; border-radius: 1.6vw;
-  background: rgba(255, 255, 255, 0.06);
-  border: 0.15vw solid var(--accent);
-  font-size: 6vw; font-weight: 800; letter-spacing: 0.6vw;
-  font-variant-numeric: tabular-nums;
-}
-.tv-activar-nota { font-size: 1.4vw; color: rgba(255, 255, 255, 0.5); }
+.tv-activar-nota { font-size: 1.2vw; color: rgba(255, 255, 255, 0.5); margin-top: 1.5vh; }
 .tv-activar-error { font-size: 1.5vw; color: #ff6b6b; padding: 2vh 4vw; }
 
 /* ---- Portada: cuatro accesos y nada más ---- */
@@ -1539,6 +1531,45 @@ select.input { appearance: none; cursor: pointer; }
 .tv-fila-ph { display: flex; align-items: center; justify-content: center; font-size: 1.4vw; }
 .tv-fila-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ---- Cine y series: carátulas grandes, como en cualquier tele ----
+   Una lista de nombres obliga a leer; una pared de carátulas se mira. Las
+   columnas las decide el ancho de la pantalla y el mando las cuenta al
+   pintar, así que arriba y abajo bajan siempre una fila exacta. */
+
+.tv-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14vw, 1fr));
+  gap: 2.4vh 1.6vw;
+  align-content: start;
+}
+.tv-poster {
+  display: flex; flex-direction: column; gap: 0.9vh;
+  background: none; border: none; padding: 0;
+  color: rgba(255, 255, 255, 0.7); font-size: 1.15vw; font-weight: 600;
+  text-align: left; cursor: pointer;
+  transition: color 0.1s, transform 0.12s;
+}
+.tv-poster-marco {
+  position: relative; width: 100%; aspect-ratio: 2 / 3; overflow: hidden;
+  border-radius: 0.8vw; background: rgba(255, 255, 255, 0.05);
+  border: 0.2vw solid transparent;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.tv-poster-marco img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tv-poster-ph {
+  display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;
+  font-size: 3vw; font-weight: 800; color: rgba(255, 255, 255, 0.25);
+}
+.tv-poster-nombre {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; line-height: 1.3;
+}
+.tv-poster.foco { color: #fff; transform: scale(1.06); }
+.tv-poster.foco .tv-poster-marco {
+  border-color: var(--accent);
+  box-shadow: 0 1vh 3vh rgba(0, 0, 0, 0.6);
+}
+
 /* ---- Vídeo a pantalla completa ---- */
 
 .tv-viendo { background: #000; }
@@ -1555,11 +1586,15 @@ select.input { appearance: none; cursor: pointer; }
   .tv-tile { width: 38vw; height: 38vw; font-size: 15px; }
   .tv-activar h1 { font-size: 26px; }
   .tv-activar-paso, .tv-cargando { font-size: 15px; }
-  .tv-codigo { font-size: 42px; letter-spacing: 6px; padding: 18px 24px; border-radius: 14px; }
   .tv-cabecera h2 { font-size: 20px; }
   .tv-fila { font-size: 15px; gap: 12px; padding: 12px; border-radius: 12px; }
   .tv-fila img, .tv-fila-ph { width: 34px; height: 34px; }
-  .tv-marca, .tv-pie, .tv-cabecera-pista, .tv-fila-n { font-size: 12px; }
+  .tv-marca, .tv-pie, .tv-cabecera-pista, .tv-fila-n, .tv-activar-nota { font-size: 12px; }
+  /* Tres carátulas por fila: con seis no se ve de qué película es ninguna */
+  .tv-rejilla { grid-template-columns: repeat(auto-fill, minmax(28vw, 1fr)); gap: 16px 12px; }
+  .tv-poster { font-size: 13px; }
+  .tv-poster-marco { border-radius: 10px; border-width: 2px; }
+  .tv-poster-ph { font-size: 28px; }
 }
 
 /* Código de activación en el móvil: se teclea una vez, que se lea bien */
@@ -1576,20 +1611,36 @@ select.input { appearance: none; cursor: pointer; }
 /* ---- Tele: MAC, carpetas y formulario de lista ---- */
 
 .tv-dos-caminos {
-  display: flex; gap: 3vw; justify-content: center; align-items: flex-start;
-  margin: 2vh 0 1vh; flex-wrap: wrap;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 2vw;
+  margin: 2vh auto 1vh; max-width: 62vw; text-align: left;
 }
-.tv-camino { flex: 1; min-width: 24vw; }
+.tv-camino {
+  display: flex; flex-direction: column; gap: 0.8vh;
+  padding: 2.4vh 2vw; border-radius: 1.2vw;
+  background: rgba(255, 255, 255, 0.04); border: 0.1vw solid rgba(255, 255, 255, 0.1);
+}
 .tv-camino-t {
-  font-size: 1.3vw; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45); margin-bottom: 1.2vh;
+  font-size: 1.1vw; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent-bright); margin-bottom: 0.4vh;
 }
-.tv-mac {
-  display: inline-block; margin-top: 1vh;
-  padding: 1.8vh 2.4vw; border-radius: 1.2vw;
-  background: rgba(255, 255, 255, 0.06); border: 0.15vw solid rgba(255, 255, 255, 0.25);
-  font-size: 3vw; font-weight: 800; letter-spacing: 0.25vw;
-  font-variant-numeric: tabular-nums;
+.tv-camino-txt { font-size: 1.3vw; color: rgba(255, 255, 255, 0.7); }
+.tv-camino-nota { font-size: 1.1vw; color: rgba(255, 255, 255, 0.45); }
+/* El dato que hay que copiar: el mismo tamaño en las dos vías, y pegado al
+   fondo de su tarjeta para que las dos queden a la misma altura */
+.tv-dato {
+  margin-top: auto; padding: 1.6vh 1.4vw; border-radius: 0.9vw;
+  background: rgba(0, 0, 0, 0.35); border: 0.1vw solid rgba(255, 255, 255, 0.14);
+  font-size: 2.2vw; font-weight: 800; letter-spacing: 0.12vw; text-align: center;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+  overflow: hidden; text-overflow: clip;
+}
+.tv-dato-codigo { border-color: var(--accent); color: #fff; letter-spacing: 0.4vw; }
+/* La dirección se lee y se teclea en un móvil: en pequeño y de una pieza */
+.tv-sitio {
+  padding: 1vh 1.2vw; border-radius: 0.7vw;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 1.2vw; font-weight: 600; color: #fff;
+  overflow-wrap: anywhere; line-height: 1.35;
 }
 .tv-pie-mac { margin-top: 0.8vh; opacity: 0.7; font-variant-numeric: tabular-nums; }
 
@@ -1601,7 +1652,14 @@ select.input { appearance: none; cursor: pointer; }
 .tv-boton-suave { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.85); }
 .tv-boton:focus-visible { outline: 0.2vw solid #fff; outline-offset: 0.3vw; }
 
-.tv-form { display: flex; flex-direction: column; gap: 1.6vh; text-align: left; }
+/* Los formularios se meten en la misma tarjeta que las dos vías: en medio de
+   una pantalla negra, unos campos sueltos parecen flotar */
+.tv-form {
+  display: flex; flex-direction: column; gap: 1.6vh; text-align: left;
+  width: 46vw; max-width: 100%; padding: 4vh 3vw; border-radius: 1.2vw;
+  background: rgba(255, 255, 255, 0.04); border: 0.1vw solid rgba(255, 255, 255, 0.1);
+}
+.tv-form h1 { margin-bottom: 0; }
 .tv-form-fila { display: flex; gap: 1.2vw; }
 .tv-form-fila > * { flex: 1; }
 .tv-input {
@@ -1618,12 +1676,17 @@ select.input { appearance: none; cursor: pointer; }
 @media (max-width: 900px) {
   /* En un móvil las dos vías van una debajo de otra: en dos columnas, la
      MAC y el código se salían de la pantalla */
-  .tv-dos-caminos { flex-direction: column; gap: 3vh; }
-  .tv-camino { min-width: 0; width: 100%; }
+  .tv-dos-caminos { grid-template-columns: 1fr; gap: 14px; max-width: 100%; }
+  .tv-camino { padding: 16px; border-radius: 14px; gap: 8px; }
   .tv-camino-t { font-size: 12px; }
-  .tv-mac { font-size: 20px; letter-spacing: 1px; padding: 12px 14px; border-radius: 12px; max-width: 100%; }
+  .tv-camino-txt { font-size: 14px; }
+  .tv-camino-nota { font-size: 12px; }
+  .tv-dato { font-size: 22px; letter-spacing: 1px; padding: 12px 14px; border-radius: 12px; }
+  .tv-dato-codigo { letter-spacing: 5px; }
+  .tv-sitio { font-size: 13px; padding: 8px 10px; border-radius: 8px; }
   .tv-boton { font-size: 15px; padding: 12px 22px; }
   .tv-input { font-size: 15px; padding: 12px; border-radius: 10px; }
+  .tv-form { width: 100%; padding: 20px 16px; border-radius: 14px; }
   .tv-cabecera-de { font-size: 12px; }
   .tv-activar { max-width: 100%; }
 }

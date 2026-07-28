@@ -92,12 +92,75 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   await tv.keyboard.press("Enter");
   await tv.waitForFunction(() => document.querySelectorAll(".tv-fila:not(.tv-carpeta)").length > 0, { timeout: 20000 });
   check("Al abrir una carpeta salen sus canales", (await tv.locator(".tv-fila:not(.tv-carpeta)").count()) >= 1);
+  check("Numerados, que en una tele el número importa", /001/.test(await tv.locator(".tv-fila").first().innerText()));
   await tv.keyboard.press("Escape");
   await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 15000 });
   check("ATRÁS vuelve a las carpetas", true);
+
+  /* El orden manda: las carpetas del directo salían como fueran llegando los
+     canales, no como las tiene el proveedor en su panel */
+  const cats = await fetch("http://127.0.0.1:8090/player_api.php?username=demo&password=demo123&action=get_live_categories").then((x) => x.json());
+  const ordenPanel = cats.map((c) => c.category_name);
+  // El nombre lleva detrás cuántos canales tiene: «Deportes (12)»
+  const carpetas = (await tv.locator(".tv-fila-nombre").allInnerTexts()).map((t) => t.replace(/\s*\(\d+\)\s*$/, "").trim());
+  check("Las carpetas del directo van en el orden del panel",
+    JSON.stringify(carpetas) === JSON.stringify(ordenPanel),
+    `${carpetas.join(" › ")}  (panel: ${ordenPanel.join(" › ")})`);
+  check("Y ninguna carpeta vacía se cuela", !carpetas.includes("Sin carpeta"), carpetas.join(" | "));
   await tv.keyboard.press("Escape");
   await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
   check("Y otra vez, a la portada", true);
+
+  // --- Cine y series: se eligen por la carátula, no leyendo una lista ---
+  await tv.locator(".tv-tile:has-text('Películas')").click();
+  await tv.waitForSelector(".tv-fila", { timeout: 20000 });
+  await tv.locator(".tv-fila").first().click();
+  await tv.waitForSelector(".tv-poster", { timeout: 20000 });
+  check("Las películas salen en carátulas, no en lista", (await tv.locator(".tv-poster").count()) > 0);
+
+  const caja = await tv.locator(".tv-poster-marco").first().boundingBox();
+  check("Y la carátula es grande de verdad, y no un iconito",
+    caja.height > 200 && caja.height > caja.width, `${Math.round(caja.width)}×${Math.round(caja.height)} px`);
+
+  const enRejilla = await tv.evaluate(() => {
+    const cel = [...document.querySelectorAll(".tv-rejilla [data-i]")];
+    const arriba = cel[0].offsetTop;
+    return { columnas: cel.filter((c) => c.offsetTop === arriba).length, total: cel.length };
+  });
+  check("Se pintan varias por fila, como una pared de cine",
+    enRejilla.columnas > 1, `${enRejilla.columnas} por fila de ${enRejilla.total}`);
+
+  // El mando, en una rejilla, no puede moverse como en una lista
+  const foco = () => tv.evaluate(() => [...document.querySelectorAll("[data-i]")].findIndex((e) => e.classList.contains("foco")));
+  await tv.keyboard.press("ArrowRight");
+  check("Mando: ▶ mueve a la carátula de al lado", (await foco()) === 1);
+  await tv.keyboard.press("ArrowDown");
+  check("Mando: ▼ baja una fila entera, sin salirse de la rejilla",
+    (await foco()) === Math.min(enRejilla.total - 1, 1 + enRejilla.columnas), `foco ${await foco()} de ${enRejilla.total}`);
+  await tv.screenshot({ path: __dirname + "/91-tv-caratulas.png" });
+
+  await tv.keyboard.press("Escape");
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
+  await tv.locator(".tv-tile:has-text('Series')").click();
+  await tv.waitForSelector(".tv-fila", { timeout: 20000 });
+  await tv.locator(".tv-fila").first().click();
+  await tv.waitForSelector(".tv-poster", { timeout: 20000 });
+  check("Las series también se eligen por la carátula", (await tv.locator(".tv-poster").count()) > 0);
+  await tv.locator(".tv-poster").first().click();
+  await tv.waitForSelector(".tv-fila", { timeout: 20000 });
+  check("Pero sus episodios son una lista con nombre, que es lo que se lee",
+    (await tv.locator(".tv-poster").count()) === 0,
+    (await tv.locator(".tv-fila-nombre").allInnerTexts()).slice(0, 2).join(" | "));
+  await tv.keyboard.press("Escape"); // de los episodios, a las carpetas de series
+  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 15000 });
+  await tv.keyboard.press("Escape"); // y de ahí, a la portada
+  await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
+  check("Al volver a la portada, el foco queda en la sección de la que sales",
+    (await tv.locator(".tv-tile.foco").innerText()).includes("Series"),
+    (await tv.locator(".tv-tile.foco").innerText()).replace(/\n/g, " "));
+  // Y se deja arriba del todo para lo que viene
+  await tv.locator(".tv-tile").first().hover();
 
   // --- Lo último visto, para volver con un solo OK ---
   await tv.keyboard.press("Enter");

@@ -47,6 +47,12 @@ interface Fila {
   logo: string;
   /** Una carpeta se pinta distinto y al abrirla enseña lo que hay dentro */
   carpeta?: boolean;
+  /**
+   * Cine y series se eligen por la carátula, no leyendo una lista: es lo que
+   * hace cualquier tele y lo que la gente espera. Los canales no, que lo que
+   * importa de ellos es el nombre y el número.
+   */
+  caratula?: boolean;
   /** Qué hacer al pulsar OK: reproducir, o abrir la lista de episodios */
   abrir: () => void;
 }
@@ -178,6 +184,12 @@ export default function TvApp() {
   const [sinRed, setSinRed] = useState(false);
   /** Lo último que se estaba viendo, para volver con un solo OK */
   const [ultimo, setUltimo] = useState<UltimoCanal | null>(null);
+  /**
+   * Columnas que ha puesto de verdad la rejilla de carátulas. Se miden en vez
+   * de darlas por sabidas: el mando tiene que bajar exactamente una fila, y
+   * una tele de 4K y el navegador de pruebas no caben lo mismo.
+   */
+  const [columnas, setColumnas] = useState(1);
 
   useEffect(() => {
     setUltimo(leer<UltimoCanal>(K_ULTIMO));
@@ -421,13 +433,25 @@ export default function TvApp() {
       for (const c of Array.isArray(cats) ? (cats as XtreamCategory[]) : []) {
         nombres.set(String(c.category_id), c.category_name || "Sin nombre");
       }
+      /*
+       * Las carpetas salen en el orden que manda el panel, no en el que
+       * aparezca el primer canal de cada una. Ese orden lo ha puesto el
+       * proveedor a propósito —sus destacados primero, luego TDT,
+       * autonómicos…— y llegaban revueltas porque se iban creando según se
+       * recorrían los canales.
+       */
       const porCat = new Map<string, T[]>();
+      for (const c of Array.isArray(cats) ? (cats as XtreamCategory[]) : []) {
+        porCat.set(String(c.category_id), []);
+      }
       for (const el of elementos) {
         const id = String(catDe(el) ?? "");
         const clave = nombres.has(id) ? id : "__sueltos__";
         if (!porCat.has(clave)) porCat.set(clave, []);
         porCat.get(clave)!.push(el);
       }
+      // Una categoría del panel que se quede sin nada no se enseña
+      for (const [clave, suyos] of porCat) if (!suyos.length) porCat.delete(clave);
       return [...porCat.entries()].map(([clave, suyos]) => {
         const titulo = clave === "__sueltos__" ? "Otros" : nombres.get(clave) || "Sin nombre";
         return {
@@ -517,6 +541,7 @@ export default function TvApp() {
               id: `vod-${v.stream_id}`,
               nombre: v.name,
               logo: v.stream_icon || "",
+              caratula: true,
               abrir: () =>
                 reproducir({
                   url: vodStreamUrl(creds, v.stream_id, v.container_extension || "mp4"),
@@ -538,6 +563,7 @@ export default function TvApp() {
               id: `serie-${s.series_id}`,
               nombre: s.name,
               logo: s.cover || "",
+              caratula: true,
               abrir: () => abrirSerie(s),
             }))
           );
@@ -640,6 +666,11 @@ export default function TvApp() {
       cargar(pantalla);
       return;
     }
+    /* De vuelta en la portada, el foco se queda en el acceso del que sales.
+       Si no, hereda la posición que tuviera la lista —la carátula 14, por
+       ejemplo— y la portada aparece con un acceso cualquiera iluminado. */
+    const vengoDe = DESTINOS.findIndex((d) => d.id === pantalla);
+    setFoco(vengoDe >= 0 ? vengoDe : 0);
     setPantalla("portada");
     setFilas([]);
   }
@@ -650,6 +681,33 @@ export default function TvApp() {
   }, [pantalla]);
 
   /* ---------- El mando ---------- */
+
+  /* Una lista de películas o de series se enseña en carátulas grandes; los
+     canales, las carpetas y los episodios, en filas con su nombre. Basta con
+     que algo de lo que hay pida carátula: nunca se mezclan las dos cosas. */
+  const rejilla = filas.length > 0 && filas.some((f) => f.caratula);
+
+  // Cuántas carátulas ha puesto el navegador por fila, para que baje una fila
+  useEffect(() => {
+    if (!rejilla) {
+      setColumnas(1);
+      return;
+    }
+    const medir = () => {
+      const celdas = listaRef.current?.querySelectorAll<HTMLElement>("[data-i]");
+      if (!celdas?.length) return;
+      const primera = celdas[0].offsetTop;
+      let n = 0;
+      for (const c of celdas) {
+        if (c.offsetTop !== primera) break;
+        n++;
+      }
+      setColumnas(Math.max(1, n));
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    return () => window.removeEventListener("resize", medir);
+  }, [rejilla, filas]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -670,18 +728,32 @@ export default function TvApp() {
          accesos, que es donde lo busca quien enciende para seguir con lo suyo */
       const primero = pantalla === "portada" && ultimo ? -1 : 0;
 
-      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+      /* En una lista todo es una columna y da igual la flecha; en la rejilla
+         de carátulas, arriba y abajo saltan una fila entera, que es lo que
+         espera cualquiera que haya usado el mando de una tele */
+      const cols = pantalla === "portada" ? 1 : columnas;
+      const salto = cols > 1 ? cols * 3 : 8;
+      const siguiente = (f: number) => (f + 1 > total - 1 ? primero : f + 1);
+      const anterior = (f: number) => (f - 1 < primero ? total - 1 : f - 1);
+
+      if (e.key === "ArrowRight") {
         e.preventDefault();
-        setFoco((f) => (f + 1 > total - 1 ? primero : f + 1));
-      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        setFoco(siguiente);
+      } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        setFoco((f) => (f - 1 < primero ? total - 1 : f - 1));
+        setFoco(anterior);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setFoco((f) => (cols > 1 ? Math.min(total - 1, f + cols) : siguiente(f)));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setFoco((f) => (cols > 1 ? Math.max(0, f - cols) : anterior(f)));
       } else if (e.key === "PageDown") {
         e.preventDefault();
-        setFoco((f) => Math.min(total - 1, f + 8));
+        setFoco((f) => Math.min(total - 1, f + salto));
       } else if (e.key === "PageUp") {
         e.preventDefault();
-        setFoco((f) => Math.max(primero, f - 8));
+        setFoco((f) => Math.max(primero, f - salto));
       } else if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         if (pantalla === "portada") {
@@ -693,7 +765,7 @@ export default function TvApp() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, foco, ultimo, reproducir]);
+  }, [pantalla, filas, foco, ultimo, reproducir, columnas]);
 
   // La fila con el foco siempre a la vista, sin que el usuario persiga nada
   useEffect(() => {
@@ -789,23 +861,27 @@ export default function TvApp() {
             ) : (
               <>
                 <h1>Activa esta tele</h1>
-                <p className="tv-estado-linea">Aún no tiene ninguna lista. Elige una de estas tres formas.</p>
+                <p className="tv-estado-linea">Aún no tiene ninguna lista. Elige la forma que te sea más fácil.</p>
               </>
             )}
           </div>
 
+          {/* Dos tarjetas iguales, no dos columnas sueltas: la misma caja, el
+              mismo tamaño de letra y el dato abajo del todo en las dos, para
+              que se vean como dos opciones y no como una principal y un resto */}
           <div className="tv-dos-caminos">
             <div className="tv-camino">
-              <p className="tv-camino-t">Con tu proveedor</p>
-              <p className="tv-activar-paso">Pásale esta MAC y te activará la tele:</p>
-              <div className="tv-mac">{macDelAparato()}</div>
+              <p className="tv-camino-t">1 · Con tu proveedor</p>
+              <p className="tv-camino-txt">Pásale esta MAC y te activa la tele:</p>
+              <p className="tv-camino-txt tv-camino-nota">Es el número con el que tu proveedor reconoce este aparato.</p>
+              <div className="tv-dato">{macDelAparato()}</div>
             </div>
             <div className="tv-camino">
-              <p className="tv-camino-t">Tú mismo, desde el móvil</p>
-              <p className="tv-activar-paso">
-                Entra en <strong>{sitio()}/activar</strong> y escribe:
-              </p>
-              <div className="tv-codigo">{codigo || "······"}</div>
+              <p className="tv-camino-t">2 · Tú mismo, desde el móvil</p>
+              <p className="tv-camino-txt">Entra desde el móvil en:</p>
+              <div className="tv-sitio">{sitio()}/activar</div>
+              <p className="tv-camino-txt">y escribe este código:</p>
+              <div className="tv-dato tv-dato-codigo">{codigo || "······"}</div>
             </div>
           </div>
 
@@ -895,27 +971,54 @@ export default function TvApp() {
       </header>
       {cargando && <p className="tv-cargando">Cargando…</p>}
       {error && <p className="tv-activar-error">{error}</p>}
-      <div className="tv-lista" ref={listaRef}>
-        {filas.map((f, i) => (
-          <button
-            key={f.id}
-            data-i={i}
-            className={`tv-fila ${foco === i ? "foco" : ""} ${f.carpeta ? "tv-carpeta" : ""}`}
-            onMouseEnter={() => setFoco(i)}
-            onClick={f.abrir}
-          >
-            <span className="tv-fila-n">{String(i + 1).padStart(3, "0")}</span>
-            {f.carpeta ? (
-              <span className="tv-fila-ph"><Icon name="globe" size={20} /></span>
-            ) : imgSrc(f.logo) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={imgSrc(f.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
-            ) : (
-              <span className="tv-fila-ph">{f.nombre.trim().slice(0, 1).toUpperCase()}</span>
-            )}
-            <span className="tv-fila-nombre">{f.nombre}</span>
-          </button>
-        ))}
+      <div className={`tv-lista ${rejilla ? "tv-rejilla" : ""}`} ref={listaRef}>
+        {filas.map((f, i) =>
+          /* Una película se elige por la carátula, no leyendo su nombre en
+             una lista: se pinta grande y con el título debajo */
+          rejilla ? (
+            <button
+              key={f.id}
+              data-i={i}
+              className={`tv-poster ${foco === i ? "foco" : ""}`}
+              onMouseEnter={() => setFoco(i)}
+              onClick={f.abrir}
+            >
+              <span className="tv-poster-marco">
+                {imgSrc(f.logo) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imgSrc(f.logo)}
+                    alt=""
+                    loading="lazy"
+                    onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")}
+                  />
+                ) : (
+                  <span className="tv-poster-ph">{f.nombre.trim().slice(0, 1).toUpperCase()}</span>
+                )}
+              </span>
+              <span className="tv-poster-nombre">{f.nombre}</span>
+            </button>
+          ) : (
+            <button
+              key={f.id}
+              data-i={i}
+              className={`tv-fila ${foco === i ? "foco" : ""} ${f.carpeta ? "tv-carpeta" : ""}`}
+              onMouseEnter={() => setFoco(i)}
+              onClick={f.abrir}
+            >
+              <span className="tv-fila-n">{String(i + 1).padStart(3, "0")}</span>
+              {f.carpeta ? (
+                <span className="tv-fila-ph"><Icon name="globe" size={20} /></span>
+              ) : imgSrc(f.logo) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imgSrc(f.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+              ) : (
+                <span className="tv-fila-ph">{f.nombre.trim().slice(0, 1).toUpperCase()}</span>
+              )}
+              <span className="tv-fila-nombre">{f.nombre}</span>
+            </button>
+          ),
+        )}
         {!cargando && !filas.length && !error && <p className="tv-cargando">Aquí no hay nada todavía.</p>}
       </div>
     </div>

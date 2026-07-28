@@ -18,6 +18,11 @@ bash qa/preparar-medios.sh
 node qa/mock-iptv.js &
 node qa/mock-webhook.js &
 
+# Y los servidores que se portan mal a propósito, que algunas suites usan
+# para comprobar que el proxy salva lo que el navegador no puede: sin ellos
+# el vídeo no arranca y la suite parece rota cuando no lo está.
+for m in colgado lento cors cuelga tardon; do node qa/mock-$m.js & done
+
 # 3. La aplicación compilada, con datos de ejemplo
 npm run build
 DATA_DIR=/tmp/qa-datos node scripts/seed-demo.mjs
@@ -59,7 +64,7 @@ falla, así que valen tal cual para un CI.
 | `portada.js` | La pantalla de «¿qué quieres ver?» y sus carátulas |
 | `busqueda.js` | Listas con datos sucios: títulos sin nombre, carátulas rotas |
 | `tv.js` | Detección de televisores y navegación con mando |
-| `tv-app.js` | La aplicación de tele: activarla, manejarla y encenderla sin red |
+| `tv-app.js` | La aplicación de tele: activarla, manejarla, el orden del directo y las carátulas |
 | `cliente-ux.js` | Lo que ve el cliente de un proveedor, de principio a fin |
 | `b2b.js` | Proveedores, revendedores, cupos y permisos |
 | `panel-ui.js`, `panel-importa.js` | El panel del proveedor y la importación desde XUI |
