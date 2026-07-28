@@ -43,6 +43,31 @@ export default function SiteHeader() {
       .finally(() => setLoaded(true));
   }, []);
 
+  /*
+   * Quién es «tú» aquí. Se puede estar dentro de tres formas a la vez —con
+   * cuenta propia, con el usuario que te dio tu proveedor y como proveedor—
+   * porque cada una tiene su cookie y nadie obliga a cerrar las otras. La
+   * cabecera elegía siempre en el mismo orden, así que un proveedor con una
+   * sesión de cliente vieja abierta veía su panel con el nombre del cliente
+   * arriba y un menú que no era el suyo.
+   *
+   * Manda dónde estás: en el panel eres el proveedor, en la administración
+   * tu cuenta propia y en la cuenta del cliente, el cliente.
+   */
+  const identidades = {
+    propia: email ? { tipo: "propia" as const, nombre: email } : null,
+    cliente: customerUser ? { tipo: "cliente" as const, nombre: customerUser } : null,
+    proveedor: providerMail ? { tipo: "proveedor" as const, nombre: providerMail } : null,
+  };
+  const orden = ruta.startsWith("/panel")
+    ? ["proveedor", "propia", "cliente"]
+    : ruta.startsWith("/admin")
+      ? ["propia", "proveedor", "cliente"]
+      : ruta.startsWith("/mi-cuenta")
+        ? ["cliente", "propia", "proveedor"]
+        : ["propia", "cliente", "proveedor"];
+  const quien = orden.map((k) => identidades[k as keyof typeof identidades]).find(Boolean) || null;
+
   async function logout() {
     if (email) await fetch("/api/auth/logout", { method: "POST" });
     if (customerUser) await fetch("/api/customer/me", { method: "DELETE" });
@@ -76,11 +101,11 @@ export default function SiteHeader() {
           </nav>
         )}
         <div className="header-actions">
-          {loaded && (email || customerUser || providerMail) ? (
+          {loaded && quien ? (
             <AccountMenu
-              email={email || customerUser || providerMail || ""}
-              esCliente={!email && Boolean(customerUser)}
-              esProveedor={!email && !customerUser && Boolean(providerMail)}
+              email={quien.nombre}
+              esCliente={quien.tipo === "cliente"}
+              esProveedor={quien.tipo === "proveedor"}
               onLogout={logout}
             />
           ) : (

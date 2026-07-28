@@ -92,27 +92,36 @@ export default function AccountMenu({
           <Link href="/player" className="account-pop-item" role="menuitem" onClick={() => setAbierto(false)}>
             <Icon name="play" size={16} /> Reproductor
           </Link>
-          {/* Salida para quien fijó su perfil en este aparato: sin esto, la
-              casilla «entrar siempre con este perfil» no tendría vuelta atrás */}
-          <button
-            className="account-pop-item"
-            role="menuitem"
-            onClick={() => {
-              try {
-                localStorage.removeItem("xp.perfilFijo.v1");
-              } catch {
-                /* almacenamiento bloqueado */
-              }
-              window.location.href = "/player";
-            }}
-          >
-            <Icon name="users" size={16} /> Cambiar de perfil
-          </button>
-          {/* La tele tiene su propia aplicación: mantener además la web con
-              la letra grande era ofrecer dos cosas para lo mismo */}
-          <Link href="/tv" className="account-pop-item" role="menuitem" onClick={() => setAbierto(false)}>
-            <Icon name="tv" size={16} /> Ver en la tele
-          </Link>
+          {/*
+            Perfiles y tele son cosas de quien ve la tele. En el menú de un
+            proveedor sobraban: él entra a gestionar clientes, y «cambiar de
+            perfil» no significa nada en su panel.
+          */}
+          {!esProveedor && (
+            <>
+              {/* Salida para quien fijó su perfil en este aparato: sin esto, la
+                  casilla «entrar siempre con este perfil» no tendría vuelta atrás */}
+              <button
+                className="account-pop-item"
+                role="menuitem"
+                onClick={() => {
+                  try {
+                    localStorage.removeItem("xp.perfilFijo.v1");
+                  } catch {
+                    /* almacenamiento bloqueado */
+                  }
+                  window.location.href = "/player";
+                }}
+              >
+                <Icon name="users" size={16} /> Cambiar de perfil
+              </button>
+              {/* La tele tiene su propia aplicación: mantener además la web con
+                  la letra grande era ofrecer dos cosas para lo mismo */}
+              <Link href="/tv" className="account-pop-item" role="menuitem" onClick={() => setAbierto(false)}>
+                <Icon name="tv" size={16} /> Ver en la tele
+              </Link>
+            </>
+          )}
 
           <div className="account-pop-sep" />
 

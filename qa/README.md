@@ -72,5 +72,6 @@ falla, así que valen tal cual para un CI.
 | `admin-facturas.js` | Emitir y anular facturas, y abrir el panel de un proveedor |
 | `facturas-fiscales.js` | Que la factura lleve emisor, receptor e IVA y le sirva a un gestor |
 | `acceso.js` | Las tres puertas de entrada y la vuelta a donde ibas |
+| `sesiones-mezcladas.js` | Estar dentro de varias formas a la vez sin confundir a la cabecera |
 | `alta-simple.js` | Que el alta de un cliente pida un solo usuario y contraseña |
 | `entrega-acceso.js` | El mensaje ya escrito para entregarle el acceso al cliente |
