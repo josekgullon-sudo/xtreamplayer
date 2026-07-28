@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fondo del mismo color que la aplicación: así el arranque no da un
+         fogonazo blanco antes de que cargue la web -->
+    <style name="Tema" parent="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/fondo</item>
+    </style>
+</resources>

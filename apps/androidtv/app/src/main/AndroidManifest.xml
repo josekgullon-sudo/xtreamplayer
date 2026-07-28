@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  La aplicación para Android TV y Fire TV.
+
+  Es un envoltorio: dentro va la misma /tv que ya funciona en el navegador de
+  cualquier televisor, así que lo que se arregla en la web queda arreglado en
+  la tele sin publicar una versión nueva ni esperar a que nadie actualice.
+
+  Lo que sí es nativo y no puede serlo de otra manera: salir a pantalla
+  completa, mantener la pantalla encendida mientras se ve algo, y que el
+  mando mueva el foco sin puntero — que es lo que Google exige para dejarla
+  entrar en la sección de televisores.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="app.totalplayer.tv">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Un televisor no tiene pantalla táctil: sin esto, Google Play no la
+         ofrece a las teles y Amazon la rechaza -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:banner="@drawable/banner"
+        android:label="@string/app_name"
+        android:theme="@style/Tema"
+        android:usesCleartextTraffic="false"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape"
+            android:exported="true">
+            <!-- LEANBACK_LAUNCHER es lo que la coloca en la fila de aplicaciones
+                 del televisor; el LAUNCHER normal, en móviles y tabletas -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

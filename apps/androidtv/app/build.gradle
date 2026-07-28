@@ -1,0 +1,29 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'app.totalplayer.tv'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "app.totalplayer.tv"
+        // Android 5: es lo que llevan las teles y los Fire TV más viejos que
+        // siguen en las casas. Pedir más deja fuera a clientes de verdad.
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.debug
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies { }

@@ -59,6 +59,7 @@ falla, así que valen tal cual para un CI.
 | `portada.js` | La pantalla de «¿qué quieres ver?» y sus carátulas |
 | `busqueda.js` | Listas con datos sucios: títulos sin nombre, carátulas rotas |
 | `tv.js` | Detección de televisores y navegación con mando |
+| `tv-app.js` | La aplicación de tele: activarla, manejarla y encenderla sin red |
 | `cliente-ux.js` | Lo que ve el cliente de un proveedor, de principio a fin |
 | `b2b.js` | Proveedores, revendedores, cupos y permisos |
 | `panel-ui.js`, `panel-importa.js` | El panel del proveedor y la importación desde XUI |

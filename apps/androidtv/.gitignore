@@ -1,0 +1,5 @@
+# Gráficos generados y compilaciones
+*.png
+build/
+.gradle/
+local.properties
