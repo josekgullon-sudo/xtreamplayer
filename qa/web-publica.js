@@ -81,6 +81,16 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
 
   // --- Que se llegue desde el menú ---
   await p.goto(BASE + "/", { waitUntil: "networkidle" });
+
+  /* La portada tiene que contestar «¿y en lo mío?» sin hacer bajar: quien no
+     ve su aparato en la lista se va */
+  const enPortada = (await p.locator(".compat .marca").allInnerTexts()).map((t) => t.trim()).join(" | ");
+  check("La portada enseña en qué aparatos se ve",
+    ["Android TV", "Fire TV", "Samsung", "LG", "iPhone", "Windows", "Mac", "Linux"].every((m) => enPortada.includes(m)),
+    enPortada);
+  check("Y desde ahí se llega a la página de cada aparato",
+    (await p.locator(".compat-pie a[href='/apps']").count()) === 1);
+
   for (const [texto, ruta] of [["Precios", "/precios"], ["Aplicaciones", "/apps"], ["Para proveedores", "/proveedores"], ["Ayuda", "/faq"]]) {
     await p.locator(`.nav-links a:has-text("${texto}")`).click();
     await p.waitForURL(`**${ruta}`, { timeout: 10000 });

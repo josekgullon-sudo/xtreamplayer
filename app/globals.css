@@ -2302,4 +2302,18 @@ select.input { appearance: none; cursor: pointer; }
 }
 /* Samsung, LG y compañía no tienen símbolo: su logotipo es su nombre */
 .marca-nombre { letter-spacing: 0.06em; }
-.marcas-centro { justify-content: center; margin: -34px auto 44px; }
+/* Centrada, y pegada al subtítulo cuando va justo debajo de él */
+.marcas-centro { justify-content: center; }
+.marcas-sub { margin: -34px auto 44px; }
+
+/* La tira de compatibilidad de la portada: contesta «¿y en lo mío?» sin
+   hacer leer y sin quitarle sitio a la llamada principal */
+.compat { padding: 10px 0 46px; }
+.compat-t {
+  text-align: center; font-size: 12.5px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-faint); margin-bottom: 18px;
+}
+.compat-marcas { max-width: 860px; margin-bottom: 18px; }
+.compat .marca { background: transparent; color: var(--text-dim); }
+.compat-pie { text-align: center; font-size: 14px; }

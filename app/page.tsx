@@ -4,6 +4,7 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import AdSlot from "@/components/AdSlot";
 import Icon from "@/components/Icon";
+import LogoAparato from "@/components/LogoAparato";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -86,6 +87,48 @@ export default function HomePage() {
             <p className="hero-note">
               Gratis y sin instalar nada · <Link href="/registro">Crear cuenta</Link> para guardar tus listas ·{" "}
               <Link href="/proveedores">¿Eres proveedor?</Link>
+            </p>
+          </div>
+        </section>
+
+        {/*
+          Lo primero que se mira después del titular es si esto va en «lo mío».
+          Una tira de logotipos lo contesta sin hacer leer nada y sin robarle
+          sitio a la llamada principal: va debajo del héroe, en fino.
+        */}
+        <section className="compat">
+          <div className="container">
+            <p className="compat-t">Se ve en</p>
+            <div className="marcas marcas-centro compat-marcas">
+              <span className="marca">
+                <LogoAparato nombre="android" size={18} /> Android TV
+              </span>
+              <span className="marca">
+                <LogoAparato nombre="google" size={18} /> Google TV
+              </span>
+              <span className="marca">
+                <LogoAparato nombre="fuego" size={18} /> Fire TV
+              </span>
+              <span className="marca marca-nombre">Samsung</span>
+              <span className="marca marca-nombre">LG</span>
+              <span className="marca">
+                <LogoAparato nombre="android" size={18} /> Android
+              </span>
+              <span className="marca">
+                <LogoAparato nombre="apple" size={18} /> iPhone y iPad
+              </span>
+              <span className="marca">
+                <LogoAparato nombre="windows" size={18} /> Windows
+              </span>
+              <span className="marca">
+                <LogoAparato nombre="apple" size={18} /> Mac
+              </span>
+              <span className="marca">
+                <LogoAparato nombre="linux" size={18} /> Linux
+              </span>
+            </div>
+            <p className="compat-pie">
+              <Link href="/apps">Cómo se pone en cada aparato</Link>
             </p>
           </div>
         </section>

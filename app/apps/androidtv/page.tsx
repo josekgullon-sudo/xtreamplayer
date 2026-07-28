@@ -31,7 +31,7 @@ export default function AndroidTvPage() {
             flechas para moverte, OK para entrar, ATRÁS para volver.
           </p>
 
-          <div className="marcas marcas-centro">
+          <div className="marcas marcas-centro marcas-sub">
             <span className="marca">
               <LogoAparato nombre="android" size={19} /> Android TV
             </span>
