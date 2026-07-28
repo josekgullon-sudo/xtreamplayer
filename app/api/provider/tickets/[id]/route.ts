@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, TicketRow, TicketMessageRow } from "@/lib/db";
 import { getCurrentProvider } from "@/lib/provider";
+import { avisarAdmin } from "@/lib/avisos";
+import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +62,15 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     );
     db.prepare("UPDATE tickets SET status = 'abierto', updated_at = ? WHERE id = ?").run(now, ticket.id);
   })();
+
+  /* Una respuesta reabre el ticket: quien lo atiende tiene que enterarse
+     igual que de uno nuevo, o se queda esperando sin saberlo */
+  avisarAdmin({
+    tipo: "ticket-respuesta",
+    titulo: `Respuesta de ${provider.company || provider.email}`,
+    texto: `${ticket.subject}\n\n${message.slice(0, 400)}`,
+    enlace: `${SITE_URL}/admin`,
+  });
 
   return NextResponse.json({ ok: true });
 }

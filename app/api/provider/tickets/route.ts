@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, TicketRow } from "@/lib/db";
 import { getCurrentProvider } from "@/lib/provider";
+import { avisarAdmin } from "@/lib/avisos";
+import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +58,13 @@ export async function POST(req: NextRequest) {
     );
     return Number(info.lastInsertRowid);
   })();
+
+  avisarAdmin({
+    tipo: "ticket-nuevo",
+    titulo: `Ticket nuevo de ${provider.company || provider.email}`,
+    texto: `${subject}\n\n${message.slice(0, 400)}`,
+    enlace: `${SITE_URL}/admin`,
+  });
 
   return NextResponse.json({ ok: true, id: ticketId });
 }

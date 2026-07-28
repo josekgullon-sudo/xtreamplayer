@@ -32,6 +32,7 @@ El repositorio ya incluye `Dockerfile` y `railway.json`, así que Railway lo det
    | `SESSION_SECRET` | Una cadena aleatoria larga: `openssl rand -hex 32` |
    | `NEXT_PUBLIC_SITE_URL` | `https://tudominio.com` (o la URL que te dé Railway) |
    | `ADMIN_EMAILS` | Tu correo (varios separados por comas). Da acceso al panel de administración en `/admin` con tu cuenta de usuario normal |
+   | `ADMIN_WEBHOOK_URL` | *(opcional)* Dirección a la que avisar cuando un proveedor abre un ticket o responde. Vale un bot de Telegram, un canal de Discord o Slack, o tu propia automatización: recibe un POST con JSON |
    | `RAILWAY_RUN_UID` | `0` — Railway monta los volúmenes como root y sin esto la aplicación no puede escribir la base de datos en `/data` (el registro falla con «No se pudo conectar») |
    | `HOSTNAME` | `0.0.0.0` — ya viene fijado en la imagen; añádelo solo si usas una imagen anterior |
 

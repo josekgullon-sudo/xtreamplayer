@@ -14,14 +14,16 @@ llevaba por delante.
 # 1. Vídeos de prueba (una vez; necesita ffmpeg)
 bash qa/preparar-medios.sh
 
-# 2. Servidor IPTV simulado, en el 8090
+# 2. Servidor IPTV simulado (8090) y receptor de avisos (8099)
 node qa/mock-iptv.js &
+node qa/mock-webhook.js &
 
 # 3. La aplicación compilada, con datos de ejemplo
 npm run build
 DATA_DIR=/tmp/qa-datos node scripts/seed-demo.mjs
 cd .next/standalone && cp -r ../static .next/ && cp -r ../../public .
 DATA_DIR=/tmp/qa-datos PORT=3101 ALLOW_PRIVATE_NETWORKS=1 \
+  ADMIN_WEBHOOK_URL=http://127.0.0.1:8099/aviso \
   SESSION_SECRET=cualquier-cadena-larga-para-pruebas node server.js &
 ```
 
@@ -59,6 +61,7 @@ falla, así que valen tal cual para un CI.
 | `b2b.js` | Proveedores, revendedores, cupos y permisos |
 | `panel-ui.js`, `panel-importa.js` | El panel del proveedor y la importación desde XUI |
 | `soporte-api-facturas.js` | Tickets, API pública y facturas |
+| `avisos.js` | Que un ticket nuevo avise, sin hacer esperar a quien lo abre |
 | `qa-diseno.js` | Accesibilidad, contraste y que la cabecera no se rompa |
 | `busqueda-global.js` | Buscar una vez y encontrar canales, cine y series |
 | `novedades.js` | Lo recién subido por el proveedor, con su ventana de tiempo |

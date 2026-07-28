@@ -253,6 +253,28 @@ export default function AdminPanel() {
     };
   }, [tab, buscar, estadoCliente, estadoFactura, soloFallidos, pedir]);
 
+  /*
+   * Los tickets sin atender, en el título de la pestaña. Quien lleva esto
+   * tiene el panel abierto en una pestaña del fondo; sin esto había que
+   * acordarse de venir a mirar. Se refresca solo cada minuto para que una
+   * pestaña olvidada no se quede con el número de ayer.
+   */
+  useEffect(() => {
+    const pendientes = resumen?.soporte.abiertos || 0;
+    document.title = pendientes ? `(${pendientes}) Administración — TOTALplayer` : "Administración — TOTALplayer";
+  }, [resumen]);
+
+  useEffect(() => {
+    const t = setInterval(async () => {
+      // Solo con la pestaña a la vista: en segundo plano no hay nadie
+      // leyendo y el navegador acaba estrangulando el temporizador igual
+      if (document.hidden) return;
+      const d = await fetch("/api/admin/resumen").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      if (d?.resumen) setResumen(d.resumen);
+    }, 60000);
+    return () => clearInterval(t);
+  }, []);
+
   // Al cambiar de sección, el buscador empieza limpio: buscar «madrid» en
   // proveedores y encontrarte cero clientes desconcierta más que ayuda
   useEffect(() => {

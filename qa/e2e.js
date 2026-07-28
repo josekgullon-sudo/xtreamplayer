@@ -21,7 +21,13 @@ function check(name, ok, detail = "") {
   await page.fill("#pl-name", "Lista Test");
   await page.fill("#pl-m3u", "http://127.0.0.1:8090/lista.m3u");
   await page.click(".modal button[type=submit]");
-  await page.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 15000 });
+  /* «Todos los canales» aparece antes que las carpetas de la lista: si nos
+     conformamos con la primera coincidencia, leemos la columna a medio
+     hacer y la comprobación falla a ratos */
+  await page.waitForFunction(
+    () => document.querySelectorAll(".pa-live-cat:not(.pa-live-reciente)").length >= 2,
+    { timeout: 15000 }
+  );
   check("M3U añadida y canales cargados", true);
 
   const groups = await page.locator(".pa-live-cat:not(.pa-live-reciente)").allInnerTexts();
