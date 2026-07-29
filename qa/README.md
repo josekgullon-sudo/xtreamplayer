@@ -58,6 +58,15 @@ falla, así que valen tal cual para un CI.
 `QA_BASE` cambia la dirección contra la que se prueba (por defecto
 `http://localhost:3101`).
 
+`dominio.js` necesita un servidor aparte, con el dominio único encendido:
+
+```bash
+cd .next/standalone && DATA_DIR=/tmp/qa-datos2 PORT=3102 \
+  REDIRECT_TO_CANONICAL=1 NEXT_PUBLIC_SITE_URL=https://totalplayer.app \
+  SESSION_SECRET=loquesea node server.js &
+node qa/dominio.js
+```
+
 ## Las suites
 
 | Fichero | Qué vigila |
@@ -90,3 +99,4 @@ falla, así que valen tal cual para un CI.
 | `entrega-acceso.js` | El mensaje ya escrito para entregarle el acceso al cliente |
 | `apps-proveedor.js` | «Aplicaciones» del panel: qué le manda el proveedor a cada cliente |
 | `envoltorios.js` | Las apps de Samsung, LG y Android TV, probadas antes de subirlas a ninguna tienda |
+| `dominio.js` | Que la web viva en una sola dirección sin romper webhooks ni sondas |

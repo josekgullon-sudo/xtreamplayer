@@ -177,3 +177,34 @@ mandado.
 
 Una misma cuenta de Resend sirve para varios dominios: basta con verificar el
 nuevo y usarlo en `MAIL_FROM`.
+
+## Dominio propio
+
+1. En Railway, **Settings → Domains**, añade `totalplayer.app` y crea en tu DNS
+   el CNAME que te dé.
+2. Pon `NEXT_PUBLIC_SITE_URL=https://totalplayer.app`. Es lo que va dentro de
+   los enlaces de recuperación de contraseña y de las facturas: con el valor
+   viejo, el correo llega apuntando a la dirección de Railway.
+3. **Comprueba que el dominio responde de verdad.**
+4. Solo entonces, `REDIRECT_TO_CANONICAL=1`: desde ahí, la dirección de Railway
+   manda a la tuya con una redirección permanente.
+
+El orden importa: encender la redirección antes de que el DNS haya propagado
+deja la web entera mandando a una dirección que todavía no contesta.
+
+No se redirigen las llamadas a `/api` —Stripe no sigue redirecciones en sus
+avisos, y un webhook redirigido es un cobro del que la aplicación no se
+entera— ni las peticiones internas con las que Railway comprueba que sigue
+viva.
+
+### Correo (Resend)
+
+| Variable | Para qué |
+| --- | --- |
+| `RESEND_API_KEY` | La clave de la cuenta |
+| `MAIL_FROM` | Remitente con dominio verificado: `TOTALplayer <hello@totalplayer.app>` |
+| `MAIL_REPLY_TO` | Opcional: a dónde contesta quien responda |
+
+Sin esto no sale ningún correo y **quien olvide su contraseña no puede
+recuperarla**: el formulario lo dice claramente en vez de fingir que la ha
+mandado. Una misma cuenta de Resend sirve para varios dominios.
