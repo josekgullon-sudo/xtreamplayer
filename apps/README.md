@@ -33,6 +33,18 @@ El botón ATRÁS lo gestiona la web, que sabe deshacer un paso cada vez: vídeo
 → episodios → carpeta → portada. Cada fabricante lo manda con un código
 distinto —Samsung el 10009, LG el 461— y la web los traduce.
 
+## La dirección de tu instalación
+
+Está escrita en las tres aplicaciones. Para cambiarla de una vez:
+
+```bash
+bash apps/poner-dominio.sh https://totalplayer.app
+```
+
+Hacerlo a mano en tres ficheros es como acaba una aplicación publicada
+apuntando al dominio viejo — y eso no se arregla con un despliegue: hay que
+subir una versión nueva a la tienda y esperar la revisión.
+
 ## Los gráficos
 
 ```bash
