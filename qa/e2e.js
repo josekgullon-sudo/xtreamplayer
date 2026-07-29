@@ -15,7 +15,7 @@ function check(name, ok, detail = "") {
 
   // ---------- M3U como invitado ----------
   await page.goto(BASE + "/player", { waitUntil: "networkidle" });
-  await page.locator(".pa-welcome .btn-primary").click();
+  await page.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
   await page.waitForSelector(".modal");
   await page.click(".modal .pa-tab:has-text('URL M3U')");
   await page.fill("#pl-name", "Lista Test");

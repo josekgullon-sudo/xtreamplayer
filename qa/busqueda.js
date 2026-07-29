@@ -16,7 +16,7 @@ const check = (n, ok, d = "") => {
   p.on("pageerror", (e) => errores.push(String(e).slice(0, 160)));
 
   await p.goto(BASE + "/player", { waitUntil: "networkidle" });
-  await p.locator(".pa-welcome .btn-primary").click();
+  await p.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
   await p.waitForSelector(".modal");
   await p.fill("#pl-name", "Sucia");
   await p.fill("#pl-host", "127.0.0.1:8090");

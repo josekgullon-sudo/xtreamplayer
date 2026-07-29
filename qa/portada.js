@@ -9,7 +9,7 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   const p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
 
   await p.goto(BASE + "/player", { waitUntil: "networkidle" });
-  await p.locator(".pa-welcome .btn-primary").click();
+  await p.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
   await p.waitForSelector(".modal");
   await p.fill("#pl-name", "Portada");
   await p.fill("#pl-host", "127.0.0.1:8090");
@@ -52,7 +52,7 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   // En el móvil la portada no estorba
   const pm = await (await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })).newPage();
   await pm.goto(BASE + "/player", { waitUntil: "networkidle" });
-  await pm.locator(".pa-welcome .btn-primary").click();
+  await pm.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
   await pm.waitForSelector(".modal");
   await pm.fill("#pl-name", "PortadaM");
   await pm.fill("#pl-host", "127.0.0.1:8090");

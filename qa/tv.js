@@ -72,7 +72,7 @@ const FIRETV_UA =
   await tv.waitForSelector(".pa-welcome", { timeout: 15000 });
 
   // Añadir lista M3U navegando (el modal se abre con OK sobre el botón)
-  await tv.locator(".pa-welcome .btn-primary").focus();
+  await tv.locator(".pa-welcome button:has-text('Tengo mi propia lista')").focus();
   await tv.keyboard.press("Enter");
   await tv.waitForSelector(".modal");
   check("Mando: OK abre el modal", true);
@@ -83,7 +83,7 @@ const FIRETV_UA =
   check("Mando: Atrás cierra el modal", (await tv.locator(".modal").count()) === 0);
 
   // Cargamos una lista para probar la navegación en la parrilla
-  await tv.locator(".pa-welcome .btn-primary").focus();
+  await tv.locator(".pa-welcome button:has-text('Tengo mi propia lista')").focus();
   await tv.keyboard.press("Enter");
   await tv.waitForSelector(".modal");
   await tv.click(".modal .pa-tab:has-text('URL M3U')");

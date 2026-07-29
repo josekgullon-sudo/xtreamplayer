@@ -7,7 +7,7 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
 async function conLista(p) {
   await p.goto(BASE + "/player", { waitUntil: "networkidle" });
   await p.waitForSelector(".pa-welcome", { timeout: 20000 });
-  await p.click(".pa-welcome .btn-primary");
+  await p.click(".pa-welcome button:has-text('Tengo mi propia lista')");
   await p.waitForSelector(".modal");
   await p.fill("#pl-name", "Busca");
   await p.fill("#pl-host", "127.0.0.1:8090");

@@ -1546,12 +1546,23 @@ export default function PlayerApp() {
           <div className="pa-welcome">
             <h2>Bienvenido a TOTALplayer</h2>
             <p>
-              Añade tu lista M3U o tus credenciales Xtream Codes y empieza a ver TV en directo, películas y series
-              directamente en el navegador.
+              Hay dos formas de empezar: con el usuario que te dio tu proveedor, o con tu propia lista M3U o
+              Xtream Codes.
             </p>
-            <button className="btn btn-primary btn-lg" onClick={() => setShowAdd(true)}>
-              <><Icon name="plus" size={17} /> Añadir mi primera lista</>
-            </button>
+            {/*
+              Quien instala esto en el móvil suele ser cliente de un proveedor:
+              abre la aplicación y lo único que veía era «añade tu lista», que
+              no es lo suyo — su usuario y contraseña no aparecían por ningún
+              lado y acababa preguntándole a quien se lo vendió.
+            */}
+            <div className="pa-welcome-vias">
+              <a className="btn btn-primary btn-lg" href="/acceso">
+                <><Icon name="users" size={17} /> Entrar con mi usuario</>
+              </a>
+              <button className="btn btn-ghost btn-lg" onClick={() => setShowAdd(true)}>
+                <><Icon name="plus" size={17} /> Tengo mi propia lista</>
+              </button>
+            </div>
             {recents.length > 0 && (
               <>
                 <h3 style={{ marginTop: 20, fontSize: 15, color: "var(--text-dim)" }}>Visto recientemente</h3>

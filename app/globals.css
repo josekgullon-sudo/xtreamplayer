@@ -2341,3 +2341,11 @@ select.input { appearance: none; cursor: pointer; }
 .apps-marca { margin-top: 20px; }
 .apps-marca h3 { font-size: 16px; font-weight: 650; margin-bottom: 8px; }
 .apps-marca .btn { margin-top: 14px; }
+
+/* Las dos formas de empezar, una al lado de otra: con el usuario del
+   proveedor —que es la de casi todo el que instala esto— o con lista propia */
+.pa-welcome-vias { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+@media (max-width: 700px) {
+  .pa-welcome-vias { flex-direction: column; width: 100%; max-width: 320px; }
+  .pa-welcome-vias .btn { width: 100%; }
+}

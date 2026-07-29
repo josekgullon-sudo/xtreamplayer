@@ -33,7 +33,15 @@ const ck = (sc, n) => {
   const ctx1 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const p1 = await ctx1.newPage();
   await p1.goto(BASE + "/player", { waitUntil: "networkidle" });
-  await p1.locator(".pa-welcome .btn-primary").click();
+  /* Quien instala esto en el móvil suele ser cliente de un proveedor: si al
+     abrir solo se le ofrece «añade tu lista», se queda fuera con su usuario
+     y su contraseña en la mano */
+  await p1.waitForSelector(".pa-welcome", { timeout: 20000 });
+  const vias = await p1.locator(".pa-welcome-vias .btn").allInnerTexts();
+  check("La bienvenida ofrece las dos formas de empezar",
+    vias.some((t) => t.includes("Entrar con mi usuario")) && vias.some((t) => t.includes("propia lista")),
+    vias.join(" | "));
+  await p1.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
   await p1.waitForSelector(".modal");
   await p1.click(".modal .pa-tab:has-text('URL M3U')");
   await p1.fill("#pl-name", "Zapping");
@@ -71,7 +79,7 @@ const ck = (sc, n) => {
   const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const p2 = await ctx2.newPage();
   await p2.goto(BASE + "/player", { waitUntil: "networkidle" });
-  await p2.locator(".pa-welcome .btn-primary").click();
+  await p2.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
   await p2.waitForSelector(".modal");
   await p2.fill("#pl-name", "Xtream");
   await p2.fill("#pl-host", "127.0.0.1:8090");

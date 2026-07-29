@@ -68,7 +68,7 @@ async function abrirCanales(p) {
 
   // ---------- Reproductor: lista Xtream y navegación inferior ----------
   await p.goto(BASE + "/player", { waitUntil: "networkidle" });
-  await p.locator(".pa-welcome .btn-primary").click();
+  await p.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
   await p.waitForSelector(".modal");
   await p.fill("#pl-name", "Movil");
   await p.fill("#pl-host", "127.0.0.1:8090");
