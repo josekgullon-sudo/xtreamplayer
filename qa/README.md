@@ -100,3 +100,4 @@ node qa/dominio.js
 | `apps-proveedor.js` | «Aplicaciones» del panel: qué le manda el proveedor a cada cliente |
 | `envoltorios.js` | Las apps de Samsung, LG y Android TV, probadas antes de subirlas a ninguna tienda |
 | `dominio.js` | Que la web viva en una sola dirección sin romper webhooks ni sondas |
+| `copias.js` | Copias de seguridad: que se hagan, que se abran y que no se las baje cualquiera |

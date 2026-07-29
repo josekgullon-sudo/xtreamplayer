@@ -208,3 +208,16 @@ viva.
 Sin esto no sale ningún correo y **quien olvide su contraseña no puede
 recuperarla**: el formulario lo dice claramente en vez de fingir que la ha
 mandado. Una misma cuenta de Resend sirve para varios dominios.
+
+### Copias de seguridad
+
+`BACKUPS=1` enciende las automáticas: una al arrancar y otra cada día, y se
+guardan las catorce últimas en `DATA_DIR/copias`. Sin esa variable solo existen
+las que se hagan a mano desde **/admin → Copias**.
+
+Se usa el respaldo en caliente de SQLite y no una copia del fichero: con el
+diario en modo WAL, copiar el archivo mientras alguien escribe da una copia a
+medias que parece buena hasta el día que hace falta.
+
+**Bájate una de vez en cuando.** Estas viven en el mismo volumen que la base de
+datos: sirven para un borrado por error, no para un disco que se rompe.
