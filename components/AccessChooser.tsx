@@ -50,6 +50,19 @@ export default function AccessChooser({ initial = "cliente" }: { initial?: "clie
           <ProviderAuthForm mode="login" embedded />
         )}
 
+        {/* Al proveedor se le ofrece recuperar la contraseña; al cliente no,
+            porque la suya la tiene su proveedor y es él quien se la cambia:
+            mandarle un correo que nunca le va a llegar es peor que nada */}
+        <p style={{ textAlign: "center", marginTop: 14, fontSize: 13.5 }}>
+          {tab === "proveedor" ? (
+            <Link href="/recuperar?rol=proveedor">He olvidado mi contraseña</Link>
+          ) : (
+            <span style={{ color: "var(--text-faint)" }}>
+              ¿No recuerdas tu usuario o tu contraseña? Te los da tu proveedor.
+            </span>
+          )}
+        </p>
+
         <p style={{ textAlign: "center", marginTop: 20, fontSize: 13.5, color: "var(--text-dim)" }}>
           ¿Solo quieres usar tu propia lista M3U o Xtream?{" "}
           <Link href="/player">Entra sin registro</Link>

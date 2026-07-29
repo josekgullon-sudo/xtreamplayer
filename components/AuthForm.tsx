@@ -82,6 +82,13 @@ function AuthFormInner({ mode }: { mode: "login" | "register" }) {
             {busy ? "Un momento…" : mode === "login" ? "Entrar" : "Crear cuenta"}
           </button>
         </form>
+        {/* La puerta de vuelta: sin esto, olvidar la contraseña era perder
+            la cuenta, porque no había forma de recuperarla */}
+        {mode === "login" && (
+          <p className="auth-alt">
+            <Link href="/recuperar">He olvidado mi contraseña</Link>
+          </p>
+        )}
         <p className="auth-alt">
           {mode === "login" ? (
             <>¿No tienes cuenta? <Link href="/registro">Regístrate gratis</Link></>
