@@ -161,3 +161,19 @@ Las plataformas rechazan aplicaciones que parezcan facilitar contenido pirata. L
 3. Las capturas deben mostrar contenido neutro o material propio.
 4. Enlaza siempre la política de privacidad y los términos de uso.
 5. Las suscripciones dentro de las apps de Apple y Google deben usar sus pagos in-app (15–30 % de comisión). Lo habitual es que las apps sean gratuitas y el Premium se contrate en la web con Stripe.
+
+
+### Correo (Resend)
+
+Sin esto no sale ningún correo, y **quien olvide su contraseña no puede
+recuperarla**: el formulario se lo dice claramente en vez de fingir que la ha
+mandado.
+
+| Variable | Para qué |
+| --- | --- |
+| `RESEND_API_KEY` | La clave de tu cuenta de Resend |
+| `MAIL_FROM` | Remitente, con un dominio verificado en Resend: `TOTALplayer <hola@tudominio.com>` |
+| `MAIL_REPLY_TO` | Opcional: a dónde contesta quien le da a Responder |
+
+Una misma cuenta de Resend sirve para varios dominios: basta con verificar el
+nuevo y usarlo en `MAIL_FROM`.

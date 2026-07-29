@@ -13,6 +13,7 @@ import { SITE_NAME, SITE_URL } from "./site";
  *
  * Variables de entorno:
  *   RESEND_API_KEY   la clave de la cuenta
+ *   RESEND_API_URL   solo para pruebas: a dónde se mandan (por defecto Resend)
  *   MAIL_FROM        remitente, con dominio verificado en Resend
  *                    («TOTALplayer <hola@tudominio.com>»)
  *   MAIL_REPLY_TO    a dónde contesta el cliente si le da a Responder
@@ -45,7 +46,11 @@ export async function enviarCorreo(c: Correo): Promise<boolean> {
     return false;
   }
   try {
-    const res = await fetch("https://api.resend.com/emails", {
+    /* La dirección se puede cambiar para las pruebas: así la suite recibe
+       los correos en un servidor local y puede abrir el enlace que llega, sin
+       mandarle nada a nadie ni necesitar una cuenta de verdad */
+    const api = (process.env.RESEND_API_URL || "https://api.resend.com").replace(/\/$/, "");
+    const res = await fetch(`${api}/emails`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,

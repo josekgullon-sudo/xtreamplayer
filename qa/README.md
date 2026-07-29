@@ -17,6 +17,7 @@ bash qa/preparar-medios.sh
 # 2. Servidor IPTV simulado (8090) y receptor de avisos (8099)
 node qa/mock-iptv.js &
 node qa/mock-webhook.js &
+node qa/mock-resend.js &   # recibe los correos, para probar la recuperación
 
 # Y los servidores que se portan mal a propósito, que algunas suites usan
 # para comprobar que el proxy salva lo que el navegador no puede: sin ellos
@@ -33,6 +34,8 @@ DATA_DIR=/tmp/qa-datos PORT=3101 ALLOW_PRIVATE_NETWORKS=1 \
   ADMIN_WEBHOOK_URL=http://127.0.0.1:8099/aviso \
   BILLING_NAME="TOTALplayer SL" BILLING_TAX_ID="B00000000" \
   BILLING_ADDRESS="Calle Mayor 1, Madrid" BILLING_VAT_PERCENT=21 \
+  RESEND_API_KEY=clave-de-pruebas RESEND_API_URL=http://127.0.0.1:8097 \
+  MAIL_FROM="TOTALplayer <hola@pruebas.test>" \
   SESSION_SECRET=cualquier-cadena-larga-para-pruebas node server.js &
 ```
 
@@ -81,6 +84,7 @@ falla, así que valen tal cual para un CI.
 | `facturas-fiscales.js` | Que la factura lleve emisor, receptor e IVA y le sirva a un gestor |
 | `factura-pdf.js` | El PDF de un clic: quién puede bajarlo y qué lleva dentro |
 | `acceso.js` | Las tres puertas de entrada y la vuelta a donde ibas |
+| `recuperar.js` | Recuperar la contraseña: el correo, el enlace y que la nueva entre |
 | `sesiones-mezcladas.js` | Estar dentro de varias formas a la vez sin confundir a la cabecera |
 | `alta-simple.js` | Que el alta de un cliente pida un solo usuario y contraseña |
 | `entrega-acceso.js` | El mensaje ya escrito para entregarle el acceso al cliente |
