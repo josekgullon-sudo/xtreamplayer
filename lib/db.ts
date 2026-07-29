@@ -17,6 +17,21 @@ export function getDb(): Database.Database {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   _db = new Database(path.join(DATA_DIR, "xtreamplayer.db"));
   applySchema(_db);
+  /*
+   * Las copias automáticas se programan al abrir la base de datos por primera
+   * vez, y no en `instrumentation.ts`, porque eso se compila también para el
+   * runtime del borde —donde no hay disco— y rompía la compilación. Aquí
+   * estamos, por definición, en el servidor con acceso a fichero.
+   *
+   * La importación es diferida para no crear un ciclo: copias.ts necesita
+   * getDb() para hacer el respaldo en caliente.
+   */
+  void import("./copias")
+    .then((m) => m.programarCopias())
+    .catch(() => {
+      /* si no se pueden programar, la aplicación sigue: el botón de
+         «Copiar ahora» del panel funciona igual */
+    });
   return _db;
 }
 

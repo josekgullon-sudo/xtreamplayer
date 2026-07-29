@@ -22,7 +22,8 @@ type Seccion =
   | "dominios"
   | "registro"
   | "facturas"
-  | "soporte";
+  | "soporte"
+  | "copias";
 
 const TITULOS: Record<Seccion, string> = {
   resumen: "Resumen",
@@ -33,6 +34,7 @@ const TITULOS: Record<Seccion, string> = {
   registro: "Registro",
   facturas: "Facturación",
   soporte: "Soporte",
+  copias: "Copias de seguridad",
 };
 
 const SUBTITULOS: Record<Seccion, string> = {
@@ -44,6 +46,7 @@ const SUBTITULOS: Record<Seccion, string> = {
   registro: "Accesos, fallos y lo que hace la administración",
   facturas: "Lo emitido a proveedores",
   soporte: "Tickets de los proveedores. Los abiertos van primero",
+  copias: "La red de seguridad: si el disco falla, esto es lo que queda",
 };
 
 interface Resumen {
@@ -183,6 +186,9 @@ export default function AdminPanel() {
   const [accesos, setAccesos] = useState<Acceso[]>([]);
   const [auditoria, setAuditoria] = useState<Auditoria[]>([]);
   const [facturas, setFacturas] = useState<Factura[]>([]);
+  const [copias, setCopias] = useState<{ nombre: string; bytes: number; cuando: number }[]>([]);
+  const [copiasAuto, setCopiasAuto] = useState(false);
+  const [copiando, setCopiando] = useState(false);
 
   const [buscar, setBuscar] = useState("");
   const [estadoCliente, setEstadoCliente] = useState("");
@@ -245,6 +251,12 @@ export default function AdminPanel() {
       } else if (tab === "facturas") {
         const d = await pedir(`/api/admin/facturas?estado=${estadoFactura}`);
         if (vivo && d) setFacturas(d.facturas);
+      } else if (tab === "copias") {
+        const d = await pedir("/api/admin/copias");
+        if (vivo && d) {
+          setCopias(d.copias);
+          setCopiasAuto(d.automaticas);
+        }
       }
       if (vivo) setCargando(false);
     })();
@@ -406,6 +418,9 @@ export default function AdminPanel() {
         </button>
         <button className={`panel-nav-item ${tab === "facturas" ? "active" : ""}`} onClick={() => setTab("facturas")}>
           <Icon name="card" size={17} className="panel-nav-icon" /> Facturación
+        </button>
+        <button className={`panel-nav-item ${tab === "copias" ? "active" : ""}`} onClick={() => setTab("copias")}>
+          <Icon name="lock" size={17} className="panel-nav-icon" /> Copias
         </button>
         <button className={`panel-nav-item ${tab === "soporte" ? "active" : ""}`} onClick={() => setTab("soporte")}>
           <Icon name="shield" size={17} className="panel-nav-icon" /> Soporte
@@ -1037,6 +1052,76 @@ export default function AdminPanel() {
                                 </button>
                               )}
                             </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table></div>
+                )}
+              </>
+            )}
+
+            {/* ---------------- Copias de seguridad ---------------- */}
+            {tab === "copias" && (
+              <>
+                <div className={`card factura-fiscales ${copiasAuto ? "" : "incompleto"}`}>
+                  <div>
+                    <h3>{copiasAuto ? "Copias automáticas encendidas" : "Copias automáticas apagadas"}</h3>
+                    <p className="panel-sub">
+                      {copiasAuto
+                        ? "Se hace una al arrancar y otra cada día. Se guardan las catorce últimas."
+                        : "Pon BACKUPS=1 en las variables del despliegue. Sin eso, solo hay las que hagas a mano aquí."}
+                    </p>
+                  </div>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    disabled={copiando}
+                    onClick={async () => {
+                      setCopiando(true);
+                      const res = await fetch("/api/admin/copias", { method: "POST" });
+                      setCopiando(false);
+                      if (!res.ok) {
+                        setError("No se pudo hacer la copia");
+                        return;
+                      }
+                      const d = await pedir("/api/admin/copias");
+                      if (d) setCopias(d.copias);
+                      setAviso("Copia hecha. Bájatela y guárdala fuera de aquí.");
+                    }}
+                  >
+                    {copiando ? "Copiando…" : "Copiar ahora"}
+                  </button>
+                </div>
+
+                {/* Una copia que vive en el mismo disco que la base de datos no
+                    es una copia: el mismo fallo se lleva las dos */}
+                <p className="panel-sub" style={{ margin: "16px 0" }}>
+                  Bájate una de vez en cuando y guárdala en otro sitio. Estas viven en el mismo volumen que la
+                  base de datos, así que sirven para un borrado por error, no para un disco que se rompe.
+                </p>
+
+                {copias.length === 0 ? (
+                  <div className="pa-empty">Todavía no hay ninguna copia.</div>
+                ) : (
+                  <div className="tabla-scroll"><table className="panel-table">
+                    <thead>
+                      <tr>
+                        <th>Copia</th>
+                        <th>Cuándo</th>
+                        <th>Tamaño</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {copias.map((c) => (
+                        <tr key={c.nombre}>
+                          <td><code className="cred">{c.nombre}</code></td>
+                          <td>{fechaHora(c.cuando)}</td>
+                          <td>{(c.bytes / 1024 / 1024).toFixed(2)} MB</td>
+                          <td className="col-actions">
+                            <a className="btn btn-ghost btn-sm" href={`/api/admin/copias?bajar=${encodeURIComponent(c.nombre)}`} download>
+                              Descargar
+                            </a>
                           </td>
                         </tr>
                       ))}
