@@ -28,6 +28,16 @@ export default function SiteHeader() {
    */
   const [customerUser, setCustomerUser] = useState<string | null>(null);
   const [providerMail, setProviderMail] = useState<string | null>(null);
+  /*
+   * El menú, en un móvil, detrás de un botón.
+   *
+   * Por debajo de 900px no caben logotipo, menú y botones en la misma línea,
+   * así que el menú se escondía sin más — y con él desaparecían Precios,
+   * Aplicaciones, Para proveedores y Ayuda. En un teléfono, que es donde más
+   * se entra por primera vez, la web no tenía ni una puerta a «soy
+   * proveedor»: solo un enlace pequeño perdido en el texto del héroe.
+   */
+  const [menuAbierto, setMenuAbierto] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -42,6 +52,18 @@ export default function SiteHeader() {
       })
       .finally(() => setLoaded(true));
   }, []);
+
+  // Al cambiar de página se cierra: si no, queda abierto sobre lo nuevo
+  useEffect(() => {
+    setMenuAbierto(false);
+  }, [ruta]);
+
+  useEffect(() => {
+    if (!menuAbierto) return;
+    const escape = (e: KeyboardEvent) => { if (e.key === "Escape") setMenuAbierto(false); };
+    document.addEventListener("keydown", escape);
+    return () => document.removeEventListener("keydown", escape);
+  }, [menuAbierto]);
 
   /*
    * Quién es «tú» aquí. Se puede estar dentro de tres formas a la vez —con
@@ -94,12 +116,22 @@ export default function SiteHeader() {
         {sinMenu ? (
           <span className="nav-links" aria-hidden="true" />
         ) : (
-          <nav className="nav-links" aria-label="Navegación principal">
-            <Link href="/precios">Precios</Link>
-            <Link href="/apps">Aplicaciones</Link>
-            <Link href="/proveedores">Para proveedores</Link>
-            <Link href="/faq">Ayuda</Link>
-          </nav>
+          <>
+            <nav className="nav-links" aria-label="Navegación principal">
+              {ENLACES.map((e) => (
+                <Link key={e.href} href={e.href}>{e.texto}</Link>
+              ))}
+            </nav>
+            {/* El mismo menú, en móvil, detrás de un botón */}
+            <button
+              className="nav-boton"
+              aria-label={menuAbierto ? "Cerrar el menú" : "Abrir el menú"}
+              aria-expanded={menuAbierto}
+              onClick={() => setMenuAbierto((v) => !v)}
+            >
+              <Icon name={menuAbierto ? "cerrar" : "list"} size={20} />
+            </button>
+          </>
         )}
         <div className="header-actions">
           {loaded && quien ? (
@@ -126,6 +158,25 @@ export default function SiteHeader() {
           )}
         </div>
       </div>
+
+      {menuAbierto && !sinMenu && (
+        <nav className="nav-movil" aria-label="Navegación principal">
+          {ENLACES.map((e) => (
+            <Link key={e.href} href={e.href} onClick={() => setMenuAbierto(false)}>
+              {e.texto}
+            </Link>
+          ))}
+        </nav>
+      )}
     </header>
   );
 }
+
+/* Un solo sitio donde están los enlaces: el menú de escritorio y el de móvil
+   tienen que llevar a lo mismo, y con dos listas acaban no llevándolo */
+const ENLACES = [
+  { href: "/precios", texto: "Precios" },
+  { href: "/apps", texto: "Aplicaciones" },
+  { href: "/proveedores", texto: "Para proveedores" },
+  { href: "/faq", texto: "Ayuda" },
+];
