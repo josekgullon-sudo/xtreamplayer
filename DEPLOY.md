@@ -221,3 +221,13 @@ medias que parece buena hasta el día que hace falta.
 
 **Bájate una de vez en cuando.** Estas viven en el mismo volumen que la base de
 datos: sirven para un borrado por error, no para un disco que se rompe.
+
+### Cobro de proveedores (Stripe)
+
+1. `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` en las variables.
+2. En Stripe, un producto por tramo con su precio **recurrente mensual**.
+3. En **/admin → Planes y cobro**, pega el `price_…` de cada uno.
+
+Un plan sin `price_` no se puede contratar: el proveedor ve «los pagos aún no
+están activados» y hay que activárselo a mano. Empieza por el tramo que más
+vendas y añade el resto cuando los tengas creados.

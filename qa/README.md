@@ -101,3 +101,4 @@ node qa/dominio.js
 | `envoltorios.js` | Las apps de Samsung, LG y Android TV, probadas antes de subirlas a ninguna tienda |
 | `dominio.js` | Que la web viva en una sola dirección sin romper webhooks ni sondas |
 | `copias.js` | Copias de seguridad: que se hagan, que se abran y que no se las baje cualquiera |
+| `planes-cobro.js` | Los precios de Stripe de cada plan, puestos desde administración |
