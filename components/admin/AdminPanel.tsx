@@ -23,7 +23,8 @@ type Seccion =
   | "registro"
   | "facturas"
   | "soporte"
-  | "copias";
+  | "copias"
+  | "planes";
 
 const TITULOS: Record<Seccion, string> = {
   resumen: "Resumen",
@@ -35,6 +36,7 @@ const TITULOS: Record<Seccion, string> = {
   facturas: "Facturación",
   soporte: "Soporte",
   copias: "Copias de seguridad",
+  planes: "Planes y cobro",
 };
 
 const SUBTITULOS: Record<Seccion, string> = {
@@ -47,6 +49,7 @@ const SUBTITULOS: Record<Seccion, string> = {
   facturas: "Lo emitido a proveedores",
   soporte: "Tickets de los proveedores. Los abiertos van primero",
   copias: "La red de seguridad: si el disco falla, esto es lo que queda",
+  planes: "Los tramos que se venden y con qué precio de Stripe se cobra cada uno",
 };
 
 interface Resumen {
@@ -189,6 +192,10 @@ export default function AdminPanel() {
   const [copias, setCopias] = useState<{ nombre: string; bytes: number; cuando: number }[]>([]);
   const [copiasAuto, setCopiasAuto] = useState(false);
   const [copiando, setCopiando] = useState(false);
+  const [planesCobro, setPlanesCobro] = useState<
+    { id: string; nombre: string; precioCents: number; maxClientes: number; stripePriceId: string; activo: boolean }[]
+  >([]);
+  const [stripeListo, setStripeListo] = useState(false);
 
   const [buscar, setBuscar] = useState("");
   const [estadoCliente, setEstadoCliente] = useState("");
@@ -251,6 +258,12 @@ export default function AdminPanel() {
       } else if (tab === "facturas") {
         const d = await pedir(`/api/admin/facturas?estado=${estadoFactura}`);
         if (vivo && d) setFacturas(d.facturas);
+      } else if (tab === "planes") {
+        const d = await pedir("/api/admin/planes");
+        if (vivo && d) {
+          setPlanesCobro(d.planes);
+          setStripeListo(d.stripeListo);
+        }
       } else if (tab === "copias") {
         const d = await pedir("/api/admin/copias");
         if (vivo && d) {
@@ -418,6 +431,9 @@ export default function AdminPanel() {
         </button>
         <button className={`panel-nav-item ${tab === "facturas" ? "active" : ""}`} onClick={() => setTab("facturas")}>
           <Icon name="card" size={17} className="panel-nav-icon" /> Facturación
+        </button>
+        <button className={`panel-nav-item ${tab === "planes" ? "active" : ""}`} onClick={() => setTab("planes")}>
+          <Icon name="card" size={17} className="panel-nav-icon" /> Planes y cobro
         </button>
         <button className={`panel-nav-item ${tab === "copias" ? "active" : ""}`} onClick={() => setTab("copias")}>
           <Icon name="lock" size={17} className="panel-nav-icon" /> Copias
@@ -1058,6 +1074,83 @@ export default function AdminPanel() {
                     </tbody>
                   </table></div>
                 )}
+              </>
+            )}
+
+            {/* ---------------- Planes y cobro ---------------- */}
+            {tab === "planes" && (
+              <>
+                <div className={`card factura-fiscales ${stripeListo ? "" : "incompleto"}`}>
+                  <div>
+                    <h3>{stripeListo ? "Stripe conectado" : "Stripe sin conectar"}</h3>
+                    <p className="panel-sub">
+                      {stripeListo
+                        ? "Cada plan cobra con el precio que tenga puesto aquí abajo."
+                        : "Faltan STRIPE_SECRET_KEY y STRIPE_WEBHOOK_SECRET en las variables. Sin ellas, contratar un plan contesta que los pagos no están activados y hay que activarlo a mano."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Sin el precio de Stripe, un plan no se puede contratar: el
+                    proveedor ve «los pagos no están activados» y hay que
+                    activárselo a mano, que es cómo se queda el cobro sin arrancar */}
+                <p className="panel-sub" style={{ margin: "16px 0" }}>
+                  El identificador de precio se copia de Stripe → Productos → el precio recurrente del plan.
+                  Empieza por <code className="cred">price_</code>. Un plan sin él no se puede contratar.
+                </p>
+
+                <div className="tabla-scroll"><table className="panel-table">
+                  <thead>
+                    <tr>
+                      <th>Plan</th>
+                      <th>Precio</th>
+                      <th>Clientes</th>
+                      <th>Precio en Stripe</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {planesCobro.map((pl) => (
+                      <tr key={pl.id}>
+                        <td><b>{pl.nombre}</b><div className="admin-sub">{pl.id}</div></td>
+                        <td>{euros(pl.precioCents)}/mes</td>
+                        <td>{pl.maxClientes}</td>
+                        <td>
+                          <input
+                            className="input"
+                            style={{ minWidth: 240 }}
+                            defaultValue={pl.stripePriceId}
+                            placeholder="price_1AbCdEf…"
+                            aria-label={`Precio de Stripe de ${pl.nombre}`}
+                            onBlur={async (e) => {
+                              const valor = e.target.value.trim();
+                              if (valor === pl.stripePriceId) return;
+                              const res = await fetch("/api/admin/planes", {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ id: pl.id, stripePriceId: valor }),
+                              });
+                              const d = await res.json().catch(() => ({}));
+                              if (!res.ok) {
+                                setError(d.error || "No se pudo guardar");
+                                e.target.value = pl.stripePriceId;
+                                return;
+                              }
+                              setAviso(valor ? `${pl.nombre} ya se puede contratar.` : `${pl.nombre} se queda sin cobro.`);
+                              const nuevo = await pedir("/api/admin/planes");
+                              if (nuevo) setPlanesCobro(nuevo.planes);
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <span className={`badge ${pl.stripePriceId ? "badge-success" : ""}`}>
+                            {pl.stripePriceId ? "cobra" : "sin cobro"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table></div>
               </>
             )}
 
