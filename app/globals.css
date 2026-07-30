@@ -2362,9 +2362,13 @@ select.input { appearance: none; cursor: pointer; }
   background: var(--bg-elev); color: var(--text-dim); cursor: pointer;
 }
 .nav-boton:hover { color: var(--text); background: var(--bg-elev-2); }
+/* Colgado de la cabecera y no dentro de ella: la cabecera es una fila de alto
+   fijo, así que un panel metido ahí se pone al lado y desborda la pantalla */
 .nav-movil {
   display: none; flex-direction: column;
-  border-top: 1px solid var(--hairline); background: var(--bg-elev);
+  position: absolute; left: 0; right: 0; top: 100%;
+  border-top: 1px solid var(--hairline);
+  background: var(--bg-elev); box-shadow: var(--shadow);
   padding: 8px 14px 14px;
 }
 .nav-movil a {
@@ -2377,6 +2381,4 @@ select.input { appearance: none; cursor: pointer; }
 @media (max-width: 900px) {
   .nav-boton { display: inline-flex; }
   .nav-movil { display: flex; }
-  /* El botón va antes que los de acción, pegado al logotipo */
-  .site-header .container { justify-content: flex-start; }
 }

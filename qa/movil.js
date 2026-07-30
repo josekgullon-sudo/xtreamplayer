@@ -48,6 +48,22 @@ async function abrirCanales(p) {
 
   // ---------- Portada: las dos puertas visibles ----------
   await p.goto(BASE + "/", { waitUntil: "networkidle" });
+
+  /* El menú entero desaparecía por debajo de 900px: en un teléfono —que es
+     donde más se entra por primera vez— no había puerta a «soy proveedor» */
+  check("En el móvil hay botón de menú", await p.locator(".nav-boton").isVisible());
+  await p.locator(".nav-boton").click();
+  await p.waitForSelector(".nav-movil", { timeout: 5000 });
+  const delMenu = await p.locator(".nav-movil a").allInnerTexts();
+  check("Y lleva a las cuatro secciones",
+    ["Precios", "Aplicaciones", "Para proveedores", "Ayuda"].every((t) => delMenu.some((x) => x.includes(t))),
+    delMenu.join(" | "));
+  check("Sin desbordar con el menú abierto",
+    (await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) === 0);
+  await p.locator(".nav-movil a:has-text('Para proveedores')").click();
+  await p.waitForURL("**/proveedores", { timeout: 10000 });
+  check("Y desde el móvil se llega a la página de proveedores", true);
+  await p.goto(BASE + "/", { waitUntil: "networkidle" });
   const entrar = p.locator(".header-actions a:has-text('Entrar')");
   check("«Entrar» visible en la cabecera móvil", await entrar.isVisible());
   const reproductor = p.locator(".header-actions a[href='/player']");
