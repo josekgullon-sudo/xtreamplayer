@@ -2382,3 +2382,32 @@ select.input { appearance: none; cursor: pointer; }
   .nav-boton { display: inline-flex; }
   .nav-movil { display: flex; }
 }
+
+/* La segunda línea de un canal: de qué categoría es. Solo en «Todos los
+   canales», que es donde el nombre a secas no dice de dónde sale */
+.pa-live-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pa-live-txt .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pa-live-sub {
+  font-size: 12px; font-weight: 500; color: var(--text-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ---- En un teléfono, las listas se tocan con el dedo ----
+   Las filas venían del panel de escritorio, donde hay tres columnas y ratón:
+   30px de logotipo y 14px de letra. En un móvil eso es una lista que hay que
+   acertar apuntando, con el nombre del canal en letra de pie de página. */
+@media (max-width: 900px) {
+  .pa-live-cat {
+    min-height: 56px; padding: 14px; font-size: 16px; gap: 12px;
+    border-radius: 12px; margin-bottom: 2px;
+  }
+  .pa-live-chan {
+    min-height: 72px; padding: 12px 14px; gap: 14px;
+    border-radius: 12px; margin-bottom: 2px;
+  }
+  .pa-live-chan img, .pa-live-chan .ph { width: 56px; height: 42px; border-radius: 9px; }
+  .pa-live-chan .ph { font-size: 18px; }
+  .pa-live-chan .name { font-size: 16.5px; font-weight: 650; color: var(--text); }
+  .pa-live-sub { font-size: 13px; }
+  .pa-live-num { font-size: 12.5px; min-width: 26px; }
+}

@@ -970,10 +970,24 @@ export default function PlayerApp() {
     }
   }
 
-  const canalesVisibles = useMemo(() => {
+  const canalesVisibles: {
+    id: string;
+    name: string;
+    logo?: string;
+    favKey: string;
+    archivo: boolean;
+    play: () => void;
+    /** De qué categoría es, para decirlo en «Todos los canales» */
+    grupo?: string;
+  }[] = useMemo(() => {
     const grupo = grupoSel ? liveGroups.find((g) => g.name === grupoSel) : null;
     if (grupo) return grupo.channels;
-    return liveGroups.flatMap((g) => g.channels).slice(0, 500);
+    /* En «Todos los canales», cada fila dice de qué categoría es: es el dato
+       que falta justo ahí —mil canales seguidos sin contexto— y de paso la
+       fila deja de ser una sola línea de texto suelta */
+    return liveGroups
+      .flatMap((g) => g.channels.map((c) => ({ ...c, grupo: g.name })))
+      .slice(0, 500);
   }, [liveGroups, grupoSel]);
 
   return (
@@ -1451,7 +1465,10 @@ export default function PlayerApp() {
                 ) : (
                   <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
                 )}
-                <span className="name">{ch.name}</span>
+                <span className="pa-live-txt">
+                  <span className="name">{ch.name}</span>
+                  {ch.grupo && <span className="pa-live-sub">{ch.grupo}</span>}
+                </span>
                 {favorites[ch.favKey] && <Icon name="star" size={13} className="pa-live-fav" />}
               </button>
             ))}
