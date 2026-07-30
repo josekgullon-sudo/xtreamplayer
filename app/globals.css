@@ -747,10 +747,16 @@ select.input { appearance: none; cursor: pointer; }
 
 /* Reproductor en TV: columnas más anchas y textos legibles a 3 m */
 .tv-mode .pa-live { grid-template-columns: 380px 420px 1fr; }
-.tv-mode .pa-live-chan { padding: 14px 16px; font-size: 19px; }
+/* A tres metros del sofá, 19px es letra de prospecto: la fila crece como en
+   el móvil, y el logotipo con ella */
+.tv-mode .pa-live-chan { padding: 16px 18px; font-size: 22px; min-height: 76px; gap: 16px; }
 .tv-mode .pa-live-chan img,
-.tv-mode .pa-live-chan .ph { width: 40px; height: 40px; }
-.tv-mode .pa-live-cat { font-size: 18px; padding: 14px 16px; }
+.tv-mode .pa-live-chan .ph { width: 64px; height: 48px; border-radius: 10px; }
+.tv-mode .pa-live-chan .ph { font-size: 22px; }
+.tv-mode .pa-live-chan .name { font-size: 22px; font-weight: 650; }
+.tv-mode .pa-live-sub { font-size: 16px; }
+.tv-mode .pa-live-num { font-size: 16px; min-width: 34px; }
+.tv-mode .pa-live-cat { font-size: 21px; padding: 16px 18px; min-height: 64px; }
 .tv-mode .pa-live-head { font-size: 17px; }
 .tv-mode .pa-nav-item { padding: 12px 18px; font-size: 18px; }
 .tv-mode .pa-tab { padding: 12px 8px; font-size: 17px; }
