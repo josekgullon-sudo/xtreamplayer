@@ -25,6 +25,12 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
     (await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) === 0);
   await p.screenshot({ path: __dirname + "/85-precios.png", fullPage: true });
 
+  /* Lo ya emitido y los perfiles estaban hechos y no se vendían: quien
+     compara dos reproductores lo hace por esta lista */
+  const gratis = await p.locator(".price-card").first().innerText();
+  check("El plan gratis cuenta lo que de verdad trae",
+    /ya emitido/i.test(gratis) && /perfiles/i.test(gratis), "");
+
   // Lo que ya no se promete: perfiles y guía son de todos, y multipantalla no existe
   const texto = await p.locator("main").innerText();
   check("Ya no se vende como novedad lo que ya está", !texto.includes("multipantalla"), "sin «multipantalla»");
@@ -62,6 +68,25 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   await p.goto(BASE + "/proveedores", { waitUntil: "networkidle" });
   check("La página de proveedores sigue en pie", (await p.locator(".compare-table tbody tr").count()) >= 4);
   check("Con su prueba sin tarjeta", (await p.locator("main").innerText()).includes("Sin tarjeta"));
+
+  /* Lo que está hecho y no se contaba: un proveedor que compara opciones
+     pregunta por las cuatro, y la página no contestaba a ninguna. Si algún
+     día se quitan del producto, esto avisa antes de que la página mienta. */
+  const loQueIncluye = await p.locator(".features-grid").innerText();
+  for (const [que, palabra] of [
+    ["los revendedores y sus permisos", "revendedores"],
+    ["traerse los clientes desde XUI", "XUI"],
+    ["las facturas", "factura"],
+    ["la API", "API"],
+  ]) {
+    check(`Y dice que incluye ${que}`, new RegExp(palabra, "i").test(loQueIncluye));
+  }
+
+  /* La marca blanca va en todos los tramos. Estaba puesta como un
+     «escríbenos», y así parece un extra que se paga aparte */
+  const cierre = await p.locator("main").innerText();
+  check("Y que la marca propia va incluida, no como un extra",
+    /incluid\w+ en todos los tramos/i.test(cierre), "");
 
   // --- En qué aparatos se ve ---
   /* La pregunta que hace todo el mundo —«¿y esto en mi tele?»— no tenía

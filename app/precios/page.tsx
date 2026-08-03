@@ -51,8 +51,11 @@ export default function PricingPage() {
                 <li>Listas ilimitadas guardadas en tu navegador</li>
                 <li>1 lista sincronizada en la nube</li>
                 <li>Guía de programación, favoritos e historial</li>
+                {/* Estaba hecho y sin vender: en los canales que lo guardan,
+                    lo ya emitido se vuelve a ver pulsándolo en la guía */}
+                <li>Volver a ver lo ya emitido, en los canales que lo guardan</li>
                 <li>Buscador que encuentra en canales, cine y series a la vez</li>
-                <li>Perfiles para cada miembro de la casa</li>
+                <li>Perfiles para cada miembro de la casa, uno de ellos infantil</li>
                 <li>En el móvil y en la tele, con mando</li>
               </ul>
               <Link href="/player" className="btn btn-ghost" style={{ width: "100%" }}>
@@ -119,8 +122,11 @@ export default function PricingPage() {
             <Link href="/proveedores/registro" className="btn btn-primary btn-lg">
               Probar gratis 7 días
             </Link>
+            {/* La prueba trae el panel entero, no una versión recortada: es
+                lo que decide si alguien se molesta en montarlo un martes */}
             <p className="precios-nota" style={{ marginTop: 12 }}>
-              7 días con 10 clientes, sin tarjeta ·{" "}
+              7 días con 10 clientes, sin tarjeta. Con tu marca, tus revendedores, la importación desde tu panel
+              XUI y la API, desde el primer día ·{" "}
               <Link href="/proveedores">Ver qué incluye</Link>
             </p>
           </div>

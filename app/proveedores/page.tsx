@@ -115,6 +115,37 @@ export default function ProvidersPage() {
                 <h3>Creces sin fricción</h3>
                 <p>Cambias de tramo cuando lo necesitas. Pagas por capacidad, no por activación individual.</p>
               </div>
+              {/*
+                Lo que estaba hecho y no se contaba en ninguna parte. Un
+                proveedor que compara opciones pregunta por las cuatro —«¿mis
+                revendedores entran?», «¿tengo que dar de alta a mil clientes
+                a mano?», «¿esto me lo puedo facturar?», «¿puedo automatizar
+                desde mi panel?»— y aquí no había respuesta a ninguna.
+              */}
+              <div className="feature-card">
+                <div className="feature-icon"><Icon name="handshake" size={22} /></div>
+                <h3>Tus revendedores, con sus permisos</h3>
+                <p>
+                  Cada uno entra al mismo panel con su cuenta y tú decides qué ve: solo sus clientes o todos,
+                  cuántos puede dar de alta, y si ve tus dominios, solo el nombre o nada.
+                </p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon"><Icon name="upload" size={22} /></div>
+                <h3>Tráete tus clientes de golpe</h3>
+                <p>
+                  Los importas desde tu panel XUI y entran todos con el usuario y la contraseña que ya tienen.
+                  Cambiar de reproductor no significa volver a darlos de alta uno a uno.
+                </p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon"><Icon name="card" size={22} /></div>
+                <h3>Facturas y API</h3>
+                <p>
+                  Tus facturas con IVA desglosado y en PDF de un clic, para tu gestor. Y una API con tu clave para
+                  crear, cambiar y dar de baja clientes desde tu propio sistema.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -152,8 +183,14 @@ export default function ProvidersPage() {
                 Probar gratis 7 días
               </Link>
             </div>
+            {/* La marca blanca —tu nombre, tu color, tu logotipo y tu enlace—
+                va en todos los tramos, incluido el de prueba. Ponerla aquí
+                como un «escríbenos» la hacía parecer un extra que se paga
+                aparte, y es de lo primero que se mira al comparar. */}
             <p style={{ textAlign: "center", marginTop: 20, color: "var(--text-faint)", fontSize: 13.5 }}>
-              ¿Necesitas más de 5.000 clientes o marca blanca con tu dominio? Escríbenos y lo hablamos.
+              Tu nombre, tu color y tu logotipo van incluidos en todos los tramos, también en la prueba.
+              ¿Necesitas más de 5.000 clientes, o que el reproductor viva en un dominio tuyo? Escríbenos y lo
+              hablamos.
             </p>
           </div>
         </section>
