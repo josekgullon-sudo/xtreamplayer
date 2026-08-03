@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- La barra de progreso, con los colores de la marca: el hueco en gris
+     apenas visible, lo visto en rojo -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <solid android:color="#40FFFFFF" />
+            <corners android:radius="999dp" />
+        </shape>
+    </item>
+    <item android:id="@android:id/secondaryProgress">
+        <clip>
+            <shape android:shape="rectangle">
+                <solid android:color="#59FFFFFF" />
+                <corners android:radius="999dp" />
+            </shape>
+        </clip>
+    </item>
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape android:shape="rectangle">
+                <solid android:color="@color/marca_viva" />
+                <corners android:radius="999dp" />
+            </shape>
+        </clip>
+    </item>
+</layer-list>

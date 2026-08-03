@@ -9,6 +9,8 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import java.util.Locale;
+
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
@@ -33,11 +35,35 @@ public class ReproductorActivity extends Activity {
     private PlayerView vista;
     private View cartelito;
     private TextView nombre, ahora, reloj, error;
-    private ImageView logo;
-    private ProgressBar girando;
+    private ImageView logo, teclaPausa;
+    private ProgressBar girando, avance;
+    private View mandos;
+    private TextView vaPor, dura;
+
+    /** Refresca la barra de una película mientras los mandos están a la vista. */
+    private final Runnable contar = new Runnable() {
+        @Override public void run() {
+            if (reproductor != null && reproductor.getDuration() > 0) {
+                long total = reproductor.getDuration();
+                long va = Math.max(0, reproductor.getCurrentPosition());
+                avance.setProgress((int) (va * 1000 / total));
+                avance.setSecondaryProgress((int) (reproductor.getBufferedPosition() * 1000 / total));
+                vaPor.setText(reloj(va));
+                dura.setText(reloj(total));
+            }
+            Hilos.enPantallaDentroDe(this, 500);
+        }
+    };
 
     private final Runnable esconder = new Runnable() {
-        @Override public void run() { cartelito.animate().alpha(0f).setDuration(300).start(); }
+        @Override public void run() {
+            cartelito.animate().alpha(0f).setDuration(300).start();
+            /* Los mandos de una película también se van: tapan la imagen.
+               Y se van de verdad, no solo transparentes: con un botón
+               invisible pero enfocado, el primer OK dispararía la pausa en
+               vez de sacar los mandos, que es lo que espera cualquiera */
+            if (!Traspaso.esDirecto && mandos != null) mandos.setVisibility(View.INVISIBLE);
+        }
     };
 
     @Override protected void onCreate(Bundle guardado) {
@@ -54,12 +80,23 @@ public class ReproductorActivity extends Activity {
         logo = findViewById(R.id.logo);
         error = findViewById(R.id.error);
         girando = findViewById(R.id.girando);
+        mandos = findViewById(R.id.mandos);
+        avance = findViewById(R.id.avance);
+        vaPor = findViewById(R.id.vaPor);
+        dura = findViewById(R.id.dura);
+        teclaPausa = findViewById(R.id.teclaPausa);
 
         reproductor = Reproduccion.nuevo(this);
         vista.setPlayer(reproductor);
-        /* En el directo no hay nada que rebobinar: los mandos de la barra
-           solo estorban. En una película sí, y son los de siempre. */
-        vista.setUseController(!Traspaso.esDirecto);
+        /*
+         * Nunca los mandos de serie de ExoPlayer: se pintan con el foco del
+         * sistema, un recuadro verde chillón en mitad de la pantalla, que es
+         * lo que salía al abrir un episodio. Los de una película son los
+         * nuestros; el directo no lleva ninguno, porque no hay nada que
+         * rebobinar.
+         */
+        vista.setUseController(false);
+        if (!Traspaso.esDirecto) prepararMandos();
         reproductor.addListener(new Player.Listener() {
             @Override public void onPlaybackStateChanged(int estado) {
                 girando.setVisibility(estado == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
@@ -75,6 +112,62 @@ public class ReproductorActivity extends Activity {
         poner();
     }
 
+    private void prepararMandos() {
+        mandos.setVisibility(View.VISIBLE);
+        findViewById(R.id.teclaAtras).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { saltar(-10_000); }
+        });
+        findViewById(R.id.teclaAlante).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { saltar(30_000); }
+        });
+        teclaPausa.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { pausarOSeguir(); }
+        });
+        teclaPausa.requestFocus();
+        contar.run();
+    }
+
+    /** Adelantar o retroceder sin pasarse de los extremos. */
+    private void saltar(long cuanto) {
+        if (reproductor == null) return;
+        long donde = reproductor.getCurrentPosition() + cuanto;
+        long total = reproductor.getDuration();
+        if (donde < 0) donde = 0;
+        if (total > 0 && donde > total - 1000) donde = total - 1000;
+        reproductor.seekTo(donde);
+        asomar();
+    }
+
+    private void pausarOSeguir() {
+        if (reproductor == null) return;
+        boolean sonando = reproductor.isPlaying();
+        if (sonando) reproductor.pause(); else reproductor.play();
+        teclaPausa.setImageResource(sonando ? R.drawable.ic_play : R.drawable.ic_pausa);
+        asomar();
+    }
+
+    /** mm:ss, o h:mm:ss cuando la película pasa de la hora. */
+    private static String reloj(long ms) {
+        long s = ms / 1000;
+        long h = s / 3600, m = (s % 3600) / 60, seg = s % 60;
+        return h > 0
+                ? String.format(Locale.getDefault(), "%d:%02d:%02d", h, m, seg)
+                : String.format(Locale.getDefault(), "%d:%02d", m, seg);
+    }
+
+    private void sacarMandos() {
+        mandos.setVisibility(View.VISIBLE);
+        teclaPausa.requestFocus();
+    }
+
+    /** Vuelve a enseñar el cartel y lo esconde a los cinco segundos. */
+    private void asomar() {
+        cartelito.animate().cancel();
+        cartelito.setAlpha(1f);
+        Hilos.olvidar(esconder);
+        Hilos.enPantallaDentroDe(esconder, 5000);
+    }
+
     private void poner() {
         error.setVisibility(View.GONE);
         girando.setVisibility(View.VISIBLE);
@@ -83,10 +176,8 @@ public class ReproductorActivity extends Activity {
         reloj.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date()));
         Imagenes.cargar(logo, Traspaso.logo, R.drawable.ic_tv);
 
-        cartelito.animate().cancel();
-        cartelito.setAlpha(1f);
-        Hilos.olvidar(esconder);
-        Hilos.enPantallaDentroDe(esconder, 5000);
+        asomar();
+        if (!Traspaso.esDirecto) sacarMandos();
 
         reproductor.setMediaItem(MediaItem.fromUri(Traspaso.url));
         reproductor.prepare();
@@ -121,6 +212,30 @@ public class ReproductorActivity extends Activity {
     }
 
     @Override public boolean onKeyDown(int tecla, KeyEvent evento) {
+        if (!Traspaso.esDirecto) {
+            // Con la imagen tapada, lo primero que hace cualquiera es sacar
+            // los mandos: cualquier tecla los devuelve
+            if (mandos.getVisibility() != View.VISIBLE) {
+                sacarMandos();
+                asomar();
+                return true;
+            }
+            switch (tecla) {
+                case KeyEvent.KEYCODE_MEDIA_REWIND:
+                    saltar(-10_000);
+                    return true;
+                case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD:
+                    saltar(30_000);
+                    return true;
+                case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+                case KeyEvent.KEYCODE_MEDIA_PLAY:
+                case KeyEvent.KEYCODE_MEDIA_PAUSE:
+                    pausarOSeguir();
+                    return true;
+                default:
+                    break;
+            }
+        }
         if (Traspaso.esDirecto) {
             switch (tecla) {
                 case KeyEvent.KEYCODE_DPAD_UP:
@@ -134,10 +249,7 @@ public class ReproductorActivity extends Activity {
                 case KeyEvent.KEYCODE_DPAD_CENTER:
                 case KeyEvent.KEYCODE_ENTER:
                     // OK enseña otra vez qué se está viendo
-                    cartelito.animate().cancel();
-                    cartelito.setAlpha(1f);
-                    Hilos.olvidar(esconder);
-                    Hilos.enPantallaDentroDe(esconder, 5000);
+                    asomar();
                     return true;
                 default:
                     break;
@@ -154,6 +266,7 @@ public class ReproductorActivity extends Activity {
     @Override protected void onDestroy() {
         super.onDestroy();
         Hilos.olvidar(esconder);
+        Hilos.olvidar(contar);
         if (reproductor != null) {
             reproductor.release();
             reproductor = null;

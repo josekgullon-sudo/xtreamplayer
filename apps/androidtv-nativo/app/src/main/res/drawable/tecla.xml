@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Los botones del reproductor. Redondos y con el rojo de la marca cuando
+     tienen el foco, en vez del recuadro verde del sistema -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="oval">
+            <solid android:color="@color/marca" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#40FFFFFF" />
+        </shape>
+    </item>
+</selector>

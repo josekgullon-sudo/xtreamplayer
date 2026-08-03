@@ -81,6 +81,106 @@
             android:textSize="22sp" />
     </LinearLayout>
 
+    <!--
+      Los mandos de una película, hechos aquí.
+
+      Los que trae ExoPlayer de serie se pintan con el foco del sistema: un
+      recuadro verde chillón en medio de la pantalla, que es justo lo que se
+      veía al abrir un episodio. Estos son los de la marca, y además el
+      directo no los enseña, porque en el directo no hay nada que rebobinar.
+    -->
+    <LinearLayout
+        android:id="@+id/mandos"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:background="@drawable/velo_bajo"
+        android:paddingStart="56dp"
+        android:paddingEnd="56dp"
+        android:paddingTop="40dp"
+        android:paddingBottom="40dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/vaPor"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="88dp"
+                android:text="0:00"
+                android:textColor="@color/texto"
+                android:textSize="17sp" />
+
+            <ProgressBar
+                android:id="@+id/avance"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="0dp"
+                android:layout_height="6dp"
+                android:layout_weight="1"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="14dp"
+                android:max="1000"
+                android:progressDrawable="@drawable/barra_avance" />
+
+            <TextView
+                android:id="@+id/dura"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="88dp"
+                android:gravity="end"
+                android:text="0:00"
+                android:textColor="@color/apagado"
+                android:textSize="17sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="22dp">
+
+            <ImageView
+                android:id="@+id/teclaAtras"
+                android:layout_width="58dp"
+                android:layout_height="58dp"
+                android:padding="16dp"
+                android:src="@drawable/ic_atras"
+                android:background="@drawable/tecla"
+                android:focusable="true"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:id="@+id/teclaPausa"
+                android:layout_width="76dp"
+                android:layout_height="76dp"
+                android:layout_marginStart="26dp"
+                android:layout_marginEnd="26dp"
+                android:padding="20dp"
+                android:src="@drawable/ic_pausa"
+                android:background="@drawable/tecla"
+                android:focusable="true"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:id="@+id/teclaAlante"
+                android:layout_width="58dp"
+                android:layout_height="58dp"
+                android:padding="16dp"
+                android:src="@drawable/ic_alante"
+                android:background="@drawable/tecla"
+                android:focusable="true"
+                android:contentDescription="@null" />
+        </LinearLayout>
+    </LinearLayout>
+
     <!-- Cuando algo no arranca, decirlo: una pantalla negra y muda es
          indistinguible de un aparato colgado -->
     <TextView

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Un halo rojo muy diluido detrás del logotipo, sobre el gris de la marca -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/fondo" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="70%p"
+                android:centerX="0.5"
+                android:centerY="0.5"
+                android:startColor="#33E5192B"
+                android:centerColor="#14E5192B"
+                android:endColor="#00E5192B" />
+        </shape>
+    </item>
+</layer-list>

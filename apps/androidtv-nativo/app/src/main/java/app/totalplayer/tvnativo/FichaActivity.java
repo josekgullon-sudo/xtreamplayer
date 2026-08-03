@@ -130,6 +130,9 @@ public class FichaActivity extends Activity {
 
                 pintarTemporadas();
                 final Catalogo.Episodio primero = lista.get(0);
+                botonVer.setText(primero.temporada > 0 && primero.numero > 0
+                        ? "Ver T" + primero.temporada + " · E" + primero.numero
+                        : "Ver el primer episodio");
                 botonVer.setEnabled(true);
                 botonVer.setOnClickListener(new View.OnClickListener() {
                     @Override public void onClick(View v) { ver(primero); }
@@ -193,7 +196,9 @@ public class FichaActivity extends Activity {
         for (final Catalogo.Episodio ep : lista) {
             View fila = de.inflate(R.layout.pieza_episodio, episodios, false);
             ((TextView) fila.findViewById(R.id.numero))
-                    .setText(ep.numero > 0 ? "E" + ep.numero : "");
+                    .setText(ep.numero > 0 ? String.valueOf(ep.numero) : "");
+            Imagenes.cargar((android.widget.ImageView) fila.findViewById(R.id.foto),
+                    ep.imagen.isEmpty() ? ficha.imagen : ep.imagen, R.drawable.ic_series);
             ((TextView) fila.findViewById(R.id.titulo)).setText(ep.titulo);
             TextView resumen = fila.findViewById(R.id.sinopsis);
             if (!ep.sinopsis.isEmpty()) {

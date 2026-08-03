@@ -28,8 +28,9 @@
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="true">
 
+        <!-- Se entra por la presentación, no por el formulario -->
         <activity
-            android:name=".AccesoActivity"
+            android:name=".ArranqueActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
             android:launchMode="singleTask"
             android:screenOrientation="landscape"
@@ -43,6 +44,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".AccesoActivity" android:screenOrientation="landscape"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
 
         <!-- Las demás pantallas. Ninguna es exported: a esta aplicacion se
              entra por la puerta, no por un enlace de otra aplicacion -->
