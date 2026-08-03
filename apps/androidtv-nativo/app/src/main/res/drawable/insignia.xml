@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- .feature-icon: el icono va en rojo sobre un cuadrado de rojo muy
+     diluido. Es lo que hace que la tarjeta no sea un rectángulo vacío -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/marca_tinte" />
+    <corners android:radius="13dp" />
+</shape>

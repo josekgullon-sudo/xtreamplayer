@@ -47,7 +47,7 @@
         android:layout_width="330dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="#101017"
+        android:background="@color/columna"
         android:paddingTop="26dp"
         android:paddingBottom="16dp">
 

@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- El foco tiene que verse desde el sofá: en una lista de canales, saber
-     dónde estás es la mitad de poder manejarla con el mando -->
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_focused="true"><color android:color="#e5192b" /></item>
-    <item android:state_selected="true"><color android:color="#2a2937" /></item>
-    <item><color android:color="@android:color/transparent" /></item>
-</selector>

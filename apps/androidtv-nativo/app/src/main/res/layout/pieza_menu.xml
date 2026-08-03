@@ -1,36 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Una de las tres tarjetas del menú. Grande, con su icono y con una línea
-     que diga qué hay dentro: «Películas» a secas no dice si están vacías. -->
+<!--
+  Una tarjeta de sección, calcada de .feature-card: el icono en rojo dentro
+  de un cuadrado de rojo diluido, el título debajo y una línea que diga qué
+  hay dentro. El contenido se reparte por la tarjeta en vez de quedarse
+  amontonado en la esquina de abajo.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="0dp"
-    android:layout_height="230dp"
-    android:layout_weight="1"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="bottom"
     android:background="@drawable/tarjeta"
     android:focusable="true"
-    android:padding="26dp">
+    android:paddingStart="30dp"
+    android:paddingEnd="30dp"
+    android:paddingTop="28dp"
+    android:paddingBottom="28dp">
 
-    <ImageView
-        android:id="@+id/icono"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:layout_marginBottom="18dp"
-        android:contentDescription="@null" />
+    <FrameLayout
+        android:layout_width="62dp"
+        android:layout_height="62dp"
+        android:background="@drawable/insignia">
+
+        <ImageView
+            android:id="@+id/icono"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:tint="@color/marca_viva"
+            android:contentDescription="@null" />
+    </FrameLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
     <TextView
         android:id="@+id/titulo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="@color/texto"
-        android:textSize="24sp"
-        android:textStyle="bold" />
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end" />
 
     <TextView
         android:id="@+id/detalle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="@color/apagado"
-        android:textSize="15sp"
-        android:layout_marginTop="6dp" />
+        android:textSize="16sp"
+        android:layout_marginTop="7dp"
+        android:maxLines="2"
+        android:ellipsize="end" />
 </LinearLayout>

@@ -1,127 +1,199 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  La pantalla que faltaba: al entrar, elegir qué se quiere ver.
+  El inicio, con la misma cara que el reproductor web: barra arriba con el
+  logotipo, y debajo las tres secciones como las tarjetas de la portada.
 
-  Antes se caía directamente en una lista de carpetas de canales, y las
-  películas y las series del proveedor no aparecían por ningún lado. Tres
-  tarjetas grandes, separadas, imposibles de fallar con el mando.
+  La versión anterior eran tres rectángulos casi negros sobre un fondo casi
+  negro, con el texto tirado en una esquina y media tarjeta vacía. El web ya
+  tenía esto resuelto: fondos en gris con escalones que se distinguen, un
+  icono de color que llena la tarjeta y filos que dibujan el borde.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/fondo"
-    android:paddingStart="56dp"
-    android:paddingEnd="56dp"
-    android:paddingTop="44dp"
-    android:paddingBottom="36dp">
+    android:background="@color/fondo">
 
-    <!-- Cabecera: de quién es esto y quién está dentro -->
+    <!-- .pa-nav -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="84dp"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:background="@drawable/barra"
+        android:paddingStart="56dp"
+        android:paddingEnd="56dp">
 
-        <LinearLayout
+        <!-- .logo-mark: el cuadrado rojo con la inicial -->
+        <TextView
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:text="T"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:background="@drawable/marca_logo" />
+
+        <TextView
+            android:id="@+id/marca"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:layout_marginStart="14dp"
+            android:text="TOTALplayer"
+            android:textColor="@color/texto"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
 
-            <TextView
-                android:id="@+id/marca"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="TOTALplayer"
-                android:textColor="@color/texto"
-                android:textSize="30sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/quien"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/apagado"
-                android:textSize="16sp"
-                android:layout_marginTop="4dp" />
-        </LinearLayout>
+        <TextView
+            android:id="@+id/quien"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="22dp"
+            android:textColor="@color/tenue"
+            android:textSize="17sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
 
         <TextView
             android:id="@+id/hora"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/apagado"
-            android:textSize="22sp" />
+            android:textSize="21sp" />
     </LinearLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="¿Qué quieres ver?"
-        android:textColor="@color/texto"
-        android:textSize="26sp"
-        android:layout_marginTop="34dp"
-        android:layout_marginBottom="20dp" />
-
-    <!-- Las tres puertas -->
+    <!-- Zona segura: muchas teles recortan los bordes -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
-
-        <include layout="@layout/pieza_menu" android:id="@+id/tarjetaDirecto" />
-
-        <Space android:layout_width="24dp" android:layout_height="1dp" />
-
-        <include layout="@layout/pieza_menu" android:id="@+id/tarjetaPelis" />
-
-        <Space android:layout_width="24dp" android:layout_height="1dp" />
-
-        <include layout="@layout/pieza_menu" android:id="@+id/tarjetaSeries" />
-    </LinearLayout>
-
-    <View
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="56dp"
+        android:paddingEnd="56dp"
+        android:paddingTop="34dp"
+        android:paddingBottom="30dp">
 
-    <!-- Lo de menos, abajo y pequeño -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/botonBuscar"
+        <TextView
             android:layout_width="wrap_content"
-            android:layout_height="52dp"
-            android:minWidth="220dp"
-            android:text="Buscar un canal"
-            android:drawableStart="@drawable/ic_buscar"
-            android:drawablePadding="10dp"
-            android:textColor="@color/apagado"
-            android:textSize="15sp"
-            android:textAllCaps="false"
-            android:background="@drawable/campo" />
+            android:layout_height="wrap_content"
+            android:text="¿Qué quieres ver?"
+            android:textColor="@color/texto"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
 
-        <Space android:layout_width="14dp" android:layout_height="1dp" />
-
-        <Button
-            android:id="@+id/botonSalir"
+        <TextView
             android:layout_width="wrap_content"
-            android:layout_height="52dp"
-            android:minWidth="200dp"
-            android:text="Cambiar de cuenta"
-            android:drawableStart="@drawable/ic_salir"
-            android:drawablePadding="10dp"
-            android:textColor="@color/apagado"
-            android:textSize="15sp"
-            android:textAllCaps="false"
-            android:background="@drawable/campo" />
+            android:layout_height="wrap_content"
+            android:text="Elige con el mando y pulsa OK"
+            android:textColor="@color/tenue"
+            android:textSize="17sp"
+            android:layout_marginBottom="22dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <include
+                android:id="@+id/tarjetaDirecto"
+                layout="@layout/pieza_menu"
+                android:layout_width="0dp"
+                android:layout_height="234dp"
+                android:layout_weight="1" />
+
+            <Space android:layout_width="22dp" android:layout_height="1dp" />
+
+            <include
+                android:id="@+id/tarjetaPelis"
+                layout="@layout/pieza_menu"
+                android:layout_width="0dp"
+                android:layout_height="234dp"
+                android:layout_weight="1" />
+
+            <Space android:layout_width="22dp" android:layout_height="1dp" />
+
+            <include
+                android:id="@+id/tarjetaSeries"
+                layout="@layout/pieza_menu"
+                android:layout_width="0dp"
+                android:layout_height="234dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/botonBuscar"
+                android:layout_width="wrap_content"
+                android:layout_height="58dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/pastilla"
+                android:focusable="true"
+                android:paddingStart="26dp"
+                android:paddingEnd="30dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_buscar"
+                    android:tint="@color/apagado"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:text="Buscar un canal"
+                    android:textColor="@color/apagado"
+                    android:textSize="17sp" />
+            </LinearLayout>
+
+            <Space android:layout_width="14dp" android:layout_height="1dp" />
+
+            <LinearLayout
+                android:id="@+id/botonSalir"
+                android:layout_width="wrap_content"
+                android:layout_height="58dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/pastilla"
+                android:focusable="true"
+                android:paddingStart="26dp"
+                android:paddingEnd="30dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_salir"
+                    android:tint="@color/apagado"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:text="Cambiar de cuenta"
+                    android:textColor="@color/apagado"
+                    android:textSize="17sp" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

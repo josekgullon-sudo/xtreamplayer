@@ -35,8 +35,7 @@ public class InicioActivity extends Activity {
         Sesion s = Sesion.actual();
         TextView marca = findViewById(R.id.marca);
         marca.setText(s.marca.isEmpty() ? "TOTALplayer" : s.marca);
-        ((TextView) findViewById(R.id.quien)).setText(
-                s.entradaUsuario.isEmpty() ? "" : "Sesión de " + s.entradaUsuario);
+        ((TextView) findViewById(R.id.quien)).setText(s.entradaUsuario);
         hora = findViewById(R.id.hora);
 
         preparar(R.id.tarjetaDirecto, R.drawable.ic_tv, "TV en directo", Catalogo.DIRECTO);

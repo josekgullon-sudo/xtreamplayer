@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- .input del web: fondo apenas levantado, filo fino, y al enfocar el rojo
-     de la marca, que en una tele es la única referencia de dónde estás -->
+<!-- .btn-ghost: lo secundario, presente pero callado -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="@color/elevada" />
+            <solid android:color="@color/marca_tinte_fuerte" />
             <stroke android:width="3dp" android:color="@color/marca_viva" />
-            <corners android:radius="11dp" />
+            <corners android:radius="999dp" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
             <solid android:color="@color/tranquilo" />
             <stroke android:width="1dp" android:color="@color/filo" />
-            <corners android:radius="11dp" />
+            <corners android:radius="999dp" />
         </shape>
     </item>
 </selector>

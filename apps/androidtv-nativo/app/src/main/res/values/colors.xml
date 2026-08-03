@@ -1,22 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  La paleta, en un solo sitio.
+  La paleta del reproductor web, la misma exacta.
+  Ver :root en app/globals.css: si allí cambia la marca, aquí también.
 
-  En una tele todo se mira desde tres metros y muchas veces a oscuras: los
-  fondos son casi negros para que la imagen del vídeo sea lo único que
-  brille, y el rojo de la marca se reserva para una sola cosa —dónde está el
-  foco—. Si el rojo se usa también para adornar, deja de decir «estás aquí».
+  Lo importante, y es justo lo que estaba mal: los fondos van en gris, no en
+  negro. El problema de una interfaz oscura no es que sea oscura, es que
+  todo caiga en el mismo tono y no se distinga una tarjeta de su fondo. Cada
+  escalón sube lo justo para verse, y los bordes son los que dibujan de
+  verdad dónde acaba cada cosa.
 -->
 <resources>
-    <color name="fondo">#0B0A0F</color>
-    <color name="superficie">#16151D</color>
-    <color name="elevada">#1F1D2A</color>
-    <color name="borde">#2E2C3B</color>
+    <color name="fondo">#201F28</color>
+    <color name="superficie">#2E2B39</color>
+    <color name="elevada">#3C3849</color>
+    <!-- La columna de canales: entre el fondo y la de carpetas, para que se
+         vean como dos columnas y no como una sola -->
+    <color name="columna">#282631</color>
+    <color name="encima">#4A4559</color>
+    <color name="borde">#565068</color>
+    <color name="borde_fuerte">#706888</color>
+
+    <!-- Las líneas finas del web: blanco a muy poca opacidad -->
+    <color name="filo">#1CFFFFFF</color>
+    <color name="filo_fuerte">#30FFFFFF</color>
+    <color name="tranquilo">#0FFFFFFF</color>
 
     <color name="marca">#E5192B</color>
-    <color name="marca_viva">#FF2D3F</color>
+    <color name="marca_viva">#FF4152</color>
+    <!-- accent-tint y accent-tint-strong del web -->
+    <color name="marca_tinte">#2EE5192B</color>
+    <color name="marca_tinte_fuerte">#47E5192B</color>
 
-    <color name="texto">#FFFFFF</color>
-    <color name="apagado">#A9A7B8</color>
-    <color name="tenue">#6C6A7D</color>
+    <color name="texto">#F7F5F9</color>
+    <color name="apagado">#BDB6C7</color>
+    <color name="tenue">#948CA1</color>
 </resources>

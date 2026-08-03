@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Sin barra de título y en negro: en una tele el marco sobra y
-         cualquier fondo claro se ve como un fogonazo al arrancar -->
+    <!-- Sin barra de título. El fondo, el mismo gris del web: arrancar en
+         negro y pasar a gris es un fogonazo al revés -->
     <style name="Tema" parent="@android:style/Theme.Black.NoTitleBar.Fullscreen">
-        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowBackground">@color/fondo</item>
     </style>
 </resources>
