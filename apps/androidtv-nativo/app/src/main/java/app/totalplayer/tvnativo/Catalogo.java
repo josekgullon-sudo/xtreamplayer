@@ -333,7 +333,7 @@ public final class Catalogo {
 
     /* ---------------- Qué echan ahora ---------------- */
 
-    private static final Map<String, String[]> guia = new LinkedHashMap<>();
+    private static final Map<String, String[]> loQueEchan = new LinkedHashMap<>();
 
     /**
      * Lo que están dando y lo que viene después, para el canal enfocado.
@@ -343,7 +343,7 @@ public final class Catalogo {
      * lo que están echando.
      */
     public static String[] guia(String streamId) {
-        String[] ya = guia.get(streamId);
+        String[] ya = loQueEchan.get(streamId);
         if (ya != null) return ya;
         if (!Sesion.actual().esXtream()) return null;
         try {
@@ -354,7 +354,7 @@ public final class Catalogo {
             String ahora = tituloEpg(eps.optJSONObject(0));
             String luego = eps.length() > 1 ? tituloEpg(eps.optJSONObject(1)) : "";
             String[] par = new String[] { ahora, luego };
-            guia.put(streamId, par);
+            loQueEchan.put(streamId, par);
             return par;
         } catch (Exception e) {
             return null;
