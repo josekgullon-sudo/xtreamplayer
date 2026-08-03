@@ -31,7 +31,7 @@ public class DirectoActivity extends Activity {
     private AdaptadorCarpetas carpetas;
     private AdaptadorCanales canales;
     private TextView tituloCarpeta, nombreCanal, ahora, luego, pista, comoAmpliar, vacio;
-    private TextView etiquetaAhora, etiquetaLuego;
+    private TextView etiquetaAhora, etiquetaLuego, cuantos;
     private View caja;
     private ProgressBar girando;
     private PlayerView vista;
@@ -54,6 +54,7 @@ public class DirectoActivity extends Activity {
         comoAmpliar = findViewById(R.id.comoAmpliar);
         vacio = findViewById(R.id.vacio);
         girando = findViewById(R.id.girando);
+        cuantos = findViewById(R.id.cuantos);
         etiquetaAhora = findViewById(R.id.etiquetaAhora);
         etiquetaLuego = findViewById(R.id.etiquetaLuego);
         caja = findViewById(R.id.caja);
@@ -124,6 +125,7 @@ public class DirectoActivity extends Activity {
         if (carpeta == null) return;
         carpetas.marcar(cual);
         tituloCarpeta.setText(carpeta.nombre);
+        cuantos.setText("");
 
         if (pendiente != null) Hilos.olvidar(pendiente);
         pendiente = new Runnable() {
@@ -138,6 +140,7 @@ public class DirectoActivity extends Activity {
                         if (!carpeta.nombre.contentEquals(tituloCarpeta.getText())) return;
                         canales.poner(lista);
                         canales.sonando(listaCanales, sonando, null);
+                        cuantos.setText(String.valueOf(lista.size()));
                         listaCanales.scrollToPosition(0);
                         vacio.setVisibility(lista.isEmpty() ? View.VISIBLE : View.GONE);
                     }

@@ -70,12 +70,13 @@ public class AdaptadorCanales extends RecyclerView.Adapter<AdaptadorCanales.Celd
     static class Celda extends RecyclerView.ViewHolder {
         final ImageView logo;
         final View sonando;
-        final TextView nombre, ahora;
+        final TextView nombre, ahora, numero;
         Celda(View v) {
             super(v);
             logo = v.findViewById(R.id.logo);
             nombre = v.findViewById(R.id.nombre);
             ahora = v.findViewById(R.id.ahora);
+            numero = v.findViewById(R.id.numero);
             sonando = v.findViewById(R.id.sonando);
         }
     }
@@ -89,6 +90,8 @@ public class AdaptadorCanales extends RecyclerView.Adapter<AdaptadorCanales.Celd
     @Override public void onBindViewHolder(@NonNull final Celda celda, int posicion) {
         Catalogo.Item c = datos.get(posicion);
         celda.nombre.setText(c.nombre);
+        // El número que le ha puesto el proveedor: es como la gente los pide
+        celda.numero.setText(c.numero > 0 ? String.valueOf(c.numero) : "");
         marcar(celda, c);
         Imagenes.cargar(celda.logo, c.imagen, R.drawable.ic_tv);
         celda.itemView.setOnClickListener(new View.OnClickListener() {

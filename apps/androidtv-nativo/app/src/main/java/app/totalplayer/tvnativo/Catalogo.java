@@ -51,6 +51,8 @@ public final class Catalogo {
         /** Año, género o lo que el proveedor mande: la línea de debajo. */
         public String extra = "";
         public boolean esSerie = false;
+        /** El número que le ha puesto el proveedor. Solo en el directo. */
+        public int numero = 0;
         @Override public String toString() { return nombre; }
     }
 
@@ -139,6 +141,7 @@ public final class Catalogo {
             it.id = id;
             it.nombre = nombre;
             it.imagen = c.optString("stream_icon", "");
+            it.numero = c.optInt("num", 0);
             /* .ts es el formato del directo en Xtream, y justo el que un
                navegador no sabe reproducir sin desmontarlo en JavaScript */
             it.url = Sesion.actual().urlDirecto(id);
@@ -321,6 +324,7 @@ public final class Catalogo {
                 it.id = id;
                 it.nombre = nombre;
                 it.imagen = c.optString("stream_icon", "");
+                it.numero = c.optInt("num", 0);
                 it.url = Sesion.actual().urlDirecto(id);
                 lista.add(it);
             }
