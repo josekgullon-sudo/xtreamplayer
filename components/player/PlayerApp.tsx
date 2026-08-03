@@ -9,6 +9,7 @@ import ProfileGate from "./ProfileGate";
 import SectionGate from "./SectionGate";
 import ListaVirtual from "./ListaVirtual";
 import RejillaInfinita from "./RejillaInfinita";
+import { useAtras } from "./useAtras";
 import AdSlot from "@/components/AdSlot";
 import Loading, { SkeletonList, MENSAJES_CANALES, MENSAJES_CINE, MENSAJES_SERIES } from "@/components/Loading";
 import {
@@ -971,6 +972,14 @@ export default function PlayerApp() {
       playEpisode(active, seriesDetail.series, sig.id, sig.title || `Episodio ${sig.episode_num}`, sig.container_extension);
     }
   }
+
+  /* «Atrás» cierra lo de encima, no la aplicación. De fuera adentro: la
+     ficha está debajo del vídeo, porque al salir del vídeo se vuelve a la
+     ficha de la que se salió — ver useAtras. */
+  useAtras([
+    { abierta: !!active && (!!vodDetail || !!seriesDetail), cerrar: () => { setVodDetail(null); setSeriesDetail(null); } },
+    { abierta: !!active && viendo, cerrar: () => { setViendo(false); setCurrent(null); } },
+  ]);
 
   const canalesVisibles: {
     id: string;
