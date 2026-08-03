@@ -69,14 +69,37 @@ const FAQS: { q: string; a: React.ReactNode; texto: string }[] = [
   {
     q: "¿Puedo usarlo en el móvil o en la tele?",
     texto:
-      "Sí. Funciona en cualquier navegador moderno, incluidos móviles y muchas Smart TV. En la tele hay una aplicación propia en /tv que se maneja con el mando y se activa con un código, con la MAC del aparato o con tu usuario y contraseña. En iPhone y iPad la reproducción usa el reproductor nativo de Safari.",
+      "Sí. Funciona en cualquier navegador moderno, incluidos móviles y muchas Smart TV. En el móvil se puede instalar desde el propio navegador y queda como una aplicación más, con su icono; en Android también hay APK. En la tele hay una aplicación propia en /tv que se maneja con el mando y se activa con un código, con la MAC del aparato o con tu usuario y contraseña. En iPhone y iPad la reproducción usa el reproductor nativo de Safari.",
     a: (
       <p>
         Sí. Funciona en cualquier navegador moderno (Chrome, Safari, Firefox, Edge), incluidos móviles y muchas
-        Smart TV. Para la tele hay una <Link href="/tv">aplicación propia</Link> que se maneja con el mando y se
-        activa con un código, con la MAC del aparato o con tu usuario y contraseña. En iPhone y iPad la reproducción
-        HLS usa el reproductor nativo de Safari.
+        Smart TV. En el móvil se <Link href="/apps/movil">instala desde el propio navegador</Link> y queda con su
+        icono como una aplicación más; en Android hay además APK. Para la tele hay una{" "}
+        <Link href="/tv">aplicación propia</Link> que se maneja con el mando y se activa con un código, con la MAC
+        del aparato o con tu usuario y contraseña. En iPhone y iPad la reproducción HLS usa el reproductor nativo de
+        Safari. En <Link href="/apps">Aplicaciones</Link> está la lista completa de aparatos.
       </p>
+    ),
+  },
+  {
+    /* La pregunta que llega por soporte en cuanto el servicio lleva un mes
+       en pie. Estaba resuelta en el producto y sin contestar aquí, así que
+       el cliente escribía a su proveedor y el proveedor a nosotros. */
+    q: "He olvidado mi contraseña, ¿cómo la recupero?",
+    texto:
+      "Si tienes cuenta propia de TOTALplayer, entra en /recuperar y escribe tu correo: te llega un enlace que caduca en una hora y sirve una sola vez. Si eres proveedor, lo mismo con el correo con el que te diste de alta. Y si entras con el usuario y la contraseña que te dio tu proveedor de IPTV, esos son suyos y no los tenemos: tiene que dártelos él.",
+    a: (
+      <>
+        <p>
+          Si tienes cuenta propia de TOTALplayer —o eres proveedor—, entra en{" "}
+          <Link href="/recuperar">recuperar contraseña</Link> y escribe tu correo. Te llega un enlace que caduca en
+          una hora y sirve una sola vez; al usarlo te avisamos por correo de que la contraseña ha cambiado.
+        </p>
+        <p style={{ marginTop: 10 }}>
+          Si entras con el usuario y la contraseña que te dio tu proveedor de IPTV, esos no son nuestros y no los
+          tenemos: tiene que dártelos él.
+        </p>
+      </>
     ),
   },
   {

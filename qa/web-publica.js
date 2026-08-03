@@ -37,6 +37,17 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   check("Incluida la guía y lo ya emitido", preguntas.some((q) => q.includes("guía de programación")));
   check("Y qué hacer con el usuario que te dio tu proveedor", preguntas.some((q) => q.includes("usuario y una contraseña")));
   check("Y que también sirve para proveedores", preguntas.some((q) => q.includes("Soy proveedor")));
+  /* La pregunta que llega por soporte en cuanto el servicio lleva un mes en
+     pie. Estaba resuelta en el producto y sin contestar aquí, así que el
+     cliente escribía a su proveedor y el proveedor a nosotros. */
+  check("Y qué hacer si se te olvida la contraseña",
+    preguntas.some((q) => q.toLowerCase().includes("contraseña") && q.toLowerCase().includes("olvidado")),
+    preguntas.find((q) => q.toLowerCase().includes("olvidado")) || "(no está)");
+  /* Están plegadas: hay que abrirla para leer la respuesta */
+  await p.locator(".faq-item", { hasText: "olvidado" }).click();
+  const laDeLaClave = await p.locator(".faq-item", { hasText: "olvidado" }).innerText();
+  check("Y que al cliente de un proveedor se le manda a su proveedor",
+    laDeLaClave.includes("proveedor"), "");
 
   // Los datos estructurados llevan la respuesta, no una excusa
   // La página lleva dos bloques de datos estructurados: nos interesa el de la ayuda
