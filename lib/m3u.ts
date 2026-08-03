@@ -76,7 +76,10 @@ function guessNameFromUrl(url: string): string {
   try {
     const u = new URL(url);
     const last = u.pathname.split("/").filter(Boolean).pop() || u.hostname;
-    return decodeURIComponent(last.replace(/\.(m3u8?|ts|mp4|mkv|avi)$/i, ""));
+    /* Un canal sin nombre acaba enseñando el final de su dirección, y con
+       la extensión puesta sale «canal1.webm» en la lista, como si el nombre
+       del canal fuera un fichero. Van todas las que se ven de verdad. */
+    return decodeURIComponent(last.replace(/\.(m3u8?|ts|mp4|mkv|avi|webm|flv|mov|m4v|mpd)$/i, ""));
   } catch {
     return url.slice(0, 60);
   }

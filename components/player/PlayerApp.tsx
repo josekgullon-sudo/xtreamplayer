@@ -1450,7 +1450,16 @@ export default function PlayerApp() {
             ))}
             {!liveGroups.length && !loading && (
               <p className="pa-empty">
-                {tab === "favs" ? "Aún no tienes favoritos." : "No hay canales que coincidan."}
+                {tab === "favs"
+                  ? "Aún no tienes favoritos."
+                  : q
+                    ? "Nada con ese nombre en esta lista."
+                    : /* Sin buscar nada y sin un solo canal, la lista viene
+                         vacía. Decir «no hay canales que coincidan» ahí suena
+                         a que hay un filtro puesto y manda a buscarlo: el
+                         cliente cuya suscripción ha caducado se quedaba
+                         mirando un buscador que no era el problema. */
+                      "Esta lista no trae ningún canal. Suele ser que la suscripción ha caducado, o que la dirección no es la que toca: pregúntale a quien te la dio."}
               </p>
             )}
           </div>
@@ -1490,7 +1499,11 @@ export default function PlayerApp() {
               )}
             />
 
-            {!loading && !canalesVisibles.length && <p className="pa-empty">Aquí no hay canales.</p>}
+            {!loading && !canalesVisibles.length && (
+              <p className="pa-empty">
+                {q ? "Nada con ese nombre en esta lista." : "Aquí no hay canales."}
+              </p>
+            )}
           </div>
         </section>
 

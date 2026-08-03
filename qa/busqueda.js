@@ -57,6 +57,101 @@ const check = (n, ok, d = "") => {
     check("(el mock no sirve logo.png: passthrough verificado igualmente)", true);
   }
 
+  /* ---------- Cuando no hay nada, decir qué pasa ----------
+   *
+   * Una lista que contesta 200 con solo la cabecera —el caso del cliente al
+   * que se le ha acabado el paquete— dejaba «No hay canales que coincidan»,
+   * que suena a que hay un filtro puesto y manda a mirar el buscador. El
+   * buscador no era el problema.
+   */
+  const vacia = await (await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })).newPage();
+  await vacia.goto(BASE + "/player", { waitUntil: "networkidle" });
+  await vacia.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
+  await vacia.waitForSelector(".modal");
+  await vacia.click(".modal .pa-tab:has-text('URL M3U')");
+  await vacia.fill("#pl-name", "Vacía");
+  await vacia.fill("#pl-m3u", "http://127.0.0.1:8090/lista-vacia.m3u");
+  await vacia.click(".modal button[type=submit]");
+  await vacia.waitForSelector(".pa-empty", { timeout: 25000 });
+  const dice = (await vacia.locator(".pa-empty").first().innerText()).replace(/\s+/g, " ");
+  check("Una lista sin un solo canal dice que viene vacía, no que no coincida nada",
+    dice.includes("no trae ningún canal") && !dice.includes("coincidan"), dice.slice(0, 90));
+  check("Y apunta a por qué suele pasar", /caducad|dirección/i.test(dice), "");
+
+  /* Un 200 que no es una lista —el aviso de «suscripción caducada» en HTML,
+     que devuelven muchos paneles— no se traga como si fuera una lista */
+  await vacia.goto(BASE + "/player", { waitUntil: "networkidle" });
+  await vacia.locator('.pa-nav .pa-icon-btn[aria-label="Añadir lista"]').click();
+  await vacia.waitForSelector(".modal");
+  await vacia.click(".modal .pa-tab:has-text('URL M3U')");
+  await vacia.fill("#pl-name", "No es lista");
+  await vacia.fill("#pl-m3u", "http://127.0.0.1:8090/lista-que-no-lo-es.m3u");
+  await vacia.click(".modal button[type=submit]");
+  await vacia.waitForSelector(".modal .error-box", { timeout: 25000 });
+  check("Y una dirección que no devuelve una lista se rechaza al añadirla",
+    (await vacia.locator(".modal .error-box").innerText()).includes("M3U"),
+    (await vacia.locator(".modal .error-box").innerText()).slice(0, 80));
+
+  /* ---------- Una lista sucia de verdad ---------- */
+  const sucia = await (await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })).newPage();
+  const rotos = [];
+  sucia.on("pageerror", (e) => rotos.push(String(e).slice(0, 160)));
+  await sucia.goto(BASE + "/player", { waitUntil: "networkidle" });
+  await sucia.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
+  await sucia.waitForSelector(".modal");
+  await sucia.click(".modal .pa-tab:has-text('URL M3U')");
+  await sucia.fill("#pl-name", "Basura");
+  await sucia.fill("#pl-m3u", "http://127.0.0.1:8090/lista-sucia.m3u");
+  await sucia.click(".modal button[type=submit]");
+  await sucia.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 25000 });
+  await sucia.locator(".pa-live-cat:not(.pa-live-reciente)").nth(1).click();
+  await sucia.waitForSelector(".pa-live-chan", { timeout: 20000 });
+
+  const nombres = (await sucia.locator(".pa-live-chan .name").allInnerTexts()).map((t) => t.trim());
+  /* Un canal sin nombre acaba enseñando el final de su dirección; con la
+     extensión puesta salía «canal1.webm», como si el canal fuera un fichero */
+  check("Un canal sin nombre no acaba llamándose como un fichero",
+    !nombres.some((n) => /\.(webm|ts|mp4|mkv|m3u8|flv)$/i.test(n)),
+    nombres.filter((n) => n.includes(".")).join(" | ").slice(0, 80) || "ninguno con extensión");
+
+  /* Los paneles reales meten HTML en los nombres. Si se pintara como HTML,
+     cualquiera con una lista podría colar lo que quisiera en la página */
+  check("El HTML de un nombre se lee como texto, no se ejecuta",
+    (await sucia.locator(".pa-live-chan script, .pa-live-chan b").count()) === 0 &&
+      nombres.some((n) => n.includes("<b>")),
+    nombres.find((n) => n.includes("<")) ? "sale tal cual, escapado" : "no está el canal con HTML");
+
+  const anchoSucia = await sucia.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  check("Y un nombre larguísimo no estira la página", anchoSucia === 0, `+${anchoSucia}px`);
+  check("Sin excepciones con la lista sucia", rotos.length === 0, rotos.join(" | "));
+
+  /* ---------- Una cuenta que entra y no trae nada ---------- */
+  const cero = await (await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })).newPage();
+  await cero.goto(BASE + "/player", { waitUntil: "networkidle" });
+  await cero.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
+  await cero.waitForSelector(".modal");
+  await cero.fill("#pl-name", "Cero");
+  await cero.fill("#pl-host", "127.0.0.1:8090");
+  await cero.fill("#pl-user", "vacio");
+  await cero.fill("#pl-pass", "vacio123");
+  await cero.click(".modal button[type=submit]");
+  await cero.waitForSelector(".section-gate, .pa-live", { timeout: 30000 });
+  if (await cero.locator(".section-gate").isVisible().catch(() => false)) {
+    await cero.locator(".section-card").first().click();
+  }
+  await cero.waitForSelector(".pa-empty", { timeout: 25000 });
+  /* Cada sección vacía dice lo suyo: un «no hay nada» genérico en las cuatro
+     no distingue entre una lista sin cine y una lista sin nada */
+  const porSeccion = {};
+  for (const sec of ["Cine", "Series", "Favoritos"]) {
+    await cero.locator(`.pa-bottomnav-item:has-text('${sec}')`).click();
+    await cero.waitForTimeout(1600);
+    porSeccion[sec] = (await cero.locator(".pa-empty").first().innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  }
+  check("Una cuenta que entra pero no trae nada lo dice en cada sección",
+    porSeccion.Cine.includes("películas") && porSeccion.Series.includes("series") && porSeccion.Favoritos.includes("favoritos"),
+    Object.entries(porSeccion).map(([k, v]) => `${k}: ${v}`).join(" · ").slice(0, 160));
+
   const ok = results.filter(Boolean).length;
   console.log(`\n${ok}/${results.length} pruebas de búsqueda con datos sucios OK`);
   await browser.close();

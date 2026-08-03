@@ -92,6 +92,46 @@ const server = http.createServer((req, res) => {
     return res.end(out);
   }
 
+  /* Una lista que no trae nada. Pasa de verdad: el proveedor caduca la
+     cuenta y el get.php sigue contestando 200 con la cabecera y nada más. */
+  if (p === "/lista-vacia.m3u") {
+    res.writeHead(200, { "Content-Type": "audio/x-mpegurl" });
+    return res.end("#EXTM3U\n");
+  }
+
+  /* Y una que contesta 200 con algo que no es una lista: el aviso de
+     «suscripción caducada» en HTML, que es lo que devuelven muchos paneles */
+  if (p === "/lista-que-no-lo-es.m3u") {
+    res.writeHead(200, { "Content-Type": "text/html" });
+    return res.end("<html><body><h1>Subscription expired</h1></body></html>");
+  }
+
+  /* Lista sucia, con lo que traen las de verdad: nombres en blanco, nombres
+     larguísimos, HTML dentro del nombre, canales repetidos, sin carpeta,
+     logotipos que no existen y una URL que no es una URL. */
+  if (p === "/lista-sucia.m3u") {
+    const largo = "Canal con un nombre absurdamente largo que no cabe en ninguna columna por mucho que se estire " + "y sigue ".repeat(6);
+    res.writeHead(200, { "Content-Type": "audio/x-mpegurl" });
+    return res.end([
+      "#EXTMU",                                    // cabecera mal escrita
+      `#EXTINF:-1 group-title="Sucios",   `,       // nombre en blanco
+      "http://127.0.0.1:8090/media/canal1.webm",
+      `#EXTINF:-1 group-title="Sucios",${largo}`,
+      "http://127.0.0.1:8090/media/canal1.webm",
+      `#EXTINF:-1 group-title="Sucios",<b>Canal</b> con <script>alert(1)</script>`,
+      "http://127.0.0.1:8090/media/canal1.webm",
+      `#EXTINF:-1 tvg-logo="http://127.0.0.1:8090/no-existe.png" group-title="Sucios",Canal Repetido`,
+      "http://127.0.0.1:8090/media/canal1.webm",
+      `#EXTINF:-1 group-title="Sucios",Canal Repetido`,
+      "http://127.0.0.1:8090/media/canal1.webm",
+      "#EXTINF:-1,Canal Sin Carpeta",              // sin group-title
+      "http://127.0.0.1:8090/media/canal1.webm",
+      `#EXTINF:-1 group-title="Sucios",Canal Sin Dirección`,
+      "esto-no-es-una-url",
+      "",
+    ].join("\n"));
+  }
+
   // Película en MKV (H.264 + AC3): el caso que ningún navegador reproduce
   // sin el conversor del servidor
   if (p === "/lista-mkv.m3u") {
@@ -160,6 +200,19 @@ const server = http.createServer((req, res) => {
     /* Un segundo usuario con un catálogo del tamaño de uno de verdad: 8.000
        canales, 3.000 películas y 1.500 series. Con el catálogo de tres
        películas de abajo nunca se veía qué pasaba al pintarlo entero. */
+    /* Una cuenta que entra pero no trae nada. Es lo que devuelve un panel
+       cuando al cliente se le ha acabado el paquete pero el usuario sigue
+       vivo: entra, y dentro no hay ni un canal. */
+    if (user === "vacio" && pass === "vacio123") {
+      if (!action) {
+        return res.end(JSON.stringify({
+          user_info: { username: "vacio", status: "Active", exp_date: "1893456000", max_connections: "1" },
+          server_info: { url: "127.0.0.1", port: "8090" },
+        }));
+      }
+      return res.end("[]");
+    }
+
     if (user === "enorme" && pass === "enorme123") {
       if (!action) {
         return res.end(JSON.stringify({
