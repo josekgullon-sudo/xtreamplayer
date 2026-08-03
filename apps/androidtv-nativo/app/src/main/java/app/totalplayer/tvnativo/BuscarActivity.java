@@ -31,6 +31,7 @@ public class BuscarActivity extends Activity {
 
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
+        Pantalla.colocar(this);
         setContentView(R.layout.buscar);
         if (!Guardia.haySesion(this)) return;
 

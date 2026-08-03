@@ -29,6 +29,7 @@ public class PerfilesActivity extends Activity {
 
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
+        Pantalla.colocar(this);
         setContentView(R.layout.perfiles);
         if (!Guardia.haySesion(this)) return;
 

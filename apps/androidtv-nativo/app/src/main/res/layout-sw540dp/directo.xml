@@ -1,67 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  TV en directo, en un teléfono.
+  TV en directo: carpetas, canales y lo que se está viendo.
 
-  Mismos identificadores que la versión de tele, porque la actividad es la
-  misma; lo que cambia es que aquí las tres partes no caben una al lado de
-  otra. Van apiladas y se enseña una cada vez: carpetas, canales y vídeo.
-  Atrás va deshaciendo el camino, que es como se navega en un móvil.
+  El vídeo va a la derecha y pequeño a propósito: lo que se hace aquí es
+  buscar canal, y para eso hay que ver la lista. Cuando ya se ha elegido, con
+  otro OK se va a pantalla completa, que es donde se ve la tele.
 -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="horizontal"
     android:background="@color/fondo">
 
     <!-- Carpetas -->
     <LinearLayout
         android:id="@+id/columnaCarpetas"
-        android:layout_width="match_parent"
+        android:layout_width="240dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="@color/fondo"
-        android:paddingTop="20dp"
-        android:paddingBottom="10dp">
+        android:background="@color/superficie"
+        android:paddingTop="26dp"
+        android:paddingBottom="16dp">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="TV EN DIRECTO"
             android:textColor="@color/tenue"
-            android:textSize="12sp"
+            android:textSize="13sp"
             android:letterSpacing="0.14"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:paddingBottom="12dp" />
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="14dp" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/listaCarpetas"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
             android:clipToPadding="false" />
     </LinearLayout>
 
     <!-- Canales -->
     <LinearLayout
         android:id="@+id/columnaCanales"
-        android:layout_width="match_parent"
+        android:layout_width="330dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="@color/fondo"
-        android:paddingTop="20dp"
-        android:paddingBottom="10dp"
-        android:visibility="gone">
+        android:background="@color/columna"
+        android:paddingTop="26dp"
+        android:paddingBottom="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingStart="20dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="12dp">
+            android:paddingStart="24dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="14dp">
 
             <TextView
                 android:id="@+id/tituloCarpeta"
@@ -69,23 +68,24 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:textColor="@color/texto"
-                android:textSize="18sp"
+                android:textSize="19sp"
                 android:textStyle="bold"
                 android:maxLines="1"
                 android:ellipsize="end" />
 
+            <!-- .pa-live-n: cuántos hay dentro, sin tener que bajar a contarlos -->
             <TextView
                 android:id="@+id/cuantos"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:background="@drawable/contador"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
                 android:paddingTop="3dp"
                 android:paddingBottom="3dp"
                 android:textColor="@color/tenue"
-                android:textSize="12sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -94,18 +94,26 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
             android:clipToPadding="false" />
 
+        <!--
+          Cuando algo falla, una salida.
+
+          Se quedó la pantalla entera en blanco —sin carpetas, sin canales y
+          sin nada que pulsar— porque el servidor del proveedor dejó de
+          contestar un momento. Sin un botón para reintentar, la única salida
+          era cerrar la aplicación.
+        -->
         <LinearLayout
             android:id="@+id/bloqueVacio"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:paddingTop="16dp"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:paddingTop="18dp"
             android:visibility="gone">
 
             <TextView
@@ -114,25 +122,24 @@
                 android:layout_height="wrap_content"
                 android:text="Esta carpeta no tiene canales."
                 android:textColor="@color/apagado"
-                android:textSize="14sp"
+                android:textSize="15sp"
                 android:lineSpacingExtra="3dp" />
 
             <LinearLayout
                 android:id="@+id/botonReintentar"
                 android:layout_width="wrap_content"
-                android:layout_height="46dp"
+                android:layout_height="48dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/pastilla"
                 android:focusable="true"
-                android:clickable="true"
-                android:paddingStart="18dp"
-                android:paddingEnd="22dp"
-                android:layout_marginTop="12dp">
+                android:paddingStart="20dp"
+                android:paddingEnd="24dp"
+                android:layout_marginTop="14dp">
 
                 <ImageView
-                    android:layout_width="17dp"
-                    android:layout_height="17dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:src="@drawable/ic_recargar"
                     android:tint="@color/texto"
                     android:contentDescription="@null" />
@@ -140,28 +147,29 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="9dp"
+                    android:layout_marginStart="10dp"
                     android:text="Volver a cargar"
                     android:textColor="@color/texto"
-                    android:textSize="14sp" />
+                    android:textSize="15sp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
-    <!-- El vídeo, a pantalla completa -->
+    <!-- Lo que se ve -->
     <LinearLayout
         android:id="@+id/columnaVideo"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="match_parent"
+        android:layout_weight="1"
         android:orientation="vertical"
-        android:background="#000000"
-        android:visibility="gone">
+        android:padding="22dp">
 
+        <!-- La caja del vídeo se ajusta a 16:9 desde el código: dejándola
+             estirarse, el vídeo salía con dos franjas negras enormes -->
         <FrameLayout
             android:id="@+id/caja"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="230dp"
             android:background="#000000">
 
             <androidx.media3.ui.PlayerView
@@ -177,35 +185,36 @@
                 android:gravity="center"
                 android:text="Elige un canal de la lista"
                 android:textColor="@color/tenue"
-                android:textSize="15sp"
+                android:textSize="17sp"
                 android:padding="20dp" />
 
             <ProgressBar
                 android:id="@+id/girando"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
                 android:layout_gravity="center"
                 android:indeterminateTint="@color/marca"
                 android:visibility="gone" />
         </FrameLayout>
 
+        <!-- Todo lo que se esconde al pasar a pantalla completa -->
         <LinearLayout
             android:id="@+id/bloqueInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@color/superficie"
-            android:padding="16dp">
+            android:orientation="vertical">
 
+            <!-- Qué se está viendo -->
             <TextView
                 android:id="@+id/nombreCanal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@color/texto"
-                android:textSize="18sp"
+                android:textSize="24sp"
                 android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end" />
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:layout_marginTop="20dp" />
 
             <TextView
                 android:id="@+id/etiquetaAhora"
@@ -213,10 +222,10 @@
                 android:layout_height="wrap_content"
                 android:text="AHORA"
                 android:textColor="@color/marca_viva"
-                android:textSize="11sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.14"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="16dp"
                 android:visibility="gone" />
 
             <TextView
@@ -224,10 +233,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@color/texto"
-                android:textSize="15sp"
-                android:maxLines="2"
+                android:textSize="18sp"
+                android:maxLines="3"
                 android:ellipsize="end"
-                android:layout_marginTop="3dp" />
+                android:lineSpacingExtra="3dp"
+                android:layout_marginTop="4dp" />
 
             <TextView
                 android:id="@+id/etiquetaLuego"
@@ -235,10 +245,10 @@
                 android:layout_height="wrap_content"
                 android:text="DESPUÉS"
                 android:textColor="@color/tenue"
-                android:textSize="11sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.14"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="14dp"
                 android:visibility="gone" />
 
             <TextView
@@ -246,20 +256,24 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@color/apagado"
-                android:textSize="14sp"
-                android:maxLines="1"
+                android:textSize="16sp"
+                android:maxLines="2"
                 android:ellipsize="end"
-                android:layout_marginTop="3dp" />
+                android:layout_marginTop="4dp" />
 
-            <TextView
-                android:id="@+id/comoAmpliar"
+            <View
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Toca el vídeo para verlo a pantalla completa"
-                android:textColor="@color/tenue"
-                android:textSize="12sp"
-                android:layout_marginTop="10dp"
-                android:visibility="gone" />
+                android:layout_height="0dp"
+                android:layout_weight="1" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/comoAmpliar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="OK otra vez para pantalla completa · Mantén OK para marcar como favorito"
+            android:textColor="@color/tenue"
+            android:textSize="14sp"
+            android:visibility="gone" />
     </LinearLayout>
-</FrameLayout>
+</LinearLayout>

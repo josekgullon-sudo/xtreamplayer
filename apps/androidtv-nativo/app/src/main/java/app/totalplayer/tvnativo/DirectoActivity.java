@@ -35,6 +35,10 @@ public class DirectoActivity extends Activity {
     private View bloqueVacio, columnaCarpetas, columnaCanales, columnaVideo, bloqueInfo;
     /** A pantalla completa se esconde todo menos el vídeo. */
     private boolean aPantallaCompleta = false;
+    /** En el teléfono las tres partes están apiladas y se enseña una. */
+    private boolean enMovil = false;
+    /** Qué parte se ve en el teléfono: 0 carpetas, 1 canales, 2 vídeo. */
+    private int paso = 0;
     private View caja;
     private ProgressBar girando;
     private PlayerView vista;
@@ -43,9 +47,12 @@ public class DirectoActivity extends Activity {
     private String sonando = "";
     private Runnable pendiente;
     private Catalogo.Carpeta carpetaAbierta;
+    /** La primera carpeta se abre sola al cargar: esa no cuenta como pulsar. */
+    private boolean yaHuboUnaCarpeta = false;
 
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
+        Pantalla.colocar(this);
         setContentView(R.layout.directo);
         if (!Guardia.haySesion(this)) return;
 
@@ -109,7 +116,33 @@ public class DirectoActivity extends Activity {
         listaCarpetas.setAdapter(carpetas);
         listaCanales.setAdapter(canales);
 
+        enMovil = Pantalla.esMovil(this);
+        if (enMovil) {
+            irAlPaso(0);
+            /* En el teléfono no hay un «segundo OK»: se toca la imagen, que
+               es lo que hace todo el mundo con un vídeo pequeño */
+            caja.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    if (!sonando.isEmpty()) expandir();
+                }
+            });
+        }
+
         cargarCarpetas();
+    }
+
+    /**
+     * En el teléfono se navega hacia dentro: carpetas, canales y vídeo.
+     *
+     * Las tres partes están una encima de otra en el mismo sitio, así que
+     * enseñar una es esconder las otras dos. En la tele no se toca nada:
+     * allí las tres se ven a la vez y por eso existen las tres columnas.
+     */
+    private void irAlPaso(int cual) {
+        paso = cual;
+        columnaCarpetas.setVisibility(cual == 0 ? View.VISIBLE : View.GONE);
+        columnaCanales.setVisibility(cual == 1 ? View.VISIBLE : View.GONE);
+        columnaVideo.setVisibility(cual == 2 ? View.VISIBLE : View.GONE);
     }
 
     private void cargarCarpetas() {
@@ -136,7 +169,7 @@ public class DirectoActivity extends Activity {
                 carpetas.poner(conFavoritos);
                 pista.setText("Elige un canal de la lista");
                 abrirCarpeta(0);
-                listaCarpetas.requestFocus();
+                if (!enMovil) listaCarpetas.requestFocus();
             }
             @Override public void falla(Exception e) {
                 girando.setVisibility(View.GONE);
@@ -161,6 +194,9 @@ public class DirectoActivity extends Activity {
         carpetas.marcar(cual);
         carpetaAbierta = carpeta;
         tituloCarpeta.setText(carpeta.nombre);
+        // En el teléfono, elegir carpeta es entrar en ella
+        if (enMovil && yaHuboUnaCarpeta) irAlPaso(1);
+        yaHuboUnaCarpeta = true;
         cuantos.setText("");
 
         if (Favoritos.CARPETA.equals(carpeta.id)) {
@@ -242,10 +278,12 @@ public class DirectoActivity extends Activity {
         Catalogo.Item canal = lista.get(posicion);
 
         // Segundo OK sobre el que ya suena: a pantalla completa
-        if (canal.id.equals(sonando)) {
+        if (canal.id.equals(sonando) && !enMovil) {
             expandir();
             return;
         }
+        // En el teléfono, elegir canal es ir a verlo
+        if (enMovil) irAlPaso(2);
 
         sonando = canal.id;
         canales.sonando(listaCanales, sonando, "");
@@ -289,6 +327,18 @@ public class DirectoActivity extends Activity {
 
     private void encoger() {
         aPantallaCompleta = false;
+        if (enMovil) {
+            // En el teléfono solo se vuelve al vídeo con su información
+            bloqueInfo.setVisibility(View.VISIBLE);
+            int p = 0;
+            columnaVideo.setPadding(p, p, p, p);
+            ViewGroup.LayoutParams medidas = caja.getLayoutParams();
+            medidas.height = 0;
+            caja.setLayoutParams(medidas);
+            ((android.widget.LinearLayout.LayoutParams) caja.getLayoutParams()).weight = 1;
+            caja.requestLayout();
+            return;
+        }
         columnaCarpetas.setVisibility(View.VISIBLE);
         columnaCanales.setVisibility(View.VISIBLE);
         bloqueInfo.setVisibility(View.VISIBLE);
@@ -390,6 +440,10 @@ public class DirectoActivity extends Activity {
     @Override public void onBackPressed() {
         if (aPantallaCompleta) {
             encoger();
+            return;
+        }
+        if (enMovil && paso > 0) {
+            irAlPaso(paso - 1);
             return;
         }
         if (listaCanales.hasFocus()) {

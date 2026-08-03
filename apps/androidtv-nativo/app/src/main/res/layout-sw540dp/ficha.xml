@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  La ficha: cartel, de qué va y el botón de ver.
+
+  Si es una serie, debajo salen las temporadas y sus episodios. Antes no
+  había ficha de ninguna clase: se pulsaba y o arrancaba o no, sin saber
+  siquiera de qué año era.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fondo">
+
+    <!--
+      La carátula, muy apagada, ocupando el fondo entero.
+
+      Es lo que distingue una ficha de un formulario: el título llena la
+      pantalla en vez de dejar dos tercios de gris vacío. Va al 16% y con un
+      velo encima para que el texto siga leyéndose desde el sofá.
+    -->
+    <ImageView
+        android:id="@+id/fondo"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:alpha="0.16"
+        android:contentDescription="@null" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/velo_ficha" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="56dp"
+            android:paddingEnd="56dp"
+            android:paddingTop="44dp"
+            android:paddingBottom="44dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/cartel"
+                    android:layout_width="230dp"
+                    android:layout_height="345dp"
+                    android:scaleType="centerCrop"
+                    android:background="@color/superficie"
+                    android:contentDescription="@null" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="34dp">
+
+                    <TextView
+                        android:id="@+id/titulo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/texto"
+                        android:textSize="34sp"
+                        android:textStyle="bold"
+                        android:maxLines="2"
+                        android:ellipsize="end" />
+
+                    <TextView
+                        android:id="@+id/datos"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/apagado"
+                        android:textSize="16sp"
+                        android:layout_marginTop="10dp" />
+
+                    <TextView
+                        android:id="@+id/sinopsis"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/apagado"
+                        android:textSize="17sp"
+                        android:lineSpacingExtra="6dp"
+                        android:maxLines="7"
+                        android:ellipsize="end"
+                        android:layout_marginTop="18dp" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="26dp">
+
+                        <Button
+                            android:id="@+id/botonVer"
+                            android:layout_width="wrap_content"
+                            android:layout_height="62dp"
+                            android:minWidth="240dp"
+                            android:text="Ver ahora"
+                            android:textColor="@color/texto"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textAllCaps="false"
+                            android:background="@drawable/boton" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Solo en series -->
+            <LinearLayout
+                android:id="@+id/bloqueSerie"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="36dp"
+                android:visibility="gone">
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:id="@+id/temporadas"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
+
+                <LinearLayout
+                    android:id="@+id/episodios"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="18dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <ProgressBar
+        android:id="@+id/girando"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:layout_gravity="center"
+        android:indeterminateTint="@color/marca"
+        android:visibility="gone" />
+</FrameLayout>

@@ -70,6 +70,8 @@ public class ReproductorActivity extends Activity {
 
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
+        // El vídeo se ve apaisado, también en el teléfono
+        Pantalla.apaisado(this);
         setContentView(R.layout.reproductor);
         // Ver la tele con el salvapantallas saltando a los dos minutos
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

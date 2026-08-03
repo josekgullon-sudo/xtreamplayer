@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Una tarjeta de sección: el icono grande arriba y el nombre debajo.
+
+  Todo más recogido de lo que estaba, porque la línea de abajo —«38
+  categorías»— salía cortada por el borde de la tarjeta: el contenido medía
+  209 puntos y la tarjeta solo daba 204. En una tele, cinco puntos de más se
+  ven como medio renglón partido.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@drawable/tarjeta"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="14dp"
+    android:focusable="true">
+
+    <FrameLayout
+        android:layout_width="76dp"
+        android:layout_height="76dp"
+        android:background="@drawable/insignia">
+
+        <ImageView
+            android:id="@+id/icono"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_gravity="center"
+            android:tint="@color/marca_viva"
+            android:contentDescription="@null" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/titulo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/texto"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:layout_marginTop="14dp" />
+
+    <TextView
+        android:id="@+id/detalle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/tenue"
+        android:textSize="14sp"
+        android:layout_marginTop="4dp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+</LinearLayout>

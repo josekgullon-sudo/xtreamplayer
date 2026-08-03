@@ -14,6 +14,9 @@ avisan y allí tumban la compilación entera:
   2. Un @drawable, @color, @layout o @raw que no existe.
   3. Un R.id.loQueSea que no está en ningún layout, o una Activity del
      manifiesto sin su clase.
+  4. Un identificador que está en la pantalla de tele y falta en la de
+     teléfono, o al revés. Eso compila igual y revienta solo en uno de los
+     dos aparatos, que es la peor clase de fallo: el que no se ve.
 
     python3 apps/androidtv-nativo/comprobar.py
 """
@@ -32,6 +35,27 @@ MANIFIESTO = os.path.join(MAIN, "AndroidManifest.xml")
 fallos = []
 
 
+def los_dos_juegos_casan():
+    """Tele y teléfono tienen que definir los mismos identificadores."""
+    tele = os.path.join(RES, "layout-sw540dp")
+    movil = os.path.join(RES, "layout")
+    if not os.path.isdir(tele):
+        return
+    for nombre in sorted(os.listdir(tele)):
+        gemelo = os.path.join(movil, nombre)
+        if not os.path.isfile(gemelo):
+            fallos.append("layout-sw540dp/%s no tiene su versión de teléfono" % nombre)
+            continue
+        ids_tele = set(re.findall(r"@\+id/([A-Za-z_0-9]+)",
+                                  open(os.path.join(tele, nombre), encoding="utf-8").read()))
+        ids_movil = set(re.findall(r"@\+id/([A-Za-z_0-9]+)",
+                                   open(gemelo, encoding="utf-8").read()))
+        for i in sorted(ids_tele - ids_movil):
+            fallos.append("%s: la tele tiene «%s» y el teléfono no" % (nombre, i))
+        for i in sorted(ids_movil - ids_tele):
+            fallos.append("%s: el teléfono tiene «%s» y la tele no" % (nombre, i))
+
+
 def xml_bien_formado():
     for f in sorted(glob.glob(os.path.join(RES, "**", "*.xml"), recursive=True)) + [MANIFIESTO]:
         try:
@@ -42,11 +66,11 @@ def xml_bien_formado():
 
 def recursos_que_existen():
     hay = set()
-    for carpeta in ("drawable", "layout", "raw", "mipmap-xhdpi"):
+    for carpeta in ("drawable", "layout", "layout-sw540dp", "raw", "mipmap-xhdpi"):
         ruta = os.path.join(RES, carpeta)
         if not os.path.isdir(ruta):
             continue
-        clase = "mipmap" if carpeta.startswith("mipmap") else carpeta
+        clase = "mipmap" if carpeta.startswith("mipmap") else carpeta.split("-")[0]
         for f in os.listdir(ruta):
             hay.add("@%s/%s" % (clase, f.rsplit(".", 1)[0]))
     for linea in open(os.path.join(RES, "values", "colors.xml"), encoding="utf-8"):
@@ -54,7 +78,7 @@ def recursos_que_existen():
         if m:
             hay.add("@color/" + m.group(1))
 
-    ficheros = glob.glob(os.path.join(RES, "layout", "*.xml")) \
+    ficheros = glob.glob(os.path.join(RES, "layout*", "*.xml")) \
         + glob.glob(os.path.join(RES, "drawable", "*.xml")) + [MANIFIESTO]
     for f in ficheros:
         texto = open(f, encoding="utf-8").read()
@@ -65,14 +89,14 @@ def recursos_que_existen():
 
 def ids_que_existen():
     ids = set()
-    for f in glob.glob(os.path.join(RES, "layout", "*.xml")):
+    for f in glob.glob(os.path.join(RES, "layout*", "*.xml")):
         ids |= set(re.findall(r"@\+id/([A-Za-z_0-9]+)", open(f, encoding="utf-8").read()))
 
     hay = {"drawable": set(), "layout": set(), "raw": set()}
     for carpeta in hay:
-        ruta = os.path.join(RES, carpeta)
-        if os.path.isdir(ruta):
-            hay[carpeta] = {f.rsplit(".", 1)[0] for f in os.listdir(ruta)}
+        for ruta in glob.glob(os.path.join(RES, carpeta + "*")):
+            if os.path.isdir(ruta):
+                hay[carpeta] |= {f.rsplit(".", 1)[0] for f in os.listdir(ruta)}
 
     for f in glob.glob(os.path.join(JAVA, "*.java")):
         texto = open(f, encoding="utf-8").read()
@@ -95,6 +119,7 @@ def clases_del_manifiesto():
 
 
 xml_bien_formado()
+los_dos_juegos_casan()
 recursos_que_existen()
 ids_que_existen()
 clases_del_manifiesto()
@@ -104,4 +129,5 @@ if fallos:
     print("\n%d problema(s). Esto no compilaría." % len(fallos))
     sys.exit(1)
 
-print("✅ XML bien formado, recursos e identificadores en su sitio.")
+print("✅ XML bien formado, recursos e identificadores en su sitio,")
+print("   y las pantallas de tele y de teléfono definen lo mismo.")

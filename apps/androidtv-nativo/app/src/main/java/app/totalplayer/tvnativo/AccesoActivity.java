@@ -25,6 +25,7 @@ public class AccesoActivity extends Activity {
 
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
+        Pantalla.colocar(this);
         setContentView(R.layout.acceso);
 
         campoUsuario = findViewById(R.id.campoUsuario);

@@ -1,30 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Buscar un canal por su nombre. En una lista de ocho mil, ir carpeta por
-     carpeta no es una opción. -->
+<!-- Buscar en el teléfono: el campo arriba y los resultados debajo. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/fondo">
 
-    <!-- La misma barra que el menú: al entrar aquí no se cambia de aplicación -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="66dp"
+        android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="@drawable/barra"
-        android:paddingStart="48dp"
-        android:paddingEnd="48dp">
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
 
         <FrameLayout
-            android:layout_width="38dp"
-            android:layout_height="38dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:background="@drawable/marca_logo">
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_marca"
                 android:contentDescription="@null" />
@@ -34,10 +32,10 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="13dp"
+            android:layout_marginStart="11dp"
             android:text="Buscar un canal"
             android:textColor="@color/texto"
-            android:textSize="22sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
     </LinearLayout>
 
@@ -46,40 +44,40 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:paddingStart="48dp"
-        android:paddingEnd="48dp"
-        android:paddingTop="26dp"
-        android:paddingBottom="24dp">
-
-    <EditText
-        android:id="@+id/campo"
-        android:layout_width="match_parent"
-        android:layout_height="66dp"
-        android:hint="Escribe parte del nombre del canal"
-        android:textColorHint="@color/tenue"
-        android:textColor="@color/texto"
-        android:textSize="19sp"
-        android:background="@drawable/campo"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
-        android:inputType="text"
-        android:singleLine="true"
-        android:importantForAutofill="no" />
+        android:paddingTop="18dp"
+        android:paddingBottom="12dp">
 
-    <TextView
-        android:id="@+id/cuantos"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textColor="@color/tenue"
-        android:textSize="15sp"
-        android:layout_marginTop="14dp"
-        android:layout_marginBottom="8dp" />
+        <EditText
+            android:id="@+id/campo"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:hint="Escribe parte del nombre del canal"
+            android:textColorHint="@color/tenue"
+            android:textColor="@color/texto"
+            android:textSize="16sp"
+            android:background="@drawable/campo"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:inputType="text"
+            android:singleLine="true"
+            android:importantForAutofill="no" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/resultados"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false" />
-</LinearLayout>
+        <TextView
+            android:id="@+id/cuantos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/tenue"
+            android:textSize="13sp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="6dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/resultados"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false" />
+    </LinearLayout>
 </LinearLayout>

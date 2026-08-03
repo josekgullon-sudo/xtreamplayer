@@ -30,9 +30,13 @@ public class VodActivity extends Activity {
     private View bloqueVacio;
     private ProgressBar girando;
     private Runnable pendiente;
+    private View columnaCarpetasVista, columnaRejilla;
+    private boolean enMovil = false;
+    private boolean yaHuboUnaCarpeta = false;
 
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
+        Pantalla.colocar(this);
         setContentView(R.layout.vod);
         if (!Guardia.haySesion(this)) return;
 
@@ -55,6 +59,10 @@ public class VodActivity extends Activity {
         });
         girando = findViewById(R.id.girando);
         listaCarpetas = findViewById(R.id.listaCarpetas);
+        columnaCarpetasVista = findViewById(R.id.columnaCarpetas);
+        columnaRejilla = findViewById(R.id.columnaRejilla);
+        enMovil = Pantalla.esMovil(this);
+        if (enMovil) verCarpetas(true);
         rejilla = findViewById(R.id.rejilla);
 
         listaCarpetas.setLayoutManager(new LinearLayoutManager(this));
@@ -86,10 +94,17 @@ public class VodActivity extends Activity {
     private int cuantosCaben() {
         float porPunto = getResources().getDisplayMetrics().density;
         int anchoDp = (int) (getResources().getDisplayMetrics().widthPixels / porPunto);
-        // 260 de la columna de carpetas y 52 de los márgenes de la rejilla
-        int paraCarteles = anchoDp - 260 - 52;
+        // En el teléfono la rejilla ocupa la pantalla entera; en la tele hay
+        // que descontar la columna de categorías
+        int paraCarteles = enMovil ? anchoDp - 20 : anchoDp - 260 - 52;
         // 150 del cartel, 16 de sus márgenes y 12 del marco del foco
         return Math.max(2, paraCarteles / 178);
+    }
+
+    /** En el teléfono, o las categorías o las carátulas: no caben las dos. */
+    private void verCarpetas(boolean si) {
+        columnaCarpetasVista.setVisibility(si ? View.VISIBLE : View.GONE);
+        columnaRejilla.setVisibility(si ? View.GONE : View.VISIBLE);
     }
 
     private void cargarCarpetas() {
@@ -110,7 +125,7 @@ public class VodActivity extends Activity {
                 }
                 carpetas.poner(lista);
                 abrirCarpeta(0);
-                listaCarpetas.requestFocus();
+                if (!enMovil) listaCarpetas.requestFocus();
             }
             @Override public void falla(Exception e) {
                 girando.setVisibility(View.GONE);
@@ -127,6 +142,8 @@ public class VodActivity extends Activity {
         carpetas.marcar(cual);
         tituloCarpeta.setText(carpeta.nombre);
         cuantos.setText("");
+        if (enMovil && yaHuboUnaCarpeta) verCarpetas(false);
+        yaHuboUnaCarpeta = true;
 
         if (pendiente != null) Hilos.olvidar(pendiente);
         pendiente = new Runnable() {
@@ -167,7 +184,11 @@ public class VodActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        if (rejilla.hasFocus()) {
+        if (enMovil && columnaRejilla.getVisibility() == View.VISIBLE) {
+            verCarpetas(true);
+            return;
+        }
+        if (!enMovil && rejilla.hasFocus()) {
             listaCarpetas.requestFocus();
             return;
         }

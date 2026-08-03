@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  El reproductor nativo de Android TV y Fire TV.
+  El reproductor nativo, para televisión y para teléfono.
+
+  La misma aplicación sirve para los dos porque lo que las diferencia son
+  las pantallas, no el motor: el acceso, el catálogo, los favoritos y la
+  reproducción son idénticos. Los diseños de tele viven en
+  res/layout-sw540dp y los de teléfono en res/layout, y la orientación la
+  decide Pantalla según dónde se esté ejecutando.
+
+  Y la razón de ser también vale para el teléfono: el envoltorio de WebView
+  no puede con H.265 ni con AC3 en ninguna de las dos pantallas.
 
   Convive con apps/androidtv, que es el envoltorio de WebView: mientras esto
   no esté probado en un aparato de verdad, aquel sigue siendo el que se
@@ -26,6 +35,7 @@
         android:theme="@style/Tema"
         android:supportsRtl="true"
         android:hardwareAccelerated="true"
+        android:resizeableActivity="true"
         android:usesCleartextTraffic="true">
 
         <!-- Se entra por la presentación, no por el formulario -->
@@ -33,7 +43,7 @@
             android:name=".ArranqueActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
             android:launchMode="singleTask"
-            android:screenOrientation="landscape"
+           
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -45,24 +55,24 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".AccesoActivity" android:screenOrientation="landscape"
+        <activity android:name=".AccesoActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
 
         <!-- Las demás pantallas. Ninguna es exported: a esta aplicacion se
              entra por la puerta, no por un enlace de otra aplicacion -->
-        <activity android:name=".PerfilesActivity" android:screenOrientation="landscape"
+        <activity android:name=".PerfilesActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <activity android:name=".InicioActivity" android:screenOrientation="landscape"
+        <activity android:name=".InicioActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <activity android:name=".DirectoActivity" android:screenOrientation="landscape"
+        <activity android:name=".DirectoActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <activity android:name=".VodActivity" android:screenOrientation="landscape"
+        <activity android:name=".VodActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <activity android:name=".FichaActivity" android:screenOrientation="landscape"
+        <activity android:name=".FichaActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <activity android:name=".BuscarActivity" android:screenOrientation="landscape"
+        <activity android:name=".BuscarActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
-        <activity android:name=".ReproductorActivity" android:screenOrientation="landscape"
+        <activity android:name=".ReproductorActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
 
     </application>
