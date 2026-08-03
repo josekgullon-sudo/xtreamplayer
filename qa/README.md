@@ -8,6 +8,21 @@ Viven aquí, en el repositorio, y no en un directorio temporal: escribirlas
 cuesta más que el código que prueban, y un contenedor que se reinicia se las
 llevaba por delante.
 
+## De una vez
+
+```bash
+bash qa/todo.sh              # las 34 suites, montando el escenario entero
+bash qa/todo.sh movil e2e    # solo esas
+SIN_MONTAR=1 bash qa/todo.sh # con los servidores ya levantados
+```
+
+Levanta los ocho servidores simulados, compila, siembra los datos, arranca las
+dos copias de la aplicación y las lanza todas. Al final dice cuáles fallan y
+con qué línea, y sale con código 1 si alguna falla — vale tal cual para un CI.
+Tarda unos tres minutos y medio desde cero.
+
+Lo de abajo es lo mismo a mano, por si hace falta tocar algo por el camino.
+
 ## Preparar el entorno
 
 ```bash
