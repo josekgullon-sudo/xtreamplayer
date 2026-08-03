@@ -115,6 +115,37 @@ async function abrirCanales(p) {
   // Lo que el usuario señaló: desde Directo se llega a Cine y Series
   await p.locator(".pa-bottomnav-item:has-text('Cine')").click();
   await p.waitForSelector(".pa-card", { timeout: 20000 });
+
+  /* La ficha de una película se apilaba bien en el móvil, pero sus botones
+     seguían con las medidas del escritorio: el aspa 36px y «Reproducir»
+     41px. Son los únicos controles que tiene esa pantalla. */
+  await p.locator(".pa-card", { hasText: "Película Demo" }).first().click();
+  await p.waitForSelector(".ficha", { timeout: 20000 });
+  const mandosFicha = await p.evaluate(() => {
+    const alto = (s) => { const e = document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().height) : 0; };
+    return { cerrar: alto(".ficha-cerrar"), reproducir: alto(".ficha .btn-primary") };
+  });
+  check("En la ficha de una película se puede cerrar y reproducir con el dedo",
+    mandosFicha.cerrar >= 44 && mandosFicha.reproducir >= 44,
+    `aspa ${mandosFicha.cerrar}px · reproducir ${mandosFicha.reproducir}px`);
+  await p.locator(".ficha-cerrar").click();
+  await p.waitForTimeout(500);
+
+  /* Y en la de una serie, las temporadas: es por donde se navega la serie
+     entera y medían 33px */
+  await p.locator(".pa-bottomnav-item:has-text('Series')").click();
+  await p.waitForSelector(".pa-card", { timeout: 20000 });
+  await p.locator(".pa-card").first().click();
+  await p.waitForSelector(".ficha-temporada", { timeout: 20000 });
+  const temporadas = await p.locator(".ficha-temporada").evaluateAll(
+    (els) => els.map((e) => Math.round(e.getBoundingClientRect().height))
+  );
+  check("Y las temporadas de una serie se eligen con el dedo",
+    temporadas.every((h) => h >= 44), temporadas.join(", ") + "px");
+  await p.locator(".ficha-cerrar").click();
+  await p.waitForTimeout(500);
+  await p.locator(".pa-bottomnav-item:has-text('Cine')").click();
+  await p.waitForSelector(".pa-card", { timeout: 20000 });
   check("Desde Directo se llega a Cine con un toque", true);
   await p.locator(".pa-bottomnav-item:has-text('Series')").click();
   await p.waitForSelector(".pa-card", { timeout: 20000 });

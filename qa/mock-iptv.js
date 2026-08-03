@@ -9,6 +9,15 @@ const MKV_REAL = fs.readFileSync(path.join(__dirname, "pelicula-real.mkv"));
 const MKV_HEVC = fs.readFileSync(path.join(__dirname, "pelicula-hevc.mkv"));
 const b64 = (s) => Buffer.from(s).toString("base64");
 
+/* Una carátula de verdad, para que la ficha de una película se vea como la
+   ve el cliente. Sin imagen, la ficha se probaba a medias: el hueco del
+   cartel es la mitad de esa pantalla. */
+const CARATULA = Buffer.from(
+  "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",
+  "base64"
+);
+
+
 const M3U = `#EXTM3U
 #EXTINF:-1 tvg-id="test1" tvg-logo="http://127.0.0.1:8090/logo.png" group-title="Pruebas",Canal Test WebM
 http://127.0.0.1:8090/media/canal1.webm
@@ -88,6 +97,11 @@ const server = http.createServer((req, res) => {
   if (p === "/lista-mkv.m3u") {
     res.writeHead(200, { "Content-Type": "audio/x-mpegurl" });
     return res.end(`#EXTM3U\n#EXTINF:-1 group-title="Cine",Pelicula MKV\nhttp://127.0.0.1:8090/media/pelicula.mkv\n`);
+  }
+
+  if (p === "/caratula.png") {
+    res.writeHead(200, { "Content-Type": "image/png", "Content-Length": CARATULA.length });
+    return res.end(CARATULA);
   }
 
   if (p === "/media/pelicula-hevc.mkv") {
@@ -209,6 +223,7 @@ const server = http.createServer((req, res) => {
       get_vod_info: {
         info: {
           name: "Película Demo",
+          movie_image: "http://127.0.0.1:8090/caratula.png",
           plot: "Un thriller de prueba en el que un reproductor IPTV debe demostrar que puede con todo.",
           cast: "Ana Actriz, Pepe Actor",
           director: "Dora Directora",
@@ -222,6 +237,7 @@ const server = http.createServer((req, res) => {
       get_series_info: {
         info: {
           name: "Serie Demo",
+          cover: "http://127.0.0.1:8090/caratula.png",
           plot: "Una serie de prueba.",
           cast: "Luisa Lista, Carlos Canal",
           director: "Sergio Series",
