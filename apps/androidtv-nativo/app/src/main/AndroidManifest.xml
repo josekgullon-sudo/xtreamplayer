@@ -50,6 +50,8 @@
 
         <!-- Las demás pantallas. Ninguna es exported: a esta aplicacion se
              entra por la puerta, no por un enlace de otra aplicacion -->
+        <activity android:name=".PerfilesActivity" android:screenOrientation="landscape"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
         <activity android:name=".InicioActivity" android:screenOrientation="landscape"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
         <activity android:name=".DirectoActivity" android:screenOrientation="landscape"

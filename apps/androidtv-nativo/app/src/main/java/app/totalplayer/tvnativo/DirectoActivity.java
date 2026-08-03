@@ -1,8 +1,8 @@
 package app.totalplayer.tvnativo;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
@@ -32,7 +32,9 @@ public class DirectoActivity extends Activity {
     private AdaptadorCanales canales;
     private TextView tituloCarpeta, nombreCanal, ahora, luego, pista, comoAmpliar, vacio;
     private TextView etiquetaAhora, etiquetaLuego, cuantos;
-    private View bloqueVacio;
+    private View bloqueVacio, columnaCarpetas, columnaCanales, columnaVideo, bloqueInfo;
+    /** A pantalla completa se esconde todo menos el vídeo. */
+    private boolean aPantallaCompleta = false;
     private View caja;
     private ProgressBar girando;
     private PlayerView vista;
@@ -55,6 +57,10 @@ public class DirectoActivity extends Activity {
         comoAmpliar = findViewById(R.id.comoAmpliar);
         vacio = findViewById(R.id.vacio);
         bloqueVacio = findViewById(R.id.bloqueVacio);
+        columnaCarpetas = findViewById(R.id.columnaCarpetas);
+        columnaCanales = findViewById(R.id.columnaCanales);
+        columnaVideo = findViewById(R.id.columnaVideo);
+        bloqueInfo = findViewById(R.id.bloqueInfo);
         findViewById(R.id.botonReintentar).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 // Tirar lo guardado y empezar de cero: si el fallo fue del
@@ -183,8 +189,7 @@ public class DirectoActivity extends Activity {
 
         // Segundo OK sobre el que ya suena: a pantalla completa
         if (canal.id.equals(sonando)) {
-            Traspaso.reproducir(lista, posicion);
-            startActivity(new Intent(this, ReproductorActivity.class));
+            expandir();
             return;
         }
 
@@ -200,6 +205,51 @@ public class DirectoActivity extends Activity {
         girando.setVisibility(View.VISIBLE);
         ponerEnLaVentana(canal);
         pedirGuia(canal);
+    }
+
+    /**
+     * A pantalla completa sin volver a cargar nada.
+     *
+     * Antes esto abría otra pantalla con otro reproductor, así que el canal
+     * arrancaba de cero: unos segundos de negro y a empezar otra vez, como
+     * si hubieras cambiado de canal. Lo que se espera es que el vídeo se
+     * abra, no que se reinicie. Como el reproductor y su vista no se tocan
+     * —solo se esconde lo que hay alrededor y la caja pasa a ocuparlo
+     * todo—, la imagen no se corta ni un fotograma.
+     */
+    private void expandir() {
+        aPantallaCompleta = true;
+        columnaCarpetas.setVisibility(View.GONE);
+        columnaCanales.setVisibility(View.GONE);
+        bloqueInfo.setVisibility(View.GONE);
+        columnaVideo.setPadding(0, 0, 0, 0);
+
+        ViewGroup.LayoutParams medidas = caja.getLayoutParams();
+        medidas.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        caja.setLayoutParams(medidas);
+
+        // Que el mando no se quede sin sitio donde estar
+        columnaVideo.setFocusable(true);
+        columnaVideo.requestFocus();
+    }
+
+    private void encoger() {
+        aPantallaCompleta = false;
+        columnaCarpetas.setVisibility(View.VISIBLE);
+        columnaCanales.setVisibility(View.VISIBLE);
+        bloqueInfo.setVisibility(View.VISIBLE);
+        int p = (int) (22 * getResources().getDisplayMetrics().density);
+        columnaVideo.setPadding(p, p, p, p);
+        columnaVideo.setFocusable(false);
+
+        caja.post(new Runnable() {
+            @Override public void run() {
+                ViewGroup.LayoutParams medidas = caja.getLayoutParams();
+                medidas.height = caja.getWidth() * 9 / 16;
+                caja.setLayoutParams(medidas);
+                listaCanales.requestFocus();
+            }
+        });
     }
 
     private void ponerEnLaVentana(Catalogo.Item canal) {
@@ -243,8 +293,51 @@ public class DirectoActivity extends Activity {
         });
     }
 
-    /** Atrás: de los canales a las carpetas, y solo entonces al menú. */
+    /** Arriba y abajo zapean cuando se está a pantalla completa. */
+    @Override public boolean onKeyDown(int tecla, KeyEvent evento) {
+        if (aPantallaCompleta) {
+            switch (tecla) {
+                case KeyEvent.KEYCODE_DPAD_UP:
+                case KeyEvent.KEYCODE_CHANNEL_UP:
+                    zapear(-1);
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                case KeyEvent.KEYCODE_CHANNEL_DOWN:
+                    zapear(1);
+                    return true;
+                default:
+                    break;
+            }
+        }
+        return super.onKeyDown(tecla, evento);
+    }
+
+    /** El siguiente o el anterior de la carpeta abierta, dando la vuelta. */
+    private void zapear(int aDonde) {
+        List<Catalogo.Item> lista = canales.datos();
+        if (lista.isEmpty()) return;
+        int donde = -1;
+        for (int i = 0; i < lista.size(); i++) {
+            if (lista.get(i).id.equals(sonando)) { donde = i; break; }
+        }
+        if (donde < 0) return;
+        int cuantos = lista.size();
+        Catalogo.Item siguiente = lista.get(((donde + aDonde) % cuantos + cuantos) % cuantos);
+
+        sonando = siguiente.id;
+        canales.sonando(listaCanales, sonando, "");
+        nombreCanal.setText(siguiente.nombre);
+        girando.setVisibility(View.VISIBLE);
+        ponerEnLaVentana(siguiente);
+        pedirGuia(siguiente);
+    }
+
+    /** Atrás: de pantalla completa a la lista, de los canales a las carpetas. */
     @Override public void onBackPressed() {
+        if (aPantallaCompleta) {
+            encoger();
+            return;
+        }
         if (listaCanales.hasFocus()) {
             listaCarpetas.requestFocus();
             return;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- .feature-icon: el icono va en rojo sobre un cuadrado de rojo muy
-     diluido. Es lo que hace que la tarjeta no sea un rectángulo vacío -->
+<!-- El cuadrado de detrás del icono: rojo muy diluido, como .feature-icon
+     del web. Grande, que es lo que se reconoce desde tres metros. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <solid android:color="@color/marca_tinte" />
-    <corners android:radius="13dp" />
+    <corners android:radius="22dp" />
 </shape>

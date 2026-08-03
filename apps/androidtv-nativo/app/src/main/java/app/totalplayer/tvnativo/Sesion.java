@@ -29,6 +29,11 @@ public final class Sesion {
     public String clave = "";
     /** El nombre del proveedor, si entró por el panel. */
     public String marca = "";
+    /** La sesión abierta en el panel: hace falta para los perfiles. */
+    public String galleta = "";
+    /** El perfil elegido, para saludar y para recordarlo. */
+    public String perfil = "";
+    public int perfilId = 0;
     /** Lo que escribió en la pantalla de acceso, para volver a entrar solo. */
     public String entradaUsuario = "";
     public String entradaClave = "";
@@ -91,9 +96,21 @@ public final class Sesion {
                 .apply();
     }
 
+    /** «Entrar siempre con este perfil en este aparato». */
+    public void fijarPerfil(Context c, boolean siempre) {
+        ajustes(c).edit()
+                .putInt("perfilId", siempre ? perfilId : 0)
+                .putString("perfilNombre", siempre ? perfil : "")
+                .apply();
+    }
+
+    public static int perfilFijado(Context c) { return ajustes(c).getInt("perfilId", 0); }
+    public static String nombreFijado(Context c) { return ajustes(c).getString("perfilNombre", ""); }
+
     /** Cerrar sesión: se olvida todo menos la llave del aparato. */
     public static void olvidar(Context c) {
-        ajustes(c).edit().remove("usuario").remove("clave").remove("servidor").apply();
+        ajustes(c).edit().remove("usuario").remove("clave").remove("servidor")
+                .remove("perfilId").remove("perfilNombre").apply();
         actual = new Sesion();
         Catalogo.vaciar();
     }

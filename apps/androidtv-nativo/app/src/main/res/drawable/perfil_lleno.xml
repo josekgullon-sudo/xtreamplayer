@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El cuadrado de un perfil: rojo de marca, y al enfocarlo un aro blanco
+     alrededor. En la web es el mismo cuadrado rojo con la inicial. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/marca" />
+            <stroke android:width="4dp" android:color="@color/texto" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/marca" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+</selector>

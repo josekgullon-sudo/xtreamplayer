@@ -24,10 +24,12 @@ import java.util.Locale;
 /**
  * Pantalla completa.
  *
- * Del directo se zapea con arriba y abajo, que es como se zapea en una tele
- * desde que existen las teles. El cartel con el canal y lo que están dando
- * sale al cambiar y se va solo: tener información encima de la imagen todo
- * el rato es lo que hace que la gente cierre la aplicación.
+ * Solo para películas y episodios. El directo no pasa por aquí: se expande
+ * en su propia pantalla para que el canal no tenga que arrancar de cero.
+ *
+ * El cartel con el título sale al empezar y se va solo: tener información
+ * encima de la imagen todo el rato es lo que hace que la gente cierre la
+ * aplicación.
  */
 public class ReproductorActivity extends Activity {
 

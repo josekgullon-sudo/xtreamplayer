@@ -14,6 +14,7 @@
 
     <!-- Carpetas -->
     <LinearLayout
+        android:id="@+id/columnaCarpetas"
         android:layout_width="240dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -44,6 +45,7 @@
 
     <!-- Canales -->
     <LinearLayout
+        android:id="@+id/columnaCanales"
         android:layout_width="330dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -155,6 +157,7 @@
 
     <!-- Lo que se ve -->
     <LinearLayout
+        android:id="@+id/columnaVideo"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
@@ -194,67 +197,75 @@
                 android:visibility="gone" />
         </FrameLayout>
 
-        <!-- Qué se está viendo -->
-        <TextView
-            android:id="@+id/nombreCanal"
+        <!-- Todo lo que se esconde al pasar a pantalla completa -->
+        <LinearLayout
+            android:id="@+id/bloqueInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/texto"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:maxLines="2"
-            android:ellipsize="end"
-            android:layout_marginTop="20dp" />
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/etiquetaAhora"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="AHORA"
-            android:textColor="@color/marca_viva"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.14"
-            android:layout_marginTop="16dp"
-            android:visibility="gone" />
+            <!-- Qué se está viendo -->
+            <TextView
+                android:id="@+id/nombreCanal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/texto"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:layout_marginTop="20dp" />
 
-        <TextView
-            android:id="@+id/ahora"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="@color/texto"
-            android:textSize="18sp"
-            android:maxLines="3"
-            android:ellipsize="end"
-            android:lineSpacingExtra="3dp"
-            android:layout_marginTop="4dp" />
+            <TextView
+                android:id="@+id/etiquetaAhora"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AHORA"
+                android:textColor="@color/marca_viva"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.14"
+                android:layout_marginTop="16dp"
+                android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/etiquetaLuego"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="DESPUÉS"
-            android:textColor="@color/tenue"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.14"
-            android:layout_marginTop="14dp"
-            android:visibility="gone" />
+            <TextView
+                android:id="@+id/ahora"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/texto"
+                android:textSize="18sp"
+                android:maxLines="3"
+                android:ellipsize="end"
+                android:lineSpacingExtra="3dp"
+                android:layout_marginTop="4dp" />
 
-        <TextView
-            android:id="@+id/luego"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="@color/apagado"
-            android:textSize="16sp"
-            android:maxLines="2"
-            android:ellipsize="end"
-            android:layout_marginTop="4dp" />
+            <TextView
+                android:id="@+id/etiquetaLuego"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DESPUÉS"
+                android:textColor="@color/tenue"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.14"
+                android:layout_marginTop="14dp"
+                android:visibility="gone" />
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
+            <TextView
+                android:id="@+id/luego"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/apagado"
+                android:textSize="16sp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:layout_marginTop="4dp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/comoAmpliar"

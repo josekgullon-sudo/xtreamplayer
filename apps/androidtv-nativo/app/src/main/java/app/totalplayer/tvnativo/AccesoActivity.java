@@ -88,6 +88,7 @@ public class AccesoActivity extends Activity {
                     s.usuario = lista.usuario;
                     s.clave = lista.clave;
                     s.marca = lista.marca;
+                    s.galleta = lista.galleta;
                 } else if (pareceM3u(propio)) {
                     s.tipo = Sesion.M3U;
                     s.servidor = propio;
@@ -115,7 +116,11 @@ public class AccesoActivity extends Activity {
         }, new Hilos.Luego<Sesion>() {
             @Override public void listo(Sesion s) {
                 s.guardar(AccesoActivity.this);
-                startActivity(new Intent(AccesoActivity.this, InicioActivity.class));
+                /* Con cuenta de proveedor se pasa por los perfiles, como en la
+                   web. Con lista propia no hay perfiles que elegir. */
+                boolean hayPerfiles = !s.galleta.isEmpty();
+                startActivity(new Intent(AccesoActivity.this,
+                        hayPerfiles ? PerfilesActivity.class : InicioActivity.class));
                 finish();
             }
             @Override public void falla(Exception e) {

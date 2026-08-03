@@ -8,8 +8,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -23,25 +21,23 @@ import java.util.Set;
  */
 public class InicioActivity extends Activity {
 
-    private TextView hora;
     /** Las secciones que el proveedor no sirve: se enseñan, pero no abren. */
     private final Set<String> vacias = new HashSet<>();
-    private final Runnable elReloj = new Runnable() {
-        @Override public void run() {
-            hora.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date()));
-            Hilos.enPantallaDentroDe(this, 20_000);
-        }
-    };
 
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         setContentView(R.layout.inicio);
 
         Sesion s = Sesion.actual();
-        TextView marca = findViewById(R.id.marca);
-        marca.setText(s.marca.isEmpty() ? "TOTALplayer" : s.marca);
-        ((TextView) findViewById(R.id.quien)).setText(s.entradaUsuario);
-        hora = findViewById(R.id.hora);
+        // El nombre del proveedor manda sobre el nuestro: es su tele
+        ((TextView) findViewById(R.id.marca))
+                .setText((s.marca.isEmpty() ? "TOTALplayer" : s.marca).toUpperCase(Locale.getDefault()));
+
+        String quien = s.perfil.isEmpty() ? s.entradaUsuario : s.perfil;
+        ((TextView) findViewById(R.id.saludo)).setText(
+                quien.isEmpty() ? "¿Qué te apetece ver?" : "Hola, " + quien + ". ¿Qué te apetece ver?");
+        ((TextView) findViewById(R.id.textoSalir)).setText(
+                quien.isEmpty() ? "Cambiar de cuenta" : "No soy " + quien);
 
         preparar(R.id.tarjetaDirecto, R.drawable.ic_tv, "TV en directo", Catalogo.DIRECTO);
         preparar(R.id.tarjetaPelis, R.drawable.ic_cine, "Películas", Catalogo.PELIS);
@@ -61,8 +57,17 @@ public class InicioActivity extends Activity {
         });
         findViewById(R.id.botonSalir).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                Sesion.olvidar(InicioActivity.this);
-                startActivity(new Intent(InicioActivity.this, AccesoActivity.class));
+                Sesion s = Sesion.actual();
+                if (!s.galleta.isEmpty()) {
+                    /* Con perfiles, «no soy este» es cambiar de perfil, no
+                       cerrar la sesión: volver a escribir la contraseña con
+                       el mando para pasarle la tele a otro es un castigo */
+                    s.fijarPerfil(InicioActivity.this, false);
+                    startActivity(new Intent(InicioActivity.this, PerfilesActivity.class));
+                } else {
+                    Sesion.olvidar(InicioActivity.this);
+                    startActivity(new Intent(InicioActivity.this, AccesoActivity.class));
+                }
                 finish();
             }
         });
@@ -168,16 +173,6 @@ public class InicioActivity extends Activity {
                 vacias.add(seccion);
             }
         });
-    }
-
-    @Override protected void onResume() {
-        super.onResume();
-        elReloj.run();
-    }
-
-    @Override protected void onPause() {
-        super.onPause();
-        Hilos.olvidar(elReloj);
     }
 
     /** Desde el menú, atrás sale de la aplicación: no hay dónde volver. */

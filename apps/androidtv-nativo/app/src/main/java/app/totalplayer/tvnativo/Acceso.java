@@ -36,8 +36,11 @@ public class Acceso {
     /** Lo que hace falta para pedirle los canales al proveedor. */
     public static class Lista {
         public final String tipo, url, usuario, clave, marca;
-        Lista(String tipo, String url, String usuario, String clave, String marca) {
-            this.tipo = tipo; this.url = url; this.usuario = usuario; this.clave = clave; this.marca = marca;
+        /** La sesión abierta en el panel: hace falta luego para los perfiles. */
+        public final String galleta;
+        Lista(String tipo, String url, String usuario, String clave, String marca, String galleta) {
+            this.tipo = tipo; this.url = url; this.usuario = usuario; this.clave = clave;
+            this.marca = marca; this.galleta = galleta;
         }
     }
 
@@ -96,7 +99,8 @@ public class Acceso {
                     lista.optString("url", ""),
                     lista.optString("username", ""),
                     lista.optString("password", ""),
-                    yo.optString("brand", ""));
+                    yo.optString("brand", ""),
+                    galleta);
         } finally {
             quien.disconnect();
         }

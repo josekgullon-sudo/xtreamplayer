@@ -1,229 +1,191 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  El inicio.
+  El menú, con la misma cara que la web: todo centrado en mitad de la
+  pantalla. Nombre de la marca pequeño arriba, el saludo grande, y las tres
+  tarjetas debajo con el icono en grande.
 
-  Todo va por pesos, sin una sola altura fija en la columna: una tele de
-  1080p da 540 puntos de alto y el menú medía 548, así que los botones de
-  abajo quedaban cortados por el borde de la pantalla. Con pesos, lo que
-  sobra o falta lo absorben las tarjetas y encaja en cualquier tele.
+  Antes era una barra a lo ancho, un titular pegado a la izquierda y las
+  tarjetas apretadas contra el borde inferior. Sin nada centrado, la
+  pantalla parecía un panel de configuración.
 
-  Los márgenes de los lados son generosos por lo mismo: casi todas las teles
-  recortan un poco los bordes y lo que se pegue al filo no se ve.
+  Todo va por pesos: una tele de 1080p da 540 puntos de alto y cualquier
+  altura fija acaba cortada por el borde.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/fondo">
+    android:gravity="center_horizontal"
+    android:background="@color/fondo"
+    android:paddingStart="56dp"
+    android:paddingEnd="56dp"
+    android:paddingTop="26dp"
+    android:paddingBottom="24dp">
 
-    <!-- .pa-nav -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="66dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/barra"
-        android:paddingStart="48dp"
-        android:paddingEnd="48dp">
-
-        <FrameLayout
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:background="@drawable/marca_logo">
-
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_marca"
-                android:contentDescription="@null" />
-        </FrameLayout>
-
-        <TextView
-            android:id="@+id/marca"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="13dp"
-            android:text="TOTALplayer"
-            android:textColor="@color/texto"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end" />
-
-        <TextView
-            android:id="@+id/quien"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="20dp"
-            android:textColor="@color/tenue"
-            android:textSize="15sp"
-            android:maxLines="1"
-            android:ellipsize="end" />
-
-        <TextView
-            android:id="@+id/hora"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/apagado"
-            android:textSize="19sp" />
-    </LinearLayout>
-
-    <LinearLayout
+    <View
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:paddingStart="48dp"
-        android:paddingEnd="48dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/marca"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TOTALPLAYER"
+        android:textColor="@color/marca_viva"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.24" />
+
+    <TextView
+        android:id="@+id/saludo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/texto"
+        android:textSize="34sp"
+        android:textStyle="bold"
+        android:layout_marginTop="10dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Elige por dónde empezar. Podrás cambiar cuando quieras."
+        android:textColor="@color/tenue"
+        android:textSize="16sp"
+        android:layout_marginTop="8dp" />
+
+    <!-- Las tres puertas, centradas y con el icono grande -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="5"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:paddingTop="22dp"
-        android:paddingBottom="22dp">
+        android:paddingBottom="18dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="¿Qué quieres ver?"
-            android:textColor="@color/texto"
-            android:textSize="25sp"
-            android:textStyle="bold" />
+        <include
+            android:id="@+id/tarjetaDirecto"
+            layout="@layout/pieza_menu"
+            android:layout_width="300dp"
+            android:layout_height="match_parent" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Elige con el mando y pulsa OK. Mantén pulsado para actualizar la lista."
-            android:textColor="@color/tenue"
-            android:textSize="14sp"
-            android:layout_marginTop="3dp"
-            android:layout_marginBottom="14dp" />
+        <Space android:layout_width="22dp" android:layout_height="1dp" />
 
-        <!-- Las tarjetas se quedan con lo que sobre, sea cual sea la tele -->
+        <include
+            android:id="@+id/tarjetaPelis"
+            layout="@layout/pieza_menu"
+            android:layout_width="300dp"
+            android:layout_height="match_parent" />
+
+        <Space android:layout_width="22dp" android:layout_height="1dp" />
+
+        <include
+            android:id="@+id/tarjetaSeries"
+            layout="@layout/pieza_menu"
+            android:layout_width="300dp"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+
+    <!-- Lo de menos, centrado también y en voz baja -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:id="@+id/botonBuscar"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
             android:orientation="horizontal"
-            android:clipChildren="false"
-            android:clipToPadding="false"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
+            android:gravity="center_vertical"
+            android:background="@drawable/pastilla"
+            android:focusable="true"
+            android:paddingStart="20dp"
+            android:paddingEnd="24dp">
 
-            <include
-                android:id="@+id/tarjetaDirecto"
-                layout="@layout/pieza_menu"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_buscar"
+                android:tint="@color/tenue"
+                android:contentDescription="@null" />
 
-            <Space android:layout_width="20dp" android:layout_height="1dp" />
-
-            <include
-                android:id="@+id/tarjetaPelis"
-                layout="@layout/pieza_menu"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-
-            <Space android:layout_width="20dp" android:layout_height="1dp" />
-
-            <include
-                android:id="@+id/tarjetaSeries"
-                layout="@layout/pieza_menu"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="Buscar"
+                android:textColor="@color/tenue"
+                android:textSize="15sp" />
         </LinearLayout>
 
+        <Space android:layout_width="12dp" android:layout_height="1dp" />
+
         <LinearLayout
+            android:id="@+id/botonActualizar"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:orientation="horizontal"
-            android:layout_marginTop="16dp">
+            android:gravity="center_vertical"
+            android:background="@drawable/pastilla"
+            android:focusable="true"
+            android:paddingStart="20dp"
+            android:paddingEnd="24dp">
 
-            <LinearLayout
-                android:id="@+id/botonBuscar"
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_recargar"
+                android:tint="@color/tenue"
+                android:contentDescription="@null" />
+
+            <TextView
                 android:layout_width="wrap_content"
-                android:layout_height="50dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/pastilla"
-                android:focusable="true"
-                android:paddingStart="22dp"
-                android:paddingEnd="26dp">
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="Actualizar listas"
+                android:textColor="@color/tenue"
+                android:textSize="15sp" />
+        </LinearLayout>
 
-                <ImageView
-                    android:layout_width="19dp"
-                    android:layout_height="19dp"
-                    android:src="@drawable/ic_buscar"
-                    android:tint="@color/apagado"
-                    android:contentDescription="@null" />
+        <Space android:layout_width="12dp" android:layout_height="1dp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="11dp"
-                    android:text="Buscar un canal"
-                    android:textColor="@color/apagado"
-                    android:textSize="16sp" />
-            </LinearLayout>
+        <LinearLayout
+            android:id="@+id/botonSalir"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/pastilla"
+            android:focusable="true"
+            android:paddingStart="20dp"
+            android:paddingEnd="24dp">
 
-            <Space android:layout_width="12dp" android:layout_height="1dp" />
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_salir"
+                android:tint="@color/tenue"
+                android:contentDescription="@null" />
 
-            <LinearLayout
-                android:id="@+id/botonActualizar"
+            <TextView
+                android:id="@+id/textoSalir"
                 android:layout_width="wrap_content"
-                android:layout_height="50dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/pastilla"
-                android:focusable="true"
-                android:paddingStart="22dp"
-                android:paddingEnd="26dp">
-
-                <ImageView
-                    android:layout_width="19dp"
-                    android:layout_height="19dp"
-                    android:src="@drawable/ic_recargar"
-                    android:tint="@color/apagado"
-                    android:contentDescription="@null" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="11dp"
-                    android:text="Actualizar listas"
-                    android:textColor="@color/apagado"
-                    android:textSize="16sp" />
-            </LinearLayout>
-
-            <Space android:layout_width="12dp" android:layout_height="1dp" />
-
-            <LinearLayout
-                android:id="@+id/botonSalir"
-                android:layout_width="wrap_content"
-                android:layout_height="50dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/pastilla"
-                android:focusable="true"
-                android:paddingStart="22dp"
-                android:paddingEnd="26dp">
-
-                <ImageView
-                    android:layout_width="19dp"
-                    android:layout_height="19dp"
-                    android:src="@drawable/ic_salir"
-                    android:tint="@color/apagado"
-                    android:contentDescription="@null" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="11dp"
-                    android:text="Cambiar de cuenta"
-                    android:textColor="@color/apagado"
-                    android:textSize="16sp" />
-            </LinearLayout>
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:textColor="@color/tenue"
+                android:textSize="15sp" />
         </LinearLayout>
     </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 </LinearLayout>
