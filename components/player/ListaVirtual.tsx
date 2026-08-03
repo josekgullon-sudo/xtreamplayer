@@ -94,16 +94,20 @@ export default function ListaVirtual<T>({
     if (medido > 8 && Math.abs(medido - alto) > 1) setAlto(medido);
   });
 
-  if (!virtual) return <>{items.map((it, i) => fila(it, i))}</>;
+  const desde = virtual ? Math.min(rango[0], Math.max(0, items.length - 1)) : 0;
+  const hasta = virtual ? Math.min(rango[1], items.length) : items.length;
 
-  const desde = Math.min(rango[0], Math.max(0, items.length - 1));
-  const hasta = Math.min(rango[1], items.length);
-
+  /* El separador de arriba se pinta siempre, aunque mida cero: es de donde
+     sale el contenedor con la barra de desplazamiento. Cuando solo existía
+     en las listas largas, cambiar de una carpeta de 8.000 a una de 200
+     dejaba la corta empezada por la mitad. */
   return (
     <>
-      <div ref={ancla} style={{ height: desde * alto }} aria-hidden="true" />
+      <div ref={ancla} style={{ height: virtual ? desde * alto : 0 }} aria-hidden="true" />
       {items.slice(desde, hasta).map((it, i) => fila(it, desde + i))}
-      <div style={{ height: Math.max(0, (items.length - hasta) * alto) }} aria-hidden="true" />
+      {virtual && (
+        <div style={{ height: Math.max(0, (items.length - hasta) * alto) }} aria-hidden="true" />
+      )}
     </>
   );
 }

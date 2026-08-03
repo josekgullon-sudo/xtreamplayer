@@ -67,6 +67,22 @@ const server = http.createServer((req, res) => {
     return res.end(out);
   }
 
+  /* Lista del tamaño de una de verdad: 8.000 canales en 40 carpetas. Las
+     listas de proveedor traen entre 5.000 y 15.000, y con la lista pequeña
+     de arriba nunca se veía lo que pasaba al pintarlas todas. */
+  if (p === "/lista-enorme.m3u") {
+    let out = "#EXTM3U\n";
+    for (let g = 1; g <= 40; g++) {
+      for (let c = 1; c <= 200; c++) {
+        const n = (g - 1) * 200 + c;
+        out += `#EXTINF:-1 group-title="Carpeta ${String(g).padStart(2, "0")}",Canal ${n}\n`;
+        out += `http://127.0.0.1:8090/media/canal1.webm\n`;
+      }
+    }
+    res.writeHead(200, { "Content-Type": "audio/x-mpegurl" });
+    return res.end(out);
+  }
+
   // Película en MKV (H.264 + AC3): el caso que ningún navegador reproduce
   // sin el conversor del servidor
   if (p === "/lista-mkv.m3u") {
@@ -126,6 +142,38 @@ const server = http.createServer((req, res) => {
     const user = url.searchParams.get("username");
     const pass = url.searchParams.get("password");
     res.writeHead(200, { "Content-Type": "application/json" });
+
+    /* Un segundo usuario con un catálogo del tamaño de uno de verdad: 8.000
+       canales, 3.000 películas y 1.500 series. Con el catálogo de tres
+       películas de abajo nunca se veía qué pasaba al pintarlo entero. */
+    if (user === "enorme" && pass === "enorme123") {
+      if (!action) {
+        return res.end(JSON.stringify({
+          user_info: { username: "enorme", status: "Active", exp_date: "1893456000", max_connections: "1" },
+          server_info: { url: "127.0.0.1", port: "8090" },
+        }));
+      }
+      const lista = (n, hacer) => Array.from({ length: n }, (_, i) => hacer(i + 1));
+      const enorme = {
+        get_live_categories: lista(40, (i) => ({ category_id: String(i), category_name: `Carpeta ${String(i).padStart(2, "0")}` })),
+        get_live_streams: lista(8000, (i) => ({
+          stream_id: i, name: `Canal ${i}`, stream_icon: "",
+          category_id: String(Math.floor((i - 1) / 200) + 1),
+        })),
+        get_vod_categories: lista(20, (i) => ({ category_id: String(100 + i), category_name: `Género ${i}` })),
+        get_vod_streams: lista(3000, (i) => ({
+          stream_id: 10000 + i, name: `Película ${i}`, stream_icon: "", container_extension: "webm",
+          category_id: String(100 + (Math.floor((i - 1) / 150) + 1)), added: "1700000000",
+        })),
+        get_series_categories: lista(10, (i) => ({ category_id: String(200 + i), category_name: `Serie género ${i}` })),
+        get_series: lista(1500, (i) => ({
+          series_id: 20000 + i, name: `Serie ${i}`, cover: "", plot: "",
+          category_id: String(200 + (Math.floor((i - 1) / 150) + 1)), last_modified: "1700000000",
+        })),
+      };
+      return res.end(JSON.stringify(enorme[action] ?? []));
+    }
+
     if (user !== "demo" || pass !== "demo123") {
       return res.end(JSON.stringify({ user_info: { auth: 0 } }));
     }
