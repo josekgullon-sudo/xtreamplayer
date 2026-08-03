@@ -1,0 +1,7 @@
+/*
+ * Misma versión que las otras dos aplicaciones, a propósito: está explicado
+ * en apps/android/build.gradle.
+ */
+plugins {
+    id 'com.android.application' version '8.7.3' apply false
+}

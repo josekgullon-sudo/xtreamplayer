@@ -1,0 +1,46 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'app.totalplayer.tvnativo'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "app.totalplayer.tvnativo"
+        // Android 5: es lo que llevan las teles y los Fire TV más viejos que
+        // siguen en las casas
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "0.1"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.debug
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+/*
+ * Media3 es lo que justifica que esta aplicación exista.
+ *
+ * El envoltorio de WebView reproduce con hls.js y mpegts.js, que desmontan
+ * el flujo en JavaScript, por software y en el hilo principal. En un
+ * ordenador no se nota; en un Fire TV Stick es justo lo que le falta. Y hay
+ * cosas que ahí no se pueden hacer de ninguna manera: H.265, que hoy trae
+ * media lista de proveedor, y el audio AC3/E-AC3, que Chromium no lleva.
+ *
+ * ExoPlayer lo resuelve con el decodificador del aparato: MPEG-TS, HLS,
+ * HEVC y AC3 por hardware.
+ */
+dependencies {
+    def media3 = "1.4.1"
+    implementation "androidx.media3:media3-exoplayer:$media3"
+    implementation "androidx.media3:media3-exoplayer-hls:$media3"
+    implementation "androidx.media3:media3-ui:$media3"
+}

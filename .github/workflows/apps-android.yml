@@ -32,6 +32,10 @@ jobs:
             carpeta: apps/android
           - nombre: tele
             carpeta: apps/androidtv
+          # El reproductor nativo, el que no usa WebView. Convive con el de
+          # arriba hasta que esté probado en un aparato de verdad.
+          - nombre: tele-nativo
+            carpeta: apps/androidtv-nativo
     steps:
       - uses: actions/checkout@v4
 

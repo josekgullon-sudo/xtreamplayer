@@ -1,0 +1,22 @@
+/*
+ * De dónde se baja el complemento de Android. Igual que en las otras dos:
+ * sin esto Gradle solo mira en su propio repositorio, y el de Android vive
+ * en el de Google.
+ */
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "TOTALplayer TV nativo"
+include ':app'

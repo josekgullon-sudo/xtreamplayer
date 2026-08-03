@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dos pantallas en un mismo sitio: la de escribir los datos y la de ver.
+  Se enseña una u otra desde el código, sin cambiar de Activity, para que
+  el mando no se pierda entre pantallas al arrancar.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0f0e14">
+
+    <!-- 1. Datos del servidor -->
+    <LinearLayout
+        android:id="@+id/pantallaAcceso"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="48dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TOTALplayer"
+            android:textColor="#ffffff"
+            android:textSize="34sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:id="@+id/aviso"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Escribe los datos de tu servidor"
+            android:textColor="#a9a7b8"
+            android:textSize="17sp"
+            android:layout_marginBottom="26dp" />
+
+        <EditText
+            android:id="@+id/campoServidor"
+            android:layout_width="620dp"
+            android:layout_height="wrap_content"
+            android:hint="http://servidor.com:8080"
+            android:textColorHint="#6c6a7d"
+            android:textColor="#ffffff"
+            android:inputType="textUri"
+            android:importantForAutofill="no"
+            android:layout_marginBottom="12dp" />
+
+        <EditText
+            android:id="@+id/campoUsuario"
+            android:layout_width="620dp"
+            android:layout_height="wrap_content"
+            android:hint="Usuario"
+            android:textColorHint="#6c6a7d"
+            android:textColor="#ffffff"
+            android:inputType="text"
+            android:importantForAutofill="no"
+            android:layout_marginBottom="12dp" />
+
+        <EditText
+            android:id="@+id/campoClave"
+            android:layout_width="620dp"
+            android:layout_height="wrap_content"
+            android:hint="Contraseña"
+            android:textColorHint="#6c6a7d"
+            android:textColor="#ffffff"
+            android:inputType="textPassword"
+            android:importantForAutofill="no"
+            android:layout_marginBottom="20dp" />
+
+        <Button
+            android:id="@+id/botonEntrar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="240dp"
+            android:text="Entrar" />
+    </LinearLayout>
+
+    <!-- 2. Canales y vídeo -->
+    <LinearLayout
+        android:id="@+id/pantallaVer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <ListView
+            android:id="@+id/listaCanales"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="#16151d"
+            android:divider="#26252f"
+            android:dividerHeight="1dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp" />
+
+        <androidx.media3.ui.PlayerView
+            android:id="@+id/vista"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="2"
+            android:background="#000000" />
+    </LinearLayout>
+</FrameLayout>
