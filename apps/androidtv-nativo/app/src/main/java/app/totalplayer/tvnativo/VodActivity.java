@@ -26,7 +26,7 @@ public class VodActivity extends Activity {
     private RecyclerView listaCarpetas, rejilla;
     private AdaptadorCarpetas carpetas;
     private AdaptadorCarteles carteles;
-    private TextView tituloCarpeta, vacio;
+    private TextView tituloCarpeta, vacio, cuantos;
     private View bloqueVacio;
     private ProgressBar girando;
     private Runnable pendiente;
@@ -43,6 +43,7 @@ public class VodActivity extends Activity {
                 .setText(titulo == null ? "" : titulo.toUpperCase());
         tituloCarpeta = findViewById(R.id.tituloCarpeta);
         vacio = findViewById(R.id.vacio);
+        cuantos = findViewById(R.id.cuantos);
         bloqueVacio = findViewById(R.id.bloqueVacio);
         findViewById(R.id.botonReintentar).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
@@ -124,6 +125,7 @@ public class VodActivity extends Activity {
         if (carpeta == null) return;
         carpetas.marcar(cual);
         tituloCarpeta.setText(carpeta.nombre);
+        cuantos.setText("");
 
         if (pendiente != null) Hilos.olvidar(pendiente);
         pendiente = new Runnable() {
@@ -138,6 +140,7 @@ public class VodActivity extends Activity {
                         girando.setVisibility(View.GONE);
                         if (!carpeta.nombre.contentEquals(tituloCarpeta.getText())) return;
                         carteles.poner(lista);
+                        cuantos.setText(String.valueOf(lista.size()));
                         rejilla.scrollToPosition(0);
                         vacio.setText("Esta categoría está vacía.");
                         bloqueVacio.setVisibility(lista.isEmpty() ? View.VISIBLE : View.GONE);

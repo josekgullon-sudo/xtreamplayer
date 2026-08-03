@@ -50,18 +50,42 @@
             android:orientation="vertical"
             android:paddingTop="26dp">
 
-            <TextView
-                android:id="@+id/tituloCarpeta"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/texto"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:paddingStart="36dp"
                 android:paddingEnd="36dp"
-                android:paddingBottom="16dp" />
+                android:paddingBottom="16dp">
+
+                <TextView
+                    android:id="@+id/tituloCarpeta"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="@color/texto"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <!-- Cuántos títulos hay: en una rejilla que se carga a
+                     trozos, no hay otra manera de saberlo -->
+                <TextView
+                    android:id="@+id/cuantos"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:background="@drawable/contador"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
+                    android:textColor="@color/tenue"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rejilla"
