@@ -24,6 +24,7 @@ import {
 } from "@/lib/storage";
 import { parseM3U, M3UChannel } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
+import { enCristiano } from "@/lib/errores";
 import {
   XtreamCreds,
   XtreamCategory,
@@ -303,7 +304,7 @@ export default function PlayerApp() {
           const parsed = parseM3U(text);
           setM3uData((prev) => ({ ...prev, [p.id]: parsed.channels }));
         } catch (e) {
-          setLoadError(e instanceof Error ? e.message : "Error al cargar la lista");
+          setLoadError(enCristiano(e, "Error al cargar la lista"));
         } finally {
           setLoading(false);
         }
@@ -358,7 +359,7 @@ export default function PlayerApp() {
           }));
         }
       } catch (e) {
-        setLoadError(e instanceof Error ? e.message : "Error al conectar con el servidor");
+        setLoadError(enCristiano(e, "Error al conectar con el servidor"));
       } finally {
         setLoading(false);
       }
@@ -596,7 +597,7 @@ export default function PlayerApp() {
       const seasons = Object.keys(info.episodes || {});
       setSeriesDetail({ series: s, info, season: seasons[0] || "" });
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "No se pudo cargar la serie");
+      setLoadError(enCristiano(e, "No se pudo cargar la serie"));
     } finally {
       setLoading(false);
     }

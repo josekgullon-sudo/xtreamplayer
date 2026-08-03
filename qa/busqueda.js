@@ -152,6 +152,31 @@ const check = (n, ok, d = "") => {
     porSeccion.Cine.includes("películas") && porSeccion.Series.includes("series") && porSeccion.Favoritos.includes("favoritos"),
     Object.entries(porSeccion).map(([k, v]) => `${k}: ${v}`).join(" · ").slice(0, 160));
 
+  /* ---------- Sin cobertura ----------
+   *
+   * Cuando el que falla es el navegador —sin cobertura, wifi caído, el móvil
+   * en el ascensor— el mensaje de la excepción es «Failed to fetch», y eso
+   * es lo que se enseñaba: dos palabras en inglés que no dicen ni qué ha
+   * pasado ni qué hacer, y que encima parecen culpar a la lista.
+   */
+  const sinRedCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const sinRed = await sinRedCtx.newPage();
+  await sinRed.goto(BASE + "/player", { waitUntil: "networkidle" });
+  await sinRed.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
+  await sinRed.waitForSelector(".modal");
+  await sinRed.fill("#pl-name", "Sin red");
+  await sinRed.fill("#pl-host", "127.0.0.1:8090");
+  await sinRed.fill("#pl-user", "demo");
+  await sinRed.fill("#pl-pass", "demo123");
+  await sinRedCtx.setOffline(true);
+  await sinRed.click(".modal button[type=submit]");
+  await sinRed.waitForSelector(".modal .error-box", { timeout: 25000 });
+  const aviso = (await sinRed.locator(".modal .error-box").innerText()).trim();
+  check("Quedarse sin conexión se dice en cristiano, no «Failed to fetch»",
+    !/failed to fetch|networkerror|load failed/i.test(aviso) && /conexión|conectar/i.test(aviso),
+    aviso.slice(0, 90));
+  await sinRedCtx.setOffline(false);
+
   const ok = results.filter(Boolean).length;
   console.log(`\n${ok}/${results.length} pruebas de búsqueda con datos sucios OK`);
   await browser.close();

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { StoredPlaylist, newLocalId } from "@/lib/storage";
 import { normalizeBase, parseXtreamUrl, XtreamUserInfo } from "@/lib/xtream";
 import Loading, { MENSAJES_LISTA } from "@/components/Loading";
+import { enCristiano } from "@/lib/errores";
 
 export default function AddPlaylistModal({
   loggedIn,
@@ -106,7 +107,7 @@ export default function AddPlaylistModal({
         await onAdd(playlist, cloud);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Algo salió mal");
+      setError(enCristiano(err));
     } finally {
       setBusy(false);
     }
@@ -201,3 +202,4 @@ export default function AddPlaylistModal({
     </div>
   );
 }
+

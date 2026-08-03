@@ -5,6 +5,7 @@ import Icon, { IconName } from "@/components/Icon";
 import VideoPlayer, { PlaySource } from "@/components/player/VideoPlayer";
 import { parseM3U } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
+import { enCristiano } from "@/lib/errores";
 import {
   XtreamCreds,
   XtreamCategory,
@@ -628,7 +629,7 @@ export default function TvApp() {
           );
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo cargar");
+        setError(enCristiano(e, "No se pudo cargar"));
       } finally {
         setCargando(false);
       }
