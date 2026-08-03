@@ -81,6 +81,13 @@ function formatDate(ts: number) {
   return ts ? new Date(ts).toLocaleDateString("es-ES") : "—";
 }
 
+/* El cupo de la casa (SIN_LIMITE en lib/provider) es un número enorme para que
+   las cuentas no se rompan, pero enseñar «/ 1.000.000» no dice nada */
+function formatCupo(n?: number) {
+  if (n === undefined) return "";
+  return n >= 1_000_000 ? "sin límite" : n.toLocaleString("es-ES");
+}
+
 export default function ProviderPanel() {
   const [loaded, setLoaded] = useState(false);
   const [provider, setProvider] = useState<{ email: string; company: string } | null>(null);
@@ -601,7 +608,7 @@ export default function ProviderPanel() {
         <div className="panel-head-stat">
           <span className="panel-card-label">Clientes</span>
           <span className="panel-card-value">
-            {status?.usedCustomers} <small>/ {status?.maxCustomers}</small>
+            {status?.usedCustomers} <small>/ {formatCupo(status?.maxCustomers)}</small>
           </span>
           <div className="panel-meter">
             <div style={{ width: `${pct}%`, background: pct > 90 ? "var(--danger)" : "var(--accent)" }} />
@@ -640,7 +647,7 @@ export default function ProviderPanel() {
             <div className="panel-card">
               <span className="panel-card-label">Clientes</span>
               <span className="panel-card-value">
-                {status?.usedCustomers} <small>/ {status?.maxCustomers}</small>
+                {status?.usedCustomers} <small>/ {formatCupo(status?.maxCustomers)}</small>
               </span>
               <div className="panel-meter">
                 <div style={{ width: `${pct}%`, background: pct > 90 ? "var(--danger)" : "var(--accent)" }} />

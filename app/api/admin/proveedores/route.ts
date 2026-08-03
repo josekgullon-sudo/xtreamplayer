@@ -55,6 +55,19 @@ export async function PATCH(req: NextRequest) {
     }
     db.prepare("UPDATE providers SET plan_id = ? WHERE id = ?").run(plan, id);
     cambios.push(`plan → ${plan || "sin plan"}`);
+
+    /*
+     * Un plan sin fecha de renovación no es un plan: el cupo se calcula con
+     * `plan_expires_at > now`, así que elegir «Mega» y no tocar el calendario
+     * dejaba al proveedor exactamente igual que antes, con un desplegable
+     * que decía Mega y un panel que decía «Sin plan». Si no se manda fecha en
+     * la misma petición y la que hay ya pasó, se da un mes.
+     */
+    if (plan && body.caduca === undefined && proveedor.plan_expires_at <= Date.now()) {
+      const dentroDeUnMes = Date.now() + 30 * 86_400_000;
+      db.prepare("UPDATE providers SET plan_expires_at = ? WHERE id = ?").run(dentroDeUnMes, id);
+      cambios.push(`renovación → ${new Date(dentroDeUnMes).toISOString().slice(0, 10)} (un mes por defecto)`);
+    }
   }
 
   if (body.caduca !== undefined) {

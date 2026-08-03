@@ -109,6 +109,20 @@ const SECCIONES = ["resumen", "proveedores", "revendedores", "clientes", "domini
   r = await call("/api/admin/proveedores", { method: "PATCH", body: JSON.stringify({ id: mio.id, estado: "active", plan: "starter" }) }, admin);
   check("Reactivar y cambiar de plan, en una", r.status === 200);
 
+  /* Poner el plan y no tocar el calendario dejaba al proveedor con un
+     desplegable que decía «Starter» y un panel que decía «Sin plan» */
+  r = await call(`/api/admin/proveedores?buscar=adm${RUN}`, {}, admin);
+  const conPlan = r.body.proveedores[0];
+  check("El plan trae fecha de renovación sin pedirla", conPlan.planCaduca > Date.now(),
+    conPlan.planCaduca ? new Date(conPlan.planCaduca).toISOString().slice(0, 10) : "sin fecha");
+
+  /* Y una fecha puesta a mano manda sobre el mes por defecto */
+  const enDosMeses = Date.now() + 60 * 86_400_000;
+  r = await call("/api/admin/proveedores", { method: "PATCH", body: JSON.stringify({ id: mio.id, plan: "mega", caduca: enDosMeses }) }, admin);
+  r = await call(`/api/admin/proveedores?buscar=adm${RUN}`, {}, admin);
+  check("Si el administrador pone fecha, se respeta",
+    Math.abs(r.body.proveedores[0].planCaduca - enDosMeses) < 2000, String(r.body.proveedores[0].planCaduca));
+
   r = await call("/api/admin/registro", {}, admin);
   const anotado = r.body.auditoria.filter((a) => a.sobre === `adm${RUN}@t.com`);
   check("Cada cambio queda escrito con quién lo hizo", anotado.length >= 2 && anotado[0].admin === "admin@totalplayer.app", `${anotado.length} apuntes`);

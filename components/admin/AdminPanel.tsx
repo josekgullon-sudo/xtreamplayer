@@ -667,6 +667,9 @@ export default function AdminPanel() {
                                       id={`caduca-${p.id}`}
                                       type="date"
                                       className="input"
+                                      /* Con defaultValue, la fecha que pone el servidor al elegir plan
+                                         no se vería hasta recargar: la clave fuerza el repintado */
+                                      key={p.planCaduca}
                                       defaultValue={p.planCaduca ? new Date(p.planCaduca).toISOString().slice(0, 10) : ""}
                                       onChange={(e) =>
                                         cambiarProveedor(p.id, {

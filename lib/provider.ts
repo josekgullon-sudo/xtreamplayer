@@ -16,6 +16,33 @@ const PROVIDER_TRIAL_DAYS = 7;
 export const providerTrialEnd = (from = Date.now()) => from + PROVIDER_TRIAL_DAYS * 86_400_000;
 export const PROVIDER_TRIAL_CUSTOMERS = 10;
 
+/* Un tope que no se alcanza nunca, pero que sigue siendo un número: usar
+   Infinity rompía la tabla del panel y los cálculos de «llevas X de Y» */
+export const SIN_LIMITE = 1_000_000;
+
+/**
+ * Si esta cuenta es la de quien lleva la plataforma.
+ *
+ * Mismas dos vías que para entrar en la administración —la columna is_admin
+ * y la variable ADMIN_EMAILS—, para que no haya dos ideas distintas de quién
+ * es de la casa según a qué parte del código preguntes.
+ */
+export function esDeLaCasa(email: string): boolean {
+  if (!email) return false;
+  const suyo = email.trim().toLowerCase();
+
+  const porVariable = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  if (porVariable.includes(suyo)) return true;
+
+  const usuario = getDb()
+    .prepare("SELECT is_admin FROM users WHERE lower(email) = ?")
+    .get(suyo) as { is_admin: number } | undefined;
+  return Boolean(usuario?.is_admin);
+}
+
 /* ---------------- Sesión de proveedor ---------------- */
 
 export async function setProviderCookie(providerId: number) {
@@ -185,6 +212,35 @@ export interface ProviderStatus {
 
 export function getProviderStatus(provider: ProviderRow, now = Date.now()): ProviderStatus {
   const db = getDb();
+
+  /*
+   * La cuenta de quien lleva la plataforma no caduca.
+   *
+   * Era un inquilino más: siete días de prueba y a la calle. El dueño del
+   * producto se quedaba fuera de su propio producto el octavo día, y encima
+   * viéndolo desde el lado del cliente —«el servicio de tu proveedor no está
+   * activo»— sin ninguna pista de que el problema era su propio plan.
+   *
+   * Se mira lo mismo que para entrar en la administración: la columna
+   * is_admin o la lista de ADMIN_EMAILS. Quien atiende la plataforma es la
+   * casa, no un inquilino.
+   */
+  if (esDeLaCasa(provider.email)) {
+    const usados = (
+      db.prepare("SELECT COUNT(*) AS c FROM customers WHERE provider_id = ?").get(provider.id) as { c: number }
+    ).c;
+    return {
+      plan: null,
+      planName: "Plataforma",
+      onTrial: false,
+      active: true,
+      maxCustomers: SIN_LIMITE,
+      usedCustomers: usados,
+      // Sin fecha de fin: no hay nada que renovar ni de qué avisar
+      expiresAt: 0,
+    };
+  }
+
   const plan = provider.plan_id
     ? (db.prepare("SELECT * FROM provider_plans WHERE id = ?").get(provider.plan_id) as ProviderPlanRow | undefined)
     : undefined;

@@ -51,7 +51,7 @@ TODAS=(
   cliente-ux acceso sesiones-mezcladas recuperar alta-simple entrega-acceso
   b2b panel-ui panel-importa apps-proveedor
   soporte-api-facturas facturas-fiscales factura-pdf admin-facturas admin-panel
-  avisos copias planes-cobro
+  avisos copias planes-cobro cuenta-de-la-casa
   web-publica qa-diseno panel-movil
   dominio
 )

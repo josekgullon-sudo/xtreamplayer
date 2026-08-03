@@ -1,4 +1,4 @@
-# Las 35 suites, en cada cambio.
+# Las 36 suites, en cada cambio.
 #
 # Existe porque unas pruebas que solo se lanzan a mano acaban lanzándose
 # cuando uno se acuerda, que es después de haber roto algo. Aquí las lanza
@@ -23,7 +23,7 @@ on:
         default: ""
 
 # Con `push` en todas las ramas, añadir `pull_request` hacía que cada empujón
-# a una rama con PR abierto lanzara las 35 suites dos veces. Y si se empuja
+# a una rama con PR abierto lanzara las 36 suites dos veces. Y si se empuja
 # dos veces seguidas, la primera tanda ya no interesa: se cancela sola.
 concurrency:
   group: pruebas-${{ github.ref }}

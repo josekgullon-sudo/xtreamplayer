@@ -174,6 +174,28 @@ db.prepare("INSERT INTO users (email, password_hash, is_admin, created_at) VALUE
   now - dias(200)
 );
 
+/* ---- La cuenta de la casa ----
+ * Mismo correo que el administrador, sin plan y con la prueba caducada hace
+ * tres días: exactamente el caso en el que el dueño de la plataforma se
+ * quedaba fuera de su propio producto y sus clientes veían «el servicio de tu
+ * proveedor no está activo». Sembrarla así deja la regla comprobada de verdad.
+ */
+const casaAnterior = db.prepare("SELECT id FROM providers WHERE email = ?").get(ADMIN_EMAIL);
+if (casaAnterior) db.prepare("DELETE FROM providers WHERE id = ?").run(casaAnterior.id);
+const casaId = Number(
+  db
+    .prepare(
+      `INSERT INTO providers (email, password_hash, company, plan_id, plan_expires_at, trial_ends_at, brand_name, created_at)
+       VALUES (?, ?, ?, '', 0, ?, ?, ?)`
+    )
+    .run(ADMIN_EMAIL, hash("admin12345"), "TOTALplayer", now - dias(3), "TOTALplayer", now - dias(300)).lastInsertRowid
+);
+db.prepare("DELETE FROM customers WHERE username = ?").run("casa");
+db.prepare(
+  `INSERT INTO customers (provider_id, username, password_hash, label, status, expires_at, max_devices, created_at)
+   VALUES (?, 'casa', ?, 'Cliente de la casa', 'active', 0, 3, ?)`
+).run(casaId, hash("casa12345"), now - dias(30));
+
 // ---- Tickets de soporte de muestra ----
 db.prepare("DELETE FROM ticket_messages WHERE ticket_id IN (SELECT id FROM tickets WHERE provider_id = ?)").run(providerId);
 db.prepare("DELETE FROM tickets WHERE provider_id = ?").run(providerId);
