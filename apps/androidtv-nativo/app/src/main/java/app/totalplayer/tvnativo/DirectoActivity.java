@@ -42,6 +42,7 @@ public class DirectoActivity extends Activity {
 
     private String sonando = "";
     private Runnable pendiente;
+    private Catalogo.Carpeta carpetaAbierta;
 
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
@@ -101,6 +102,10 @@ public class DirectoActivity extends Activity {
         canales = new AdaptadorCanales(new AdaptadorCanales.AlElegir() {
             @Override public void canal(int posicion) { elegir(posicion); }
         });
+        canales.alMarcar(new AdaptadorCanales.AlMarcar() {
+            @Override public void favorito(int posicion) { marcarFavorito(posicion); }
+        });
+        canales.favoritos(Favoritos.marcados(this));
         listaCarpetas.setAdapter(carpetas);
         listaCanales.setAdapter(canales);
 
@@ -123,7 +128,12 @@ public class DirectoActivity extends Activity {
                     return;
                 }
                 pista.setVisibility(View.VISIBLE);
-                carpetas.poner(lista);
+                /* Favoritos, siempre la primera: es la carpeta a la que se
+                   va cuando no apetece buscar */
+                List<Catalogo.Carpeta> conFavoritos = new java.util.ArrayList<>();
+                conFavoritos.add(new Catalogo.Carpeta(Favoritos.CARPETA, "★  Favoritos"));
+                conFavoritos.addAll(lista);
+                carpetas.poner(conFavoritos);
                 pista.setText("Elige un canal de la lista");
                 abrirCarpeta(0);
                 listaCarpetas.requestFocus();
@@ -149,8 +159,22 @@ public class DirectoActivity extends Activity {
         final Catalogo.Carpeta carpeta = carpetas.cual(cual);
         if (carpeta == null) return;
         carpetas.marcar(cual);
+        carpetaAbierta = carpeta;
         tituloCarpeta.setText(carpeta.nombre);
         cuantos.setText("");
+
+        if (Favoritos.CARPETA.equals(carpeta.id)) {
+            if (pendiente != null) Hilos.olvidar(pendiente);
+            List<Catalogo.Item> suyos = Favoritos.lista(this);
+            canales.favoritos(Favoritos.marcados(this));
+            canales.poner(suyos);
+            canales.sonando(listaCanales, sonando, null);
+            cuantos.setText(String.valueOf(suyos.size()));
+            listaCanales.scrollToPosition(0);
+            vacio.setText("Aún no has marcado ningún canal.\n\nMantén pulsado OK sobre un canal para añadirlo aquí.");
+            bloqueVacio.setVisibility(suyos.isEmpty() ? View.VISIBLE : View.GONE);
+            return;
+        }
 
         if (pendiente != null) Hilos.olvidar(pendiente);
         pendiente = new Runnable() {
@@ -181,6 +205,35 @@ public class DirectoActivity extends Activity {
             }
         };
         Hilos.enPantallaDentroDe(pendiente, 220);
+    }
+
+    /** Mantener pulsado un canal lo marca o lo desmarca. */
+    private void marcarFavorito(int posicion) {
+        List<Catalogo.Item> lista = canales.datos();
+        if (posicion < 0 || posicion >= lista.size()) return;
+        Catalogo.Item canal = lista.get(posicion);
+
+        boolean ahoraEs = Favoritos.alternar(this, canal);
+        canales.favoritos(Favoritos.marcados(this));
+        android.widget.Toast.makeText(this,
+                ahoraEs ? canal.nombre + " añadido a favoritos" : canal.nombre + " quitado de favoritos",
+                android.widget.Toast.LENGTH_SHORT).show();
+
+        // Estando dentro de favoritos, quitar uno tiene que verse al momento
+        if (Favoritos.CARPETA.equals(tituloDeLaCarpetaAbierta())) {
+            List<Catalogo.Item> suyos = Favoritos.lista(this);
+            canales.poner(suyos);
+            cuantos.setText(String.valueOf(suyos.size()));
+            bloqueVacio.setVisibility(suyos.isEmpty() ? View.VISIBLE : View.GONE);
+        } else {
+            canales.sonando(listaCanales, sonando, null);
+            canales.notifyDataSetChanged();
+        }
+    }
+
+    /** Cuál es la carpeta abierta ahora mismo. */
+    private String tituloDeLaCarpetaAbierta() {
+        return carpetaAbierta == null ? "" : carpetaAbierta.id;
     }
 
     private void elegir(int posicion) {

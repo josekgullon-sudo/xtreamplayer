@@ -73,4 +73,15 @@
             android:layout_marginTop="2dp"
             android:visibility="gone" />
     </LinearLayout>
+    <!-- La estrella del canal marcado. Se pone y se quita manteniendo
+         pulsado, que es donde la busca todo el mundo -->
+    <ImageView
+        android:id="@+id/estrella"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="10dp"
+        android:src="@drawable/ic_estrella"
+        android:tint="@color/marca_viva"
+        android:visibility="gone"
+        android:contentDescription="@null" />
 </LinearLayout>

@@ -271,7 +271,7 @@
             android:id="@+id/comoAmpliar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Pulsa OK otra vez para verlo a pantalla completa"
+            android:text="OK otra vez para pantalla completa · Mantén OK para marcar como favorito"
             android:textColor="@color/tenue"
             android:textSize="14sp"
             android:visibility="gone" />

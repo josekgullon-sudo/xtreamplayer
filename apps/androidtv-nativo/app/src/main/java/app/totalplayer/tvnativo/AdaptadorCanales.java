@@ -16,15 +16,25 @@ import java.util.List;
 public class AdaptadorCanales extends RecyclerView.Adapter<AdaptadorCanales.Celda> {
 
     public interface AlElegir { void canal(int posicion); }
+    /** Mantener pulsado marca o desmarca. */
+    public interface AlMarcar { void favorito(int posicion); }
 
     private final List<Catalogo.Item> datos = new ArrayList<>();
     private final AlElegir alElegir;
+    private AlMarcar alMarcar;
+    private java.util.Set<String> favoritos = new java.util.HashSet<>();
     /** El identificador del que se está viendo, para marcarlo. */
     private String sonando = "";
     /** Lo que echan en el que suena, si se sabe. */
     private String loQueEchan = "";
 
     public AdaptadorCanales(AlElegir alElegir) { this.alElegir = alElegir; }
+
+    public void alMarcar(AlMarcar quien) { this.alMarcar = quien; }
+
+    public void favoritos(java.util.Set<String> ids) {
+        favoritos = ids == null ? new java.util.HashSet<String>() : ids;
+    }
 
     public void poner(List<Catalogo.Item> nuevos) {
         datos.clear();
@@ -59,6 +69,7 @@ public class AdaptadorCanales extends RecyclerView.Adapter<AdaptadorCanales.Celd
     private void marcar(Celda celda, Catalogo.Item canal) {
         boolean suena = !sonando.isEmpty() && canal.id.equals(sonando);
         celda.sonando.setVisibility(suena ? View.VISIBLE : View.INVISIBLE);
+        celda.estrella.setVisibility(favoritos.contains(canal.id) ? View.VISIBLE : View.GONE);
         if (suena && !loQueEchan.isEmpty()) {
             celda.ahora.setText(loQueEchan);
             celda.ahora.setVisibility(View.VISIBLE);
@@ -71,12 +82,14 @@ public class AdaptadorCanales extends RecyclerView.Adapter<AdaptadorCanales.Celd
         final ImageView logo;
         final View sonando;
         final TextView nombre, ahora, numero;
+        final View estrella;
         Celda(View v) {
             super(v);
             logo = v.findViewById(R.id.logo);
             nombre = v.findViewById(R.id.nombre);
             ahora = v.findViewById(R.id.ahora);
             numero = v.findViewById(R.id.numero);
+            estrella = v.findViewById(R.id.estrella);
             sonando = v.findViewById(R.id.sonando);
         }
     }
@@ -96,6 +109,13 @@ public class AdaptadorCanales extends RecyclerView.Adapter<AdaptadorCanales.Celd
         Imagenes.cargar(celda.logo, c.imagen, R.drawable.ic_tv);
         celda.itemView.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { alElegir.canal(celda.getAdapterPosition()); }
+        });
+        celda.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override public boolean onLongClick(View v) {
+                if (alMarcar == null) return false;
+                alMarcar.favorito(celda.getAdapterPosition());
+                return true;
+            }
         });
     }
 
