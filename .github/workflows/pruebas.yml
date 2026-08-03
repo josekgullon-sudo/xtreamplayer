@@ -16,6 +16,11 @@ on:
       - "apps/**"
       - "**/*.md"
   workflow_dispatch:
+    inputs:
+      suites:
+        description: "Solo estas suites (separadas por espacios). Vacío = todas."
+        required: false
+        default: ""
 
 # Con `push` en todas las ramas, añadir `pull_request` hacía que cada empujón
 # a una rama con PR abierto lanzara las 35 suites dos veces. Y si se empuja
@@ -58,8 +63,11 @@ jobs:
           sudo apt-get install -y -qq ffmpeg
           ffmpeg -version
 
-      - name: Todas las suites
-        run: bash qa/todo.sh
+      # Sin argumentos son las 35. Con ellos, solo esas: cuando una falla
+      # aquí y no en local, repetirla sola deja el registro corto y con el
+      # fallo a la vista, en vez de enterrado entre las otras treinta y cuatro.
+      - name: Las suites
+        run: bash qa/todo.sh ${{ inputs.suites }}
 
       # Cuando algo falla, la captura del momento dice más que el log
       - name: Guardar las capturas
