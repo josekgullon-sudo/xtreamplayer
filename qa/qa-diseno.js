@@ -1,6 +1,6 @@
 // QA visual de lo que ve el cliente: que nada desborde, que se lea, que los
 // objetivos táctiles sean alcanzables y que el menú de cuenta funcione.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
@@ -25,7 +25,7 @@ const ck = (sc, n) => {
 };
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const browser = await chromium.launch({ ...ejecutable });
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
   const errores = [];

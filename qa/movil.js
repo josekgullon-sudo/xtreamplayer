@@ -1,6 +1,6 @@
 // UX móvil (390×844, viewport de iPhone): lo que el usuario señaló y el
 // contrato de la nueva navegación inferior.
-const { chromium, devices } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, devices, ejecutable } = require("./navegador");
 
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
@@ -34,7 +34,7 @@ async function abrirCanales(p) {
 
 (async () => {
   const browser = await chromium.launch({
-    executablePath: "/opt/pw-browsers/chromium",
+    ...ejecutable,
     args: ["--autoplay-policy=no-user-gesture-required"],
   });
   const ctx = await browser.newContext({

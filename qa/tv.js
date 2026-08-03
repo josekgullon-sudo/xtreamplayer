@@ -1,5 +1,5 @@
 // QA del modo TV: detección por user-agent y navegación con mando.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
@@ -16,7 +16,7 @@ const FIRETV_UA =
   "Mozilla/5.0 (Linux; Android 9; AFTKA Build/PS7233) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106 Safari/537.36";
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const browser = await chromium.launch({ ...ejecutable });
 
   // --- Detección automática por user-agent ---
   for (const [name, ua] of [["Samsung Tizen", TIZEN_UA], ["LG webOS", WEBOS_UA], ["Fire TV", FIRETV_UA]]) {

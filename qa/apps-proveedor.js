@@ -4,14 +4,14 @@
 // las instrucciones en ninguno, así que lo que acababa mandando por WhatsApp
 // era lo que recordaba. Aquí se comprueba que estén las tres cosas y que se
 // copien de un botón.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
 
 (async () => {
   const RUN = Date.now().toString(36).slice(-5);
-  const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const b = await chromium.launch({ ...ejecutable });
   const ctx = await b.newContext({
     viewport: { width: 1440, height: 1000 },
     permissions: ["clipboard-read", "clipboard-write"],

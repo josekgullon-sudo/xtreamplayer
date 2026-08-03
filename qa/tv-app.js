@@ -1,5 +1,5 @@
 // La aplicación de televisión: activarla, manejarla con el mando y encenderla.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
@@ -53,7 +53,7 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   check("El mismo código no sirve dos veces", r.body.estado === "caducado");
 
   // --- La tele en el navegador ---
-  const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const b = await chromium.launch({ ...ejecutable });
   const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 } });
   const tv = await ctx.newPage();
   tv.on("pageerror", (e) => console.log("PAGEERROR:", String(e).slice(0, 200)));

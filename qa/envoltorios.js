@@ -6,7 +6,7 @@
 // salir mal: que la web se abra (enmarcada no se dejaba, y eso dejaba la
 // aplicación en negro), que sin red no se salte a una pantalla de error, y
 // que en cuanto haya red entre sola.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -29,7 +29,7 @@ function envoltorio(cual, destino) {
 }
 
 (async () => {
-  const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const b = await chromium.launch({ ...ejecutable });
 
   for (const [cual, marca, atras] of [["tizen", "Samsung", 10009], ["webos", "LG", 461]]) {
     const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 } });

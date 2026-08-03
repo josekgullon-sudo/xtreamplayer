@@ -16,8 +16,9 @@ bash qa/todo.sh movil e2e    # solo esas
 SIN_MONTAR=1 bash qa/todo.sh # con los servidores ya levantados
 ```
 
-Levanta los ocho servidores simulados, compila, siembra los datos, arranca las
-dos copias de la aplicación y las lanza todas. Al final dice cuáles fallan y
+Genera los vídeos de prueba si faltan, levanta los ocho servidores simulados,
+compila, siembra los datos, arranca las dos copias de la aplicación y las
+lanza todas. Al final dice cuáles fallan y
 con qué línea, y sale con código 1 si alguna falla — vale tal cual para un CI.
 Tarda unos tres minutos y medio desde cero.
 
@@ -68,7 +69,13 @@ node qa/movil.js        # todo lo anterior en un móvil
 ```
 
 Cada suite imprime una línea por comprobación y sale con código 1 si alguna
-falla, así que valen tal cual para un CI.
+falla, así que valen tal cual para un CI. De hecho las lanza uno:
+`.github/workflows/pruebas.yml` ejecuta `bash qa/todo.sh` en cada cambio, y
+guarda las capturas y los registros cuando algo se cae.
+
+El navegador y Playwright los resuelve `qa/navegador.js`: usa lo que haya
+instalado en el proyecto y, si no, lo del contenedor. `QA_CHROMIUM` fuerza
+un ejecutable concreto.
 
 `QA_BASE` cambia la dirección contra la que se prueba (por defecto
 `http://localhost:3101`).

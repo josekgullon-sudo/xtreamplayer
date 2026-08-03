@@ -3,7 +3,7 @@
 // El servidor debe arrancarse con los datos del emisor, como en producción:
 //   BILLING_NAME="TOTALplayer SL" BILLING_TAX_ID="B00000000" \
 //   BILLING_ADDRESS="Calle Mayor 1, Madrid" BILLING_VAT_PERCENT=21
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
@@ -51,7 +51,7 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   check("Sin sesión no se tocan los de nadie", r.status === 401);
 
   // --- La factura impresa ---
-  const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const b = await chromium.launch({ ...ejecutable });
   const p = await (await b.newContext({ viewport: { width: 1280, height: 950 } })).newPage();
   await p.goto(BASE + "/acceso?rol=proveedor", { waitUntil: "networkidle" });
   await p.locator(".access-tab:has-text('Soy proveedor')").click();

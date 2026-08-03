@@ -1,0 +1,68 @@
+# Las 35 suites, en cada cambio.
+#
+# Existe porque unas pruebas que solo se lanzan a mano acaban lanzándose
+# cuando uno se acuerda, que es después de haber roto algo. Aquí las lanza
+# GitHub: monta el escenario entero —servidores simulados, datos de ejemplo,
+# la aplicación compilada— y falla el cambio si alguna se cae.
+#
+# Es exactamente el mismo `bash qa/todo.sh` que se usa en local. Si se rompe
+# aquí, se reproduce ahí con una orden y sin adivinar qué hacía distinto.
+name: Pruebas
+
+on:
+  push:
+    branches: ["**"]
+    paths-ignore:
+      - "apps/**"
+      - "**/*.md"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  suites:
+    runs-on: ubuntu-latest
+    # Las 35 tardan unos cuatro minutos; con margen para una que se atasque
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Dependencias
+        run: npm ci
+
+      # El navegador con el que se abre la aplicación de verdad. Solo
+      # Chromium: las suites no usan los otros y bajarlos son minutos.
+      - name: Chromium para Playwright
+        run: npx playwright install --with-deps chromium
+
+      # Los vídeos de prueba se generan (no se guardan en el repositorio),
+      # y para eso hace falta ffmpeg. En ubuntu-latest ya viene.
+      - name: Comprobar ffmpeg
+        run: ffmpeg -version | head -1
+
+      - name: Todas las suites
+        run: bash qa/todo.sh
+
+      # Cuando algo falla, la captura del momento dice más que el log
+      - name: Guardar las capturas
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas
+          path: qa/*.png
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Guardar los registros
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registros
+          path: /tmp/qa-*.log
+          if-no-files-found: ignore
+          retention-days: 7

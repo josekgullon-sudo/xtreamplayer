@@ -61,6 +61,16 @@ PEDIDAS=("$@")
 
 # ---------- Montar el escenario ----------
 if [ "${SIN_MONTAR:-0}" != "1" ]; then
+  # Los vídeos de prueba no se guardan en el repositorio —son binarios que
+  # cambian de bytes con cada versión de ffmpeg— así que en una máquina
+  # recién clonada no están, y el servidor simulado no arranca sin ellos
+  if [ ! -f "$AQUI/test.webm" ]; then
+    command -v ffmpeg > /dev/null || { echo "❌ Falta ffmpeg: hace falta para generar los vídeos de prueba"; exit 1; }
+    echo "· Generando los vídeos de prueba"
+    bash "$AQUI/preparar-medios.sh" > /tmp/qa-medios.log 2>&1 \
+      || { echo "❌ No se han podido generar:"; tail -15 /tmp/qa-medios.log; exit 1; }
+  fi
+
   echo "· Levantando los servidores simulados"
   pkill -9 -f "qa/mock-" 2>/dev/null
   pkill -9 -f "next-serve[r]" 2>/dev/null

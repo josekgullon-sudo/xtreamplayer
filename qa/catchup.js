@@ -1,5 +1,5 @@
 // Catch Up: volver a ver lo que ya se emitió.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
@@ -22,7 +22,7 @@ async function enLaGuia(p) {
 }
 
 (async () => {
-  const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const b = await chromium.launch({ ...ejecutable });
   const p = await (await b.newContext({ viewport: { width: 1440, height: 950 } })).newPage();
   p.on("pageerror", (e) => console.log("PAGEERROR:", String(e).slice(0, 200)));
 

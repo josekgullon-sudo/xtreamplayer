@@ -1,5 +1,5 @@
 // El alta de un cliente: un solo usuario y una sola contraseña, los de XUI.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
@@ -59,7 +59,7 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   check("Sin dominio ni servidor sigue avisando", r.status === 400, r.body.error);
 
   // --- El formulario ---
-  const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const b = await chromium.launch({ ...ejecutable });
   const ctx = await b.newContext({ viewport: { width: 1280, height: 950 } });
   const p = await ctx.newPage();
   await p.goto(BASE + "/acceso?rol=proveedor", { waitUntil: "networkidle" });

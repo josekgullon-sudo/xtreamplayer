@@ -5,7 +5,7 @@
 // proveedor, eso son sus clientes, sus dominios y sus facturas dentro.
 //
 // Necesita el receptor de correo de mentira: node qa/mock-resend.js
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const CORREOS = process.env.QA_CORREOS || "http://127.0.0.1:8097";
 const results = [];
@@ -69,7 +69,7 @@ const vaciar = () => fetch(CORREOS, { method: "DELETE" });
   check("Una contraseña corta se rechaza", r.status === 400, r.body.error);
 
   // --- Cambiarla desde el navegador, como lo haría un cliente ---
-  const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const b = await chromium.launch({ ...ejecutable });
   const p = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
 
   await p.goto(BASE + "/acceso?rol=proveedor", { waitUntil: "networkidle" });

@@ -1,7 +1,7 @@
 // Los tres arreglos de esta ronda: zapping con memoria por servidor,
 // catálogo de cine/series a pantalla completa, y cabecera que reconoce la
 // sesión del cliente de proveedor.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
@@ -24,7 +24,7 @@ const ck = (sc, n) => {
 
 (async () => {
   const browser = await chromium.launch({
-    executablePath: "/opt/pw-browsers/chromium",
+    ...ejecutable,
     args: ["--autoplay-policy=no-user-gesture-required"],
   });
 

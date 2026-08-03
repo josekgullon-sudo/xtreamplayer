@@ -3,7 +3,7 @@
 // Cada rol tiene su cookie y nadie obliga a cerrar las otras, así que un
 // proveedor puede tener abierta una sesión de cliente de cuando probó algo.
 // Manda dónde estás, no el orden en que se miran las cookies.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
@@ -27,7 +27,7 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   await call("/api/provider/customers", { method: "POST", body: JSON.stringify({ username: `cli${RUN}`, password: "clave1234", domainId: dom.body.domain.id }) }, prov);
   await call("/api/provider/resellers", { method: "POST", body: JSON.stringify({ email: `rev${RUN}@t.com`, password: "revendedor123", name: `Revende ${RUN}` }) }, prov);
 
-  const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const b = await chromium.launch({ ...ejecutable });
   const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
 

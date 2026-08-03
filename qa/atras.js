@@ -8,14 +8,14 @@
  * cerraba la aplicación entera. Y el aspa estaba, pero nadie usa el aspa
  * teniendo un botón de atrás.
  */
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
 
 (async () => {
-  const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", args: ["--autoplay-policy=no-user-gesture-required"] });
+  const b = await chromium.launch({ ...ejecutable, args: ["--autoplay-policy=no-user-gesture-required"] });
   const ctx = await b.newContext({
     viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true,
     userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",

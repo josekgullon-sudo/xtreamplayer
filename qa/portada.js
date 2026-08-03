@@ -1,11 +1,11 @@
 // La portada estilo MaxPlayer: canales numerados + carriles de carátulas.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
 
 (async () => {
-  const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const b = await chromium.launch({ ...ejecutable });
   const p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
 
   await p.goto(BASE + "/player", { waitUntil: "networkidle" });

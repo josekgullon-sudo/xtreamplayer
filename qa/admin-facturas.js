@@ -1,5 +1,5 @@
 // Emitir facturas a mano y abrir el panel de un proveedor desde /admin.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
@@ -87,7 +87,7 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   await call("/api/admin/proveedores", { method: "PATCH", body: JSON.stringify({ id: provId, estado: "active" }) }, admin);
 
   // --- En el navegador, con su aviso ---
-  const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const b = await chromium.launch({ ...ejecutable });
   const p = await (await b.newContext({ viewport: { width: 1440, height: 950 } })).newPage();
   p.on("pageerror", (e) => console.log("PAGEERROR:", String(e).slice(0, 200)));
 

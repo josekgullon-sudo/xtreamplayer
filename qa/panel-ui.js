@@ -1,12 +1,12 @@
 // La sección «Mi panel XUI» del panel de proveedor, de punta a punta en navegador.
-const { chromium } = require("/opt/node22/lib/node_modules/playwright");
+const { chromium, ejecutable } = require("./navegador");
 const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
 
 (async () => {
   const RUN = Date.now().toString(36).slice(-5);
-  const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+  const b = await chromium.launch({ ...ejecutable });
   const p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
 
   // Alta de proveedor por la web
