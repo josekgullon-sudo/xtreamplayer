@@ -67,7 +67,32 @@
                 android:gravity="center"
                 android:lineSpacingExtra="4dp"
                 android:layout_marginTop="18dp"
-                android:layout_marginBottom="28dp" />
+                android:layout_marginBottom="20dp" />
+
+            <!--
+              Por qué no ha entrado, imposible de pasar por alto.
+
+              El motivo salía en la misma línea gris de la explicación, con
+              el mismo tamaño y el mismo color: a tres metros no se ve, y el
+              que lo mira solo percibe que ha pulsado «Entrar» y no ha
+              pasado nada. Y el motivo importa —«has alcanzado el límite de
+              dispositivos» se arregla en un minuto si sabes que es eso—.
+            -->
+            <TextView
+                android:id="@+id/porQueNo"
+                android:layout_width="640dp"
+                android:layout_height="wrap_content"
+                android:textColor="@color/texto"
+                android:textSize="18sp"
+                android:gravity="center"
+                android:lineSpacingExtra="4dp"
+                android:background="@drawable/aviso_malo"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp"
+                android:layout_marginBottom="18dp"
+                android:visibility="gone" />
 
             <EditText
                 android:id="@+id/campoUsuario"

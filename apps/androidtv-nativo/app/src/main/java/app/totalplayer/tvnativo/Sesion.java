@@ -75,11 +75,30 @@ public final class Sesion {
     }
 
     /**
-     * Una llave por aparato, estable: el cupo de dispositivos del cliente
-     * cuenta teles, no arranques.
+     * Una llave por aparato, y que sobreviva a reinstalar.
+     *
+     * Era un número al azar guardado con los ajustes, así que desinstalar y
+     * volver a instalar generaba otra llave, y el panel la contaba como una
+     * tele nueva. Ocho pruebas seguidas se comieron el cupo de dispositivos
+     * del cliente y lo dejaron sin poder entrar en su propia cuenta.
+     *
+     * ANDROID_ID es el identificador del aparato para esta aplicación: no
+     * cambia al reinstalar, y sí cambia al restablecer de fábrica, que es
+     * justo cuando debe contar como otra tele. El número al azar se queda
+     * como último recurso para los aparatos raros que devuelven vacío.
      */
     public static String llaveDelAparato(Context c) {
         SharedPreferences a = ajustes(c);
+
+        String delAparato = "";
+        try {
+            delAparato = android.provider.Settings.Secure.getString(
+                    c.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+        } catch (Throwable e) {
+            // Alguna capa de fabricante lo capa; se sigue con el de siempre
+        }
+        if (delAparato != null && delAparato.length() >= 8) return "tv-" + delAparato;
+
         String llave = a.getString("aparato", "");
         if (llave.isEmpty()) {
             llave = "tv-" + UUID.randomUUID().toString().substring(0, 12);

@@ -20,7 +20,7 @@ import android.widget.TextView;
 public class AccesoActivity extends Activity {
 
     private EditText campoUsuario, campoClave, campoServidor;
-    private TextView aviso, textoCargando;
+    private TextView aviso, textoCargando, porQueNo;
     private LinearLayout bloquePropia, cargando;
 
     @Override protected void onCreate(Bundle guardado) {
@@ -31,6 +31,7 @@ public class AccesoActivity extends Activity {
         campoClave = findViewById(R.id.campoClave);
         campoServidor = findViewById(R.id.campoServidor);
         aviso = findViewById(R.id.aviso);
+        porQueNo = findViewById(R.id.porQueNo);
         bloquePropia = findViewById(R.id.bloquePropia);
         cargando = findViewById(R.id.cargando);
         textoCargando = findViewById(R.id.textoCargando);
@@ -66,10 +67,11 @@ public class AccesoActivity extends Activity {
         final String propio = Web.normalizar(campoServidor.getText().toString());
 
         if (usuario.isEmpty() && propio.isEmpty()) {
-            aviso.setText("Escribe el usuario y la contraseña que te dio tu proveedor");
+            decirPorQueNo("Escribe el usuario y la contraseña que te dio tu proveedor.");
             campoUsuario.requestFocus();
             return;
         }
+        porQueNo.setVisibility(View.GONE);
 
         cargando.setVisibility(View.VISIBLE);
         textoCargando.setText(propio.isEmpty() ? "Entrando…" : "Conectando con tu servidor…");
@@ -126,10 +128,15 @@ public class AccesoActivity extends Activity {
             @Override public void falla(Exception e) {
                 cargando.setVisibility(View.GONE);
                 Catalogo.vaciar();
-                aviso.setText(Hilos.enCristiano(e));
+                decirPorQueNo(Hilos.enCristiano(e));
                 campoUsuario.requestFocus();
             }
         });
+    }
+
+    private void decirPorQueNo(String porque) {
+        porQueNo.setText(porque);
+        porQueNo.setVisibility(View.VISIBLE);
     }
 
     /** Un enlace de lista, no un servidor: get.php y los .m3u de siempre. */

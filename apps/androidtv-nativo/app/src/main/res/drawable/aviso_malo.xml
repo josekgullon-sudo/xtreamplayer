@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El recuadro del motivo por el que no ha entrado: rojo diluido con su
+     borde, para que se distinga de un texto de ayuda cualquiera -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/marca_tinte" />
+    <stroke android:width="2dp" android:color="@color/marca" />
+    <corners android:radius="11dp" />
+</shape>
