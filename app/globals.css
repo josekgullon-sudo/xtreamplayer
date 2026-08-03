@@ -2317,6 +2317,12 @@ select.input { appearance: none; cursor: pointer; }
   .cuenta-hero { padding: 22px 20px; }
   .cuenta-hero-acciones { width: 100%; }
   .cuenta-hero-acciones .btn { flex: 1; justify-content: center; }
+  /* «Cambiar contraseña», «Cerrar sesión» y escribir al proveedor medían
+     31px de alto: son las únicas tres cosas que se hacen en esta página */
+  .cuenta-acciones { gap: 10px; }
+  .cuenta-acciones .btn, .cuenta-bloque .btn { min-height: 44px; font-size: 14.5px; }
+  /* Y una al lado de otra no caben con el dedo: cada una en su línea */
+  .cuenta-acciones .btn { flex: 1 1 100%; justify-content: center; }
 }
 
 /* La nota bajo la llamada principal lleva los caminos secundarios */

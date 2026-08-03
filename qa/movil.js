@@ -196,6 +196,39 @@ async function abrirCanales(p) {
   const sobra = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   check("Nada desborda a lo ancho", sobra <= 1, `+${sobra}px`);
 
+  // ---------- «Mi cuenta», la del cliente de un proveedor ----------
+  /* La sesión se abre por API: por dónde se entra ya lo mira acceso.js, y
+     aquí lo que interesa es la página en sí */
+  /* Este cliente de la siembra tiene tres dispositivos y la llave es
+     siempre la misma, así que repetir la suite no gasta un hueco nuevo */
+  const entrada = await fetch(BASE + "/api/customer/login", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: "lauraruiz13", password: "cliente123", deviceKey: "qa-movil" }),
+  });
+  const galleta = (entrada.headers.getSetCookie?.() || []).find((c) => c.startsWith("xp_customer="));
+  if (galleta) {
+    await ctx.addCookies([{
+      name: "xp_customer", value: galleta.split(";")[0].split("=").slice(1).join("="),
+      domain: new URL(BASE).hostname, path: "/",
+    }]);
+    await p.goto(BASE + "/mi-cuenta", { waitUntil: "networkidle" });
+    await p.waitForSelector(".cuenta-hero", { timeout: 20000 });
+
+    const sobraCuenta = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    check("«Mi cuenta» cabe en el móvil", sobraCuenta <= 1, `+${sobraCuenta}px`);
+
+    /* «Cambiar contraseña», «Cerrar sesión» y escribir al proveedor medían
+       31px de alto: son las únicas tres cosas que se hacen en esta página */
+    const mandos = await p.locator(".cuenta-acciones .btn, .cuenta-bloque .btn").evaluateAll(
+      (els) => els.map((e) => ({ t: e.innerText.trim().slice(0, 20), h: Math.round(e.getBoundingClientRect().height) }))
+    );
+    check("Y lo que se hace en ella se pulsa con el dedo",
+      mandos.length > 0 && mandos.every((m) => m.h >= 44),
+      mandos.map((m) => `${m.t} ${m.h}px`).join(" · "));
+  } else {
+    check("Se puede abrir sesión de cliente para ver «Mi cuenta»", false);
+  }
+
   const ok = results.filter(Boolean).length;
   console.log(`\n${ok}/${results.length} pruebas de móvil OK`);
   await browser.close();
