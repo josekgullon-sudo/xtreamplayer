@@ -3,7 +3,7 @@
 # Todas las pruebas, de una vez.
 #
 # Antes había que levantar a mano ocho servidores simulados, sembrar los datos,
-# arrancar dos copias de la aplicación y lanzar treinta y cuatro suites una por
+# arrancar dos copias de la aplicación y lanzar treinta y cinco suites una por
 # una leyendo el README. En la práctica eso significa que nadie las lanzaba
 # todas: se probaba lo que uno acababa de tocar y el resto se enteraba días
 # después. Esto lo hace entero y dice al final qué ha fallado.
@@ -52,7 +52,7 @@ TODAS=(
   b2b panel-ui panel-importa apps-proveedor
   soporte-api-facturas facturas-fiscales factura-pdf admin-facturas admin-panel
   avisos copias planes-cobro
-  web-publica qa-diseno
+  web-publica qa-diseno panel-movil
   dominio
 )
 

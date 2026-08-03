@@ -11,7 +11,7 @@ llevaba por delante.
 ## De una vez
 
 ```bash
-bash qa/todo.sh              # las 34 suites, montando el escenario entero
+bash qa/todo.sh              # las 35 suites, montando el escenario entero
 bash qa/todo.sh movil e2e    # solo esas
 SIN_MONTAR=1 bash qa/todo.sh # con los servidores ya levantados
 ```
@@ -116,6 +116,7 @@ node qa/dominio.js
 | `envoltorios.js` | Las apps de Samsung, LG y Android TV, probadas antes de subirlas a ninguna tienda |
 | `listas-enormes.js` | Una lista de verdad: 8.000 canales, 3.000 películas y 1.500 series |
 | `atras.js` | Que «atrás» cierre la ficha o el vídeo, y no la aplicación |
+| `panel-movil.js` | El panel del proveedor en un teléfono, apartado por apartado |
 | `dominio.js` | Que la web viva en una sola dirección sin romper webhooks ni sondas |
 | `copias.js` | Copias de seguridad: que se hagan, que se abran y que no se las baje cualquiera |
 | `planes-cobro.js` | Los precios de Stripe de cada plan, puestos desde administración |

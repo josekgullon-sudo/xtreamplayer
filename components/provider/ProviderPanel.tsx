@@ -811,9 +811,12 @@ export default function ProviderPanel() {
         </>
       )}
 
-      {/* Mi marca */}
+      {/* Mi marca. El formulario y su vista previa van uno al lado del otro,
+          y uno debajo del otro en un móvil: con las columnas escritas aquí a
+          mano no cabían, la vista previa se quedaba fuera de la pantalla y la
+          página entera se podía arrastrar de lado. */}
       {tab === "marca" && perms?.managePlan && branding && (
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(300px, 520px) 1fr", gap: 28, alignItems: "start" }}>
+        <div className="panel-marca">
           {/* La clave fuerza a repintar los campos cuando la marca cambia
               desde fuera del formulario (restablecer): con defaultValue, si
               no, seguirían enseñando lo que había antes */}

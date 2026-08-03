@@ -818,6 +818,21 @@ select.input { appearance: none; cursor: pointer; }
   align-items: start;
 }
 
+/* «Mi marca»: el formulario y su vista previa, uno al lado del otro. En un
+   teléfono, uno debajo del otro — con las columnas fijas la vista previa se
+   quedaba fuera de la pantalla y arrastraba la página entera de lado. */
+.panel-marca {
+  display: grid; grid-template-columns: minmax(300px, 520px) 1fr;
+  gap: 28px; align-items: start;
+}
+@media (max-width: 900px) {
+  .panel-marca { grid-template-columns: 1fr; gap: 20px; }
+  /* Una celda de rejilla no baja de lo que mide su contenido más ancho a no
+     ser que se le diga: sin esto, la vista previa seguía sacando la página
+     unos píxeles de lado aunque ya estuviera debajo del formulario */
+  .panel-marca > * { min-width: 0; }
+}
+
 .panel-nav {
   position: sticky;
   top: var(--header-h);
@@ -901,13 +916,22 @@ select.input { appearance: none; cursor: pointer; }
 
 @media (max-width: 900px) {
   .panel-layout { grid-template-columns: 1fr; }
+  /* La columna del panel se convierte en una tira que se desliza de lado.
+     Estaba puesta a «wrap», pero el grupo del final —«Ver reproductor» y
+     «Salir»— no se parte por dentro, así que el último apartado asomaba
+     unos píxeles y con él se podía arrastrar la página entera. */
   .panel-nav {
-    position: static; height: auto; flex-direction: row; flex-wrap: wrap;
+    position: static; height: auto; flex-direction: row; flex-wrap: nowrap;
+    overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
     border-right: none; border-bottom: 1px solid var(--border); padding: 12px;
   }
+  .panel-nav::-webkit-scrollbar { display: none; }
   .panel-nav-head, .panel-nav-group { display: none; }
-  .panel-nav-item { width: auto; }
-  .panel-nav-foot { margin-top: 0; padding-top: 0; border-top: none; display: flex; gap: 2px; }
+  .panel-nav-item { width: auto; flex-shrink: 0; min-height: 44px; }
+  .panel-nav-foot {
+    margin-top: 0; padding-top: 0; border-top: none;
+    display: flex; gap: 2px; flex-shrink: 0;
+  }
   .panel-main { padding: 20px 14px 60px; }
 }
 
