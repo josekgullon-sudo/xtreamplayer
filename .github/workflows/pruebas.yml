@@ -15,8 +15,14 @@ on:
     paths-ignore:
       - "apps/**"
       - "**/*.md"
-  pull_request:
   workflow_dispatch:
+
+# Con `push` en todas las ramas, añadir `pull_request` hacía que cada empujón
+# a una rama con PR abierto lanzara las 35 suites dos veces. Y si se empuja
+# dos veces seguidas, la primera tanda ya no interesa: se cancela sola.
+concurrency:
+  group: pruebas-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   suites:
@@ -40,10 +46,17 @@ jobs:
       - name: Chromium para Playwright
         run: npx playwright install --with-deps chromium
 
-      # Los vídeos de prueba se generan (no se guardan en el repositorio),
-      # y para eso hace falta ffmpeg. En ubuntu-latest ya viene.
-      - name: Comprobar ffmpeg
-        run: ffmpeg -version | head -1
+      # Los vídeos de prueba se generan (no se guardan en el repositorio) y
+      # para eso hace falta ffmpeg, que en ubuntu-latest NO viene. Aquí había
+      # un «ffmpeg -version | head -1» que daba por bueno el paso aunque no
+      # estuviera: el código de salida de una tubería es el del último
+      # mandato, y `head` siempre acaba bien. Una comprobación que no puede
+      # fallar es peor que ninguna, porque tapa lo que venía a mirar.
+      - name: ffmpeg, para los vídeos de prueba
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version
 
       - name: Todas las suites
         run: bash qa/todo.sh
