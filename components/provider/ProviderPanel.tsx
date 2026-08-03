@@ -750,7 +750,7 @@ export default function ProviderPanel() {
           </div>
 
           <div style={{ overflowX: "auto" }}>
-            <table className="panel-table">
+            <table className="panel-table fichas-en-movil">
               <thead>
                 <tr>
                   <th>Email</th>
@@ -772,17 +772,17 @@ export default function ProviderPanel() {
                 )}
                 {resellers.map((r) => (
                   <tr key={r.id}>
-                    <td><strong>{r.email}</strong></td>
-                    <td>{r.name || "—"}</td>
-                    <td>{r.viewAllCustomers ? "Todos" : "Solo los suyos"}</td>
-                    <td>
+                    <td className="celda-titulo"><strong>{r.email}</strong></td>
+                    <td data-etiqueta="Nombre">{r.name || "—"}</td>
+                    <td data-etiqueta="Ve clientes">{r.viewAllCustomers ? "Todos" : "Solo los suyos"}</td>
+                    <td data-etiqueta="Dominios">
                       <span className="badge badge-accent">{DOMAIN_ACCESS_LABEL[r.domainAccess]}</span>
                     </td>
-                    <td>
+                    <td data-etiqueta="Clientes">
                       {r.customers}
                       {r.maxCustomers > 0 ? ` / ${r.maxCustomers}` : ""}
                     </td>
-                    <td>
+                    <td data-etiqueta="Estado">
                       <span className={`badge ${r.status === "active" ? "badge-success" : ""}`}>
                         {r.status === "active" ? "Activo" : "Desactivado"}
                       </span>
@@ -1080,7 +1080,7 @@ export default function ProviderPanel() {
       </div>
 
       <div style={{ overflowX: "auto" }}>
-        <table className="panel-table">
+        <table className="panel-table fichas-en-movil">
           <thead>
             <tr>
               <th>Usuario</th>
@@ -1102,14 +1102,14 @@ export default function ProviderPanel() {
             )}
             {customers.map((c) => (
               <tr key={c.id}>
-                <td>
+                <td className="celda-titulo">
                   <button className="link-btn" onClick={() => setDetailId(c.id)}>
                     {c.username}
                   </button>
                 </td>
-                <td>{c.label || "—"}</td>
-                <td><span className="badge badge-accent">{c.playlistType === "xtream" ? "Xtream" : "M3U"}</span></td>
-                <td>
+                <td data-etiqueta="Nombre">{c.label || "—"}</td>
+                <td data-etiqueta="Lista"><span className="badge badge-accent">{c.playlistType === "xtream" ? "Xtream" : "M3U"}</span></td>
+                <td data-etiqueta="Dispositivos">
                   <span className="devices-cell">
                     <span className={c.devices >= c.maxDevices ? "devices-full" : ""}>
                       {c.devices}/{c.maxDevices}
@@ -1125,12 +1125,12 @@ export default function ProviderPanel() {
                     )}
                   </span>
                 </td>
-                <td>
+                <td data-etiqueta="Estado">
                   <span className={`badge ${c.status === "active" ? "badge-success" : ""}`}>
                     {c.status === "active" ? "Activo" : "Desactivado"}
                   </span>
                 </td>
-                <td style={{ color: "var(--text-faint)" }}>{formatDate(c.createdAt)}</td>
+                <td data-etiqueta="Alta" style={{ color: "var(--text-faint)" }}>{formatDate(c.createdAt)}</td>
                 <td className="col-actions">
                   <div className="row-actions">
                     <button

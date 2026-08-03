@@ -108,6 +108,63 @@ async function seSalen(p) {
 
   await p.screenshot({ path: __dirname + "/97-panel-movil.png", fullPage: true });
 
+  /* ---------- Las tablas, con clientes de verdad ----------
+   *
+   * El proveedor de arriba acaba de darse de alta y no tiene ninguno, así
+   * que sus tablas están vacías y no prueban nada. El de la siembra tiene
+   * veinticuatro clientes y tres revendedores, que es donde se veía el
+   * problema: siete columnas son 932px de tabla en 390px de pantalla, y la
+   * de los botones —la que hace algo— se quedaba fuera.
+   */
+  const entrada = await fetch(BASE + "/api/provider/auth", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "login", email: "demo@totalplayer.app", password: "demo12345" }),
+  });
+  const galleta = (entrada.headers.getSetCookie?.() || []).find((c) => c.startsWith("xp_provider="));
+  const conDatos = await b.newContext({
+    viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true,
+    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+  });
+  await conDatos.addCookies([{
+    name: "xp_provider", value: galleta.split(";")[0].split("=").slice(1).join("="),
+    domain: new URL(BASE).hostname, path: "/",
+  }]);
+  const d = await conDatos.newPage();
+  d.on("pageerror", (e) => console.log("PAGEERROR:", String(e).slice(0, 200)));
+
+  for (const [nombre, titulo] of [["Clientes", "Usuario"], ["Revendedores", "Email"]]) {
+    await d.goto(BASE + "/panel", { waitUntil: "networkidle" });
+    await d.locator(`.panel-nav-item:has-text("${nombre}")`).first().click();
+    await d.waitForSelector(".panel-table tbody tr", { timeout: 25000 });
+    await d.waitForTimeout(1200);
+
+    const t = await d.evaluate(() => {
+      const tabla = document.querySelector(".panel-table");
+      const fila = tabla.querySelector("tbody tr");
+      const celdas = [...fila.querySelectorAll("td")];
+      return {
+        anchoTabla: tabla.scrollWidth,
+        pantalla: window.innerWidth,
+        // Cada dato lleva al lado de qué es: si no, es una lista de valores sueltos
+        etiquetadas: celdas.filter((e) => e.getAttribute("data-etiqueta") || e.classList.contains("celda-titulo") || e.classList.contains("col-actions")).length,
+        celdas: celdas.length,
+        todoALaVista: celdas.every((e) => e.getBoundingClientRect().right <= window.innerWidth + 1),
+        acciones: [...fila.querySelectorAll(".row-actions .btn, .row-actions .icon-btn")]
+          .map((e) => Math.round(e.getBoundingClientRect().height)),
+      };
+    });
+
+    check(`La lista de ${nombre.toLowerCase()} cabe en el móvil`,
+      t.anchoTabla <= t.pantalla, `${t.anchoTabla}px en ${t.pantalla}px`);
+    check(`Y se ve entera, sin arrastrarla de lado`, t.todoALaVista);
+    check(`Con cada dato diciendo de qué es`, t.etiquetadas === t.celdas, `${t.etiquetadas}/${t.celdas}`);
+    /* Es lo que se va a un panel en el móvil a hacer: desactivar a quien no
+       ha pagado. Estaba fuera de la pantalla. */
+    check(`Y los botones de cada ${titulo === "Usuario" ? "cliente" : "revendedor"} se pulsan con el dedo`,
+      t.acciones.length > 0 && t.acciones.every((h) => h >= 44), t.acciones.join(", ") + "px");
+  }
+  await d.screenshot({ path: __dirname + "/98-panel-movil-listas.png", fullPage: true });
+
   await b.close();
   console.log(`\n${results.filter(Boolean).length}/${results.length} pruebas del panel en el móvil OK`);
   process.exit(results.every(Boolean) ? 0 : 1);
