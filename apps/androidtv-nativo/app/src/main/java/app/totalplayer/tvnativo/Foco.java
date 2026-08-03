@@ -23,9 +23,17 @@ public final class Foco {
                         .scaleY(tiene ? cuanto : 1f)
                         .setDuration(140)
                         .start();
-                // Lo enfocado crece: si no sube de capa, los vecinos lo recortan
-                vista.bringToFront();
-                if (vista.getParent() instanceof View) ((View) vista.getParent()).invalidate();
+                /*
+                 * Lo enfocado crece y hay que subirlo de capa, o los vecinos
+                 * lo recortan. Pero NO con bringToFront(): eso no cambia el
+                 * orden de pintado, cambia el orden de los hijos de verdad.
+                 * En una fila, la tarjeta enfocada se iba al último sitio y
+                 * el menú se recolocaba solo —«TV en directo» acababa a la
+                 * derecha del todo— y con él se perdía el camino del mando.
+                 *
+                 * La Z sube la capa sin tocar el orden ni la colocación.
+                 */
+                vista.setTranslationZ(tiene ? 8f : 0f);
             }
         });
     }
