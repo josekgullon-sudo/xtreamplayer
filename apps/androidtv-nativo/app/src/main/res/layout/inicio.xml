@@ -26,15 +26,18 @@
         android:paddingStart="48dp"
         android:paddingEnd="48dp">
 
-        <TextView
+        <FrameLayout
             android:layout_width="38dp"
             android:layout_height="38dp"
-            android:text="T"
-            android:gravity="center"
-            android:textColor="#FFFFFF"
-            android:textSize="19sp"
-            android:textStyle="bold"
-            android:background="@drawable/marca_logo" />
+            android:background="@drawable/marca_logo">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_marca"
+                android:contentDescription="@null" />
+        </FrameLayout>
 
         <TextView
             android:id="@+id/marca"

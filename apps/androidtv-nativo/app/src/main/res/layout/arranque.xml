@@ -2,10 +2,9 @@
 <!--
   Lo primero que se ve al encender.
 
-  No es un adorno: entre que arranca la aplicación y que están las listas
-  pasan unos segundos, y lo que había hasta ahora en esos segundos era una
-  pantalla en blanco. Un logotipo que entra, una línea de marca que se abre
-  y un acorde: lo mismo que hace cualquier aplicación por la que se paga.
+  El sello con su resplandor detrás, el nombre que entra por la izquierda,
+  una línea de marca que se abre y el acorde. Dura tres segundos y pico y se
+  salta con cualquier tecla.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -20,41 +19,58 @@
         android:gravity="center_horizontal">
 
         <LinearLayout
-            android:id="@+id/grupoLogo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:clipChildren="false">
 
-            <TextView
-                android:id="@+id/sello"
-                android:layout_width="86dp"
-                android:layout_height="86dp"
-                android:text="T"
-                android:gravity="center"
-                android:textColor="#FFFFFF"
-                android:textSize="44sp"
-                android:textStyle="bold"
-                android:background="@drawable/sello_grande" />
+            <!-- El sello, con el resplandor por detrás -->
+            <FrameLayout
+                android:layout_width="150dp"
+                android:layout_height="150dp"
+                android:clipChildren="false">
+
+                <View
+                    android:id="@+id/halo"
+                    android:layout_width="150dp"
+                    android:layout_height="150dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/halo_marca" />
+
+                <FrameLayout
+                    android:id="@+id/sello"
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/sello_grande">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_marca"
+                        android:contentDescription="@null" />
+                </FrameLayout>
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/nombre"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
+                android:layout_marginStart="14dp"
                 android:text="TOTALplayer"
                 android:textColor="@color/texto"
-                android:textSize="60sp"
-                android:textStyle="bold" />
+                android:textSize="58sp"
+                android:textStyle="bold"
+                android:letterSpacing="-0.02" />
         </LinearLayout>
 
-        <!-- La línea que se abre debajo: la que da la sensación de que algo
-             está pasando mientras se conecta -->
         <View
             android:id="@+id/linea"
-            android:layout_width="360dp"
+            android:layout_width="380dp"
             android:layout_height="3dp"
-            android:layout_marginTop="34dp"
+            android:layout_marginTop="30dp"
             android:background="@drawable/linea_marca"
             android:scaleX="0" />
 
@@ -62,11 +78,11 @@
             android:id="@+id/lema"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="20dp"
             android:text="Tu televisión, donde quieras"
             android:textColor="@color/tenue"
             android:textSize="18sp"
-            android:letterSpacing="0.08"
+            android:letterSpacing="0.10"
             android:alpha="0" />
     </LinearLayout>
 </FrameLayout>

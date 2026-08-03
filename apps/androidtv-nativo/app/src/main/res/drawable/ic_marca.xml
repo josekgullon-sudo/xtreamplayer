@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  La marca: un play con las esquinas redondeadas.
+
+  Una «T» dentro de un cuadrado no es un logotipo, es una inicial. Lo que
+  dice de un vistazo qué es esto —y lo que usan todos los que se toman en
+  serio— es el triángulo de reproducir. Con las tres esquinas redondeadas,
+  que un triángulo a punta seca dentro de un cuadrado blando canta.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp" android:height="48dp"
+    android:viewportWidth="48" android:viewportHeight="48">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M19.52,12.64 L34.48,22.37 Q37,24 34.48,25.64 L19.52,35.37 Q17,37 17,34 L17,14 Q17,11 19.52,12.64 Z" />
+</vector>

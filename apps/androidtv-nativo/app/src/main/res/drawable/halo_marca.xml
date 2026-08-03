@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El resplandor de detrás del sello: lo que hace que no parezca un
+     cuadrado pegado sobre un fondo -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <gradient
+        android:type="radial"
+        android:gradientRadius="50%"
+        android:startColor="#59E5192B"
+        android:centerColor="#22E5192B"
+        android:endColor="#00E5192B" />
+</shape>

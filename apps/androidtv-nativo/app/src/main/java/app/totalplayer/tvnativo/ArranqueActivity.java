@@ -18,12 +18,14 @@ import android.view.animation.OvershootInterpolator;
  * logotipo, se abre la línea de la marca y suena un acorde: es lo que
  * separa una aplicación de una pantalla de formulario.
  *
- * Dura poco menos de dos segundos y se salta con cualquier tecla, porque a
- * la décima vez que enciendes la tele ya lo has visto.
+ * Dura lo que dura el acorde y se salta con cualquier tecla, porque a la
+ * décima vez que enciendes la tele ya lo has visto.
  */
 public class ArranqueActivity extends Activity {
 
-    private static final long DURACION = 1900;
+    /* Tres segundos y pico: lo que dura el acorde. Cortar la presentación
+       antes de que acabe la música es peor que no tener presentación. */
+    private static final long DURACION = 3400;
 
     private MediaPlayer acorde;
     private boolean yaVoy = false;
@@ -36,6 +38,7 @@ public class ArranqueActivity extends Activity {
         super.onCreate(guardado);
         setContentView(R.layout.arranque);
 
+        final View halo = findViewById(R.id.halo);
         final View sello = findViewById(R.id.sello);
         final View nombre = findViewById(R.id.nombre);
         final View linea = findViewById(R.id.linea);
@@ -48,20 +51,43 @@ public class ArranqueActivity extends Activity {
         nombre.setAlpha(0f);
         nombre.setTranslationX(-40f);
 
+        halo.setAlpha(0f);
+        halo.setScaleX(0.7f);
+        halo.setScaleY(0.7f);
+
         sello.animate().alpha(1f).scaleX(1f).scaleY(1f)
                 .setInterpolator(new OvershootInterpolator(1.6f))
-                .setDuration(560).start();
+                .setDuration(620).start();
+
+        halo.animate().alpha(1f).scaleX(1f).scaleY(1f)
+                .setInterpolator(new DecelerateInterpolator())
+                .setDuration(900).start();
+
+        /* El resplandor respira durante la espera: tres segundos de imagen
+           congelada parecen la aplicación colgada, no una presentación */
+        halo.postDelayed(new Runnable() {
+            @Override public void run() {
+                if (yaVoy) return;
+                halo.animate().scaleX(1.14f).scaleY(1.14f).alpha(0.75f).setDuration(1050).start();
+                halo.postDelayed(new Runnable() {
+                    @Override public void run() {
+                        if (yaVoy) return;
+                        halo.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(1050).start();
+                    }
+                }, 1050);
+            }
+        }, 900);
 
         nombre.animate().alpha(1f).translationX(0f)
                 .setInterpolator(new DecelerateInterpolator())
-                .setStartDelay(230).setDuration(520).start();
+                .setStartDelay(260).setDuration(560).start();
 
         linea.animate().scaleX(1f)
                 .setInterpolator(new DecelerateInterpolator())
-                .setStartDelay(480).setDuration(620).start();
+                .setStartDelay(540).setDuration(760).start();
 
         lema.animate().alpha(1f)
-                .setStartDelay(760).setDuration(520).start();
+                .setStartDelay(880).setDuration(600).start();
 
         sonar();
         Hilos.enPantallaDentroDe(seguir, DURACION);
