@@ -637,25 +637,51 @@ export default function PlayerApp() {
 
   /* ---------- Listas visibles (búsqueda + categorías + favoritos) ---------- */
 
-  const q = search.trim().toLowerCase();
+  /*
+   * Lo que se escribe y lo que se filtra son dos cosas.
+   *
+   * Filtrar rehace la lista entera —con una de proveedor son 8.000 canales y
+   * sus 8.000 funciones de reproducir—, y eso se hacía en cada tecla. En este
+   * ordenador se nota poco; en un aparato de televisión, medido, escribir
+   * nueve letras dejaba el hilo principal bloqueado 1,8 segundos en diez
+   * tirones, el peor de casi medio segundo. Con el mando, que es como se
+   * escribe en una tele, eso es una aplicación colgada.
+   *
+   * El campo sigue respondiendo a cada tecla; lo que espera a que pares es
+   * la lista. Un octavo de segundo no se percibe al escribir y convierte una
+   * ráfaga de nueve reconstrucciones en una.
+   */
+  const q = useBusquedaCalmada(search);
 
-  const liveGroups = useMemo(() => {
-    if (!active)
-      return [] as {
-        name: string;
-        channels: { id: string; name: string; logo?: string; favKey: string; archivo: boolean; play: () => void }[];
-      }[];
+  /*
+   * Las carpetas con todos sus canales, sin filtrar por nada.
+   *
+   * Construir esto cuesta: con una lista de proveedor son 8.000 objetos, y
+   * cada uno lleva su propia función de reproducir. Antes se rehacía también
+   * al escribir en el buscador, y eso —medido en un aparato de televisión—
+   * es lo que dejaba el hilo principal bloqueado casi medio segundo por
+   * tecla. Se hace una vez por lista; buscar solo criba lo ya construido.
+   */
+  const gruposCompletos = useMemo(() => {
+    type Canal = {
+      id: string; name: string; logo?: string; favKey: string; archivo: boolean;
+      play: () => void;
+      /** La carpeta de la que sale, para decirlo en «Todos los canales» */
+      grupo: string;
+      /** El nombre ya en minúsculas: buscar no puede rebajar 8.000 cadenas en cada tecla */
+      busca: string;
+    };
+    if (!active) return [] as { name: string; channels: Canal[] }[];
 
     if (active.type === "m3u") {
       const channels = m3uData[active.id] || [];
       const byGroup = new Map<string, M3UChannel[]>();
       for (const ch of channels) {
-        if (q && !(ch.name || "").toLowerCase().includes(q)) continue;
         const g = ch.group || "Sin categoría";
         if (!byGroup.has(g)) byGroup.set(g, []);
         byGroup.get(g)!.push(ch);
       }
-      const groups = Array.from(byGroup.entries()).map(([name, chs]) => ({
+      return Array.from(byGroup.entries()).map(([name, chs]) => ({
         name,
         channels: chs.map((ch) => ({
           id: ch.id,
@@ -664,18 +690,14 @@ export default function PlayerApp() {
           favKey: `${active.id}:m3u:${ch.url}`,
           archivo: false,
           play: () => playM3u(active, ch),
+          grupo: name,
+          busca: (ch.name || "").toLowerCase(),
         })),
       }));
-      if (tab === "favs") {
-        return groups
-          .map((g) => ({ ...g, channels: g.channels.filter((c) => favorites[c.favKey]) }))
-          .filter((g) => g.channels.length);
-      }
-      return groups;
     }
 
     const cache = xtreamData[active.id];
-    if (!cache?.liveStreams) return [];
+    if (!cache?.liveStreams) return [] as { name: string; channels: Canal[] }[];
     const catName = new Map((cache.liveCats || []).map((c) => [c.category_id, c.category_name]));
     const byCat = new Map<string, XtreamLiveStream[]>();
     /*
@@ -686,14 +708,12 @@ export default function PlayerApp() {
      */
     for (const c of cache.liveCats || []) byCat.set(c.category_name, []);
     for (const ch of cache.liveStreams) {
-      if (q && !(ch.name || "").toLowerCase().includes(q)) continue;
       const g = catName.get(ch.category_id || "") || "Otros";
       if (!byCat.has(g)) byCat.set(g, []);
       byCat.get(g)!.push(ch);
     }
-    // Las categorías que se queden vacías (por la búsqueda) no se enseñan
     for (const [nombre, chs] of byCat) if (!chs.length) byCat.delete(nombre);
-    const groups = Array.from(byCat.entries()).map(([name, chs]) => ({
+    return Array.from(byCat.entries()).map(([name, chs]) => ({
       name,
       channels: chs.map((ch) => ({
         id: String(ch.stream_id),
@@ -702,15 +722,32 @@ export default function PlayerApp() {
         favKey: `${active.id}:live:${ch.stream_id}`,
         archivo: Number(ch.tv_archive) > 0,
         play: () => playLive(active, ch),
+        grupo: name,
+        busca: (ch.name || "").toLowerCase(),
       })),
     }));
+  }, [active, m3uData, xtreamData, playLive, playM3u]);
+
+  /* Y aquí solo se criba: una comparación de cadenas por canal, sin crear
+     ni un objeto de los que cuestan. Las carpetas que se quedan vacías por
+     la búsqueda no se enseñan. */
+  const liveGroups = useMemo(() => {
+    let grupos = gruposCompletos;
+    if (q) {
+      const cribados = [];
+      for (const g of grupos) {
+        const chs = g.channels.filter((c) => c.busca.includes(q));
+        if (chs.length) cribados.push({ name: g.name, channels: chs });
+      }
+      grupos = cribados;
+    }
     if (tab === "favs") {
-      return groups
-        .map((g) => ({ ...g, channels: g.channels.filter((c) => favorites[c.favKey]) }))
+      return grupos
+        .map((g) => ({ name: g.name, channels: g.channels.filter((c) => favorites[c.favKey]) }))
         .filter((g) => g.channels.length);
     }
-    return groups;
-  }, [active, m3uData, xtreamData, q, tab, favorites, playLive, playM3u]);
+    return grupos;
+  }, [gruposCompletos, q, tab, favorites]);
 
   const flatChannels = useMemo(() => liveGroups.flatMap((g) => g.channels), [liveGroups]);
 
@@ -830,14 +867,19 @@ export default function PlayerApp() {
   /** Con menos de dos letras no se busca: media lista coincide con una sola */
   const buscandoTodo = q.length >= 2;
 
+  /* Los canales en una sola lista, ya construidos. La búsqueda global miraba
+     `canalesTodos`, que obliga a rebajar a minúsculas los 8.000 nombres en
+     cada tecla; estos ya vienen con el nombre rebajado de fábrica. */
+  const canalesPlanos = useMemo(() => gruposCompletos.flatMap((g) => g.channels), [gruposCompletos]);
+
   const resultados = useMemo(() => {
     if (!buscandoTodo) return { canales: [], pelis: [], series: [], total: 0 };
     const coincide = (n?: string) => (n || "").toLowerCase().includes(q);
-    const canales = canalesTodos.filter((c) => coincide(c.name));
+    const canales = canalesPlanos.filter((c) => c.busca.includes(q));
     const pelis = (data?.vodStreams || []).filter((v) => coincide(v.name));
     const series = (data?.seriesList || []).filter((s) => coincide(s.name));
     return { canales, pelis, series, total: canales.length + pelis.length + series.length };
-  }, [buscandoTodo, q, canalesTodos, data]);
+  }, [buscandoTodo, q, canalesPlanos, data]);
 
   const vodVisible = useMemo(() => {
     if (!active || active.type !== "xtream") return [];
@@ -1001,7 +1043,9 @@ export default function PlayerApp() {
        Aquí estaban todos menos los que no cabían: un `.slice(0, 500)` dejaba
        fuera 7.500 canales de una lista normal de proveedor, sin decirlo. Ya
        no hay tope; lo que no se ve no se pinta (ListaVirtual). */
-    return liveGroups.flatMap((g) => g.channels.map((c) => ({ ...c, grupo: g.name })));
+    /* Cada canal ya sabe de qué carpeta es desde que se construyó: copiarlos
+       aquí para añadírselo eran otros 8.000 objetos por cada tecla */
+    return liveGroups.flatMap((g) => g.channels);
   }, [liveGroups, grupoSel]);
 
   return (
@@ -1925,4 +1969,29 @@ function FichaCredito({ etiqueta, valor }: { etiqueta: string; valor?: string })
       <span>{etiqueta}</span> {valor}
     </p>
   );
+}
+
+/**
+ * El texto de búsqueda, ya en minúsculas y sin espacios, pero esperando a
+ * que quien escribe pare un momento.
+ *
+ * Está aquí abajo y no en un fichero aparte porque solo lo usa esta
+ * pantalla, y porque lo que explica por qué existe está donde se llama.
+ */
+function useBusquedaCalmada(texto: string, espera = 130): string {
+  const limpio = texto.trim().toLowerCase();
+  const [calmado, setCalmado] = useState(limpio);
+
+  useEffect(() => {
+    /* Vaciar el buscador tiene que notarse ya: se está deshaciendo algo, y
+       esperar a que vuelva la lista completa parece que no ha funcionado */
+    if (!limpio) {
+      setCalmado("");
+      return;
+    }
+    const reloj = setTimeout(() => setCalmado(limpio), espera);
+    return () => clearTimeout(reloj);
+  }, [limpio, espera]);
+
+  return calmado;
 }
