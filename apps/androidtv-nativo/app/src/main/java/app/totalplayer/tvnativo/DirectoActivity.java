@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -30,6 +31,8 @@ public class DirectoActivity extends Activity {
     private AdaptadorCarpetas carpetas;
     private AdaptadorCanales canales;
     private TextView tituloCarpeta, nombreCanal, ahora, luego, pista, comoAmpliar, vacio;
+    private TextView etiquetaAhora, etiquetaLuego;
+    private View caja;
     private ProgressBar girando;
     private PlayerView vista;
     private ExoPlayer reproductor;
@@ -51,8 +54,22 @@ public class DirectoActivity extends Activity {
         comoAmpliar = findViewById(R.id.comoAmpliar);
         vacio = findViewById(R.id.vacio);
         girando = findViewById(R.id.girando);
+        etiquetaAhora = findViewById(R.id.etiquetaAhora);
+        etiquetaLuego = findViewById(R.id.etiquetaLuego);
+        caja = findViewById(R.id.caja);
         vista = findViewById(R.id.vista);
         vista.setUseController(false);
+
+        /* El vídeo es 16:9 y la caja tiene que serlo también. Dejándola
+           estirarse hasta abajo, salía con dos franjas negras enormes que
+           parecían un fallo de la imagen */
+        caja.post(new Runnable() {
+            @Override public void run() {
+                ViewGroup.LayoutParams medidas = caja.getLayoutParams();
+                medidas.height = caja.getWidth() * 9 / 16;
+                caja.setLayoutParams(medidas);
+            }
+        });
 
         listaCarpetas.setLayoutManager(new LinearLayoutManager(this));
         listaCanales.setLayoutManager(new LinearLayoutManager(this));
@@ -120,7 +137,7 @@ public class DirectoActivity extends Activity {
                         // Se puede haber cambiado de carpeta mientras llegaba
                         if (!carpeta.nombre.contentEquals(tituloCarpeta.getText())) return;
                         canales.poner(lista);
-                        canales.sonando(sonando);
+                        canales.sonando(listaCanales, sonando, null);
                         listaCanales.scrollToPosition(0);
                         vacio.setVisibility(lista.isEmpty() ? View.VISIBLE : View.GONE);
                     }
@@ -148,10 +165,12 @@ public class DirectoActivity extends Activity {
         }
 
         sonando = canal.id;
-        canales.sonando(sonando);
+        canales.sonando(listaCanales, sonando, "");
         nombreCanal.setText(canal.nombre);
         ahora.setText("");
         luego.setText("");
+        etiquetaAhora.setVisibility(View.GONE);
+        etiquetaLuego.setVisibility(View.GONE);
         pista.setVisibility(View.GONE);
         comoAmpliar.setVisibility(View.VISIBLE);
         girando.setVisibility(View.VISIBLE);
@@ -185,8 +204,16 @@ public class DirectoActivity extends Activity {
         }, new Hilos.Luego<String[]>() {
             @Override public void listo(String[] par) {
                 if (par == null || !canal.id.equals(sonando)) return;
-                ahora.setText(par[0].isEmpty() ? "" : par[0]);
-                luego.setText(par[1].isEmpty() ? "" : "Después: " + par[1]);
+                if (!par[0].isEmpty()) {
+                    etiquetaAhora.setVisibility(View.VISIBLE);
+                    ahora.setText(par[0]);
+                }
+                if (!par[1].isEmpty()) {
+                    etiquetaLuego.setVisibility(View.VISIBLE);
+                    luego.setText(par[1]);
+                }
+                // Y en la lista, debajo del nombre del canal que suena
+                canales.sonando(listaCanales, sonando, par[0]);
             }
             @Override public void falla(Exception e) { /* la guía es un extra */ }
         });
@@ -204,6 +231,12 @@ public class DirectoActivity extends Activity {
     @Override protected void onStop() {
         super.onStop();
         if (reproductor != null) reproductor.pause();
+    }
+
+    /** Al volver de la pantalla completa, la ventana sigue viva. */
+    @Override protected void onResume() {
+        super.onResume();
+        if (reproductor != null && !sonando.isEmpty()) reproductor.play();
     }
 
     @Override protected void onDestroy() {

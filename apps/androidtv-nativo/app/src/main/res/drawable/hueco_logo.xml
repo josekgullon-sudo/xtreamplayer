@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- .pa-live-chan img del web: el logotipo sobre un cuadro oscuro. Sin él,
+     los logotipos con fondo blanco parecen recortes pegados -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#59000000" />
+    <corners android:radius="10dp" />
+</shape>
