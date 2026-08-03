@@ -1,2 +1,25 @@
+/*
+ * De dónde se baja el complemento de Android.
+ *
+ * Sin este bloque Gradle solo mira en su propio repositorio de complementos,
+ * y el de Android no está ahí: vive en el de Google. El error que sale es
+ * «Plugin [id: 'com.android.application'] was not found», que no menciona los
+ * repositorios y manda a buscar por el sitio equivocado.
+ */
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
 rootProject.name = "TOTALplayer"
 include ':app'

@@ -1,2 +1,22 @@
+/*
+ * De dónde se baja el complemento de Android. Está explicado en
+ * apps/android/settings.gradle: las dos aplicaciones se compilan igual y con
+ * las mismas versiones, para que arreglar una no deje la otra rota.
+ */
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
 rootProject.name = "TOTALplayer TV"
 include ':app'

@@ -1,4 +1,12 @@
-// Raíz del proyecto: solo dice con qué se compila.
+/*
+ * Raíz del proyecto: solo dice con qué se compila.
+ *
+ * La versión va clavada a mano, aquí y en apps/androidtv, y a juego con la de
+ * Gradle que pone .github/workflows/apps-android.yml. El complemento de
+ * Android solo admite una franja estrecha de versiones de Gradle, y dejarlo
+ * a lo que traiga la máquina de turno es lo que rompe la compilación un
+ * martes cualquiera sin haber tocado nada.
+ */
 plugins {
-    id 'com.android.application' version '8.5.0' apply false
+    id 'com.android.application' version '8.7.3' apply false
 }

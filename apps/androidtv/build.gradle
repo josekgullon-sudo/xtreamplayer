@@ -1,5 +1,7 @@
-buildscript {
-    repositories { google(); mavenCentral() }
-    dependencies { classpath 'com.android.tools.build:gradle:8.1.4' }
+/*
+ * Raíz del proyecto: solo dice con qué se compila. Misma versión que la del
+ * móvil a propósito — está explicado en apps/android/build.gradle.
+ */
+plugins {
+    id 'com.android.application' version '8.7.3' apply false
 }
-allprojects { repositories { google(); mavenCentral() } }
