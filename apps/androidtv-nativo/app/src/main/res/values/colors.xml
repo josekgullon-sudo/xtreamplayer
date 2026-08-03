@@ -1,37 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  La paleta del reproductor web, la misma exacta.
-  Ver :root en app/globals.css: si allí cambia la marca, aquí también.
+  Los grises, neutros de verdad.
 
-  Lo importante, y es justo lo que estaba mal: los fondos van en gris, no en
-  negro. El problema de una interfaz oscura no es que sea oscura, es que
-  todo caiga en el mismo tono y no se distinga una tarjeta de su fondo. Cada
-  escalón sube lo justo para verse, y los bordes son los que dibujan de
-  verdad dónde acaba cada cosa.
+  El web usa un gris con una pizca de violeta (#201F28) y en un monitor se ve
+  gris. En un televisor no: la tele satura, y ese violeta salía azul eléctrico
+  con las tarjetas en lila y el rojo de la marca en fucsia. Parecía otra
+  aplicación, y no una buena.
+
+  Así que los mismos escalones y la misma estructura que el web —fondo,
+  superficie, elevada, filo—, pero sin violeta. Lo que en el monitor era gris
+  aquí sigue siendo gris. Y el rojo, que es lo único con color, se reserva
+  para el foco y para la marca.
 -->
 <resources>
-    <color name="fondo">#201F28</color>
-    <color name="superficie">#2E2B39</color>
-    <color name="elevada">#3C3849</color>
-    <!-- La columna de canales: entre el fondo y la de carpetas, para que se
-         vean como dos columnas y no como una sola -->
-    <color name="columna">#282631</color>
-    <color name="encima">#4A4559</color>
-    <color name="borde">#565068</color>
-    <color name="borde_fuerte">#706888</color>
+    <color name="fondo">#101012</color>
+    <color name="columna">#151517</color>
+    <color name="superficie">#1B1B1F</color>
+    <color name="elevada">#26262B</color>
+    <color name="encima">#33333A</color>
+    <color name="borde">#3A3A42</color>
+    <color name="borde_fuerte">#4E4E58</color>
 
-    <!-- Las líneas finas del web: blanco a muy poca opacidad -->
-    <color name="filo">#1CFFFFFF</color>
-    <color name="filo_fuerte">#30FFFFFF</color>
-    <color name="tranquilo">#0FFFFFFF</color>
+    <!-- Las líneas finas: blanco a muy poca opacidad, como el web -->
+    <color name="filo">#1FFFFFFF</color>
+    <color name="filo_fuerte">#33FFFFFF</color>
+    <color name="tranquilo">#12FFFFFF</color>
 
     <color name="marca">#E5192B</color>
-    <color name="marca_viva">#FF4152</color>
-    <!-- accent-tint y accent-tint-strong del web -->
-    <color name="marca_tinte">#2EE5192B</color>
-    <color name="marca_tinte_fuerte">#47E5192B</color>
+    <color name="marca_viva">#FF3B4D</color>
+    <!--
+      El tinte del foco, flojo a propósito. Al 28% la tele lo convertía en un
+      bloque fucsia que se comía la tarjeta entera: en una pantalla que
+      satura, quien marca el foco tiene que ser el borde, no el relleno.
+    -->
+    <color name="marca_tinte">#1FE5192B</color>
+    <color name="marca_tinte_fuerte">#2BE5192B</color>
 
-    <color name="texto">#F7F5F9</color>
-    <color name="apagado">#BDB6C7</color>
-    <color name="tenue">#948CA1</color>
+    <color name="texto">#FFFFFF</color>
+    <color name="apagado">#B4B4BE</color>
+    <color name="tenue">#87878F</color>
 </resources>

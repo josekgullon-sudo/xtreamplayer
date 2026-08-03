@@ -27,6 +27,7 @@ public class VodActivity extends Activity {
     private AdaptadorCarpetas carpetas;
     private AdaptadorCarteles carteles;
     private TextView tituloCarpeta, vacio;
+    private View bloqueVacio;
     private ProgressBar girando;
     private Runnable pendiente;
 
@@ -42,6 +43,14 @@ public class VodActivity extends Activity {
                 .setText(titulo == null ? "" : titulo.toUpperCase());
         tituloCarpeta = findViewById(R.id.tituloCarpeta);
         vacio = findViewById(R.id.vacio);
+        bloqueVacio = findViewById(R.id.bloqueVacio);
+        findViewById(R.id.botonReintentar).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                Catalogo.olvidarSeccion(seccion);
+                bloqueVacio.setVisibility(View.GONE);
+                cargarCarpetas();
+            }
+        });
         girando = findViewById(R.id.girando);
         listaCarpetas = findViewById(R.id.listaCarpetas);
         rejilla = findViewById(R.id.rejilla);
@@ -94,7 +103,7 @@ public class VodActivity extends Activity {
                     vacio.setText(Catalogo.PELIS.equals(seccion)
                             ? "Tu proveedor no incluye películas en tu lista."
                             : "Tu proveedor no incluye series en tu lista.");
-                    vacio.setVisibility(View.VISIBLE);
+                    bloqueVacio.setVisibility(View.VISIBLE);
                     return;
                 }
                 carpetas.poner(lista);
@@ -104,7 +113,8 @@ public class VodActivity extends Activity {
             @Override public void falla(Exception e) {
                 girando.setVisibility(View.GONE);
                 vacio.setText(Hilos.enCristiano(e));
-                vacio.setVisibility(View.VISIBLE);
+                bloqueVacio.setVisibility(View.VISIBLE);
+                findViewById(R.id.botonReintentar).requestFocus();
             }
         });
     }
@@ -130,13 +140,14 @@ public class VodActivity extends Activity {
                         carteles.poner(lista);
                         rejilla.scrollToPosition(0);
                         vacio.setText("Esta categoría está vacía.");
-                        vacio.setVisibility(lista.isEmpty() ? View.VISIBLE : View.GONE);
+                        bloqueVacio.setVisibility(lista.isEmpty() ? View.VISIBLE : View.GONE);
                     }
                     @Override public void falla(Exception e) {
+                        // Sin vaciar la rejilla: un corte de un segundo no es
+                        // motivo para dejar la pantalla peor que antes
                         girando.setVisibility(View.GONE);
-                        carteles.poner(new ArrayList<Catalogo.Item>());
                         vacio.setText(Hilos.enCristiano(e));
-                        vacio.setVisibility(View.VISIBLE);
+                        bloqueVacio.setVisibility(View.VISIBLE);
                     }
                 });
             }

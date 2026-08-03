@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -51,6 +52,13 @@ public class InicioActivity extends Activity {
                 startActivity(new Intent(InicioActivity.this, BuscarActivity.class));
             }
         });
+        findViewById(R.id.botonActualizar).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                Catalogo.vaciar();
+                recargar();
+                Toast.makeText(InicioActivity.this, "Actualizando tus listas…", Toast.LENGTH_SHORT).show();
+            }
+        });
         findViewById(R.id.botonSalir).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 Sesion.olvidar(InicioActivity.this);
@@ -69,7 +77,8 @@ public class InicioActivity extends Activity {
          */
         encadenar(R.id.tarjetaDirecto, R.id.tarjetaPelis);
         encadenar(R.id.tarjetaPelis, R.id.tarjetaSeries);
-        encadenar(R.id.botonBuscar, R.id.botonSalir);
+        encadenar(R.id.botonBuscar, R.id.botonActualizar);
+        encadenar(R.id.botonActualizar, R.id.botonSalir);
         findViewById(R.id.tarjetaSeries).setNextFocusRightId(R.id.tarjetaSeries);
         findViewById(R.id.tarjetaDirecto).setNextFocusLeftId(R.id.tarjetaDirecto);
 
@@ -103,6 +112,36 @@ public class InicioActivity extends Activity {
         });
 
         /*
+         * Mantener pulsado actualiza esa sección.
+         *
+         * El proveedor añade canales y quita otros, y el catálogo se guarda
+         * en memoria para que moverse sea instantáneo. Sin esto, la única
+         * manera de ver lo nuevo era cerrar la aplicación entera.
+         */
+        tarjeta.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override public boolean onLongClick(View v) {
+                Catalogo.olvidarSeccion(seccion);
+                detalle.setText("Actualizando…");
+                contar(tarjeta, detalle, seccion);
+                Toast.makeText(InicioActivity.this,
+                        "Actualizando " + titulo.toLowerCase(Locale.getDefault()) + "…",
+                        Toast.LENGTH_SHORT).show();
+                return true;
+            }
+        });
+
+        contar(tarjeta, detalle, seccion);
+    }
+
+    /** Vuelve a preguntar por las tres secciones. */
+    private void recargar() {
+        preparar(R.id.tarjetaDirecto, R.drawable.ic_tv, "TV en directo", Catalogo.DIRECTO);
+        preparar(R.id.tarjetaPelis, R.drawable.ic_cine, "Películas", Catalogo.PELIS);
+        preparar(R.id.tarjetaSeries, R.drawable.ic_series, "Series", Catalogo.SERIES);
+    }
+
+    private void contar(final View tarjeta, final TextView detalle, final String seccion) {
+        /*
          * Cuántas carpetas hay dentro. No es un adorno: un proveedor que no
          * vende películas deja esa tarjeta vacía, y decirlo aquí ahorra
          * entrar, esperar y encontrarse la nada.
@@ -111,6 +150,8 @@ public class InicioActivity extends Activity {
             @Override public Integer hacer() throws Exception { return Catalogo.carpetas(seccion).size(); }
         }, new Hilos.Luego<Integer>() {
             @Override public void listo(Integer cuantas) {
+                vacias.remove(seccion);
+                tarjeta.setAlpha(1f);
                 if (cuantas == 0) {
                     /* Apagada, pero enfocable: quitarle el foco a una tarjeta
                        del medio parte el camino del mando y deja la de al
@@ -122,7 +163,10 @@ public class InicioActivity extends Activity {
                     detalle.setText(cuantas + (cuantas == 1 ? " categoría" : " categorías"));
                 }
             }
-            @Override public void falla(Exception e) { detalle.setText("No se ha podido consultar"); }
+            @Override public void falla(Exception e) {
+                detalle.setText("No se ha podido consultar");
+                vacias.add(seccion);
+            }
         });
     }
 

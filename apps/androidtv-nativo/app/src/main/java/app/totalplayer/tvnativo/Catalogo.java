@@ -81,6 +81,29 @@ public final class Catalogo {
         m3u = null;
     }
 
+    /**
+     * Tira lo guardado de una sección para volver a pedirlo.
+     *
+     * Hace falta una manera de decir «vuelve a preguntar»: el proveedor
+     * añade canales, cambia carpetas o se le cae el servidor un rato, y sin
+     * esto la única salida era cerrar la aplicación y volver a abrirla.
+     */
+    public static void olvidarSeccion(String seccion) {
+        carpetas.remove(seccion);
+        List<String> fuera = new ArrayList<>();
+        for (String llave : contenidos.keySet()) {
+            if (llave.startsWith(seccion + "/")) fuera.add(llave);
+        }
+        for (String llave : fuera) contenidos.remove(llave);
+        if (DIRECTO.equals(seccion)) {
+            todoElDirecto = null;
+            loQueEchan.clear();
+        }
+        if (SERIES.equals(seccion)) episodios.clear();
+        // La lista M3U es una sola descarga para las tres secciones
+        m3u = null;
+    }
+
     /* ---------------- Carpetas ---------------- */
 
     public static List<Carpeta> carpetas(String seccion) throws Exception {

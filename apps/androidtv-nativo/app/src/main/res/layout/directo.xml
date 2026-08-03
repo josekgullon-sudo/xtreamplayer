@@ -96,17 +96,61 @@
             android:paddingEnd="12dp"
             android:clipToPadding="false" />
 
-        <TextView
-            android:id="@+id/vacio"
+        <!--
+          Cuando algo falla, una salida.
+
+          Se quedó la pantalla entera en blanco —sin carpetas, sin canales y
+          sin nada que pulsar— porque el servidor del proveedor dejó de
+          contestar un momento. Sin un botón para reintentar, la única salida
+          era cerrar la aplicación.
+        -->
+        <LinearLayout
+            android:id="@+id/bloqueVacio"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Esta carpeta no tiene canales."
-            android:textColor="@color/tenue"
-            android:textSize="15sp"
+            android:orientation="vertical"
             android:paddingStart="24dp"
             android:paddingEnd="24dp"
-            android:paddingTop="20dp"
-            android:visibility="gone" />
+            android:paddingTop="18dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/vacio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Esta carpeta no tiene canales."
+                android:textColor="@color/apagado"
+                android:textSize="15sp"
+                android:lineSpacingExtra="3dp" />
+
+            <LinearLayout
+                android:id="@+id/botonReintentar"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/pastilla"
+                android:focusable="true"
+                android:paddingStart="20dp"
+                android:paddingEnd="24dp"
+                android:layout_marginTop="14dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_recargar"
+                    android:tint="@color/texto"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="Volver a cargar"
+                    android:textColor="@color/texto"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Lo que se ve -->

@@ -48,7 +48,7 @@ public final class Imagenes {
         donde.setImageResource(deReserva);
         final int ancho = Math.max(donde.getWidth(), 320);
 
-        Hilos.fuera(new Hilos.Trabajo<Bitmap>() {
+        Hilos.fueraLento(new Hilos.Trabajo<Bitmap>() {
             @Override public Bitmap hacer() throws Exception { return bajar(url, ancho); }
         }, new Hilos.Luego<Bitmap>() {
             @Override public void listo(Bitmap b) {

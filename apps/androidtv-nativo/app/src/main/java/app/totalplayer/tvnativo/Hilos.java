@@ -21,13 +21,32 @@ public final class Hilos {
         void falla(Exception e);
     }
 
-    private static final ExecutorService PISCINA = Executors.newFixedThreadPool(4);
+    private static final ExecutorService PISCINA = Executors.newFixedThreadPool(3);
+
+    /*
+     * Las carátulas y los logotipos van por su cuenta.
+     *
+     * Compartían hilos con las peticiones de datos, y bajando deprisa por
+     * las carpetas de una lista grande se encolaban decenas de imágenes por
+     * delante de la petición de canales: la pantalla se quedaba en blanco
+     * esperando a unos logotipos que ya no le importaban a nadie.
+     */
+    private static final ExecutorService PARA_IMAGENES = Executors.newFixedThreadPool(2);
     private static final Handler PANTALLA = new Handler(Looper.getMainLooper());
 
     private Hilos() {}
 
-    public static <T> void fuera(final Trabajo<T> trabajo, final Luego<T> luego) {
-        PISCINA.execute(new Runnable() {
+    public static <T> void fuera(Trabajo<T> trabajo, Luego<T> luego) {
+        lanzar(PISCINA, trabajo, luego);
+    }
+
+    /** Lo mismo, pero en la cola de las imágenes. */
+    public static <T> void fueraLento(Trabajo<T> trabajo, Luego<T> luego) {
+        lanzar(PARA_IMAGENES, trabajo, luego);
+    }
+
+    private static <T> void lanzar(ExecutorService donde, final Trabajo<T> trabajo, final Luego<T> luego) {
+        donde.execute(new Runnable() {
             @Override public void run() {
                 try {
                     final T r = trabajo.hacer();

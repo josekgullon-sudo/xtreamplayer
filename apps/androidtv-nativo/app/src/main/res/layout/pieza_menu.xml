@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Una tarjeta de sección, calcada de .feature-card: el icono en rojo dentro
-  de un cuadrado de rojo diluido, el título debajo y una línea que diga qué
-  hay dentro. El contenido se reparte por la tarjeta en vez de quedarse
-  amontonado en la esquina de abajo.
+  Una tarjeta de sección, al modo de .feature-card del web: el icono arriba
+  en su cuadrado y el título abajo. Sin alturas fijas: la tarjeta se estira
+  con lo que le den y el hueco del medio hace de fuelle.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -11,20 +10,20 @@
     android:orientation="vertical"
     android:background="@drawable/tarjeta"
     android:focusable="true"
-    android:paddingStart="30dp"
-    android:paddingEnd="30dp"
-    android:paddingTop="28dp"
-    android:paddingBottom="28dp">
+    android:paddingStart="26dp"
+    android:paddingEnd="26dp"
+    android:paddingTop="24dp"
+    android:paddingBottom="24dp">
 
     <FrameLayout
-        android:layout_width="62dp"
-        android:layout_height="62dp"
+        android:layout_width="54dp"
+        android:layout_height="54dp"
         android:background="@drawable/insignia">
 
         <ImageView
             android:id="@+id/icono"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:layout_gravity="center"
             android:tint="@color/marca_viva"
             android:contentDescription="@null" />
@@ -33,14 +32,15 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:minHeight="16dp" />
 
     <TextView
         android:id="@+id/titulo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="@color/texto"
-        android:textSize="26sp"
+        android:textSize="23sp"
         android:textStyle="bold"
         android:maxLines="1"
         android:ellipsize="end" />
@@ -50,8 +50,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="@color/apagado"
-        android:textSize="16sp"
-        android:layout_marginTop="7dp"
-        android:maxLines="2"
+        android:textSize="15sp"
+        android:layout_marginTop="5dp"
+        android:maxLines="1"
         android:ellipsize="end" />
 </LinearLayout>

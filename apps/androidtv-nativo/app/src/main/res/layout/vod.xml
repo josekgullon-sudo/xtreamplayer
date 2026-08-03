@@ -75,15 +75,52 @@
                 android:clipChildren="false" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/vacio"
+        <LinearLayout
+            android:id="@+id/bloqueVacio"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:orientation="vertical"
             android:gravity="center"
-            android:textColor="@color/tenue"
-            android:textSize="17sp"
             android:padding="40dp"
-            android:visibility="gone" />
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/vacio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textColor="@color/apagado"
+                android:textSize="17sp"
+                android:lineSpacingExtra="4dp" />
+
+            <LinearLayout
+                android:id="@+id/botonReintentar"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/pastilla"
+                android:focusable="true"
+                android:paddingStart="20dp"
+                android:paddingEnd="24dp"
+                android:layout_marginTop="18dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_recargar"
+                    android:tint="@color/texto"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="Volver a cargar"
+                    android:textColor="@color/texto"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </LinearLayout>
 
         <ProgressBar
             android:id="@+id/girando"

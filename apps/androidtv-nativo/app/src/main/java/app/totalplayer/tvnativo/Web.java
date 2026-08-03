@@ -28,7 +28,30 @@ public final class Web {
         }
     }
 
+    /**
+     * Pide algo, y si falla lo intenta una segunda vez.
+     *
+     * Los servidores de IPTV cortan conexiones a la mínima —sobre todo
+     * cuando les llegan varias peticiones seguidas al bajar deprisa por las
+     * carpetas—, y el primer fallo casi nunca significa que no estén. Un
+     * segundo intento medio segundo después salva la mayoría, y evita que
+     * media aplicación se quede en blanco por un corte de un segundo.
+     */
     public static String pedir(String direccion) throws Exception {
+        try {
+            return unaVez(direccion);
+        } catch (Exception primera) {
+            try {
+                Thread.sleep(600);
+            } catch (InterruptedException corte) {
+                Thread.currentThread().interrupt();
+                throw primera;
+            }
+            return unaVez(direccion);
+        }
+    }
+
+    private static String unaVez(String direccion) throws Exception {
         HttpURLConnection con = (HttpURLConnection) new URL(direccion).openConnection();
         con.setConnectTimeout(15000);
         con.setReadTimeout(25000);

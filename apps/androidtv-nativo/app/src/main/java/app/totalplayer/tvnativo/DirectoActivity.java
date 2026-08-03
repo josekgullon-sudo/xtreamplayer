@@ -32,6 +32,7 @@ public class DirectoActivity extends Activity {
     private AdaptadorCanales canales;
     private TextView tituloCarpeta, nombreCanal, ahora, luego, pista, comoAmpliar, vacio;
     private TextView etiquetaAhora, etiquetaLuego, cuantos;
+    private View bloqueVacio;
     private View caja;
     private ProgressBar girando;
     private PlayerView vista;
@@ -53,6 +54,16 @@ public class DirectoActivity extends Activity {
         pista = findViewById(R.id.pista);
         comoAmpliar = findViewById(R.id.comoAmpliar);
         vacio = findViewById(R.id.vacio);
+        bloqueVacio = findViewById(R.id.bloqueVacio);
+        findViewById(R.id.botonReintentar).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                // Tirar lo guardado y empezar de cero: si el fallo fue del
+                // servidor, lo que hay en memoria puede estar a medias
+                Catalogo.olvidarSeccion(Catalogo.DIRECTO);
+                bloqueVacio.setVisibility(View.GONE);
+                cargarCarpetas();
+            }
+        });
         girando = findViewById(R.id.girando);
         cuantos = findViewById(R.id.cuantos);
         etiquetaAhora = findViewById(R.id.etiquetaAhora);
@@ -101,8 +112,10 @@ public class DirectoActivity extends Activity {
                 girando.setVisibility(View.GONE);
                 if (lista.isEmpty()) {
                     pista.setText("Tu lista no trae canales en directo.");
+                    pista.setVisibility(View.VISIBLE);
                     return;
                 }
+                pista.setVisibility(View.VISIBLE);
                 carpetas.poner(lista);
                 pista.setText("Elige un canal de la lista");
                 abrirCarpeta(0);
@@ -111,6 +124,11 @@ public class DirectoActivity extends Activity {
             @Override public void falla(Exception e) {
                 girando.setVisibility(View.GONE);
                 pista.setText(Hilos.enCristiano(e));
+                pista.setVisibility(View.VISIBLE);
+                // Con las carpetas caídas no hay nada que enfocar salvo esto
+                vacio.setText(Hilos.enCristiano(e));
+                bloqueVacio.setVisibility(View.VISIBLE);
+                findViewById(R.id.botonReintentar).requestFocus();
             }
         });
     }
@@ -141,13 +159,16 @@ public class DirectoActivity extends Activity {
                         canales.poner(lista);
                         canales.sonando(listaCanales, sonando, null);
                         cuantos.setText(String.valueOf(lista.size()));
+                        vacio.setText("Esta carpeta no tiene canales.");
                         listaCanales.scrollToPosition(0);
-                        vacio.setVisibility(lista.isEmpty() ? View.VISIBLE : View.GONE);
+                        bloqueVacio.setVisibility(lista.isEmpty() ? View.VISIBLE : View.GONE);
                     }
                     @Override public void falla(Exception e) {
-                        canales.poner(new java.util.ArrayList<Catalogo.Item>());
+                        /* Sin tocar lo que ya estuviera puesto: vaciar la
+                           lista por un corte de un segundo deja al que mira
+                           peor que antes de pulsar */
                         vacio.setText(Hilos.enCristiano(e));
-                        vacio.setVisibility(View.VISIBLE);
+                        bloqueVacio.setVisibility(View.VISIBLE);
                     }
                 });
             }
