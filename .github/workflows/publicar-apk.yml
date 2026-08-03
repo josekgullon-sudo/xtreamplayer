@@ -11,6 +11,14 @@
 name: Publicar APK
 
 on:
+  # A mano solo se puede desde la rama principal —GitHub es así—, y este
+  # trabajo vive en la de desarrollo. Así que también en cada cambio de las
+  # aplicaciones: publica sobre la misma etiqueta, de modo que el enlace de
+  # descarga siempre lleva a lo último compilado.
+  push:
+    paths:
+      - "apps/**"
+      - ".github/workflows/publicar-apk.yml"
   workflow_dispatch:
 
 permissions:
