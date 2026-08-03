@@ -7,6 +7,8 @@ import VideoPlayer, { PlaySource } from "./VideoPlayer";
 import AddPlaylistModal from "./AddPlaylistModal";
 import ProfileGate from "./ProfileGate";
 import SectionGate from "./SectionGate";
+import ListaVirtual from "./ListaVirtual";
+import RejillaInfinita from "./RejillaInfinita";
 import AdSlot from "@/components/AdSlot";
 import Loading, { SkeletonList, MENSAJES_CANALES, MENSAJES_CINE, MENSAJES_SERIES } from "@/components/Loading";
 import {
@@ -984,10 +986,12 @@ export default function PlayerApp() {
     if (grupo) return grupo.channels;
     /* En «Todos los canales», cada fila dice de qué categoría es: es el dato
        que falta justo ahí —mil canales seguidos sin contexto— y de paso la
-       fila deja de ser una sola línea de texto suelta */
-    return liveGroups
-      .flatMap((g) => g.channels.map((c) => ({ ...c, grupo: g.name })))
-      .slice(0, 500);
+       fila deja de ser una sola línea de texto suelta.
+
+       Aquí estaban todos menos los que no cabían: un `.slice(0, 500)` dejaba
+       fuera 7.500 canales de una lista normal de proveedor, sin decirlo. Ya
+       no hay tope; lo que no se ve no se pinta (ListaVirtual). */
+    return liveGroups.flatMap((g) => g.channels.map((c) => ({ ...c, grupo: g.name })));
   }, [liveGroups, grupoSel]);
 
   return (
@@ -1452,26 +1456,31 @@ export default function PlayerApp() {
           </div>
           <div className="pa-live-scroll">
             {loading && <SkeletonList rows={8} />}
-            {canalesVisibles.map((ch, i) => (
-              <button
-                key={ch.favKey}
-                className={`pa-live-chan ${current?.favKey === ch.favKey ? "activo" : ""}`}
-                onClick={ch.play}
-                title={ch.name}
-              >
-                <span className="pa-live-num">{i + 1}</span>
-                {imgSrc(ch.logo) ? (
-                  <img src={imgSrc(ch.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
-                ) : (
-                  <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
-                )}
-                <span className="pa-live-txt">
-                  <span className="name">{ch.name}</span>
-                  {ch.grupo && <span className="pa-live-sub">{ch.grupo}</span>}
-                </span>
-                {favorites[ch.favKey] && <Icon name="star" size={13} className="pa-live-fav" />}
-              </button>
-            ))}
+            <ListaVirtual
+              items={canalesVisibles}
+              clave={`${tab}:${grupoSel || "todos"}`}
+              fila={(ch, i) => (
+                <button
+                  key={ch.favKey}
+                  className={`pa-live-chan ${current?.favKey === ch.favKey ? "activo" : ""}`}
+                  onClick={ch.play}
+                  title={ch.name}
+                >
+                  <span className="pa-live-num">{i + 1}</span>
+                  {imgSrc(ch.logo) ? (
+                    <img src={imgSrc(ch.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+                  ) : (
+                    <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
+                  )}
+                  <span className="pa-live-txt">
+                    <span className="name">{ch.name}</span>
+                    {ch.grupo && <span className="pa-live-sub">{ch.grupo}</span>}
+                  </span>
+                  {favorites[ch.favKey] && <Icon name="star" size={13} className="pa-live-fav" />}
+                </button>
+              )}
+            />
+
             {!loading && !canalesVisibles.length && <p className="pa-empty">Aquí no hay canales.</p>}
           </div>
         </section>
@@ -1648,27 +1657,26 @@ export default function PlayerApp() {
             {loading && <Loading messages={MENSAJES_CINE} />}
             {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
             <div className="pa-grid">
-              {vodVisible.slice(0, 400).map((v) => (
-                <button className="pa-card" key={v.stream_id} onClick={() => openVod(active, v)} title={v.name}>
-                  {v.stream_icon ? (
-                    <img className="poster" src={imgSrc(v.stream_icon)} alt={v.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
-                  ) : (
-                    <div className="poster-ph"><Icon name="play" size={26} /></div>
-                  )}
-                  <div className="meta">
-                    <div className="title">{v.name}</div>
-                  </div>
-                </button>
-              ))}
+              <RejillaInfinita
+                items={vodVisible}
+                clave={`vod:${catFilter}:${q}`}
+                tarjeta={(v) => (
+                  <button className="pa-card" key={v.stream_id} onClick={() => openVod(active, v)} title={v.name}>
+                    {v.stream_icon ? (
+                      <img className="poster" src={imgSrc(v.stream_icon)} alt={v.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
+                    ) : (
+                      <div className="poster-ph"><Icon name="play" size={26} /></div>
+                    )}
+                    <div className="meta">
+                      <div className="title">{v.name}</div>
+                    </div>
+                  </button>
+                )}
+              />
             </div>
             {!loading && !loadError && !vodVisible.length && (
               <p className="pa-empty">
                 {catFilter === NOVEDADES ? "Tu proveedor no ha subido nada últimamente." : "Aquí no hay películas."}
-              </p>
-            )}
-            {vodVisible.length > 400 && (
-              <p style={{ textAlign: "center", color: "var(--text-faint)", padding: "0 0 20px" }}>
-                Mostrando 400 de {vodVisible.length} — usa la búsqueda para afinar.
               </p>
             )}
           </div>
@@ -1685,7 +1693,10 @@ export default function PlayerApp() {
                 {catFilter === NOVEDADES ? "Tu proveedor no ha subido nada últimamente." : "Aquí no hay series."}
               </p>
             )}
-            {seriesVisible.slice(0, 400).map((s) => (
+            <RejillaInfinita
+              items={seriesVisible}
+              clave={`series:${catFilter}:${q}`}
+              tarjeta={(s) => (
                 <button className="pa-card" key={s.series_id} onClick={() => openSeries(active, s)} title={s.name}>
                   {s.cover ? (
                     <img className="poster" src={imgSrc(s.cover)} alt={s.name} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).outerHTML = '<div class="poster-ph">·</div>')} />
@@ -1696,7 +1707,9 @@ export default function PlayerApp() {
                     <div className="title">{s.name}</div>
                   </div>
                 </button>
-              ))}
+              )}
+            />
+
             </div>
           </div>
         )}

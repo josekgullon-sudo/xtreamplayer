@@ -581,6 +581,9 @@ select.input { appearance: none; cursor: pointer; }
 }
 
 .pa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; padding: 20px; }
+/* La marca que pide el siguiente tramo del catálogo: ocupa la fila entera
+   para que no deje un hueco entre carátulas */
+.pa-rejilla-final { grid-column: 1 / -1; height: 1px; }
 
 /* Ficha de película/serie: metadatos como chips y créditos discretos */
 .ficha-meta { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 14px; }
