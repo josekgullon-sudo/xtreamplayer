@@ -2129,7 +2129,17 @@ select.input { appearance: none; cursor: pointer; }
      categoría se cambia desde el directo */
   .pa-guia { grid-template-columns: 1fr; }
   .pa-guia .pa-live-cats { display: none; }
-  .pa-guia-esquina, .pa-guia-canal { width: 130px; }
+  /* 130px daba «La U…» en cuanto el canal tenía dos palabras, que es
+     siempre: en la parrilla lo primero es saber de qué canal es la fila */
+  .pa-guia-esquina, .pa-guia-canal { width: 168px; }
+  .pa-guia-canal { min-height: 56px; font-size: 15px; }
+  .pa-guia-canal .name { font-size: 15px; font-weight: 600; }
+  .pa-guia-progs { min-height: 56px; }
+  .pa-guia-prog-titulo { font-size: 14.5px; }
+  /* Moverse por el tiempo con el dedo, no con la uña */
+  .pa-guia-barra { padding: 10px 12px; gap: 8px; }
+  .pa-guia-barra .btn { min-height: 44px; padding-left: 14px; padding-right: 14px; font-size: 14.5px; }
+  .pa-guia-dia { font-size: 14px; width: 100%; }
 }
 
 /* ---- Búsqueda global: canales, cine y series a la vez ---- */
@@ -2419,4 +2429,7 @@ select.input { appearance: none; cursor: pointer; }
   .pa-live-chan .name { font-size: 16.5px; font-weight: 650; color: var(--text); }
   .pa-live-sub { font-size: 13px; }
   .pa-live-num { font-size: 12.5px; min-width: 26px; }
+  /* «Xtream Codes» / «URL M3U» medían 29px de alto: es la primera decisión
+     que toma quien entra, y se fallaba al pulsar */
+  .pa-tab { min-height: 44px; font-size: 14.5px; }
 }

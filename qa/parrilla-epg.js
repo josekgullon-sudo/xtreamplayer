@@ -92,6 +92,20 @@ async function conLista(p) {
   await m.waitForSelector(".pa-guia-prog", { timeout: 25000 });
   const desborde = await m.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   check("En el móvil la parrilla se desliza sola, sin romper la página", desborde === 0, `${desborde}px`);
+
+  /* La columna de canales medía 130px y cortaba el nombre en «La U…»: en una
+     parrilla, lo primero que hay que saber es de qué canal es la fila */
+  const nombre = m.locator(".pa-guia-canal .name").first();
+  const cabe = await nombre.evaluate((e) => e.scrollWidth <= e.clientWidth + 1);
+  check("Y el nombre del canal se lee entero", cabe, await nombre.innerText());
+
+  /* Moverse en el tiempo con el dedo: los tres botones medían 31px de alto */
+  const mandos = await m.locator(".pa-guia-barra .btn").evaluateAll(
+    (els) => els.map((e) => Math.round(e.getBoundingClientRect().height))
+  );
+  check("Y se puede viajar en el tiempo con el dedo",
+    mandos.length >= 3 && mandos.every((h) => h >= 40), mandos.join(", ") + "px");
+
   await m.screenshot({ path: __dirname + "/81-parrilla-movil.png" });
 
   await b.close();

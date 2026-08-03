@@ -131,6 +131,13 @@ async function abrirCanales(p) {
   // ---------- Ver un canal y zapear (lista M3U: el mock emite de verdad) ----------
   await p.locator('.pa-nav .pa-icon-btn[aria-label="Añadir lista"]').click();
   await p.waitForSelector(".modal");
+  /* Elegir entre Xtream y M3U es la primera decisión de quien entra, y las
+     dos pestañas medían 29px de alto: se fallaba al pulsarlas */
+  const pestanas = await p.locator(".modal .pa-tab").evaluateAll(
+    (els) => els.map((e) => Math.round(e.getBoundingClientRect().height))
+  );
+  check("Las pestañas de añadir lista tienen tamaño de dedo",
+    pestanas.every((h) => h >= 40), pestanas.join(", ") + "px");
   await p.click(".modal .pa-tab:has-text('URL M3U')");
   await p.fill("#pl-name", "M3U Movil");
   await p.fill("#pl-m3u", "http://127.0.0.1:8090/lista-grande.m3u");
