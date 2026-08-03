@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Los campos venían con el fondo blanco de Android: en una pantalla negra
+     y a tres metros, dos rectángulos blancos es lo primero que se ve, y lo
+     que peor se ve. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#1f1e29" />
+            <stroke android:width="2dp" android:color="#e5192b" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#1a1922" />
+            <stroke android:width="1dp" android:color="#33323f" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+</selector>

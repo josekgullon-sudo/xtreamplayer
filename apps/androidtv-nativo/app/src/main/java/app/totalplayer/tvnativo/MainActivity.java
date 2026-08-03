@@ -13,13 +13,16 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 
 import org.json.JSONArray;
@@ -31,42 +34,52 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
  * El reproductor nativo de Android TV y Fire TV.
  *
- * Existe para responder a una pregunta que el envoltorio de WebView no puede
- * responder bien: ¿va fluido un canal de verdad en un aparato de verdad?
+ * Existe porque el envoltorio de WebView reproduce con hls.js y mpegts.js,
+ * que desmontan el flujo en JavaScript, por software y en el hilo principal.
+ * Y hay dos cosas que ahí no se pueden hacer de ninguna manera: H.265 —que
+ * hoy trae media lista de proveedor— y el audio AC3/E-AC3, que Chromium no
+ * lleva. ExoPlayer usa el decodificador del aparato y trae las dos.
  *
- * El WebView reproduce con hls.js y mpegts.js, que desmontan el flujo en
- * JavaScript, por software y en el hilo principal. Y hay dos cosas que ahí
- * no se pueden hacer de ninguna manera: H.265 —que hoy trae media lista de
- * proveedor— y el audio AC3/E-AC3, que Chromium no lleva. ExoPlayer usa el
- * decodificador del aparato y las trae de fábrica.
- *
- * Esto es a propósito lo mínimo para medir eso: entrar, ver la lista de
- * canales y reproducir. Sin guía, sin favoritos, sin cine ni series. Si en
- * un Fire TV Stick esto va donde el WebView se atraganta, la tesis queda
- * probada y merece la pena construir encima; si no, hemos perdido poco.
+ * Se entra con el usuario y la contraseña del proveedor, igual que en la
+ * web: quién guarda a qué servidor va cada cliente es el panel, no el
+ * cliente. Ver Acceso.
  */
 public class MainActivity extends Activity {
 
     private static final String AJUSTES = "totalplayer.tv.nativo";
 
+    /*
+     * Muchos servidores IPTV miran quién les pide el flujo y cuelgan a los
+     * que no reconocen. VLC es el que todos dejan pasar, así que es el que
+     * decimos ser: no es un truco, es lo que hace cualquier reproductor de
+     * este tipo para que el proveedor no le cierre la puerta.
+     */
+    private static final String QUIEN_SOY = "VLC/3.0.20 LibVLC/3.0.20";
+
     private ExoPlayer reproductor;
     private PlayerView vista;
-    private ListView listaCanales;
-    private LinearLayout pantallaAcceso, pantallaVer;
+    private ListView listaCarpetas, listaCanales;
+    private ScrollView pantallaAcceso;
+    private LinearLayout pantallaVer, bloquePropia;
     private TextView aviso;
+    private EditText campoUsuario, campoClave, campoServidor;
 
-    private final List<Canal> canales = new ArrayList<>();
+    /** Las carpetas, en el orden en que las manda el proveedor. */
+    private final Map<String, List<Canal>> carpetas = new LinkedHashMap<>();
+    private final List<Canal> visibles = new ArrayList<>();
     private final ExecutorService hilos = Executors.newSingleThreadExecutor();
     private final Handler enPantalla = new Handler(Looper.getMainLooper());
 
-    /** Un canal: lo justo para pintarlo en la lista y poder reproducirlo. */
     private static class Canal {
         final String nombre, url;
         Canal(String nombre, String url) { this.nombre = nombre; this.url = url; }
@@ -80,105 +93,170 @@ public class MainActivity extends Activity {
 
         pantallaAcceso = findViewById(R.id.pantallaAcceso);
         pantallaVer = findViewById(R.id.pantallaVer);
+        bloquePropia = findViewById(R.id.bloquePropia);
         vista = findViewById(R.id.vista);
+        listaCarpetas = findViewById(R.id.listaCarpetas);
         listaCanales = findViewById(R.id.listaCanales);
         aviso = findViewById(R.id.aviso);
+        campoUsuario = findViewById(R.id.campoUsuario);
+        campoClave = findViewById(R.id.campoClave);
+        campoServidor = findViewById(R.id.campoServidor);
 
-        final EditText campoServidor = findViewById(R.id.campoServidor);
-        final EditText campoUsuario = findViewById(R.id.campoUsuario);
-        final EditText campoClave = findViewById(R.id.campoClave);
-        Button botonEntrar = findViewById(R.id.botonEntrar);
-
-        /* Escribir con el mando es un suplicio: se recuerda lo de la última
-           vez para que solo haya que hacerlo una */
         final SharedPreferences ajustes = getSharedPreferences(AJUSTES, MODE_PRIVATE);
-        campoServidor.setText(ajustes.getString("servidor", ""));
         campoUsuario.setText(ajustes.getString("usuario", ""));
         campoClave.setText(ajustes.getString("clave", ""));
+        campoServidor.setText(ajustes.getString("servidor", ""));
 
-        botonEntrar.setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.botonPropia).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                String servidor = campoServidor.getText().toString().trim();
-                String usuario = campoUsuario.getText().toString().trim();
-                String clave = campoClave.getText().toString().trim();
-                if (servidor.isEmpty() || usuario.isEmpty() || clave.isEmpty()) {
-                    aviso.setText("Faltan datos: servidor, usuario y contraseña");
-                    return;
-                }
-                if (!servidor.startsWith("http")) servidor = "http://" + servidor;
-                ajustes.edit()
-                        .putString("servidor", servidor)
-                        .putString("usuario", usuario)
-                        .putString("clave", clave)
-                        .apply();
-                aviso.setText("Conectando…");
-                cargarCanales(servidor, usuario, clave);
+                bloquePropia.setVisibility(View.VISIBLE);
+                campoServidor.requestFocus();
             }
         });
 
-        listaCanales.setOnItemClickListener((padre, v, posicion, id) -> reproducir(canales.get(posicion)));
+        final Button entrar = findViewById(R.id.botonEntrar);
+        entrar.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                String usuario = campoUsuario.getText().toString().trim();
+                String clave = campoClave.getText().toString().trim();
+                String propio = campoServidor.getText().toString().trim();
+                if (usuario.isEmpty() || clave.isEmpty()) {
+                    aviso.setText("Escribe el usuario y la contraseña que te dio tu proveedor");
+                    return;
+                }
+                ajustes.edit()
+                        .putString("usuario", usuario)
+                        .putString("clave", clave)
+                        .putString("servidor", propio)
+                        .apply();
+                aviso.setText("Entrando…");
+                entrar(usuario, clave, propio, ajustes);
+            }
+        });
+
+        listaCarpetas.setOnItemClickListener((p, v, i, id) -> abrirCarpeta(i));
+        listaCanales.setOnItemClickListener((p, v, i, id) -> reproducir(visibles.get(i)));
 
         // Si ya se entró antes, no se vuelve a preguntar
-        if (!ajustes.getString("servidor", "").isEmpty()) botonEntrar.performClick();
+        if (!ajustes.getString("usuario", "").isEmpty()) entrar.performClick();
     }
 
     /**
-     * Pide la lista al panel del proveedor.
-     *
-     * Fuera del hilo principal: con 8.000 canales, hacerlo en el de la
-     * interfaz deja la tele congelada mientras baja y se analiza.
+     * Entrar: contra el panel si no se ha escrito un servidor propio, y
+     * contra ese servidor si sí.
      */
-    private void cargarCanales(final String servidor, final String usuario, final String clave) {
+    private void entrar(final String usuario, final String clave, final String propio,
+                        final SharedPreferences ajustes) {
         hilos.execute(new Runnable() {
             @Override public void run() {
                 try {
-                    String base = servidor + "/player_api.php?username=" + URLEncoder.encode(usuario, "UTF-8")
-                            + "&password=" + URLEncoder.encode(clave, "UTF-8");
-                    JSONArray flujos = new JSONArray(pedir(base + "&action=get_live_streams"));
-
-                    final List<Canal> nuevos = new ArrayList<>();
-                    for (int i = 0; i < flujos.length(); i++) {
-                        JSONObject c = flujos.getJSONObject(i);
-                        String nombre = c.optString("name", "").trim();
-                        String id = c.optString("stream_id", "");
-                        if (nombre.isEmpty() || id.isEmpty()) continue;
-                        /* El .ts es el formato del directo en Xtream, y es
-                           justo el que un navegador no sabe reproducir sin
-                           desmontarlo en JavaScript. ExoPlayer sí. */
-                        nuevos.add(new Canal(nombre, servidor + "/live/" + usuario + "/" + clave + "/" + id + ".ts"));
+                    final String servidor, u, c;
+                    if (propio.isEmpty()) {
+                        /* Una llave por aparato, estable: el cupo de
+                           dispositivos del cliente cuenta teles, no arranques */
+                        String llave = ajustes.getString("aparato", "");
+                        if (llave.isEmpty()) {
+                            llave = "tv-" + UUID.randomUUID().toString().substring(0, 12);
+                            ajustes.edit().putString("aparato", llave).apply();
+                        }
+                        Acceso.Lista lista = Acceso.entrar(usuario, clave, llave);
+                        if (!"xtream".equals(lista.tipo)) {
+                            throw new Acceso.NoEntra("Tu lista es M3U y esta versión todavía solo abre Xtream");
+                        }
+                        servidor = normalizar(lista.url);
+                        u = lista.usuario;
+                        c = lista.clave;
+                    } else {
+                        servidor = normalizar(propio);
+                        u = usuario;
+                        c = clave;
                     }
-
-                    enPantalla.post(new Runnable() {
-                        @Override public void run() {
-                            if (nuevos.isEmpty()) {
-                                aviso.setText("La cuenta entra, pero no trae ningún canal");
-                                return;
-                            }
-                            canales.clear();
-                            canales.addAll(nuevos);
-                            listaCanales.setAdapter(new ArrayAdapter<>(
-                                    MainActivity.this, R.layout.fila_canal, R.id.nombreCanal, canales));
-                            pantallaAcceso.setVisibility(View.GONE);
-                            pantallaVer.setVisibility(View.VISIBLE);
-                            listaCanales.requestFocus();
-                            reproducir(canales.get(0));
-                        }
-                    });
+                    cargar(servidor, u, c);
                 } catch (final Exception e) {
+                    final String porque = (e instanceof Acceso.NoEntra && e.getMessage() != null)
+                            ? e.getMessage()
+                            : "No hemos podido conectar. Comprueba tu conexión y vuelve a intentarlo.";
                     enPantalla.post(new Runnable() {
-                        @Override public void run() {
-                            aviso.setText("No hemos podido conectar. Comprueba los datos y la conexión.");
-                        }
+                        @Override public void run() { aviso.setText(porque); }
                     });
                 }
             }
         });
+    }
+
+    private static String normalizar(String servidor) {
+        String s = servidor.trim();
+        if (!s.startsWith("http")) s = "http://" + s;
+        while (s.endsWith("/")) s = s.substring(0, s.length() - 1);
+        return s;
+    }
+
+    /** Pide categorías y canales y los agrupa. Siempre fuera del hilo de la interfaz. */
+    private void cargar(final String servidor, final String usuario, final String clave) throws Exception {
+        String base = servidor + "/player_api.php?username=" + URLEncoder.encode(usuario, "UTF-8")
+                + "&password=" + URLEncoder.encode(clave, "UTF-8");
+
+        Map<String, String> nombreDeCat = new LinkedHashMap<>();
+        JSONArray cats = new JSONArray(pedir(base + "&action=get_live_categories"));
+        for (int i = 0; i < cats.length(); i++) {
+            JSONObject c = cats.getJSONObject(i);
+            nombreDeCat.put(c.optString("category_id", ""), c.optString("category_name", "Otros"));
+        }
+
+        JSONArray flujos = new JSONArray(pedir(base + "&action=get_live_streams"));
+        final Map<String, List<Canal>> nuevas = new LinkedHashMap<>();
+        // El orden de las carpetas lo ha puesto el proveedor a propósito
+        for (String nombre : nombreDeCat.values()) nuevas.put(nombre, new ArrayList<Canal>());
+
+        for (int i = 0; i < flujos.length(); i++) {
+            JSONObject ch = flujos.getJSONObject(i);
+            String nombre = ch.optString("name", "").trim();
+            String id = ch.optString("stream_id", "");
+            if (nombre.isEmpty() || id.isEmpty()) continue;
+            String carpeta = nombreDeCat.get(ch.optString("category_id", ""));
+            if (carpeta == null) carpeta = "Otros";
+            List<Canal> donde = nuevas.get(carpeta);
+            if (donde == null) { donde = new ArrayList<Canal>(); nuevas.put(carpeta, donde); }
+            /* .ts es el formato del directo en Xtream, y justo el que un
+               navegador no sabe reproducir sin desmontarlo en JavaScript */
+            donde.add(new Canal(nombre, servidor + "/live/" + usuario + "/" + clave + "/" + id + ".ts"));
+        }
+
+        enPantalla.post(new Runnable() {
+            @Override public void run() {
+                carpetas.clear();
+                // Las carpetas que se quedan vacías no se enseñan
+                for (Map.Entry<String, List<Canal>> e : nuevas.entrySet()) {
+                    if (!e.getValue().isEmpty()) carpetas.put(e.getKey(), e.getValue());
+                }
+                if (carpetas.isEmpty()) {
+                    aviso.setText("La cuenta entra, pero no trae ningún canal. Suele ser que la suscripción ha caducado.");
+                    return;
+                }
+                listaCarpetas.setAdapter(new ArrayAdapter<String>(
+                        MainActivity.this, R.layout.fila_canal, R.id.nombreCanal,
+                        new ArrayList<String>(carpetas.keySet())));
+                pantallaAcceso.setVisibility(View.GONE);
+                pantallaVer.setVisibility(View.VISIBLE);
+                abrirCarpeta(0);
+                listaCarpetas.requestFocus();
+            }
+        });
+    }
+
+    private void abrirCarpeta(int cual) {
+        List<String> nombres = new ArrayList<String>(carpetas.keySet());
+        if (cual < 0 || cual >= nombres.size()) return;
+        visibles.clear();
+        visibles.addAll(carpetas.get(nombres.get(cual)));
+        listaCanales.setAdapter(new ArrayAdapter<Canal>(this, R.layout.fila_canal, R.id.nombreCanal, visibles));
     }
 
     private String pedir(String direccion) throws Exception {
         HttpURLConnection con = (HttpURLConnection) new URL(direccion).openConnection();
         con.setConnectTimeout(15000);
         con.setReadTimeout(20000);
+        con.setRequestProperty("User-Agent", QUIEN_SOY);
         try {
             StringBuilder sb = new StringBuilder();
             BufferedReader r = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
@@ -193,16 +271,31 @@ public class MainActivity extends Activity {
 
     private void reproducir(Canal canal) {
         if (reproductor == null) {
-            reproductor = new ExoPlayer.Builder(this).build();
+            /*
+             * Las dos razones por las que un canal se queda en negro:
+             *
+             * - El servidor contesta con una redirección, a veces de http a
+             *   https, y ExoPlayer no las sigue entre protocolos si no se le
+             *   dice. En IPTV redirigir es la norma, no la excepción.
+             * - El servidor mira quién pide y cuelga a los desconocidos.
+             */
+            DefaultHttpDataSource.Factory red = new DefaultHttpDataSource.Factory()
+                    .setUserAgent(QUIEN_SOY)
+                    .setAllowCrossProtocolRedirects(true)
+                    .setConnectTimeoutMs(15000)
+                    .setReadTimeoutMs(20000);
+
+            reproductor = new ExoPlayer.Builder(this)
+                    .setMediaSourceFactory(new DefaultMediaSourceFactory(red))
+                    .build();
             vista.setPlayer(reproductor);
             vista.setUseController(false);
             reproductor.addListener(new Player.Listener() {
                 @Override public void onPlayerError(PlaybackException error) {
-                    /* Que diga qué ha pasado en vez de quedarse en negro: en
-                       una tele, una pantalla negra y muda es indistinguible
-                       de un aparato colgado */
+                    /* Que diga qué ha pasado: en una tele, una pantalla negra
+                       y muda es indistinguible de un aparato colgado */
                     Toast.makeText(MainActivity.this,
-                            "Este canal no ha arrancado: " + error.getErrorCodeName(),
+                            "No ha arrancado: " + error.getErrorCodeName(),
                             Toast.LENGTH_LONG).show();
                 }
             });
@@ -212,12 +305,12 @@ public class MainActivity extends Activity {
         reproductor.play();
     }
 
-    /** Atrás: primero suelta el vídeo y vuelve a la lista; solo entonces sale. */
+    /** Atrás: de los canales a las carpetas, y solo entonces sale. */
     @Override
     public boolean onKeyDown(int tecla, KeyEvent evento) {
         if (tecla == KeyEvent.KEYCODE_BACK && pantallaVer.getVisibility() == View.VISIBLE
-                && !listaCanales.hasFocus()) {
-            listaCanales.requestFocus();
+                && !listaCarpetas.hasFocus()) {
+            listaCarpetas.requestFocus();
             return true;
         }
         return super.onKeyDown(tecla, evento);

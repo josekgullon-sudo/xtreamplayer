@@ -1,83 +1,130 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Dos pantallas en un mismo sitio: la de escribir los datos y la de ver.
-  Se enseña una u otra desde el código, sin cambiar de Activity, para que
-  el mando no se pierda entre pantallas al arrancar.
+  Dos pantallas en el mismo sitio: entrar y ver. Se cambia de una a otra
+  desde el código, sin cambiar de Activity, para que el foco del mando no se
+  pierda por el camino.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#0f0e14">
 
-    <!-- 1. Datos del servidor -->
-    <LinearLayout
+    <!-- 1. Entrar: usuario y contraseña, nada más -->
+    <ScrollView
         android:id="@+id/pantallaAcceso"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="48dp">
+        android:layout_height="match_parent">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TOTALplayer"
-            android:textColor="#ffffff"
-            android:textSize="34sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="6dp" />
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingTop="56dp"
+            android:paddingBottom="40dp"
+            android:paddingStart="48dp"
+            android:paddingEnd="48dp">
 
-        <TextView
-            android:id="@+id/aviso"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Escribe los datos de tu servidor"
-            android:textColor="#a9a7b8"
-            android:textSize="17sp"
-            android:layout_marginBottom="26dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TOTALplayer"
+                android:textColor="#ffffff"
+                android:textSize="40sp"
+                android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/campoServidor"
-            android:layout_width="620dp"
-            android:layout_height="wrap_content"
-            android:hint="http://servidor.com:8080"
-            android:textColorHint="#6c6a7d"
-            android:textColor="#ffffff"
-            android:inputType="textUri"
-            android:importantForAutofill="no"
-            android:layout_marginBottom="12dp" />
+            <TextView
+                android:id="@+id/aviso"
+                android:layout_width="620dp"
+                android:layout_height="wrap_content"
+                android:text="Entra con el usuario y la contraseña que te dio tu proveedor"
+                android:textColor="#a9a7b8"
+                android:textSize="17sp"
+                android:gravity="center"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="30dp" />
 
-        <EditText
-            android:id="@+id/campoUsuario"
-            android:layout_width="620dp"
-            android:layout_height="wrap_content"
-            android:hint="Usuario"
-            android:textColorHint="#6c6a7d"
-            android:textColor="#ffffff"
-            android:inputType="text"
-            android:importantForAutofill="no"
-            android:layout_marginBottom="12dp" />
+            <EditText
+                android:id="@+id/campoUsuario"
+                android:layout_width="620dp"
+                android:layout_height="64dp"
+                android:hint="Usuario"
+                android:textColorHint="#6c6a7d"
+                android:textColor="#ffffff"
+                android:textSize="18sp"
+                android:background="@drawable/campo"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:inputType="text"
+                android:importantForAutofill="no"
+                android:layout_marginBottom="14dp" />
 
-        <EditText
-            android:id="@+id/campoClave"
-            android:layout_width="620dp"
-            android:layout_height="wrap_content"
-            android:hint="Contraseña"
-            android:textColorHint="#6c6a7d"
-            android:textColor="#ffffff"
-            android:inputType="textPassword"
-            android:importantForAutofill="no"
-            android:layout_marginBottom="20dp" />
+            <EditText
+                android:id="@+id/campoClave"
+                android:layout_width="620dp"
+                android:layout_height="64dp"
+                android:hint="Contraseña"
+                android:textColorHint="#6c6a7d"
+                android:textColor="#ffffff"
+                android:textSize="18sp"
+                android:background="@drawable/campo"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:inputType="textPassword"
+                android:importantForAutofill="no"
+                android:layout_marginBottom="22dp" />
 
-        <Button
-            android:id="@+id/botonEntrar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="240dp"
-            android:text="Entrar" />
-    </LinearLayout>
+            <Button
+                android:id="@+id/botonEntrar"
+                android:layout_width="620dp"
+                android:layout_height="64dp"
+                android:text="Entrar y ver la tele"
+                android:textColor="#ffffff"
+                android:textSize="18sp"
+                android:textAllCaps="false"
+                android:background="@drawable/boton" />
 
-    <!-- 2. Canales y vídeo -->
+            <!-- La otra puerta, para quien no tiene proveedor aquí y trae su
+                 propia lista. Discreta a propósito: el cliente de un
+                 proveedor no debe siquiera plantearse esto. -->
+            <Button
+                android:id="@+id/botonPropia"
+                android:layout_width="620dp"
+                android:layout_height="52dp"
+                android:text="Tengo mi propia lista M3U o Xtream"
+                android:textColor="#a9a7b8"
+                android:textSize="15sp"
+                android:textAllCaps="false"
+                android:background="@drawable/campo"
+                android:layout_marginTop="14dp" />
+
+            <!-- Se despliega solo si hace falta -->
+            <LinearLayout
+                android:id="@+id/bloquePropia"
+                android:layout_width="620dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginTop="14dp">
+
+                <EditText
+                    android:id="@+id/campoServidor"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:hint="http://servidor.com:8080  ·  o una URL .m3u"
+                    android:textColorHint="#6c6a7d"
+                    android:textColor="#ffffff"
+                    android:textSize="17sp"
+                    android:background="@drawable/campo"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:inputType="textUri"
+                    android:importantForAutofill="no" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- 2. Ver: carpetas, canales y vídeo -->
     <LinearLayout
         android:id="@+id/pantallaVer"
         android:layout_width="match_parent"
@@ -86,21 +133,27 @@
         android:visibility="gone">
 
         <ListView
-            android:id="@+id/listaCanales"
-            android:layout_width="0dp"
+            android:id="@+id/listaCarpetas"
+            android:layout_width="260dp"
             android:layout_height="match_parent"
-            android:layout_weight="1"
+            android:background="#131219"
+            android:divider="@null"
+            android:listSelector="@drawable/fila"
+            android:paddingTop="8dp" />
+
+        <ListView
+            android:id="@+id/listaCanales"
+            android:layout_width="320dp"
+            android:layout_height="match_parent"
             android:background="#16151d"
-            android:divider="#26252f"
-            android:dividerHeight="1dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp" />
+            android:divider="@null"
+            android:listSelector="@drawable/fila"
+            android:paddingTop="8dp" />
 
         <androidx.media3.ui.PlayerView
             android:id="@+id/vista"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="2"
             android:background="#000000" />
     </LinearLayout>
 </FrameLayout>
