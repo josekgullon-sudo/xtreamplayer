@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Una de las tres tarjetas del menú. Grande, con su icono y con una línea
+     que diga qué hay dentro: «Películas» a secas no dice si están vacías. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp"
+    android:layout_height="230dp"
+    android:layout_weight="1"
+    android:orientation="vertical"
+    android:gravity="bottom"
+    android:background="@drawable/tarjeta"
+    android:focusable="true"
+    android:padding="26dp">
+
+    <ImageView
+        android:id="@+id/icono"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginBottom="18dp"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/titulo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/texto"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/detalle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/apagado"
+        android:textSize="15sp"
+        android:layout_marginTop="6dp" />
+</LinearLayout>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- La tarjeta del menú y de las fichas: al enfocarla se ilumina y se
+     enmarca en rojo, que es la única señal de «estás aquí» que hay -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/elevada" />
+            <stroke android:width="3dp" android:color="@color/marca" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/superficie" />
+            <stroke android:width="1dp" android:color="@color/borde" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+</selector>

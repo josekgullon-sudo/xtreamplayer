@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Una fila de canal: el logotipo ayuda más que el nombre a encontrar el
+     que buscas, y muchos nombres de lista son ilegibles a propósito -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="62dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/carpeta"
+    android:focusable="true"
+    android:paddingStart="12dp"
+    android:paddingEnd="14dp"
+    android:layout_marginBottom="4dp">
+
+    <ImageView
+        android:id="@+id/logo"
+        android:layout_width="46dp"
+        android:layout_height="38dp"
+        android:scaleType="fitCenter"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/nombre"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="14dp"
+        android:textColor="@color/texto"
+        android:textSize="17sp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <ImageView
+        android:id="@+id/sonando"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:src="@drawable/ic_play"
+        android:visibility="gone"
+        android:contentDescription="@null" />
+</LinearLayout>

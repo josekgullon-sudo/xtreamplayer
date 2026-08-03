@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Un cartel de la rejilla. Proporción 2:3, la de siempre, para que las
+     carátulas de los proveedores entren sin deformarse. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/poster"
+    android:focusable="true"
+    android:padding="6dp"
+    android:layout_margin="8dp">
+
+    <ImageView
+        android:id="@+id/cartel"
+        android:layout_width="150dp"
+        android:layout_height="225dp"
+        android:scaleType="centerCrop"
+        android:background="#0E0D13"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/nombre"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/texto"
+        android:textSize="14sp"
+        android:maxLines="2"
+        android:minLines="2"
+        android:lineSpacingExtra="1dp"
+        android:ellipsize="end"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/extra"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/tenue"
+        android:textSize="12sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="4dp" />
+</LinearLayout>

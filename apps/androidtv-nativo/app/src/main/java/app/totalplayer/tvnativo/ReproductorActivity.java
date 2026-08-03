@@ -1,0 +1,162 @@
+package app.totalplayer.tvnativo;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.Player;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.ui.PlayerView;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
+/**
+ * Pantalla completa.
+ *
+ * Del directo se zapea con arriba y abajo, que es como se zapea en una tele
+ * desde que existen las teles. El cartel con el canal y lo que están dando
+ * sale al cambiar y se va solo: tener información encima de la imagen todo
+ * el rato es lo que hace que la gente cierre la aplicación.
+ */
+public class ReproductorActivity extends Activity {
+
+    private ExoPlayer reproductor;
+    private PlayerView vista;
+    private View cartelito;
+    private TextView nombre, ahora, reloj, error;
+    private ImageView logo;
+    private ProgressBar girando;
+
+    private final Runnable esconder = new Runnable() {
+        @Override public void run() { cartelito.animate().alpha(0f).setDuration(300).start(); }
+    };
+
+    @Override protected void onCreate(Bundle guardado) {
+        super.onCreate(guardado);
+        setContentView(R.layout.reproductor);
+        // Ver la tele con el salvapantallas saltando a los dos minutos
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        vista = findViewById(R.id.vista);
+        cartelito = findViewById(R.id.cartelito);
+        nombre = findViewById(R.id.nombre);
+        ahora = findViewById(R.id.ahora);
+        reloj = findViewById(R.id.reloj);
+        logo = findViewById(R.id.logo);
+        error = findViewById(R.id.error);
+        girando = findViewById(R.id.girando);
+
+        reproductor = Reproduccion.nuevo(this);
+        vista.setPlayer(reproductor);
+        /* En el directo no hay nada que rebobinar: los mandos de la barra
+           solo estorban. En una película sí, y son los de siempre. */
+        vista.setUseController(!Traspaso.esDirecto);
+        reproductor.addListener(new Player.Listener() {
+            @Override public void onPlaybackStateChanged(int estado) {
+                girando.setVisibility(estado == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
+                if (estado == Player.STATE_READY) error.setVisibility(View.GONE);
+            }
+            @Override public void onPlayerError(PlaybackException fallo) {
+                girando.setVisibility(View.GONE);
+                error.setText(Reproduccion.porQue(fallo));
+                error.setVisibility(View.VISIBLE);
+            }
+        });
+
+        poner();
+    }
+
+    private void poner() {
+        error.setVisibility(View.GONE);
+        girando.setVisibility(View.VISIBLE);
+        nombre.setText(Traspaso.titulo);
+        ahora.setText("");
+        reloj.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date()));
+        Imagenes.cargar(logo, Traspaso.logo, R.drawable.ic_tv);
+
+        cartelito.animate().cancel();
+        cartelito.setAlpha(1f);
+        Hilos.olvidar(esconder);
+        Hilos.enPantallaDentroDe(esconder, 5000);
+
+        reproductor.setMediaItem(MediaItem.fromUri(Traspaso.url));
+        reproductor.prepare();
+        reproductor.play();
+
+        if (Traspaso.esDirecto && Traspaso.cola != null) pedirGuia();
+    }
+
+    private void pedirGuia() {
+        final Catalogo.Item canal = Traspaso.cola.get(Traspaso.posicion);
+        Hilos.fuera(new Hilos.Trabajo<String[]>() {
+            @Override public String[] hacer() { return Catalogo.guia(canal.id); }
+        }, new Hilos.Luego<String[]>() {
+            @Override public void listo(String[] par) {
+                if (par == null) return;
+                // Se puede haber zapeado mientras llegaba
+                if (Traspaso.cola == null || !canal.id.equals(Traspaso.cola.get(Traspaso.posicion).id)) return;
+                ahora.setText(par[0]);
+            }
+            @Override public void falla(Exception e) { /* la guía es un extra */ }
+        });
+    }
+
+    /** Zapear: arriba y abajo cambian de canal dentro de la carpeta abierta. */
+    private void zapear(int aDonde) {
+        if (Traspaso.cola == null || Traspaso.cola.isEmpty()) return;
+        int cuantos = Traspaso.cola.size();
+        // Da la vuelta: al final de la lista, el siguiente es el primero
+        Traspaso.posicion = ((Traspaso.posicion + aDonde) % cuantos + cuantos) % cuantos;
+        Traspaso.reproducir(Traspaso.cola, Traspaso.posicion);
+        poner();
+    }
+
+    @Override public boolean onKeyDown(int tecla, KeyEvent evento) {
+        if (Traspaso.esDirecto) {
+            switch (tecla) {
+                case KeyEvent.KEYCODE_DPAD_UP:
+                case KeyEvent.KEYCODE_CHANNEL_UP:
+                    zapear(-1);
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                case KeyEvent.KEYCODE_CHANNEL_DOWN:
+                    zapear(1);
+                    return true;
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_ENTER:
+                    // OK enseña otra vez qué se está viendo
+                    cartelito.animate().cancel();
+                    cartelito.setAlpha(1f);
+                    Hilos.olvidar(esconder);
+                    Hilos.enPantallaDentroDe(esconder, 5000);
+                    return true;
+                default:
+                    break;
+            }
+        }
+        return super.onKeyDown(tecla, evento);
+    }
+
+    @Override protected void onStop() {
+        super.onStop();
+        if (reproductor != null) reproductor.pause();
+    }
+
+    @Override protected void onDestroy() {
+        super.onDestroy();
+        Hilos.olvidar(esconder);
+        if (reproductor != null) {
+            reproductor.release();
+            reproductor = null;
+        }
+    }
+}

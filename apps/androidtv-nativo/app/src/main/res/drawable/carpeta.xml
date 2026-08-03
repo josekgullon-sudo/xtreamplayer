@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Una carpeta de la columna izquierda. Enfocada manda; elegida pero sin
+     foco se queda marcada, para no perder de vista en qué lista estás -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/marca" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+    <item android:state_activated="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/elevada" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/elevada" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+    <item><color android:color="@android:color/transparent" /></item>
+</selector>

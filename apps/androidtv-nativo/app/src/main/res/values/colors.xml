@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  La paleta, en un solo sitio.
+
+  En una tele todo se mira desde tres metros y muchas veces a oscuras: los
+  fondos son casi negros para que la imagen del vídeo sea lo único que
+  brille, y el rojo de la marca se reserva para una sola cosa —dónde está el
+  foco—. Si el rojo se usa también para adornar, deja de decir «estás aquí».
+-->
+<resources>
+    <color name="fondo">#0B0A0F</color>
+    <color name="superficie">#16151D</color>
+    <color name="elevada">#1F1D2A</color>
+    <color name="borde">#2E2C3B</color>
+
+    <color name="marca">#E5192B</color>
+    <color name="marca_viva">#FF2D3F</color>
+
+    <color name="texto">#FFFFFF</color>
+    <color name="apagado">#A9A7B8</color>
+    <color name="tenue">#6C6A7D</color>
+</resources>

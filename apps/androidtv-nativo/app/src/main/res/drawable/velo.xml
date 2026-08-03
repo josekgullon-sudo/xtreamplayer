@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- De transparente arriba a negro abajo: deja leer el texto encima de la
+     imagen sin tapar la imagen -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="90"
+        android:startColor="#F20B0A0F"
+        android:centerColor="#B00B0A0F"
+        android:endColor="#000B0A0F"
+        android:type="linear" />
+</shape>

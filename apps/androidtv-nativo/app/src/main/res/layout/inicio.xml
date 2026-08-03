@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  La pantalla que faltaba: al entrar, elegir qué se quiere ver.
+
+  Antes se caía directamente en una lista de carpetas de canales, y las
+  películas y las series del proveedor no aparecían por ningún lado. Tres
+  tarjetas grandes, separadas, imposibles de fallar con el mando.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/fondo"
+    android:paddingStart="56dp"
+    android:paddingEnd="56dp"
+    android:paddingTop="44dp"
+    android:paddingBottom="36dp">
+
+    <!-- Cabecera: de quién es esto y quién está dentro -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/marca"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TOTALplayer"
+                android:textColor="@color/texto"
+                android:textSize="30sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/quien"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/apagado"
+                android:textSize="16sp"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/hora"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/apagado"
+            android:textSize="22sp" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="¿Qué quieres ver?"
+        android:textColor="@color/texto"
+        android:textSize="26sp"
+        android:layout_marginTop="34dp"
+        android:layout_marginBottom="20dp" />
+
+    <!-- Las tres puertas -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
+
+        <include layout="@layout/pieza_menu" android:id="@+id/tarjetaDirecto" />
+
+        <Space android:layout_width="24dp" android:layout_height="1dp" />
+
+        <include layout="@layout/pieza_menu" android:id="@+id/tarjetaPelis" />
+
+        <Space android:layout_width="24dp" android:layout_height="1dp" />
+
+        <include layout="@layout/pieza_menu" android:id="@+id/tarjetaSeries" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Lo de menos, abajo y pequeño -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/botonBuscar"
+            android:layout_width="wrap_content"
+            android:layout_height="52dp"
+            android:minWidth="220dp"
+            android:text="Buscar un canal"
+            android:drawableStart="@drawable/ic_buscar"
+            android:drawablePadding="10dp"
+            android:textColor="@color/apagado"
+            android:textSize="15sp"
+            android:textAllCaps="false"
+            android:background="@drawable/campo" />
+
+        <Space android:layout_width="14dp" android:layout_height="1dp" />
+
+        <Button
+            android:id="@+id/botonSalir"
+            android:layout_width="wrap_content"
+            android:layout_height="52dp"
+            android:minWidth="200dp"
+            android:text="Cambiar de cuenta"
+            android:drawableStart="@drawable/ic_salir"
+            android:drawablePadding="10dp"
+            android:textColor="@color/apagado"
+            android:textSize="15sp"
+            android:textAllCaps="false"
+            android:background="@drawable/campo" />
+    </LinearLayout>
+</LinearLayout>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Películas y series: la misma pantalla para las dos, porque se usan igual.
+  Carpetas a la izquierda y carteles a la derecha: la carátula es lo que hace
+  que alguien elija, y en una lista de texto no elige nadie.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@color/fondo">
+
+    <LinearLayout
+        android:layout_width="260dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/superficie"
+        android:paddingTop="26dp"
+        android:paddingBottom="16dp">
+
+        <TextView
+            android:id="@+id/tituloSeccion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/tenue"
+            android:textSize="13sp"
+            android:letterSpacing="0.14"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="14dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/listaCarpetas"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:clipToPadding="false" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:paddingTop="26dp">
+
+            <TextView
+                android:id="@+id/tituloCarpeta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/texto"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:paddingStart="36dp"
+                android:paddingEnd="36dp"
+                android:paddingBottom="16dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rejilla"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:paddingStart="26dp"
+                android:paddingEnd="26dp"
+                android:paddingBottom="20dp"
+                android:clipToPadding="false"
+                android:clipChildren="false" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/vacio"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="@color/tenue"
+            android:textSize="17sp"
+            android:padding="40dp"
+            android:visibility="gone" />
+
+        <ProgressBar
+            android:id="@+id/girando"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/marca"
+            android:visibility="gone" />
+    </FrameLayout>
+</LinearLayout>
