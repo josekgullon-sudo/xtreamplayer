@@ -1,0 +1,59 @@
+# Deja los APK descargables con un enlace directo.
+#
+# Los artefactos de Actions valen para guardar, no para instalar: son un .zip
+# y exigen estar identificado en GitHub. Un Fire TV Stick no puede con
+# ninguna de las dos cosas —ni Downloader ni el navegador de la tele saben
+# iniciar sesión—, así que el APK se quedaba donde nadie podía cogerlo.
+#
+# Esto publica una versión previa fija con los tres APK sueltos dentro. La
+# dirección no cambia nunca, así que el enlace corto de la web puede apuntar
+# ahí para siempre.
+name: Publicar APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Compilar los tres
+        run: |
+          for app in android:movil androidtv:tele androidtv-nativo:tele-nativo; do
+            carpeta="apps/${app%%:*}"
+            nombre="${app##*:}"
+            (cd "$carpeta" && gradle assembleDebug --no-daemon)
+            cp "$carpeta/app/build/outputs/apk/debug/app-debug.apk" "totalplayer-$nombre.apk"
+          done
+          ls -lh totalplayer-*.apk
+
+      # La misma etiqueta siempre: así el enlace de descarga es estable y no
+      # hay que cambiar la web cada vez que se compila
+      - name: Publicar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete apk-pruebas --yes --cleanup-tag || true
+          gh release create apk-pruebas totalplayer-*.apk \
+            --prerelease \
+            --title "APK de pruebas" \
+            --notes "Compilados de $(git rev-parse --short HEAD). Firmados de depuración: valen para instalar y probar, no para las tiendas.
+
+          - **totalplayer-tele-nativo.apk** — el reproductor nativo con ExoPlayer (el que hay que probar)
+          - **totalplayer-tele.apk** — el envoltorio de WebView, para comparar
+          - **totalplayer-movil.apk** — el del teléfono"
