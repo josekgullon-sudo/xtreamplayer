@@ -2145,6 +2145,12 @@ select.input { appearance: none; cursor: pointer; }
   /* «Sin resultados» no es una ficha, es una frase */
   .panel-table.fichas-en-movil td[colspan] { display: block; }
   .panel-table.fichas-en-movil td[colspan]::before { content: none; }
+
+  /* Los dominios ya eran fichas, pero editar y eliminar medían 45×31, y son
+     las dos únicas cosas que se hacen ahí. Y editar es lo que salva el día
+     cuando un dominio cae: todos sus clientes pasan al nuevo destino. */
+  .domain-card-head .btn { min-height: 44px; min-width: 44px; justify-content: center; }
+  .domain-card { padding: 16px; }
 }
 
 /* ---- La parrilla: qué echan ahora y en las próximas horas ---- */

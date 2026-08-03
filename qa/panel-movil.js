@@ -163,6 +163,20 @@ async function seSalen(p) {
     check(`Y los botones de cada ${titulo === "Usuario" ? "cliente" : "revendedor"} se pulsan con el dedo`,
       t.acciones.length > 0 && t.acciones.every((h) => h >= 44), t.acciones.join(", ") + "px");
   }
+  /* Los dominios ya eran fichas, pero editar y eliminar medían 45×31. Y
+     editar es lo que salva el día cuando un dominio cae: se cambia aquí y
+     todos sus clientes pasan al nuevo destino sin tocar nada más. */
+  await d.goto(BASE + "/panel", { waitUntil: "networkidle" });
+  await d.locator('.panel-nav-item:has-text("Dominios")').first().click();
+  await d.waitForSelector(".domain-card", { timeout: 25000 });
+  await d.waitForTimeout(1000);
+  const mandosDominio = await d.locator(".domain-card-head .btn").evaluateAll(
+    (els) => els.map((e) => Math.round(e.getBoundingClientRect().height))
+  );
+  check("Y los dominios se editan y se borran con el dedo",
+    mandosDominio.length > 0 && mandosDominio.every((h) => h >= 44),
+    [...new Set(mandosDominio)].join(", ") + "px");
+
   await d.screenshot({ path: __dirname + "/98-panel-movil-listas.png", fullPage: true });
 
   await b.close();
