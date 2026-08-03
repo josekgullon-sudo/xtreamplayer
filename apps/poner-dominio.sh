@@ -37,15 +37,19 @@ DESTINO="$SITIO/tv"
 ANDROID="$AQUI/androidtv/app/src/main/java/app/totalplayer/tv/MainActivity.java"
 sed -i.bak -E "s|(private static final String INICIO = \")[^\"]*(\";)|\1${DESTINO}\2|" "$ANDROID"
 
+# Android móvil: la misma constante, pero apuntando al reproductor y no a /tv
+MOVIL="$AQUI/android/app/src/main/java/app/totalplayer/movil/MainActivity.java"
+sed -i.bak -E "s|(private static final String INICIO = \")[^\"]*(\";)|\1${SITIO}/player\2|" "$MOVIL"
+
 # Samsung y LG: la variable del arranque
 for ENVOLTORIO in "$AQUI/tizen/index.html" "$AQUI/webos/index.html"; do
   sed -i.bak -E "s|(var INICIO = \")[^\"]*(\";)|\1${DESTINO}\2|" "$ENVOLTORIO"
 done
 
-rm -f "$ANDROID.bak" "$AQUI/tizen/index.html.bak" "$AQUI/webos/index.html.bak"
+rm -f "$ANDROID.bak" "$MOVIL.bak" "$AQUI/tizen/index.html.bak" "$AQUI/webos/index.html.bak"
 
 echo "Puesto en las tres:"
-grep -h "INICIO" "$ANDROID" "$AQUI/tizen/index.html" "$AQUI/webos/index.html" | grep -o "https\?://[^\"]*"
+grep -h "INICIO" "$ANDROID" "$MOVIL" "$AQUI/tizen/index.html" "$AQUI/webos/index.html" | grep -o "https\?://[^\"]*"
 echo
 echo "Recuerda que la web también tiene la suya, en las variables de Railway:"
 echo "  NEXT_PUBLIC_SITE_URL=$SITIO"

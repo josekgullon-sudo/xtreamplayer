@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- El nombre bajo el icono. Se cambia por el de la marca al compilarla
+         para un proveedor. -->
+    <string name="app_name">TOTALplayer</string>
+</resources>

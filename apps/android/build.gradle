@@ -1,0 +1,4 @@
+// Raíz del proyecto: solo dice con qué se compila.
+plugins {
+    id 'com.android.application' version '8.5.0' apply false
+}

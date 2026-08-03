@@ -1,0 +1,34 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'app.totalplayer.movil'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "app.totalplayer.movil"
+        // Android 6: por debajo, el WebView del sistema ya no se actualiza y
+        // el vídeo empieza a fallar de formas que no se pueden arreglar aquí
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            /*
+             * Firma de depuración a propósito: así se compila y se prueba sin
+             * tener nada configurado. Para Google Play hay que firmarlo con la
+             * clave propia — está explicado en el README.
+             */
+            signingConfig signingConfigs.debug
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies { }
