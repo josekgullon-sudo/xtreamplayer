@@ -34,6 +34,7 @@ public class VodActivity extends Activity {
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         setContentView(R.layout.vod);
+        if (!Guardia.haySesion(this)) return;
 
         seccion = getIntent().getStringExtra("seccion");
         if (seccion == null) seccion = Catalogo.PELIS;

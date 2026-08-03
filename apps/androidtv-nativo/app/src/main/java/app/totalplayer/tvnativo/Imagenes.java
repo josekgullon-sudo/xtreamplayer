@@ -22,6 +22,15 @@ public final class Imagenes {
 
     /* Un octavo de la memoria de la aplicación: suficiente para una pantalla
        de carteles y sus vecinos, sin ahogar al reproductor */
+    /*
+     * Las que no se pudieron bajar, para no volver a intentarlo nunca.
+     *
+     * Sin esto, un proveedor con la mitad de los logotipos rotos hace que
+     * cada pasada por la lista repita todas esas peticiones fallidas.
+     */
+    private static final java.util.Set<String> ROTAS =
+            java.util.Collections.synchronizedSet(new java.util.HashSet<String>());
+
     private static final LruCache<String, Bitmap> CACHE =
             new LruCache<String, Bitmap>((int) (Runtime.getRuntime().maxMemory() / 8192)) {
                 @Override protected int sizeOf(String clave, Bitmap b) { return b.getByteCount() / 1024; }
@@ -32,6 +41,12 @@ public final class Imagenes {
     public static void cargar(final ImageView donde, final String url, final int deReserva) {
         if (donde == null) return;
         if (url == null || url.isEmpty() || !url.startsWith("http")) {
+            donde.setTag(null);
+            donde.setImageResource(deReserva);
+            return;
+        }
+
+        if (ROTAS.contains(url)) {
             donde.setTag(null);
             donde.setImageResource(deReserva);
             return;
@@ -49,7 +64,23 @@ public final class Imagenes {
         final int ancho = Math.max(donde.getWidth(), 320);
 
         Hilos.fueraLento(new Hilos.Trabajo<Bitmap>() {
-            @Override public Bitmap hacer() throws Exception { return bajar(url, ancho); }
+            @Override public Bitmap hacer() {
+                /*
+                 * Antes de gastar una conexión, mirar si esta fila sigue
+                 * enseñando lo mismo.
+                 *
+                 * Bajando deprisa por una carpeta de cuatrocientos canales
+                 * se pedían cuatrocientos logotipos —todos al servidor del
+                 * proveedor, el mismo que sirve el vídeo—, y esa ráfaga es
+                 * la que hacía que el servidor dejara de contestar y que la
+                 * tele se quedara sin memoria. La fila ya se ha reciclado
+                 * veinte veces: ese logotipo no lo está mirando nadie.
+                 */
+                if (!url.equals(donde.getTag())) return null;
+                Bitmap b = bajar(url, ancho);
+                if (b == null) ROTAS.add(url);
+                return b;
+            }
         }, new Hilos.Luego<Bitmap>() {
             @Override public void listo(Bitmap b) {
                 if (b == null) return;
@@ -57,7 +88,7 @@ public final class Imagenes {
                 // La fila puede haberse reciclado mientras la imagen viajaba
                 if (url.equals(donde.getTag())) donde.setImageBitmap(b);
             }
-            @Override public void falla(Exception e) { /* se queda el de reserva */ }
+            @Override public void falla(Exception e) { ROTAS.add(url); }
         });
     }
 
@@ -97,7 +128,7 @@ public final class Imagenes {
             while ((leidos = in.read(trozo)) > 0) {
                 total += leidos;
                 // Un «cartel» de 20 MB no es un cartel: es una avería
-                if (total > 6 * 1024 * 1024) return null;
+                if (total > 3 * 1024 * 1024) return null;
                 fuera.write(trozo, 0, leidos);
             }
             in.close();

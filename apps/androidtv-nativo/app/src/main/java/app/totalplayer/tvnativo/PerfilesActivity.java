@@ -30,6 +30,7 @@ public class PerfilesActivity extends Activity {
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         setContentView(R.layout.perfiles);
+        if (!Guardia.haySesion(this)) return;
 
         fila = findViewById(R.id.fila);
         aviso = findViewById(R.id.aviso);

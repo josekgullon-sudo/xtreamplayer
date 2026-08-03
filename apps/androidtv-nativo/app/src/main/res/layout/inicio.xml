@@ -56,39 +56,47 @@
         android:textSize="16sp"
         android:layout_marginTop="8dp" />
 
-    <!-- Las tres puertas, centradas y con el icono grande -->
+    <!--
+      Las tres puertas.
+
+      Anchura por reparto y no en puntos fijos: tres tarjetas de 300 más sus
+      huecos son 944 puntos, y en una tele de 1080p solo hay 848 útiles. La
+      tercera se salía por la derecha y la fila entera aparecía descuadrada.
+    -->
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="5"
+        android:layout_weight="6"
         android:orientation="horizontal"
-        android:gravity="center"
         android:clipChildren="false"
         android:clipToPadding="false"
-        android:paddingTop="22dp"
-        android:paddingBottom="18dp">
+        android:paddingTop="16dp"
+        android:paddingBottom="12dp">
 
         <include
             android:id="@+id/tarjetaDirecto"
             layout="@layout/pieza_menu"
-            android:layout_width="300dp"
-            android:layout_height="match_parent" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
 
-        <Space android:layout_width="22dp" android:layout_height="1dp" />
+        <Space android:layout_width="20dp" android:layout_height="1dp" />
 
         <include
             android:id="@+id/tarjetaPelis"
             layout="@layout/pieza_menu"
-            android:layout_width="300dp"
-            android:layout_height="match_parent" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
 
-        <Space android:layout_width="22dp" android:layout_height="1dp" />
+        <Space android:layout_width="20dp" android:layout_height="1dp" />
 
         <include
             android:id="@+id/tarjetaSeries"
             layout="@layout/pieza_menu"
-            android:layout_width="300dp"
-            android:layout_height="match_parent" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
     </LinearLayout>
 
     <!-- Lo de menos, centrado también y en voz baja -->

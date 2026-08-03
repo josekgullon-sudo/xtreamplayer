@@ -46,6 +46,7 @@ public class DirectoActivity extends Activity {
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         setContentView(R.layout.directo);
+        if (!Guardia.haySesion(this)) return;
 
         listaCarpetas = findViewById(R.id.listaCarpetas);
         listaCanales = findViewById(R.id.listaCanales);

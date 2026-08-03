@@ -107,12 +107,54 @@ public final class Sesion {
         return llave;
     }
 
+    /**
+     * Guarda también la lista ya resuelta, no solo lo que se escribió.
+     *
+     * Esto vivía solo en memoria, y Android mata el proceso de una
+     * aplicación que pasa a segundo plano cuando le hace falta memoria. Al
+     * volver, Android rehace la pantalla pero la sesión ya no está: la
+     * aplicación aparecía con el usuario en blanco y «no se ha podido
+     * consultar» en las tres secciones, sin más salida que reinstalar.
+     */
     public void guardar(Context c) {
         ajustes(c).edit()
                 .putString("usuario", entradaUsuario)
                 .putString("clave", entradaClave)
                 .putString("servidor", entradaServidor)
+                .putString("tipo", tipo)
+                .putString("lista_servidor", servidor)
+                .putString("lista_usuario", usuario)
+                .putString("lista_clave", clave)
+                .putString("marca", marca)
                 .apply();
+    }
+
+    /** ¿Sabemos a qué servidor pedir? Si no, hay que volver a entrar. */
+    public boolean hayLista() { return !servidor.isEmpty(); }
+
+    /**
+     * Rehace la sesión desde el disco después de un reinicio del proceso.
+     * Devuelve false cuando no hay nada guardado y toca volver a entrar.
+     */
+    public static boolean recuperar(Context c) {
+        Sesion s = actual();
+        if (s.hayLista()) return true;
+
+        SharedPreferences a = ajustes(c);
+        String servidor = a.getString("lista_servidor", "");
+        if (servidor.isEmpty()) return false;
+
+        s.tipo = a.getString("tipo", XTREAM);
+        s.servidor = servidor;
+        s.usuario = a.getString("lista_usuario", "");
+        s.clave = a.getString("lista_clave", "");
+        s.marca = a.getString("marca", "");
+        s.entradaUsuario = a.getString("usuario", "");
+        s.entradaClave = a.getString("clave", "");
+        s.entradaServidor = a.getString("servidor", "");
+        s.perfil = nombreFijado(c);
+        s.perfilId = perfilFijado(c);
+        return true;
     }
 
     /** «Entrar siempre con este perfil en este aparato». */
@@ -128,8 +170,9 @@ public final class Sesion {
 
     /** Cerrar sesión: se olvida todo menos la llave del aparato. */
     public static void olvidar(Context c) {
-        ajustes(c).edit().remove("usuario").remove("clave").remove("servidor")
-                .remove("perfilId").remove("perfilNombre").apply();
+        // Se borra todo menos la llave del aparato, que no es de la cuenta
+        String aparato = ajustes(c).getString("aparato", "");
+        ajustes(c).edit().clear().putString("aparato", aparato).apply();
         actual = new Sesion();
         Catalogo.vaciar();
     }

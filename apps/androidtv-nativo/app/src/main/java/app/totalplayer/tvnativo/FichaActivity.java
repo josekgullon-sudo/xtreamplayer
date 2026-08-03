@@ -37,6 +37,7 @@ public class FichaActivity extends Activity {
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         setContentView(R.layout.ficha);
+        if (!Guardia.haySesion(this)) return;
 
         ficha = Traspaso.ficha;
         if (ficha == null) { finish(); return; }

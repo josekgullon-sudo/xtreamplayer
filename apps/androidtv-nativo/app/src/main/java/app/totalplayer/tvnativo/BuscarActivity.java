@@ -32,6 +32,7 @@ public class BuscarActivity extends Activity {
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         setContentView(R.layout.buscar);
+        if (!Guardia.haySesion(this)) return;
 
         campo = findViewById(R.id.campo);
         cuantos = findViewById(R.id.cuantos);

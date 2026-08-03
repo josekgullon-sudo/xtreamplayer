@@ -27,6 +27,7 @@ public class InicioActivity extends Activity {
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         setContentView(R.layout.inicio);
+        if (!Guardia.haySesion(this)) return;
 
         Sesion s = Sesion.actual();
         // El nombre del proveedor manda sobre el nuestro: es su tele
