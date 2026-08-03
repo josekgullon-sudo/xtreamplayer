@@ -1,5 +1,11 @@
-# Gráficos generados y compilaciones
-*.png
+# El icono y el banner SÍ van en el repositorio.
+#
+# Estaban ignorados —«son generados, se rehacen en un segundo»— y el
+# manifiesto los nombra, así que quien se bajara el proyecto no podía
+# compilarlo: fallaba al enlazar recursos por un @mipmap/ic_launcher que no
+# existía. GitHub tampoco podía, y por eso el APK de la tele no salía.
+#
+# preparar-graficos.sh sigue estando para rehacerlos con otra marca.
 build/
 .gradle/
 local.properties
