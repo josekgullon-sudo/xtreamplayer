@@ -11,6 +11,26 @@
     android:layout_height="match_parent"
     android:background="@color/fondo">
 
+    <!--
+      La carátula, muy apagada, ocupando el fondo entero.
+
+      Es lo que distingue una ficha de un formulario: el título llena la
+      pantalla en vez de dejar dos tercios de gris vacío. Va al 16% y con un
+      velo encima para que el texto siga leyéndose desde el sofá.
+    -->
+    <ImageView
+        android:id="@+id/fondo"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:alpha="0.16"
+        android:contentDescription="@null" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/velo_ficha" />
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"

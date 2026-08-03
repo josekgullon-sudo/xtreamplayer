@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- De opaco a la izquierda a casi nada a la derecha: el texto vive en la
+     izquierda y la carátula respira en la derecha -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="0"
+        android:startColor="#F2101012"
+        android:centerColor="#CC101012"
+        android:endColor="#66101012"
+        android:type="linear" />
+</shape>

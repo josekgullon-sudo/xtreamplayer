@@ -56,6 +56,7 @@ public class FichaActivity extends Activity {
         datos.setVisibility(ficha.extra.isEmpty() ? View.GONE : View.VISIBLE);
         pintarSinopsis();
         Imagenes.cargar(cartel, ficha.imagen, ficha.esSerie ? R.drawable.ic_series : R.drawable.ic_cine);
+        Imagenes.cargar((ImageView) findViewById(R.id.fondo), ficha.imagen, android.R.color.transparent);
 
         if (ficha.esSerie) prepararSerie();
         else prepararPelicula();
