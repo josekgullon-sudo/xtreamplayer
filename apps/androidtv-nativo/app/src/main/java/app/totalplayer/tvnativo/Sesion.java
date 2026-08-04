@@ -126,6 +126,7 @@ public final class Sesion {
                 .putString("lista_usuario", usuario)
                 .putString("lista_clave", clave)
                 .putString("marca", marca)
+                .putString("galleta", galleta)
                 .apply();
     }
 
@@ -149,6 +150,7 @@ public final class Sesion {
         s.usuario = a.getString("lista_usuario", "");
         s.clave = a.getString("lista_clave", "");
         s.marca = a.getString("marca", "");
+        s.galleta = a.getString("galleta", "");
         s.entradaUsuario = a.getString("usuario", "");
         s.entradaClave = a.getString("clave", "");
         s.entradaServidor = a.getString("servidor", "");

@@ -65,7 +65,10 @@ public class InicioActivity extends Activity {
                        cerrar la sesión: volver a escribir la contraseña con
                        el mando para pasarle la tele a otro es un castigo */
                     s.fijarPerfil(InicioActivity.this, false);
-                    startActivity(new Intent(InicioActivity.this, PerfilesActivity.class));
+                    Intent i = new Intent(InicioActivity.this, PerfilesActivity.class);
+                    // Viene a elegir: aquí no vale saltarse la pantalla
+                    i.putExtra("elegir", true);
+                    startActivity(i);
                 } else {
                     Sesion.olvidar(InicioActivity.this);
                     startActivity(new Intent(InicioActivity.this, AccesoActivity.class));

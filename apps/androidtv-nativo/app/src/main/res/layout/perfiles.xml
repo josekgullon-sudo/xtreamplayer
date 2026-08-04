@@ -72,6 +72,43 @@
                 android:textSize="15sp" />
         </LinearLayout>
 
+        <!--
+          Salir de la cuenta, siempre a la vista.
+
+          No había manera de salirse: «No soy Fulano» traía aquí, y si los
+          perfiles no cargaban —o solo había uno— esta pantalla se saltaba
+          sola y devolvía al menú con la misma sesión. Quien quería dejarle
+          la tele a otro se quedaba encerrado.
+        -->
+        <LinearLayout
+            android:id="@+id/cerrar"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/pastilla"
+            android:focusable="true"
+            android:clickable="true"
+            android:paddingStart="20dp"
+            android:paddingEnd="24dp"
+            android:layout_marginTop="16dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_salir"
+                android:tint="@color/tenue"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="Salir de la cuenta"
+                android:textColor="@color/tenue"
+                android:textSize="15sp" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/aviso"
             android:layout_width="wrap_content"

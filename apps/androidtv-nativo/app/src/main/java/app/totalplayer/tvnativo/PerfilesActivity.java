@@ -26,6 +26,8 @@ public class PerfilesActivity extends Activity {
     private ProgressBar girando;
     private View casilla;
     private boolean siempre = false;
+    /** Ha venido a elegir a propósito: esta pantalla no se salta. */
+    private boolean vieneAElegir = false;
 
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
@@ -37,6 +39,18 @@ public class PerfilesActivity extends Activity {
         aviso = findViewById(R.id.aviso);
         girando = findViewById(R.id.girando);
         casilla = findViewById(R.id.casilla);
+
+        vieneAElegir = getIntent().getBooleanExtra("elegir", false);
+
+        findViewById(R.id.cerrar).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                Sesion.olvidar(PerfilesActivity.this);
+                Intent i = new Intent(PerfilesActivity.this, AccesoActivity.class);
+                i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                finish();
+            }
+        });
 
         findViewById(R.id.siempre).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
@@ -63,6 +77,9 @@ public class PerfilesActivity extends Activity {
                  * vuelve a preguntar: encender la tele y tener que elegir
                  * perfil cada vez es un paso de más para quien vive solo.
                  */
+                /* El perfil fijado entra solo, salvo que se haya venido
+                   aquí justamente a cambiarlo */
+                if (vieneAElegir) return;
                 int fijado = Sesion.perfilFijado(PerfilesActivity.this);
                 for (Perfiles.Perfil p : lista.perfiles) {
                     if (p.id == fijado) { entrar(p); return; }
@@ -70,9 +87,20 @@ public class PerfilesActivity extends Activity {
             }
             @Override public void falla(Exception e) {
                 girando.setVisibility(View.GONE);
-                /* Si los perfiles no cargan, el reproductor sigue estando:
-                   quedarse fuera por no poder leer una lista de nombres
-                   sería el peor final posible */
+                /*
+                 * Si los perfiles no cargan, el reproductor sigue estando:
+                 * quedarse fuera por no poder leer una lista de nombres sería
+                 * el peor final posible. Pero solo al entrar. Si se ha venido
+                 * aquí a cambiar de perfil, seguir de largo devuelve al menú
+                 * con la misma sesión —que es lo que hacía imposible salir—,
+                 * así que se queda con el aviso y el botón de salir.
+                 */
+                if (vieneAElegir) {
+                    aviso.setText("No hemos podido cargar los perfiles.");
+                    aviso.setVisibility(View.VISIBLE);
+                    findViewById(R.id.cerrar).requestFocus();
+                    return;
+                }
                 seguirSinPerfil();
             }
         });
@@ -106,8 +134,15 @@ public class PerfilesActivity extends Activity {
             fila.addView(v);
         }
 
-        if (fila.getChildCount() > 0) fila.getChildAt(0).requestFocus();
-        else seguirSinPerfil();
+        if (fila.getChildCount() > 0) {
+            fila.getChildAt(0).requestFocus();
+        } else if (vieneAElegir) {
+            aviso.setText("Tu proveedor no te ha dado perfiles que elegir.");
+            aviso.setVisibility(View.VISIBLE);
+            findViewById(R.id.cerrar).requestFocus();
+        } else {
+            seguirSinPerfil();
+        }
     }
 
     /** Crear un perfil con el teclado de la tele. */
@@ -166,8 +201,15 @@ public class PerfilesActivity extends Activity {
         finish();
     }
 
-    /** Atrás desde aquí es salir: no hay pantalla anterior a la que volver. */
+    /**
+     * Atrás: si se vino a cambiar de perfil, se vuelve al menú con el que
+     * había. Si es la entrada, no hay pantalla anterior y se sale.
+     */
     @Override public void onBackPressed() {
+        if (vieneAElegir && !Sesion.actual().perfil.isEmpty()) {
+            seguir();
+            return;
+        }
         finish();
     }
 }
