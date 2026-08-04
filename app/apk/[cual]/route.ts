@@ -9,16 +9,21 @@ import { NextRequest, NextResponse } from "next/server";
  * tecleo garantizado. Estas tres son cortas a propósito:
  *
  *   totalplayer.app/apk/tv     el reproductor nativo
+ *   totalplayer.app/apk/movil  el mismo, para el teléfono
  *   totalplayer.app/apk/web    el envoltorio de WebView, para comparar
- *   totalplayer.app/apk/movil  el del teléfono
+ *
+ * «tv» y «movil» llevan al mismo archivo a propósito: es una sola
+ * aplicación que cambia de cara según la pantalla donde se instale. Tener
+ * dos nombres para lo mismo evita el «descárgate el de la tele en el
+ * teléfono», que es una instrucción que nadie se cree.
  *
  * No servimos el archivo nosotros: se redirige a la versión de GitHub, que
  * ya lo aloja y aguanta la descarga sin gastar nuestro ancho de banda.
  */
 const APKS: Record<string, string> = {
   tv: "totalplayer-tele-nativo.apk",
+  movil: "totalplayer-tele-nativo.apk",
   web: "totalplayer-tele.apk",
-  movil: "totalplayer-movil.apk",
 };
 
 const VERSION =
