@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  El tema del teléfono. El de la tele está en values-sw540dp.
+
+  Aquí no se pide pantalla completa. Una tele no tiene barra de estado y
+  taparla no quita nada; un teléfono sí, y quitarla dejaba a la aplicación
+  dibujando por debajo de la hora, de la batería y del agujero de la cámara:
+  la cabecera del menú y el título de «¿Quién está viendo?» salían cortados
+  por arriba. Con la barra puesta, el sistema baja el contenido él solo.
+
+  El vídeo sí se ve a pantalla completa, pero eso se pide desde el código y
+  solo mientras dura —Pantalla.pantallaCompleta—, no para toda la aplicación.
+-->
 <resources>
-    <!-- Sin barra de título. El fondo, el mismo gris del web: arrancar en
-         negro y pasar a gris es un fogonazo al revés -->
-    <style name="Tema" parent="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+    <style name="Tema" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">@color/fondo</item>
+        <item name="android:statusBarColor">@color/fondo</item>
+        <item name="android:navigationBarColor">@color/fondo</item>
     </style>
 </resources>

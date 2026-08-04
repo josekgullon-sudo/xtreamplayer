@@ -23,36 +23,44 @@
             android:orientation="vertical"
             android:paddingStart="20dp"
             android:paddingEnd="20dp"
-            android:paddingTop="34dp"
+            android:paddingTop="28dp"
             android:paddingBottom="20dp">
 
+            <!-- La cabecera va centrada, como en la tele y como en la web.
+                 Pegada a la izquierda parecía media pantalla vacía -->
             <TextView
                 android:id="@+id/marca"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="center"
                 android:text="TOTALPLAYER"
                 android:textColor="@color/marca_viva"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:letterSpacing="0.22" />
 
             <TextView
                 android:id="@+id/saludo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="center"
                 android:textColor="@color/texto"
-                android:textSize="24sp"
+                android:textSize="23sp"
                 android:textStyle="bold"
-                android:layout_marginTop="8dp" />
+                android:layout_marginTop="10dp" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="center"
                 android:text="Elige por dónde empezar. Podrás cambiar cuando quieras."
                 android:textColor="@color/tenue"
                 android:textSize="14sp"
+                android:lineSpacingExtra="3dp"
                 android:layout_marginTop="6dp"
-                android:layout_marginBottom="18dp" />
+                android:layout_marginBottom="20dp" />
 
             <include
                 android:id="@+id/tarjetaDirecto"

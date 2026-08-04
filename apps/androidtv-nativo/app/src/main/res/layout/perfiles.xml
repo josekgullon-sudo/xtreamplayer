@@ -1,124 +1,152 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  «¿Quién está viendo?», igual que en la web: todo centrado en mitad de la
-  pantalla, sin barras ni columnas. Es la primera pantalla que se ve al
-  entrar y no tiene que competir con nada.
+  «¿Quién está viendo?», en un teléfono.
+
+  Los mismos identificadores que la versión de tele. Lo que cambia es que
+  aquí «¿Quién está viendo?» a 38sp ocupa dos líneas, y una TextView de
+  wrap_content centrada por su padre alinea sus dos líneas a la izquierda:
+  quedaba el título torcido y el subtítulo también. Ahora cada texto se
+  centra por dentro, la fila de perfiles se puede arrastrar cuando hay más
+  de los que caben, y todo junto cabe en vertical sin que se corte nada.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/fondo">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
-        android:clipChildren="false"
-        android:paddingStart="48dp"
-        android:paddingEnd="48dp">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="none">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="¿Quién está viendo?"
-            android:textColor="@color/texto"
-            android:textSize="38sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Cada perfil guarda sus propios favoritos y su historial."
-            android:textColor="@color/apagado"
-            android:textSize="17sp"
-            android:layout_marginTop="10dp" />
-
-        <!-- Los perfiles se pintan aquí desde el código -->
         <LinearLayout
-            android:id="@+id/fila"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:gravity="center"
             android:clipChildren="false"
-            android:layout_marginTop="34dp" />
-
-        <LinearLayout
-            android:id="@+id/siempre"
-            android:layout_width="wrap_content"
-            android:layout_height="52dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="@drawable/pastilla"
-            android:focusable="true"
-            android:paddingStart="20dp"
-            android:paddingEnd="26dp"
-            android:layout_marginTop="34dp">
-
-            <View
-                android:id="@+id/casilla"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:background="@drawable/casilla" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:text="Entrar siempre con este perfil en esta tele"
-                android:textColor="@color/apagado"
-                android:textSize="15sp" />
-        </LinearLayout>
-
-        <!--
-          Salir de la cuenta, siempre a la vista.
-
-          No había manera de salirse: «No soy Fulano» traía aquí, y si los
-          perfiles no cargaban —o solo había uno— esta pantalla se saltaba
-          sola y devolvía al menú con la misma sesión. Quien quería dejarle
-          la tele a otro se quedaba encerrado.
-        -->
-        <LinearLayout
-            android:id="@+id/cerrar"
-            android:layout_width="wrap_content"
-            android:layout_height="50dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="@drawable/pastilla"
-            android:focusable="true"
-            android:clickable="true"
-            android:paddingStart="20dp"
+            android:paddingStart="24dp"
             android:paddingEnd="24dp"
-            android:layout_marginTop="16dp">
-
-            <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:src="@drawable/ic_salir"
-                android:tint="@color/tenue"
-                android:contentDescription="@null" />
+            android:paddingTop="36dp"
+            android:paddingBottom="36dp">
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:text="Salir de la cuenta"
-                android:textColor="@color/tenue"
-                android:textSize="15sp" />
-        </LinearLayout>
+                android:gravity="center"
+                android:text="¿Quién está viendo?"
+                android:textColor="@color/texto"
+                android:textSize="27sp"
+                android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/aviso"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/marca_viva"
-            android:textSize="15sp"
-            android:gravity="center"
-            android:layout_marginTop="18dp"
-            android:visibility="gone" />
-    </LinearLayout>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Cada perfil guarda sus propios favoritos y su historial."
+                android:textColor="@color/apagado"
+                android:textSize="14sp"
+                android:lineSpacingExtra="3dp"
+                android:layout_marginTop="8dp" />
+
+            <!-- Se arrastra: con cinco perfiles no caben todos en 360 puntos -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="26dp"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:scrollbars="none"
+                android:fillViewport="true">
+
+                <!-- Los perfiles se pintan aquí desde el código -->
+                <LinearLayout
+                    android:id="@+id/fila"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:clipChildren="false" />
+            </HorizontalScrollView>
+
+            <LinearLayout
+                android:id="@+id/siempre"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/pastilla"
+                android:focusable="true"
+                android:clickable="true"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:layout_marginTop="28dp">
+
+                <View
+                    android:id="@+id/casilla"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:background="@drawable/casilla" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:text="Entrar siempre con este perfil"
+                    android:textColor="@color/apagado"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <!--
+              Salir de la cuenta, siempre a la vista.
+
+              No había manera de salirse: «No soy Fulano» traía aquí, y si los
+              perfiles no cargaban —o solo había uno— esta pantalla se saltaba
+              sola y devolvía al menú con la misma sesión.
+            -->
+            <LinearLayout
+                android:id="@+id/cerrar"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/pastilla"
+                android:focusable="true"
+                android:clickable="true"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:layout_marginTop="12dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_salir"
+                    android:tint="@color/tenue"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="Salir de la cuenta"
+                    android:textColor="@color/tenue"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/aviso"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/marca_viva"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:lineSpacingExtra="3dp"
+                android:layout_marginTop="16dp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </ScrollView>
 
     <ProgressBar
         android:id="@+id/girando"

@@ -19,8 +19,20 @@ public class AdaptadorCarteles extends RecyclerView.Adapter<AdaptadorCarteles.Ce
 
     private final List<Catalogo.Item> datos = new ArrayList<>();
     private final AlElegir alElegir;
+    /** Ancho del cartel en píxeles; 0 deja el del diseño. */
+    private int ancho = 0;
 
     public AdaptadorCarteles(AlElegir alElegir) { this.alElegir = alElegir; }
+
+    /**
+     * Cuánto mide cada cartel.
+     *
+     * En la tele son los 150 puntos del diseño y ahí caben. En un teléfono
+     * no: dos carteles de 150 con sus márgenes piden 356 puntos y la
+     * pantalla da 340, así que la segunda columna salía cortada por el borde
+     * derecho. El ancho de verdad se sabe al abrir, no al dibujar el XML.
+     */
+    public void ancho(int px) { ancho = px; }
 
     public void poner(List<Catalogo.Item> nuevos) {
         datos.clear();
@@ -52,6 +64,12 @@ public class AdaptadorCarteles extends RecyclerView.Adapter<AdaptadorCarteles.Ce
 
     @Override public void onBindViewHolder(@NonNull final Celda celda, int posicion) {
         Catalogo.Item it = datos.get(posicion);
+        if (ancho > 0) {
+            // 2:3, la proporción de siempre de una carátula
+            medir(celda.cartel, ancho, ancho * 3 / 2);
+            medir(celda.nombre, ancho, 0);
+            medir(celda.extra, ancho, 0);
+        }
         celda.nombre.setText(it.nombre);
         celda.extra.setText(it.extra);
         celda.extra.setVisibility(it.extra.isEmpty() ? View.INVISIBLE : View.VISIBLE);
@@ -59,6 +77,14 @@ public class AdaptadorCarteles extends RecyclerView.Adapter<AdaptadorCarteles.Ce
         celda.itemView.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { alElegir.ficha(celda.getAdapterPosition()); }
         });
+    }
+
+    /** Alto 0 deja el que traiga: los textos siguen creciendo con la letra. */
+    private static void medir(View v, int ancho, int alto) {
+        ViewGroup.LayoutParams medidas = v.getLayoutParams();
+        medidas.width = ancho;
+        if (alto > 0) medidas.height = alto;
+        v.setLayoutParams(medidas);
     }
 
     @Override public int getItemCount() { return datos.size(); }

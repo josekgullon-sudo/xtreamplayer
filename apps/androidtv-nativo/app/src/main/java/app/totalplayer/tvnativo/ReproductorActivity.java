@@ -72,6 +72,11 @@ public class ReproductorActivity extends Activity {
         super.onCreate(guardado);
         // El vídeo se ve apaisado, también en el teléfono
         Pantalla.apaisado(this);
+        /* Y sin barras del sistema encima. En la tele el tema ya es de
+           pantalla completa; en el teléfono no lo es —taparlas todo el rato
+           dejaba las cabeceras por debajo del reloj—, así que se piden aquí,
+           que es donde de verdad hacen falta */
+        Pantalla.pantallaCompleta(this, true);
         setContentView(R.layout.reproductor);
         // Ver la tele con el salvapantallas saltando a los dos minutos
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

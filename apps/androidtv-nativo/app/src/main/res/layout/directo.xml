@@ -8,6 +8,7 @@
   Atrás va deshaciendo el camino, que es como se navega en un móvil.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/fondo">
@@ -103,15 +104,18 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
+            android:gravity="center_horizontal"
             android:paddingStart="20dp"
             android:paddingEnd="20dp"
             android:paddingTop="16dp"
+            android:paddingBottom="16dp"
             android:visibility="gone">
 
             <TextView
                 android:id="@+id/vacio"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="center"
                 android:text="Esta carpeta no tiene canales."
                 android:textColor="@color/apagado"
                 android:textSize="14sp"
@@ -148,7 +152,22 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- El vídeo, a pantalla completa -->
+    <!--
+      El vídeo.
+
+      La caja mide 16:9 y no se estira: dándole todo el alto de un móvil en
+      vertical, un canal de televisión salía con dos franjas negras enormes
+      arriba y abajo que parecían un fallo de la imagen. Debajo va lo que
+      echan, y al tocar la imagen la caja pasa a ocuparlo todo.
+
+      La superficie es de textura y no de las de siempre. En el teléfono, un
+      SurfaceView es un plano aparte que compone la pantalla del aparato por
+      su cuenta, y hay móviles en los que ese plano se corrompe a los pocos
+      segundos: el sonido sigue perfecto y la imagen se convierte en ruido de
+      colores. Un TextureView se pinta como cualquier otra vista y ese camino
+      no existe. En la tele se deja el de siempre, que es el que va por
+      hardware y el que aguanta un Fire TV Stick.
+    -->
     <LinearLayout
         android:id="@+id/columnaVideo"
         android:layout_width="match_parent"
@@ -160,14 +179,14 @@
         <FrameLayout
             android:id="@+id/caja"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="210dp"
             android:background="#000000">
 
             <androidx.media3.ui.PlayerView
                 android:id="@+id/vista"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:layout_height="match_parent"
+                app:surface_type="texture_view" />
 
             <TextView
                 android:id="@+id/pista"

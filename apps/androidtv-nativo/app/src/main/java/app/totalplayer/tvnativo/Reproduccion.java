@@ -4,6 +4,8 @@ import android.content.Context;
 
 import androidx.media3.common.PlaybackException;
 import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.exoplayer.DefaultLoadControl;
+import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 
@@ -28,8 +30,32 @@ public final class Reproduccion {
                 .setConnectTimeoutMs(15000)
                 .setReadTimeoutMs(20000);
 
-        return new ExoPlayer.Builder(c)
+        /*
+         * Si el descodificador del aparato no puede, que lo intente otro.
+         *
+         * Sin esto, un canal que el chip no traga se queda en la primera
+         * elección y devuelve imagen rota o nada. Media lista de proveedor
+         * viene en H.265 y con audio AC3, y ahí cada teléfono lleva lo suyo:
+         * el que falla por hardware suele salir adelante por software.
+         */
+        DefaultRenderersFactory motores = new DefaultRenderersFactory(c)
+                .setEnableDecoderFallback(true);
+
+        /*
+         * Menos cola de la que trae de serie.
+         *
+         * De fábrica ExoPlayer guarda hasta cincuenta segundos por delante,
+         * que está pensado para una película. Un canal en directo con medio
+         * minuto de cola va medio minuto tarde, y cuando el servidor tose,
+         * el reproductor se come esa cola entera antes de enterarse.
+         */
+        DefaultLoadControl cola = new DefaultLoadControl.Builder()
+                .setBufferDurationsMs(15000, 30000, 2000, 4000)
+                .build();
+
+        return new ExoPlayer.Builder(c, motores)
                 .setMediaSourceFactory(new DefaultMediaSourceFactory(red))
+                .setLoadControl(cola)
                 .build();
     }
 

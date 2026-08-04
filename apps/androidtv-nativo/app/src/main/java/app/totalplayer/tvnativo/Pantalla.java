@@ -5,6 +5,7 @@ import android.app.UiModeManager;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.view.View;
 
 /**
  * Dónde se está viendo esto: una tele o un teléfono.
@@ -51,5 +52,29 @@ public final class Pantalla {
     /** El vídeo se ve apaisado, también en el teléfono. */
     public static void apaisado(Activity a) {
         a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+    }
+
+    /**
+     * Esconder o devolver las barras del sistema mientras dura el vídeo.
+     *
+     * En la tele el tema ya es de pantalla completa y esto no hace nada.
+     * En el teléfono no lo es a propósito: taparlas todo el rato dejaba la
+     * aplicación dibujando por debajo de la hora y del agujero de la cámara.
+     * Pero un canal a pantalla completa con la barra de estado encima no es
+     * pantalla completa, así que se quitan aquí y se devuelven al salir.
+     */
+    public static void pantallaCompleta(Activity a, boolean si) {
+        View decorado = a.getWindow().getDecorView();
+        if (!si) {
+            decorado.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+            return;
+        }
+        decorado.setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
 }

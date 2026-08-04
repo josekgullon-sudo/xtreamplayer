@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El tema de la tele.
+
+  Sin barra de título y a pantalla completa: una tele no tiene barra de
+  estado que respetar y cualquier franja de sistema encima de la imagen
+  sobra. El fondo, el mismo gris del web: arrancar en negro y pasar a gris
+  es un fogonazo al revés.
+-->
+<resources>
+    <style name="Tema" parent="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+        <item name="android:windowBackground">@color/fondo</item>
+    </style>
+</resources>

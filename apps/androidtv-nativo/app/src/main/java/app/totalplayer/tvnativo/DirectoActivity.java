@@ -1,10 +1,12 @@
 package app.totalplayer.tvnativo;
 
 import android.app.Activity;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -46,6 +48,9 @@ public class DirectoActivity extends Activity {
 
     private String sonando = "";
     private Runnable pendiente;
+    /** Cuántas veces se ha vuelto a pedir el canal que suena tras cortarse. */
+    private int reintentos = 0;
+    private Runnable reenganche;
     private Catalogo.Carpeta carpetaAbierta;
     /** La primera carpeta se abre sola al cargar: esa no cuenta como pulsar. */
     private boolean yaHuboUnaCarpeta = false;
@@ -88,16 +93,13 @@ public class DirectoActivity extends Activity {
         caja = findViewById(R.id.caja);
         vista = findViewById(R.id.vista);
         vista.setUseController(false);
+        enMovil = Pantalla.esMovil(this);
 
-        /* El vídeo es 16:9 y la caja tiene que serlo también. Dejándola
-           estirarse hasta abajo, salía con dos franjas negras enormes que
-           parecían un fallo de la imagen */
+        // Ver la tele con la pantalla apagándose a los treinta segundos
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         caja.post(new Runnable() {
-            @Override public void run() {
-                ViewGroup.LayoutParams medidas = caja.getLayoutParams();
-                medidas.height = caja.getWidth() * 9 / 16;
-                caja.setLayoutParams(medidas);
-            }
+            @Override public void run() { medirCaja(); }
         });
 
         listaCarpetas.setLayoutManager(new LinearLayoutManager(this));
@@ -118,19 +120,42 @@ public class DirectoActivity extends Activity {
         listaCarpetas.setAdapter(carpetas);
         listaCanales.setAdapter(canales);
 
-        enMovil = Pantalla.esMovil(this);
         if (enMovil) {
             irAlPaso(0);
             /* En el teléfono no hay un «segundo OK»: se toca la imagen, que
-               es lo que hace todo el mundo con un vídeo pequeño */
-            caja.setOnClickListener(new View.OnClickListener() {
+               es lo que hace todo el mundo con un vídeo pequeño. Y estando
+               ya a pantalla completa, tocarla vuelve a encogerla */
+            View.OnClickListener tocar = new View.OnClickListener() {
                 @Override public void onClick(View v) {
-                    if (!sonando.isEmpty()) expandir();
+                    if (sonando.isEmpty()) return;
+                    if (aPantallaCompleta) encoger(); else expandir();
                 }
-            });
+            };
+            // En la caja y en la vista: según el aparato, el toque lo recoge
+            // una o la otra, y si solo se escucha en una no pasa nada
+            caja.setOnClickListener(tocar);
+            vista.setOnClickListener(tocar);
         }
 
         cargarCarpetas();
+    }
+
+    /**
+     * La caja del vídeo mide 16:9.
+     *
+     * Dejándola estirarse hasta abajo, un canal salía con dos franjas negras
+     * enormes que parecían un fallo de la imagen. Se mide con lo que ocupa
+     * la caja, y mientras está escondida —en el teléfono, hasta que se elige
+     * canal— con el ancho de la pantalla, que es el que va a tener.
+     */
+    private void medirCaja() {
+        if (aPantallaCompleta) return;
+        int ancho = caja.getWidth() > 0
+                ? caja.getWidth()
+                : getResources().getDisplayMetrics().widthPixels;
+        ViewGroup.LayoutParams medidas = caja.getLayoutParams();
+        medidas.height = ancho * 9 / 16;
+        caja.setLayoutParams(medidas);
     }
 
     /**
@@ -139,12 +164,43 @@ public class DirectoActivity extends Activity {
      * Las tres partes están una encima de otra en el mismo sitio, así que
      * enseñar una es esconder las otras dos. En la tele no se toca nada:
      * allí las tres se ven a la vez y por eso existen las tres columnas.
+     *
+     * Y salir del vídeo apaga el vídeo. Antes solo lo escondía: el canal
+     * seguía sonando mientras se paseaba uno por las carpetas y por la lista,
+     * sin imagen a la que asociar el sonido y sin manera de callarlo salvo
+     * salir de la pantalla entera.
      */
     private void irAlPaso(int cual) {
+        if (paso == 2 && cual != 2) apagarVideo();
         paso = cual;
         columnaCarpetas.setVisibility(cual == 0 ? View.VISIBLE : View.GONE);
         columnaCanales.setVisibility(cual == 1 ? View.VISIBLE : View.GONE);
         columnaVideo.setVisibility(cual == 2 ? View.VISIBLE : View.GONE);
+        if (cual == 2) {
+            caja.post(new Runnable() {
+                @Override public void run() { medirCaja(); }
+            });
+        }
+    }
+
+    /** Callar y soltar el canal: ni suena ni sigue tirando de la red. */
+    private void apagarVideo() {
+        if (reproductor != null) {
+            reproductor.stop();
+            reproductor.clearMediaItems();
+        }
+        sonando = "";
+        reintentos = 0;
+        canales.sonando(listaCanales, "", null);
+        nombreCanal.setText("");
+        ahora.setText("");
+        luego.setText("");
+        etiquetaAhora.setVisibility(View.GONE);
+        etiquetaLuego.setVisibility(View.GONE);
+        comoAmpliar.setVisibility(View.GONE);
+        girando.setVisibility(View.GONE);
+        pista.setText("Elige un canal de la lista");
+        pista.setVisibility(View.VISIBLE);
     }
 
     private void cargarCarpetas() {
@@ -356,6 +412,13 @@ public class DirectoActivity extends Activity {
         medidas.height = ViewGroup.LayoutParams.MATCH_PARENT;
         caja.setLayoutParams(medidas);
 
+        if (enMovil) {
+            /* Un vídeo a pantalla completa se ve apaisado y sin la barra de
+               estado encima. Las dos cosas se deshacen al encoger */
+            Pantalla.apaisado(this);
+            Pantalla.pantallaCompleta(this, true);
+            return;
+        }
         // Que el mando no se quede sin sitio donde estar
         columnaVideo.setFocusable(true);
         columnaVideo.requestFocus();
@@ -365,14 +428,13 @@ public class DirectoActivity extends Activity {
         aPantallaCompleta = false;
         if (enMovil) {
             // En el teléfono solo se vuelve al vídeo con su información
+            Pantalla.pantallaCompleta(this, false);
+            Pantalla.colocar(this);
             bloqueInfo.setVisibility(View.VISIBLE);
-            int p = 0;
-            columnaVideo.setPadding(p, p, p, p);
-            ViewGroup.LayoutParams medidas = caja.getLayoutParams();
-            medidas.height = 0;
-            caja.setLayoutParams(medidas);
-            ((android.widget.LinearLayout.LayoutParams) caja.getLayoutParams()).weight = 1;
-            caja.requestLayout();
+            columnaVideo.setPadding(0, 0, 0, 0);
+            caja.post(new Runnable() {
+                @Override public void run() { medirCaja(); }
+            });
             return;
         }
         columnaCarpetas.setVisibility(View.VISIBLE);
@@ -384,9 +446,7 @@ public class DirectoActivity extends Activity {
 
         caja.post(new Runnable() {
             @Override public void run() {
-                ViewGroup.LayoutParams medidas = caja.getLayoutParams();
-                medidas.height = caja.getWidth() * 9 / 16;
-                caja.setLayoutParams(medidas);
+                medirCaja();
                 listaCanales.requestFocus();
             }
         });
@@ -399,17 +459,47 @@ public class DirectoActivity extends Activity {
             reproductor.addListener(new Player.Listener() {
                 @Override public void onPlaybackStateChanged(int estado) {
                     girando.setVisibility(estado == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
+                    // Si ha arrancado, los intentos gastados ya no cuentan
+                    if (estado == Player.STATE_READY) reintentos = 0;
                 }
                 @Override public void onPlayerError(PlaybackException error) {
+                    if (volverAEngancharse()) return;
                     girando.setVisibility(View.GONE);
                     pista.setText(Reproduccion.porQue(error));
                     pista.setVisibility(View.VISIBLE);
                 }
             });
         }
+        reintentos = 0;
         reproductor.setMediaItem(MediaItem.fromUri(canal.url));
         reproductor.prepare();
         reproductor.play();
+    }
+
+    /**
+     * Un canal que se corta se vuelve a enganchar solo.
+     *
+     * Un servidor de IPTV cierra la conexión cada dos por tres: se acaba el
+     * segmento, cambia el nodo, o simplemente le da por ahí. Eso llega aquí
+     * como un error y hasta ahora dejaba el canal muerto con un cartel,
+     * cuando lo único que hacía falta era volver a pedirlo. Tres intentos,
+     * y si a la tercera sigue sin ir, entonces sí se dice lo que pasa.
+     */
+    private boolean volverAEngancharse() {
+        if (reproductor == null || sonando.isEmpty() || reintentos >= 3) return false;
+        reintentos++;
+        girando.setVisibility(View.VISIBLE);
+        pista.setVisibility(View.GONE);
+        if (reenganche != null) Hilos.olvidar(reenganche);
+        reenganche = new Runnable() {
+            @Override public void run() {
+                if (reproductor == null || sonando.isEmpty()) return;
+                reproductor.prepare();
+                reproductor.play();
+            }
+        };
+        Hilos.enPantallaDentroDe(reenganche, 1500);
+        return true;
     }
 
     private void pedirGuia(final Catalogo.Item canal) {
@@ -489,6 +579,30 @@ public class DirectoActivity extends Activity {
         super.onBackPressed();
     }
 
+    /**
+     * Al girar el teléfono, la caja del vídeo vuelve a medirse.
+     *
+     * La actividad no se rehace —el manifiesto se queda con los cambios de
+     * configuración— y por eso hay que hacerlo a mano: sin esto, la caja
+     * conservaba el alto que le tocaba en vertical y en apaisado quedaba una
+     * tira de vídeo con media pantalla negra debajo.
+     */
+    @Override public void onConfigurationChanged(Configuration nueva) {
+        super.onConfigurationChanged(nueva);
+        // Sin sesión, esta pantalla se abandona antes de tener nada dentro
+        if (caja == null) return;
+        caja.post(new Runnable() {
+            @Override public void run() { medirCaja(); }
+        });
+    }
+
+    /* Irse de la aplicación calla el canal. Con solo pausar en onStop, salir
+       por el botón de inicio con el teléfono dejaba el sonido puesto un rato */
+    @Override protected void onPause() {
+        super.onPause();
+        if (reproductor != null && enMovil) reproductor.pause();
+    }
+
     @Override protected void onStop() {
         super.onStop();
         if (reproductor != null) reproductor.pause();
@@ -503,6 +617,7 @@ public class DirectoActivity extends Activity {
     @Override protected void onDestroy() {
         super.onDestroy();
         if (pendiente != null) Hilos.olvidar(pendiente);
+        if (reenganche != null) Hilos.olvidar(reenganche);
         if (reproductor != null) {
             reproductor.release();
             reproductor = null;

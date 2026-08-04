@@ -1,28 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Un perfil, en un teléfono: el cuadrado con su inicial y el nombre debajo.
-
-  El nombre va a wrap_content y no a match_parent. Atado al ancho del
-  cuadrado se quedaba en «Añadir p…», porque una TextView de match_parent
-  dentro de un padre que mide lo que mide su hijo más ancho mide justo el
-  cuadrado y ni un punto más. Así el nombre manda sobre el ancho de la
-  pieza y el cuadrado se queda centrado dentro.
--->
+<!-- Un perfil: el cuadrado con su inicial y el nombre debajo -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:gravity="center_horizontal"
     android:focusable="true"
-    android:clickable="true"
-    android:padding="6dp"
-    android:layout_marginStart="6dp"
-    android:layout_marginEnd="6dp">
+    android:padding="10dp"
+    android:layout_marginStart="10dp"
+    android:layout_marginEnd="10dp">
 
     <FrameLayout
         android:id="@+id/cuadro"
-        android:layout_width="96dp"
-        android:layout_height="96dp"
+        android:layout_width="128dp"
+        android:layout_height="128dp"
         android:background="@drawable/perfil_lleno">
 
         <TextView
@@ -31,13 +22,13 @@
             android:layout_height="match_parent"
             android:gravity="center"
             android:textColor="#FFFFFF"
-            android:textSize="38sp"
+            android:textSize="52sp"
             android:textStyle="bold" />
 
         <ImageView
             android:id="@+id/mas"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_mas"
             android:tint="@color/apagado"
@@ -47,14 +38,12 @@
 
     <TextView
         android:id="@+id/nombre"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minWidth="96dp"
-        android:maxWidth="150dp"
         android:gravity="center"
         android:textColor="@color/apagado"
-        android:textSize="14sp"
+        android:textSize="17sp"
         android:maxLines="1"
         android:ellipsize="end"
-        android:layout_marginTop="10dp" />
+        android:layout_marginTop="12dp" />
 </LinearLayout>

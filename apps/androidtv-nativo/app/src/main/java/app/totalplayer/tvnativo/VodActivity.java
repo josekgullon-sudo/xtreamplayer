@@ -67,7 +67,8 @@ public class VodActivity extends Activity {
 
         listaCarpetas.setLayoutManager(new LinearLayoutManager(this));
         listaCarpetas.setItemAnimator(null);
-        rejilla.setLayoutManager(new GridLayoutManager(this, cuantosCaben()));
+        int columnas = cuantosCaben();
+        rejilla.setLayoutManager(new GridLayoutManager(this, columnas));
         rejilla.setItemAnimator(null);
         // Lo enfocado crece: sin esto, la rejilla le recorta el borde
         rejilla.setClipChildren(false);
@@ -78,6 +79,8 @@ public class VodActivity extends Activity {
         carteles = new AdaptadorCarteles(new AdaptadorCarteles.AlElegir() {
             @Override public void ficha(int posicion) { abrirFicha(posicion); }
         });
+        // En la tele los 150 puntos del diseño caben; en el teléfono no
+        if (enMovil) carteles.ancho(anchoDeCartel(columnas));
         listaCarpetas.setAdapter(carpetas);
         rejilla.setAdapter(carteles);
 
@@ -99,6 +102,22 @@ public class VodActivity extends Activity {
         int paraCarteles = enMovil ? anchoDp - 20 : anchoDp - 260 - 52;
         // 150 del cartel, 16 de sus márgenes y 12 del marco del foco
         return Math.max(2, paraCarteles / 178);
+    }
+
+    /**
+     * Cuánto mide cada cartel para que la última columna no se salga.
+     *
+     * Con dos columnas de 150 puntos en una pantalla de 340 útiles, la
+     * segunda se comía el borde derecho: se veía media carátula y ningún
+     * título. Repartiendo lo que hay entre las columnas que caben, salen
+     * enteras las dos.
+     */
+    private int anchoDeCartel(int columnas) {
+        float porPunto = getResources().getDisplayMetrics().density;
+        int util = getResources().getDisplayMetrics().widthPixels - (int) (20 * porPunto);
+        // 16 de márgenes y 12 del marco del foco, por cartel
+        int cada = util / columnas - (int) (28 * porPunto);
+        return Math.max((int) (96 * porPunto), cada);
     }
 
     /** En el teléfono, o las categorías o las carátulas: no caben las dos. */

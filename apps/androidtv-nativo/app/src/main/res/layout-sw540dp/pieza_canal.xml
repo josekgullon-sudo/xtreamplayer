@@ -1,50 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Una fila de canal, en un teléfono.
+  Una fila de canal, como .pa-live-chan del web: el logotipo en su cuadro,
+  el nombre, y debajo lo que están dando cuando se sabe. Un nombre de canal
+  no dice nada —«AXN HD» no es una razón para quedarse—; lo que hace parar
+  de zapear es el título de lo que echan.
 
-  Los mismos identificadores que la de tele. Lo que cambia es el sitio: el
-  número, el logotipo y la estrella se comían 150 de los 360 puntos de un
-  móvil y al nombre del canal le quedaba media fila, así que «Movistar
-  Deportes 2» acababa en «Movistar Dep…». Aquí todo eso es más estrecho y el
-  nombre se queda con lo que sobra, que es lo que se lee.
+  La barra roja de la izquierda marca el que suena. Antes era un triángulo
+  al final de la fila, donde no lo mira nadie.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="66dp"
+    android:layout_height="72dp"
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:background="@drawable/carpeta"
     android:focusable="true"
-    android:clickable="true"
-    android:paddingStart="8dp"
-    android:paddingEnd="12dp"
+    android:paddingStart="10dp"
+    android:paddingEnd="16dp"
     android:layout_marginBottom="3dp">
 
     <View
         android:id="@+id/sonando"
-        android:layout_width="3dp"
-        android:layout_height="32dp"
+        android:layout_width="4dp"
+        android:layout_height="38dp"
         android:background="@color/marca_viva"
         android:visibility="invisible" />
 
     <TextView
         android:id="@+id/numero"
-        android:layout_width="32dp"
+        android:layout_width="46dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
+        android:layout_marginStart="8dp"
         android:gravity="center"
         android:textColor="@color/tenue"
-        android:textSize="13sp"
+        android:textSize="15sp"
         android:textStyle="bold" />
 
     <ImageView
         android:id="@+id/logo"
-        android:layout_width="46dp"
-        android:layout_height="34dp"
+        android:layout_width="58dp"
+        android:layout_height="42dp"
         android:layout_marginStart="4dp"
         android:scaleType="fitCenter"
         android:background="@drawable/hueco_logo"
-        android:padding="3dp"
+        android:padding="4dp"
         android:contentDescription="@null" />
 
     <LinearLayout
@@ -52,14 +51,14 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:layout_marginStart="10dp">
+        android:layout_marginStart="14dp">
 
         <TextView
             android:id="@+id/nombre"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="@color/texto"
-            android:textSize="15sp"
+            android:textSize="18sp"
             android:maxLines="1"
             android:ellipsize="end" />
 
@@ -68,20 +67,19 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="@color/tenue"
-            android:textSize="12sp"
+            android:textSize="14sp"
             android:maxLines="1"
             android:ellipsize="end"
             android:layout_marginTop="2dp"
             android:visibility="gone" />
     </LinearLayout>
-
     <!-- La estrella del canal marcado. Se pone y se quita manteniendo
          pulsado, que es donde la busca todo el mundo -->
     <ImageView
         android:id="@+id/estrella"
-        android:layout_width="17dp"
-        android:layout_height="17dp"
-        android:layout_marginStart="8dp"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="10dp"
         android:src="@drawable/ic_estrella"
         android:tint="@color/marca_viva"
         android:visibility="gone"
