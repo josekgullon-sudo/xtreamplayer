@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Crear un perfil, en la tele.
+
+  Los mismos identificadores que la del teléfono; lo que cambia son las
+  medidas, que aquí se leen desde el sofá, y que los botones se enfocan con
+  el mando: por eso llevan focusable, y por eso el orden entre el campo y
+  ellos está escrito y no se deja a la geometría.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/cuadro_dialogo"
+    android:padding="34dp">
+
+    <TextView
+        android:id="@+id/tituloDialogo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Añadir perfil"
+        android:textColor="@color/texto"
+        android:textSize="30sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/pieDialogo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Guardará sus propios favoritos, aparte de los demás."
+        android:textColor="@color/tenue"
+        android:textSize="17sp"
+        android:lineSpacingExtra="4dp"
+        android:layout_marginTop="10dp" />
+
+    <EditText
+        android:id="@+id/campoNombre"
+        android:layout_width="match_parent"
+        android:layout_height="66dp"
+        android:hint="Nombre del perfil"
+        android:textColorHint="@color/tenue"
+        android:textColor="@color/texto"
+        android:textSize="20sp"
+        android:background="@drawable/campo"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:inputType="textCapWords"
+        android:imeOptions="actionDone"
+        android:singleLine="true"
+        android:importantForAutofill="no"
+        android:nextFocusDown="@+id/botonCrear"
+        android:layout_marginTop="24dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginTop="24dp">
+
+        <Button
+            android:id="@+id/botonCancelar"
+            android:layout_width="wrap_content"
+            android:layout_height="60dp"
+            android:minWidth="170dp"
+            android:text="Cancelar"
+            android:textColor="@color/apagado"
+            android:textSize="18sp"
+            android:textAllCaps="false"
+            android:background="@drawable/pastilla"
+            android:focusable="true"
+            android:nextFocusRight="@+id/botonCrear" />
+
+        <Button
+            android:id="@+id/botonCrear"
+            android:layout_width="wrap_content"
+            android:layout_height="60dp"
+            android:minWidth="170dp"
+            android:layout_marginStart="14dp"
+            android:text="Crear"
+            android:textColor="@color/texto"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:background="@drawable/boton"
+            android:focusable="true"
+            android:nextFocusLeft="@+id/botonCancelar" />
+    </LinearLayout>
+</LinearLayout>

@@ -62,27 +62,52 @@
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="20dp" />
 
-            <include
-                android:id="@+id/tarjetaDirecto"
-                layout="@layout/pieza_menu"
+            <!-- Dos por fila, como en el reproductor web. La tercera se queda
+                 sola a la izquierda y el hueco de al lado lo ocupa un vacío
+                 del mismo ancho, para que no se estire a doble tamaño -->
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="112dp" />
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <include
+                    android:id="@+id/tarjetaDirecto"
+                    layout="@layout/pieza_menu"
+                    android:layout_width="0dp"
+                    android:layout_height="176dp"
+                    android:layout_weight="1" />
+
+                <Space android:layout_width="12dp" android:layout_height="1dp" />
+
+                <include
+                    android:id="@+id/tarjetaPelis"
+                    layout="@layout/pieza_menu"
+                    android:layout_width="0dp"
+                    android:layout_height="176dp"
+                    android:layout_weight="1" />
+            </LinearLayout>
 
             <Space android:layout_width="1dp" android:layout_height="12dp" />
 
-            <include
-                android:id="@+id/tarjetaPelis"
-                layout="@layout/pieza_menu"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="112dp" />
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
-            <Space android:layout_width="1dp" android:layout_height="12dp" />
+                <include
+                    android:id="@+id/tarjetaSeries"
+                    layout="@layout/pieza_menu"
+                    android:layout_width="0dp"
+                    android:layout_height="176dp"
+                    android:layout_weight="1" />
 
-            <include
-                android:id="@+id/tarjetaSeries"
-                layout="@layout/pieza_menu"
-                android:layout_width="match_parent"
-                android:layout_height="112dp" />
+                <Space android:layout_width="12dp" android:layout_height="1dp" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 

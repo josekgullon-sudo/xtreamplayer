@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Crear un perfil, en un teléfono.
+
+  Lo que había era el diálogo que trae Android de serie: cuadro gris claro,
+  título pequeño y dos botones de sistema con bordes en relieve. Sobre una
+  aplicación entera en negro y rojo, cantaba. Este es el mismo cuadro que
+  las tarjetas, con el campo y los botones que se usan en todas partes.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/cuadro_dialogo"
+    android:padding="22dp">
+
+    <TextView
+        android:id="@+id/tituloDialogo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Añadir perfil"
+        android:textColor="@color/texto"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/pieDialogo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Guardará sus propios favoritos, aparte de los demás."
+        android:textColor="@color/tenue"
+        android:textSize="13sp"
+        android:lineSpacingExtra="3dp"
+        android:layout_marginTop="6dp" />
+
+    <EditText
+        android:id="@+id/campoNombre"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:hint="Nombre del perfil"
+        android:textColorHint="@color/tenue"
+        android:textColor="@color/texto"
+        android:textSize="16sp"
+        android:background="@drawable/campo"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:inputType="textCapWords"
+        android:imeOptions="actionDone"
+        android:singleLine="true"
+        android:importantForAutofill="no"
+        android:layout_marginTop="18dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginTop="18dp">
+
+        <Button
+            android:id="@+id/botonCancelar"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:minWidth="110dp"
+            android:text="Cancelar"
+            android:textColor="@color/apagado"
+            android:textSize="15sp"
+            android:textAllCaps="false"
+            android:background="@drawable/pastilla" />
+
+        <Button
+            android:id="@+id/botonCrear"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:minWidth="110dp"
+            android:layout_marginStart="10dp"
+            android:text="Crear"
+            android:textColor="@color/texto"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:background="@drawable/boton" />
+    </LinearLayout>
+</LinearLayout>

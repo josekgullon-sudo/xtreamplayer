@@ -1,11 +1,18 @@
 package app.totalplayer.tvnativo;
 
 import android.app.Activity;
-import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -145,20 +152,55 @@ public class PerfilesActivity extends Activity {
         }
     }
 
-    /** Crear un perfil con el teclado de la tele. */
+    /**
+     * Crear un perfil.
+     *
+     * Con su propio cuadro y no con el de Android. El de serie sale gris
+     * claro, con el título en pequeño y dos botones de sistema con borde en
+     * relieve: encima de una aplicación entera en negro y rojo, parecía de
+     * otro programa. Este lleva el mismo fondo, el mismo campo y los mismos
+     * botones que el resto.
+     */
     private void preguntarNombre() {
-        final EditText campo = new EditText(this);
-        campo.setHint("Nombre del perfil");
-        campo.setSingleLine(true);
-        campo.setTextColor(getResources().getColor(R.color.texto));
-        campo.setHintTextColor(getResources().getColor(R.color.tenue));
+        final Dialog cuadro = new Dialog(this);
+        cuadro.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        cuadro.setContentView(R.layout.dialogo_perfil);
 
-        new AlertDialog.Builder(this)
-                .setTitle("Añadir perfil")
-                .setView(campo)
-                .setPositiveButton("Crear", (dialogo, cual) -> crear(campo.getText().toString().trim()))
-                .setNegativeButton("Cancelar", null)
-                .show();
+        Window ventana = cuadro.getWindow();
+        if (ventana != null) {
+            // Sin esto, el cuadro sale sobre el rectángulo blanco del sistema
+            ventana.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            float porPunto = getResources().getDisplayMetrics().density;
+            int tope = (int) ((Pantalla.esMovil(this) ? 400 : 620) * porPunto);
+            int ancho = Math.min((int) (getResources().getDisplayMetrics().widthPixels * 0.92f), tope);
+            ventana.setLayout(ancho, ViewGroup.LayoutParams.WRAP_CONTENT);
+            // En el teléfono, el teclado sale con el cuadro y no un toque después
+            ventana.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        }
+
+        final EditText campo = cuadro.findViewById(R.id.campoNombre);
+        cuadro.findViewById(R.id.botonCancelar).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { cuadro.dismiss(); }
+        });
+        cuadro.findViewById(R.id.botonCrear).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { aceptarNombre(cuadro, campo); }
+        });
+        // «Hecho» en el teclado del teléfono vale por pulsar «Crear»
+        campo.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override public boolean onEditorAction(TextView t, int accion, KeyEvent evento) {
+                if (accion != EditorInfo.IME_ACTION_DONE) return false;
+                aceptarNombre(cuadro, campo);
+                return true;
+            }
+        });
+
+        cuadro.show();
+        campo.requestFocus();
+    }
+
+    private void aceptarNombre(Dialog cuadro, EditText campo) {
+        cuadro.dismiss();
+        crear(campo.getText().toString().trim());
     }
 
     private void crear(final String nombre) {
