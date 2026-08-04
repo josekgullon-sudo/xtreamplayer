@@ -29,8 +29,14 @@ export default function manifest(): MetadataRoute.Manifest {
     icons: [
       { src: "/icono-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icono-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      // «maskable» es lo que evita que Android le pinte un marco blanco
-      { src: "/icono-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      /*
+       * «maskable» es lo que evita que Android le pinte un marco blanco, pero
+       * pide su propio dibujo: el sistema recorta el icono con la forma que
+       * use el lanzador —círculo, gota, cuadrado blando— y solo garantiza el
+       * 80% del medio. Con el nombre a lo ancho del cuadro, un recorte
+       * circular se comía la T y la R.
+       */
+      { src: "/icono-recortable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
       { name: "Ver la tele", short_name: "Tele", url: "/tv" },

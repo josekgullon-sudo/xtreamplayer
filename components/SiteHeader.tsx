@@ -103,9 +103,10 @@ export default function SiteHeader() {
   return (
     <header className="site-header">
       <div className="container">
+        {/* El logotipo es el nombre. El cuadrado rojo con el triángulo dentro
+            que había delante era, literalmente, el de YouTube */}
         <Link href="/" className="logo">
-          <span className="logo-mark"><Icon name="play" size={15} /></span>
-          TOTALplayer
+          <span className="logo-nombre">TOTAL<span className="logo-play">player</span></span>
         </Link>
         {/*
           El menú solo lleva a lo que NO está ya en los botones de la

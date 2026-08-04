@@ -15,24 +15,10 @@
         android:paddingStart="20dp"
         android:paddingEnd="20dp">
 
-        <FrameLayout
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/marca_logo">
-
-            <ImageView
-                android:layout_width="17dp"
-                android:layout_height="17dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_marca"
-                android:contentDescription="@null" />
-        </FrameLayout>
-
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="11dp"
             android:text="Buscar un canal"
             android:textColor="@color/texto"
             android:textSize="18sp"

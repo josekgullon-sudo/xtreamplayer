@@ -236,6 +236,15 @@ button { font-family: inherit; }
   font-size: 18.5px; font-weight: 700; letter-spacing: -0.03em;
   color: var(--text); text-decoration: none !important;
 }
+/* El logotipo es el nombre: «TOTAL» en el color del texto y «player» en el de
+   la marca. Lo que había delante —un cuadrado rojo con un triángulo blanco
+   dentro— es literalmente el de YouTube, y el nombre quedaba de acompañante.
+   El mismo dibujo va en el icono de las aplicaciones y en el estante de la
+   tele, así que la web, el móvil y el televisor dicen ya lo mismo. */
+.logo-nombre { font-weight: 800; letter-spacing: -0.035em; }
+.logo-play { color: var(--accent-bright); }
+/* El cuadrado se queda para los proveedores que no han subido su logotipo:
+   ahí no es nuestra marca, es el hueco de la suya */
 .logo-mark {
   width: 30px; height: 30px; border-radius: 9px;
   background: var(--accent);

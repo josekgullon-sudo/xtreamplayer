@@ -27,35 +27,18 @@
             android:paddingStart="48dp"
             android:paddingEnd="48dp">
 
-            <!-- El mismo logotipo que en la web: cuadrado rojo y nombre -->
-            <LinearLayout
+            <!-- El logotipo es el nombre: «TOTAL» blanco y «player» rojo. El
+                 color se pone desde el código, en Marca -->
+            <TextView
+                android:id="@+id/nombreMarca"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <FrameLayout
-                    android:layout_width="54dp"
-                    android:layout_height="54dp"
-                    android:background="@drawable/marca_logo">
-
-                    <ImageView
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/ic_marca"
-                        android:contentDescription="@null" />
-                </FrameLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:text="TOTALplayer"
-                    android:textColor="@color/texto"
-                    android:textSize="40sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                android:text="TOTALplayer"
+                android:textColor="@color/texto"
+                android:textSize="42sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:letterSpacing="-0.02" />
 
             <TextView
                 android:id="@+id/aviso"

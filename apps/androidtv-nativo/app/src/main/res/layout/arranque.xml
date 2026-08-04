@@ -3,11 +3,10 @@
   El arranque, en un teléfono.
 
   Los mismos identificadores que la versión de tele, porque la animación es
-  la misma. Lo que cambia es que aquí no caben el sello y el nombre uno al
-  lado del otro: «TOTALplayer» a 58sp pide 380 puntos y un móvil normal
-  tiene 360, así que la palabra se partía por la mitad —«TOTALpl / ayer»— y
-  lo primero que veía nadie de la aplicación era el nombre roto. En vertical
-  cabe entero y además queda centrado, que es como se ve una portada.
+  la misma. Lo que cambia son las medidas: «TOTALplayer» a 66sp pide más de
+  600 puntos y un móvil normal tiene 360, así que la palabra se partía por la
+  mitad —«TOTALpl / ayer»— y lo primero que se veía de la aplicación era el
+  nombre roto.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -21,56 +20,40 @@
         android:orientation="vertical"
         android:gravity="center_horizontal"
         android:clipChildren="false"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp">
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
 
-        <!-- El sello, con el resplandor por detrás -->
+        <!-- El nombre, con el resplandor por detrás -->
         <FrameLayout
-            android:layout_width="132dp"
-            android:layout_height="132dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:clipChildren="false">
 
             <View
                 android:id="@+id/halo"
-                android:layout_width="132dp"
-                android:layout_height="132dp"
+                android:layout_width="330dp"
+                android:layout_height="180dp"
                 android:layout_gravity="center"
                 android:background="@drawable/halo_marca" />
 
-            <FrameLayout
-                android:id="@+id/sello"
-                android:layout_width="84dp"
-                android:layout_height="84dp"
+            <TextView
+                android:id="@+id/nombre"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:background="@drawable/sello_grande">
-
-                <ImageView
-                    android:layout_width="42dp"
-                    android:layout_height="42dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_marca"
-                    android:contentDescription="@null" />
-            </FrameLayout>
+                android:text="TOTALplayer"
+                android:textColor="@color/texto"
+                android:textSize="38sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:letterSpacing="-0.02" />
         </FrameLayout>
-
-        <TextView
-            android:id="@+id/nombre"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:gravity="center"
-            android:text="TOTALplayer"
-            android:textColor="@color/texto"
-            android:textSize="38sp"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:letterSpacing="-0.02" />
 
         <View
             android:id="@+id/linea"
             android:layout_width="200dp"
             android:layout_height="3dp"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="6dp"
             android:background="@drawable/linea_marca"
             android:scaleX="0" />
 

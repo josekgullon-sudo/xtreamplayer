@@ -9,14 +9,15 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
+import android.widget.TextView;
 
 /**
  * El arranque.
  *
  * Entre que se abre la aplicación y que están las listas pasan unos
  * segundos, y hasta ahora en esos segundos no había nada. Aquí entra el
- * logotipo, se abre la línea de la marca y suena un acorde: es lo que
- * separa una aplicación de una pantalla de formulario.
+ * nombre —que es el logotipo—, se abre la línea de la marca y suena un
+ * acorde: es lo que separa una aplicación de una pantalla de formulario.
  *
  * Dura lo que dura el acorde y se salta con cualquier tecla, porque a la
  * décima vez que enciendes la tele ya lo has visto.
@@ -39,25 +40,25 @@ public class ArranqueActivity extends Activity {
         setContentView(R.layout.arranque);
 
         final View halo = findViewById(R.id.halo);
-        final View sello = findViewById(R.id.sello);
-        final View nombre = findViewById(R.id.nombre);
+        final TextView nombre = findViewById(R.id.nombre);
         final View linea = findViewById(R.id.linea);
         final View lema = findViewById(R.id.lema);
 
+        // El nombre es el logotipo: «TOTAL» blanco y «player» rojo
+        Marca.nombre(nombre);
+
         // Estado de partida: todo fuera, para que la entrada se vea
-        sello.setAlpha(0f);
-        sello.setScaleX(0.6f);
-        sello.setScaleY(0.6f);
         nombre.setAlpha(0f);
-        nombre.setTranslationX(-40f);
+        nombre.setScaleX(0.86f);
+        nombre.setScaleY(0.86f);
 
         halo.setAlpha(0f);
         halo.setScaleX(0.7f);
         halo.setScaleY(0.7f);
 
-        sello.animate().alpha(1f).scaleX(1f).scaleY(1f)
-                .setInterpolator(new OvershootInterpolator(1.6f))
-                .setDuration(620).start();
+        nombre.animate().alpha(1f).scaleX(1f).scaleY(1f)
+                .setInterpolator(new OvershootInterpolator(1.3f))
+                .setDuration(680).start();
 
         halo.animate().alpha(1f).scaleX(1f).scaleY(1f)
                 .setInterpolator(new DecelerateInterpolator())
@@ -77,10 +78,6 @@ public class ArranqueActivity extends Activity {
                 }, 1050);
             }
         }, 900);
-
-        nombre.animate().alpha(1f).translationX(0f)
-                .setInterpolator(new DecelerateInterpolator())
-                .setStartDelay(260).setDuration(560).start();
 
         linea.animate().scaleX(1f)
                 .setInterpolator(new DecelerateInterpolator())

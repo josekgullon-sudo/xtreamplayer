@@ -36,6 +36,10 @@
     <color name="marca_tinte">#1FE5192B</color>
     <color name="marca_tinte_fuerte">#2BE5192B</color>
 
+    <!-- El negro del logotipo. No es el fondo de la aplicación: el icono y el
+         estante de la tele van sobre negro de verdad, y ahí un gris se nota -->
+    <color name="negro_marca">#0A0A0B</color>
+
     <color name="texto">#FFFFFF</color>
     <color name="apagado">#B4B4BE</color>
     <color name="tenue">#87878F</color>

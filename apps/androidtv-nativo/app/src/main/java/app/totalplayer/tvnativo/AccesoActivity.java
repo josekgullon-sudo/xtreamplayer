@@ -28,6 +28,7 @@ public class AccesoActivity extends Activity {
         Pantalla.colocar(this);
         setContentView(R.layout.acceso);
 
+        Marca.nombre((TextView) findViewById(R.id.nombreMarca));
         campoUsuario = findViewById(R.id.campoUsuario);
         campoClave = findViewById(R.id.campoClave);
         campoServidor = findViewById(R.id.campoServidor);

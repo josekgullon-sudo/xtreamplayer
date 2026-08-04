@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El icono, en aparatos de Android 8 en adelante.
+
+  Sin esto, el lanzador coge el PNG de siempre, lo encoge y lo pega dentro de
+  una pastilla blanca: el logotipo quedaba flotando en medio de un marco que
+  no es nuestro, que es justo lo de «que llene el cuadrado». Partido en
+  fondo y frente, el negro llega hasta el borde lo recorten como lo recorten,
+  y el nombre vive en el círculo del medio, que es lo único que el sistema
+  garantiza que se ve entero.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/negro_marca" />
+    <foreground android:drawable="@mipmap/ic_launcher_frente" />
+</adaptive-icon>
