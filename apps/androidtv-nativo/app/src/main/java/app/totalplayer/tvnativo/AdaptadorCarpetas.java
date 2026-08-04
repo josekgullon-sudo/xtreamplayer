@@ -39,12 +39,28 @@ public class AdaptadorCarpetas extends RecyclerView.Adapter<AdaptadorCarpetas.Ce
         return posicion >= 0 && posicion < datos.size() ? datos.get(posicion) : null;
     }
 
-    public void marcar(int posicion) {
-        if (posicion == elegida) return;
-        int antes = elegida;
+    /**
+     * Marca la carpeta abierta SIN avisar al RecyclerView.
+     *
+     * Aquí estaba el fallo que tiraba la aplicación al menú principal.
+     * Esto llamaba a notifyItemChanged, y la marca se pone desde el listener
+     * del foco: al bajar a una carpeta que todavía no está pintada, el
+     * RecyclerView tiene que desplazarse para traerla, y avisar de un cambio
+     * mientras se está desplazando lanza «Cannot call this method while
+     * RecyclerView is computing a layout or scrolling». La aplicación se
+     * caía, y detrás quedaba el menú: por eso parecía que «se salía al
+     * menú» en vez de que se cerraba de golpe.
+     *
+     * Y por eso fallaba justo al pasar de la última carpeta visible y no
+     * antes: hasta ahí no había que desplazar nada.
+     */
+    public void marcar(RecyclerView donde, int posicion) {
         elegida = posicion;
-        notifyItemChanged(antes);
-        notifyItemChanged(posicion);
+        for (int i = 0; i < donde.getChildCount(); i++) {
+            View hijo = donde.getChildAt(i);
+            RecyclerView.ViewHolder vh = donde.getChildViewHolder(hijo);
+            if (vh instanceof Celda) hijo.setActivated(vh.getAdapterPosition() == elegida);
+        }
     }
 
     static class Celda extends RecyclerView.ViewHolder {

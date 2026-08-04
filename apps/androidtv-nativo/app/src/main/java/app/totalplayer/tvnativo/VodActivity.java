@@ -139,7 +139,7 @@ public class VodActivity extends Activity {
     private void abrirCarpeta(int cual) {
         final Catalogo.Carpeta carpeta = carpetas.cual(cual);
         if (carpeta == null) return;
-        carpetas.marcar(cual);
+        carpetas.marcar(listaCarpetas, cual);
         tituloCarpeta.setText(carpeta.nombre);
         cuantos.setText("");
         if (enMovil && yaHuboUnaCarpeta) verCarpetas(false);

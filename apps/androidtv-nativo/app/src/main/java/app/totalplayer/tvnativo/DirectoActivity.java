@@ -191,7 +191,7 @@ public class DirectoActivity extends Activity {
     private void abrirCarpeta(final int cual) {
         final Catalogo.Carpeta carpeta = carpetas.cual(cual);
         if (carpeta == null) return;
-        carpetas.marcar(cual);
+        carpetas.marcar(listaCarpetas, cual);
         carpetaAbierta = carpeta;
         tituloCarpeta.setText(carpeta.nombre);
         // En el teléfono, elegir carpeta es entrar en ella
@@ -201,14 +201,24 @@ public class DirectoActivity extends Activity {
 
         if (Favoritos.CARPETA.equals(carpeta.id)) {
             if (pendiente != null) Hilos.olvidar(pendiente);
-            List<Catalogo.Item> suyos = Favoritos.lista(this);
-            canales.favoritos(Favoritos.marcados(this));
-            canales.poner(suyos);
-            canales.sonando(listaCanales, sonando, null);
-            cuantos.setText(String.valueOf(suyos.size()));
-            listaCanales.scrollToPosition(0);
-            vacio.setText("Aún no has marcado ningún canal.\n\nMantén pulsado OK sobre un canal para añadirlo aquí.");
-            bloqueVacio.setVisibility(suyos.isEmpty() ? View.VISIBLE : View.GONE);
+            /* Aunque los favoritos estén en casa y no haya nada que pedir,
+               se repinta en el turno siguiente y no aquí mismo: esto se
+               llama desde el listener del foco, y rehacer una lista mientras
+               la otra se está desplazando es justo lo que tiraba la
+               aplicación al menú */
+            pendiente = new Runnable() {
+                @Override public void run() {
+                    List<Catalogo.Item> suyos = Favoritos.lista(DirectoActivity.this);
+                    canales.favoritos(Favoritos.marcados(DirectoActivity.this));
+                    canales.poner(suyos);
+                    canales.sonando(listaCanales, sonando, null);
+                    cuantos.setText(String.valueOf(suyos.size()));
+                    listaCanales.scrollToPosition(0);
+                    vacio.setText("Aún no has marcado ningún canal.\n\nMantén pulsado OK sobre un canal para añadirlo aquí.");
+                    bloqueVacio.setVisibility(suyos.isEmpty() ? View.VISIBLE : View.GONE);
+                }
+            };
+            Hilos.enPantallaDentroDe(pendiente, 120);
             return;
         }
 
@@ -263,7 +273,6 @@ public class DirectoActivity extends Activity {
             bloqueVacio.setVisibility(suyos.isEmpty() ? View.VISIBLE : View.GONE);
         } else {
             canales.sonando(listaCanales, sonando, null);
-            canales.notifyDataSetChanged();
         }
     }
 
