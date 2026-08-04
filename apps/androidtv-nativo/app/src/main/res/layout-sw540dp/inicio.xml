@@ -17,6 +17,8 @@
     android:orientation="vertical"
     android:gravity="center_horizontal"
     android:background="@color/fondo"
+    android:clipToPadding="false"
+    android:clipChildren="false"
     android:paddingStart="56dp"
     android:paddingEnd="56dp"
     android:paddingTop="26dp"

@@ -49,6 +49,8 @@ public class DirectoActivity extends Activity {
     private Catalogo.Carpeta carpetaAbierta;
     /** La primera carpeta se abre sola al cargar: esa no cuenta como pulsar. */
     private boolean yaHuboUnaCarpeta = false;
+    /** Cuál está pintada ya en la columna de canales. */
+    private String carpetaPintada = "";
 
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
@@ -194,9 +196,25 @@ public class DirectoActivity extends Activity {
         carpetas.marcar(listaCarpetas, cual);
         carpetaAbierta = carpeta;
         tituloCarpeta.setText(carpeta.nombre);
-        // En el teléfono, elegir carpeta es entrar en ella
+
+        // En el teléfono, elegir carpeta es entrar en ella. Va antes de lo de
+        // abajo: volver a una carpeta ya cargada también tiene que entrar
         if (enMovil && yaHuboUnaCarpeta) irAlPaso(1);
         yaHuboUnaCarpeta = true;
+
+        /*
+         * Si ya está pintada, no se toca nada.
+         *
+         * Volver a poner la misma lista rehace todas sus filas, y si el foco
+         * estaba en una de ellas se pierde: Android lo manda entonces a lo
+         * primero que encuentra, que es el principio de la columna de
+         * carpetas, y la lista «se va arriba» sola. Pasaba al ir y volver
+         * entre columnas, que es lo que se hace todo el rato.
+         */
+        if (carpeta.id.equals(carpetaPintada)) {
+            if (pendiente != null) Hilos.olvidar(pendiente);
+            return;
+        }
         cuantos.setText("");
 
         if (Favoritos.CARPETA.equals(carpeta.id)) {
@@ -209,8 +227,11 @@ public class DirectoActivity extends Activity {
             pendiente = new Runnable() {
                 @Override public void run() {
                     List<Catalogo.Item> suyos = Favoritos.lista(DirectoActivity.this);
+                    boolean estabaEnLosCanales = listaCanales.hasFocus();
+                    carpetaPintada = Favoritos.CARPETA;
                     canales.favoritos(Favoritos.marcados(DirectoActivity.this));
                     canales.poner(suyos);
+                    if (estabaEnLosCanales) listaCanales.requestFocus();
                     canales.sonando(listaCanales, sonando, null);
                     cuantos.setText(String.valueOf(suyos.size()));
                     listaCanales.scrollToPosition(0);
@@ -233,7 +254,11 @@ public class DirectoActivity extends Activity {
                     @Override public void listo(List<Catalogo.Item> lista) {
                         // Se puede haber cambiado de carpeta mientras llegaba
                         if (!carpeta.nombre.contentEquals(tituloCarpeta.getText())) return;
+                        boolean estabaEnLosCanales = listaCanales.hasFocus();
+                        carpetaPintada = carpeta.id;
                         canales.poner(lista);
+                        // Rehacer la lista tira el foco: se le devuelve
+                        if (estabaEnLosCanales) listaCanales.requestFocus();
                         canales.sonando(listaCanales, sonando, null);
                         cuantos.setText(String.valueOf(lista.size()));
                         vacio.setText("Esta carpeta no tiene canales.");
@@ -260,6 +285,8 @@ public class DirectoActivity extends Activity {
         Catalogo.Item canal = lista.get(posicion);
 
         boolean ahoraEs = Favoritos.alternar(this, canal);
+        // La carpeta de favoritos ya no es la que estaba pintada
+        if (Favoritos.CARPETA.equals(carpetaPintada)) carpetaPintada = "";
         canales.favoritos(Favoritos.marcados(this));
         android.widget.Toast.makeText(this,
                 ahoraEs ? canal.nombre + " añadido a favoritos" : canal.nombre + " quitado de favoritos",
