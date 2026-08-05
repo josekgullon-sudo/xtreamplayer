@@ -29,6 +29,7 @@ import {
   Fuente,
   pedirEnlace,
   momentoDeArchivo,
+  valeDe,
   XtreamCategory,
   XtreamLiveStream,
   XtreamVodStream,
@@ -142,6 +143,8 @@ function alta(valor?: string | number): number {
 export default function PlayerApp() {
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [customer, setCustomer] = useState<{ username: string; brand: string } | null>(null);
+  /** Cliente de un proveedor: la web no le sirve la tele, se la sirven las apps. */
+  const [soloApps, setSoloApps] = useState<{ marca: string; usuario: string } | null>(null);
   const [authLoaded, setAuthLoaded] = useState(false);
   const [playlists, setPlaylists] = useState<StoredPlaylist[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -208,30 +211,22 @@ export default function PlayerApp() {
     if (last && locals.some((p) => p.id === last)) setActiveId(last);
     else if (locals.length) setActiveId(locals[0].id);
 
-    // Cliente dado de alta por un proveedor: su lista se carga sola
+    /*
+     * Un cliente de proveedor no entra por aquí.
+     *
+     * El reproductor de la web es para quien se pega su propia lista: esa
+     * dirección la ha escrito él y verla en la barra del navegador no le
+     * descubre nada. La línea de un cliente de proveedor es otra cosa —lleva
+     * dentro el servidor, el usuario y la contraseña— y en una página web no
+     * hay forma de reproducir un vídeo sin que la dirección esté al alcance
+     * de F12. Así que se ve desde las aplicaciones, donde sí se puede
+     * guardar, y aquí se le dice dónde bajarlas.
+     */
     fetch("/api/customer/me")
       .then((r) => r.json())
       .then((d) => {
-        if (!d.customer || !d.playlist) return;
-        setCustomer({ username: d.customer.username, brand: d.brand || "" });
-        // Marca blanca: viste el reproductor con el color del proveedor
-        if (d.branding?.cssVars) {
-          const style = document.createElement("style");
-          style.dataset.branding = "1";
-          style.textContent = `:root{${d.branding.cssVars}}`;
-          document.head.appendChild(style);
-        }
-        const managed: StoredPlaylist = {
-          id: d.playlist.id,
-          name: d.playlist.name,
-          type: d.playlist.type,
-          url: d.playlist.url,
-          username: d.playlist.username,
-          password: d.playlist.password,
-          managed: true,
-        };
-        setPlaylists((prev) => [managed, ...prev.filter((p) => p.id !== managed.id)]);
-        setActiveId(managed.id);
+        if (!d.customer) return;
+        setSoloApps({ marca: d.brand || "", usuario: d.customer.username });
       })
       .catch(() => {});
 
@@ -562,11 +557,15 @@ export default function PlayerApp() {
     []
   );
 
-  const playM3u = useCallback((p: StoredPlaylist, ch: M3UChannel) => {
+  const playM3u = useCallback(async (p: StoredPlaylist, ch: M3UChannel) => {
     const favKey = `${p.id}:m3u:${ch.url}`;
     setViendo(true);
+    /* La dirección viene escrita en la lista, pero el proxy no acepta
+       direcciones sueltas: sin vale no habría camino de reserva cuando el
+       servidor del canal no deja entrar al navegador */
+    const vale = ch.url.startsWith("/api/") ? undefined : await valeDe(ch.url);
     setCurrent({
-      source: { url: ch.url, name: ch.name, kind: "auto" },
+      source: { url: ch.url, vale, name: ch.name, kind: "auto" },
       logo: ch.logo,
       playlistId: p.id,
       kind: "m3u",
@@ -1080,6 +1079,30 @@ export default function PlayerApp() {
        aquí para añadírselo eran otros 8.000 objetos por cada tecla */
     return liveGroups.flatMap((g) => g.channels);
   }, [liveGroups, grupoSel]);
+
+  /*
+   * La puerta. Antes de pintar nada: si quien mira es cliente de un
+   * proveedor, aquí no se reproduce, se le manda a las aplicaciones.
+   */
+  if (soloApps) {
+    return (
+      <div className="solo-apps">
+        <div className="solo-apps-caja">
+          <span className="logo-nombre">TOTAL<span className="logo-play">player</span></span>
+          <h1>Hola, {soloApps.usuario}. Tu tele se ve desde la aplicación.</h1>
+          <p>
+            {soloApps.marca ? `${soloApps.marca} sirve` : "Tu proveedor sirve"} sus canales a través de
+            nuestras aplicaciones, no del navegador. Se instalan una vez y entras con el mismo usuario y
+            la misma contraseña que acabas de usar.
+          </p>
+          <div className="solo-apps-botones">
+            <a className="btn btn-primary" href="/apps">Ver las aplicaciones</a>
+            <a className="btn btn-ghost" href="/mi-cuenta">Mi cuenta</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentCustomer } from "@/lib/provider";
 import { getCurrentUser } from "@/lib/auth";
+import { dueñoDeLaSesion } from "@/lib/origen";
 import { assertPublicUrl } from "@/lib/safeFetch";
 import { emitirVale } from "@/lib/vale";
 
@@ -51,7 +52,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Petición inválida" }, { status: 400 });
   }
 
+  /*
+   * Dos nombres distintos y a propósito.
+   *
+   * El vale se emite a nombre de la sesión, que es contra lo que lo va a
+   * comprobar el proxy: emitirlo a nombre de la IP hacía que no casara nunca
+   * y el reproductor se quedaba sin su camino de reserva.
+   *
+   * El tope, en cambio, se cuenta por IP cuando no hay cuenta: si se contara
+   * por sesión, todos los anónimos compartirían el mismo cupo y bastaría uno
+   * pesado para dejar sin proxy a los demás.
+   */
   const usuario = await getCurrentUser();
+  const dueño = await dueñoDeLaSesion();
   const quien = usuario
     ? `u${usuario.id}`
     : `ip:${req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "?"}`;
@@ -69,5 +82,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Dirección no permitida" }, { status: 400 });
   }
 
-  return NextResponse.json({ vale: emitirVale(url, quien) });
+  return NextResponse.json({ vale: emitirVale(url, dueño) });
 }

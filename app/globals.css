@@ -2547,3 +2547,15 @@ select.input { appearance: none; cursor: pointer; }
      que toma quien entra, y se fallaba al pulsar */
   .pa-tab { min-height: 44px; font-size: 14.5px; }
 }
+
+/* ---------- La puerta del reproductor web ----------
+   Un cliente de proveedor no reproduce aquí. En una página web no hay forma
+   de darle un vídeo sin que su dirección —que en Xtream lleva dentro el
+   servidor, el usuario y la contraseña— quede al alcance de F12. En una
+   aplicación sí, así que se le manda allí en vez de dejarle a medias. */
+.solo-apps { min-height: 70vh; display: grid; place-items: center; padding: 40px 24px; }
+.solo-apps-caja { max-width: 560px; text-align: center; }
+.solo-apps-caja .logo-nombre { font-size: 22px; }
+.solo-apps-caja h1 { font-size: clamp(24px, 5vw, 34px); line-height: 1.2; margin: 18px 0 12px; }
+.solo-apps-caja p { color: var(--text-dim); font-size: 16px; line-height: 1.6; }
+.solo-apps-botones { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 26px; }

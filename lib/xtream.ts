@@ -210,6 +210,30 @@ export async function pedirEnlace(p: Peticion): Promise<Enlace> {
   return res.json();
 }
 
+/**
+ * Un vale para una dirección que ya se tiene delante.
+ *
+ * Las listas M3U traen la dirección de cada canal escrita dentro, así que
+ * para esas no hay nada que resolver. Pero el reproductor necesita además
+ * poder pedir ese mismo canal por nuestro proxy cuando el servidor no manda
+ * cabeceras CORS o filtra al navegador —que es el caso corriente—, y el
+ * proxy ya no acepta direcciones sueltas. Esto convierte una en un vale.
+ */
+export async function valeDe(url: string): Promise<string | undefined> {
+  try {
+    const res = await fetch("/api/tele/vale", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    if (!res.ok) return undefined;
+    return (await res.json()).vale;
+  } catch {
+    // Sin vale se pierde el camino de reserva, no la reproducción
+    return undefined;
+  }
+}
+
 /** El momento de inicio de un Catch Up, en el formato que pide el panel. */
 export function momentoDeArchivo(inicio: Date): string {
   const dos = (n: number) => String(n).padStart(2, "0");
