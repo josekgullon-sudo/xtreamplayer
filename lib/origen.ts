@@ -1,6 +1,7 @@
 import { getDb, PlaylistRow } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getCurrentCustomer, resolveCustomerPlaylist } from "@/lib/provider";
+import { listaActiva, normalizarMac } from "@/lib/tvMac";
 import { emitirVale, enlaceDeImagen } from "@/lib/vale";
 
 /**
@@ -37,11 +38,13 @@ export interface Origen {
  * «anon»; lo que le impide abusar del proxy es el tope de /api/tele/vale, no
  * el nombre del vale.
  */
-export async function dueñoDeLaSesion(): Promise<string> {
+export async function dueñoDeLaSesion(mac?: string | null): Promise<string> {
   const cliente = await getCurrentCustomer();
   if (cliente) return `c${cliente.id}`;
   const usuario = await getCurrentUser();
   if (usuario) return `u${usuario.id}`;
+  const aparato = normalizarMac(mac || "");
+  if (aparato) return `m${aparato}`;
   return "anon";
 }
 
@@ -98,7 +101,8 @@ export async function origenDeLaSesion(lista?: string | null): Promise<Origen | 
  */
 export async function origenPedido(
   lista: string | null | undefined,
-  propia: { base?: string | null; usuario?: string | null; clave?: string | null; tipo?: string | null }
+  propia: { base?: string | null; usuario?: string | null; clave?: string | null; tipo?: string | null },
+  mac?: string | null
 ): Promise<Origen | null> {
   const cliente = await getCurrentCustomer();
   if (cliente) {
@@ -115,6 +119,29 @@ export async function origenPedido(
 
   const guardada = await origenDeLaSesion(lista);
   if (guardada) return guardada;
+
+  /*
+   * Una lista cargada contra la MAC de un televisor.
+   *
+   * Aquí la MAC es la credencial —así se emparejó, sin cuenta de por medio—,
+   * pero eso no es motivo para devolverle la dirección: /api/tv/lista la
+   * entregaba entera a quien preguntara por una MAC, y una MAC se adivina.
+   * Ahora se resuelve aquí y lo único que sale es el contenido.
+   */
+  const aparato = normalizarMac(mac || "");
+  if (aparato) {
+    const suya = listaActiva(aparato);
+    if (suya) {
+      return {
+        tipo: suya.type === "xtream" ? "xtream" : "m3u",
+        base: suya.url,
+        usuario: suya.username || "",
+        clave: suya.password || "",
+        dueño: `m${aparato}`,
+        gestionada: true,
+      };
+    }
+  }
 
   const base = (propia.base || "").trim();
   if (!/^https?:\/\//i.test(base)) return null;

@@ -150,6 +150,8 @@ export function parseXtreamUrl(url: string): XtreamCreds | null {
  */
 export interface Fuente {
   lista?: string;
+  /** Una tele emparejada por su MAC: ahí la MAC es quien eres. */
+  mac?: string;
   base?: string;
   username?: string;
   password?: string;
@@ -162,6 +164,7 @@ export async function xtreamApi<T>(
 ): Promise<T> {
   const params = new URLSearchParams();
   if (fuente.lista) params.set("lista", fuente.lista);
+  if (fuente.mac) params.set("mac", fuente.mac);
   if (fuente.base) {
     params.set("base", fuente.base);
     params.set("username", fuente.username || "");

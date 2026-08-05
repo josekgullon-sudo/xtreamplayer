@@ -39,6 +39,14 @@ interface Lista {
   url: string;
   usuario: string;
   password: string;
+  /**
+   * La cargó alguien contra la MAC de este televisor desde la web.
+   *
+   * Entonces su dirección no baja aquí: /api/tv/lista la devolvía entera a
+   * quien preguntase por una MAC, y una MAC se adivina. La resuelve el
+   * servidor en cada petición, con la MAC por delante.
+   */
+  porMac?: boolean;
 }
 
 interface Fila {
@@ -147,6 +155,8 @@ interface ListaManual {
   url: string;
   usuario: string;
   password: string;
+  /** Cargada contra la MAC: su dirección la sabe el servidor, no esta tele. */
+  porMac?: boolean;
 }
 
 /**
@@ -416,13 +426,14 @@ export default function TvApp() {
         return;
       }
       // Lista cargada contra la MAC desde la web, sin proveedor de por medio
-      if (porMac.estado === "lista" && porMac.lista?.url) {
+      if (porMac.estado === "lista" && porMac.lista) {
         clearInterval(t);
         const l: ListaManual = {
           tipo: porMac.lista.tipo === "xtream" ? "xtream" : "m3u",
-          url: porMac.lista.url,
-          usuario: porMac.lista.usuario || "",
-          password: porMac.lista.password || "",
+          url: "",
+          usuario: "",
+          password: "",
+          porMac: true,
         };
         try {
           localStorage.setItem(K_LISTA_MANUAL, JSON.stringify(l));
@@ -467,7 +478,9 @@ export default function TvApp() {
    * elegida no le sirve de nada.
    */
   const creds: Fuente | null = lista
-    ? { base: lista.url, username: lista.usuario, password: lista.password }
+    ? lista.porMac
+      ? { mac: macDelAparato() }
+      : { base: lista.url, username: lista.usuario, password: lista.password }
     : null;
 
   const reproducir = useCallback((source: PlaySource) => {
@@ -552,7 +565,11 @@ export default function TvApp() {
          * cualquier reproductor de tele.
          */
         if (lista.tipo === "m3u") {
-          const texto = await fetch(`/api/m3u?url=${encodeURIComponent(lista.url)}`).then((r) => r.text());
+          const texto = await fetch(
+            lista.porMac
+              ? `/api/m3u?mac=${encodeURIComponent(macDelAparato())}`
+              : `/api/m3u?url=${encodeURIComponent(lista.url)}`
+          ).then((r) => r.text());
           const canales = parseM3U(texto).channels;
           const porGrupo = new Map<string, typeof canales>();
           for (const c of canales) {

@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   const origen = await origenPedido(req.nextUrl.searchParams.get("lista"), {
     base: req.nextUrl.searchParams.get("url"),
     tipo: "m3u",
-  });
+  }, req.nextUrl.searchParams.get("mac"));
   if (!origen) {
     return NextResponse.json({ error: "Entra en tu cuenta para ver tu lista" }, { status: 401 });
   }

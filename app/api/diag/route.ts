@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
  * de red bastante cómodo pagado por nosotros.
  */
 export async function GET(req: NextRequest) {
-  const dueño = await dueñoDeLaSesion();
+  const dueño = await dueñoDeLaSesion(req.nextUrl.searchParams.get("mac"));
   const url = abrirVale(req.nextUrl.searchParams.get("v") || "", dueño);
   if (!url) return NextResponse.json({ error: "Este enlace ya no vale" }, { status: 403 });
 

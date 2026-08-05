@@ -171,6 +171,12 @@ function buildAttempts(src: PlaySource): Attempt[] {
   const sinDirecto = ocultado || mixto || origenSinDirecto(src.url);
 
   const attempts: Attempt[] = [];
+  /*
+   * Sin dirección todavía no hay nada que intentar, y eso no es un fallo: el
+   * canal se pinta en cuanto se pulsa y su dirección se le pide al servidor,
+   * que tarda lo que tarda un viaje de ida y vuelta. Ese instante se espera.
+   */
+  if (!src.url) return attempts;
   if (!sinDirecto) attempts.push({ url: src.url, engine, label: "conexión directa", direct: true });
   if (ocultado) {
     attempts.push({ url: src.url, engine, label: "conexión protegida", direct: false });
@@ -322,6 +328,12 @@ export default function VideoPlayer({
 
     let cancelled = false;
     const attempts = buildAttempts(source);
+    /* Todavía sin dirección: se queda esperando, no da error */
+    if (!attempts.length) {
+      setState("loading");
+      setErrorDetail("");
+      return;
+    }
     let index = 0;
     let watchdog: ReturnType<typeof setInterval> | null = null;
     /** El servidor ya ha rechazado al navegador: no vale la pena volver a él */

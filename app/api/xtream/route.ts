@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     base: sp.get("base"),
     usuario: sp.get("username"),
     clave: sp.get("password"),
-  });
+  }, sp.get("mac"));
   if (!origen) {
     return NextResponse.json({ error: "Entra en tu cuenta para ver tu lista" }, { status: 401 });
   }

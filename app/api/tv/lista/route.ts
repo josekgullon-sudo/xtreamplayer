@@ -13,11 +13,17 @@ export async function GET(req: NextRequest) {
   const listas = listarListas(req.nextUrl.searchParams.get("mac") || "");
   return NextResponse.json({
     listas: listas.map((l) => ({
+      /*
+       * Sin url ni usuario. Esta ruta no pide cuenta —una tele se empareja
+       * con su MAC y ya— y devolvía la lista entera, con su servidor y su
+       * usuario, a quien preguntara por una MAC cualquiera. Una MAC se
+       * adivina; una suscripción no se regala. Lo que hace falta para
+       * pintar la pantalla es el nombre, y para reproducir, nada: eso lo
+       * resuelve el servidor con la MAC en cada petición.
+       */
       id: l.id,
       nombre: l.name,
       tipo: l.type,
-      url: l.url,
-      usuario: l.username,
       activa: l.activa === 1,
     })),
   });

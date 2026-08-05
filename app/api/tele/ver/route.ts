@@ -19,6 +19,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   let cuerpo: {
     lista?: string;
+    mac?: string;
     base?: string;
     username?: string;
     password?: string;
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
     base: cuerpo.base,
     usuario: cuerpo.username,
     clave: cuerpo.password,
-  });
+  }, cuerpo.mac);
   if (!origen) return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
   if (origen.tipo !== "xtream") {
     return NextResponse.json({ error: "Esa lista no es de tipo Xtream" }, { status: 400 });

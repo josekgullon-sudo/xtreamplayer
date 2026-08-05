@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  * cualquier URL de cualquiera: era, tal cual, un proxy de imágenes abierto.
  */
 export async function GET(req: NextRequest) {
-  const dueño = await dueñoDeLaSesion();
+  const dueño = await dueñoDeLaSesion(req.nextUrl.searchParams.get("mac"));
   const url = abrirVale(req.nextUrl.searchParams.get("v") || "", dueño);
   if (!url) return new NextResponse(null, { status: 403 });
 

@@ -504,17 +504,24 @@ export default function PlayerApp() {
     async (p: StoredPlaylist, ch: XtreamLiveStream) => {
       const favKey = `${p.id}:live:${ch.stream_id}`;
       setViendo(true);
-      /* La dirección la resuelve el servidor. Aquí solo se sabe el número de
-         canal, que es todo lo que hace falta saber */
-      const enlace = await pedirEnlace({ ...credsOf(p), clase: "live", id: String(ch.stream_id) });
-      setCurrent({
-        source: { ...enlace, name: ch.name, kind: "hls" },
+      /*
+       * El canal se pone en pantalla ya, y la dirección llega después.
+       *
+       * La resuelve el servidor —aquí solo se sabe el número de canal, que es
+       * todo lo que hace falta saber—, y eso es un viaje de ida y vuelta.
+       * Esperar a que vuelva para pintar el nombre y pedir la guía retrasaba
+       * medio segundo cosas que no tienen nada que ver con el vídeo.
+       */
+      const encabezado = {
         logo: ch.stream_icon,
         playlistId: p.id,
-        kind: "live",
+        kind: "live" as const,
         streamId: ch.stream_id,
         favKey,
-      });
+      };
+      setCurrent({ source: { url: "", name: ch.name, kind: "hls" }, ...encabezado });
+      const enlace = await pedirEnlace({ ...credsOf(p), clase: "live", id: String(ch.stream_id) });
+      setCurrent({ source: { ...enlace, name: ch.name, kind: "hls" }, ...encabezado });
       setRecents(
         pushRecent({
           key: favKey,

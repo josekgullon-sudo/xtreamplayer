@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Proxy de streams desactivado" }, { status: 403 });
   }
 
-  const dueño = await dueñoDeLaSesion();
+  const dueño = await dueñoDeLaSesion(req.nextUrl.searchParams.get("mac"));
   const url = abrirVale(req.nextUrl.searchParams.get("v") || "", dueño);
   if (!url) return NextResponse.json({ error: "Este enlace ya no vale" }, { status: 403 });
 
