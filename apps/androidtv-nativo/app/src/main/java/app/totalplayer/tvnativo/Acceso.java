@@ -51,7 +51,10 @@ public class Acceso {
     }
 
     public static class NoEntra extends Exception {
-        NoEntra(String porque) { super(porque); }
+        /* Público: Web lo lanza también, y es el único tipo cuyo mensaje
+           llega a la pantalla en vez de convertirse en un «comprueba tu
+           conexión» que no dice nada */
+        public NoEntra(String porque) { super(porque); }
     }
 
     /**

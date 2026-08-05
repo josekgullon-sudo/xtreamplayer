@@ -87,9 +87,15 @@ public final class Web {
             }
             int codigo = con.getResponseCode();
             if (codigo != 200) {
-                /* El motivo lo cuenta el panel y no se inventa aquí: caducado,
-                   tope de aparatos, sesión perdida */
-                throw new Exception(motivoDe(leerTodo(con, true), codigo));
+                /*
+                 * El motivo lo cuenta el panel y no se inventa aquí: caducado,
+                 * tope de aparatos, sesión perdida. Y va como NoEntra a
+                 * propósito: es el único tipo de excepción cuyo mensaje sale a
+                 * la pantalla —Hilos.enCristiano—. Lanzándolo como Exception a
+                 * secas, el aparato enseñaba «comprueba tu conexión» aunque el
+                 * servidor hubiera contestado perfectamente explicando el qué.
+                 */
+                throw new Acceso.NoEntra(motivoDe(leerTodo(con, true), codigo));
             }
             return leerTodo(con, false);
         } finally {
