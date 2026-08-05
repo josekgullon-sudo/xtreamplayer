@@ -58,7 +58,7 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   const tv = await ctx.newPage();
   tv.on("pageerror", (e) => console.log("PAGEERROR:", String(e).slice(0, 200)));
 
-  await tv.goto(BASE + "/tv", { waitUntil: "networkidle" });
+  await tv.goto(BASE + "/tv?app=1", { waitUntil: "networkidle" });
   await tv.waitForSelector(".tv-activar", { timeout: 20000 });
   const inicio = await tv.locator(".tv-activar").innerText();
   check("Sin activar, la tele dice qué hacer", inicio.includes("Activa esta tele"));
@@ -211,7 +211,7 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   /* La tele enciende antes que el wifi: la pregunta al servidor no llega.
      Antes salía la pantalla de activación a alguien activado hace meses. */
   await sinRed.route("**/api/customer/me", (route) => route.abort());
-  await sinRed.goto(BASE + "/tv", { waitUntil: "domcontentloaded" });
+  await sinRed.goto(BASE + "/tv?app=1", { waitUntil: "domcontentloaded" });
   await sinRed.waitForSelector(".tv-tiles", { timeout: 25000 });
   check("Sin red, entra igual con lo de la última vez", true);
   check("Y lo dice, en vez de disimular", await sinRed.locator(".tv-sinred").isVisible());
@@ -223,7 +223,7 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   const nueva = await b.newContext({ viewport: { width: 1920, height: 1080 } });
   const pn = await nueva.newPage();
   await pn.route("**/api/customer/me", (route) => route.abort());
-  await pn.goto(BASE + "/tv", { waitUntil: "domcontentloaded" });
+  await pn.goto(BASE + "/tv?app=1", { waitUntil: "domcontentloaded" });
   await pn.waitForSelector(".tv-activar", { timeout: 25000 });
   check("Una tele nueva sin red enseña la activación, no una pantalla en blanco", true);
   await nueva.close();
