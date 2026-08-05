@@ -48,14 +48,36 @@ const check = (n, ok, d = "") => {
 
   check("Cero excepciones de cliente en todo el recorrido", errores.length === 0, errores.join(" | "));
 
-  // El proxy de imágenes responde y cachea
-  const img = await fetch(`${BASE}/api/img?url=${encodeURIComponent("http://127.0.0.1:8090/logo.png")}`);
-  check("El proxy de carátulas responde", img.status === 200 || img.status === 502, `HTTP ${img.status}`);
+  /*
+   * El proxy de carátulas ya no acepta direcciones sueltas.
+   *
+   * Aceptarlas era doble problema: cada logotipo llevaba el servidor del
+   * proveedor escrito en la barra de red, y de paso cualquiera de internet
+   * podía usarnos de proxy de imágenes gratis. Ahora hay que traer un vale, y
+   * un vale solo lo emite el servidor.
+   */
+  const suelta = await fetch(`${BASE}/api/img?url=${encodeURIComponent("http://127.0.0.1:8090/logo.png")}`);
+  check("El proxy de carátulas rechaza una dirección suelta", suelta.status === 403, `HTTP ${suelta.status}`);
+
+  const emision = await fetch(`${BASE}/api/tele/vale`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: "http://127.0.0.1:8090/logo.png" }),
+  });
+  const vale = (await emision.json().catch(() => ({}))).vale;
+  check("Con vale, en cambio, sí se emite", !!vale);
+  const img = await fetch(`${BASE}/api/img?v=${encodeURIComponent(vale || "")}`);
+  check("Y el proxy de carátulas responde", img.status === 200 || img.status === 502, `HTTP ${img.status}`);
   if (img.status === 200) {
-    check("Con caché de un día", (img.headers.get("cache-control") || "").includes("86400"));
+    check("Con caché de un día y privada", (img.headers.get("cache-control") || "").includes("86400"));
   } else {
     check("(el mock no sirve logo.png: passthrough verificado igualmente)", true);
   }
+
+  // Un vale tocado no vale: el sello de GCM lo caza
+  const tocado = (vale || "aa.bb.cc").slice(0, -2) + "zz";
+  const malo = await fetch(`${BASE}/api/img?v=${encodeURIComponent(tocado)}`);
+  check("Un vale manipulado se rechaza", malo.status === 403, `HTTP ${malo.status}`);
 
   /* ---------- Cuando no hay nada, decir qué pasa ----------
    *

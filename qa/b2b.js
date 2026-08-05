@@ -145,7 +145,13 @@ function extractCookie(setCookie, name) {
   r = await call("/api/customer/me", {}, customerCookie);
   check(
     "El cliente recibe su lista lista para reproducir",
-    r.body.playlist?.type === "xtream" && r.body.playlist?.username === "demo" && r.body.playlist?.managed === true
+    r.body.playlist?.type === "xtream" && r.body.playlist?.managed === true
+  );
+  // Y sin la línea del proveedor dentro, que es lo que no puede salir de ahí
+  check(
+    "Pero sin servidor, usuario ni contraseña del proveedor",
+    !r.body.playlist?.url && !r.body.playlist?.username && !r.body.playlist?.password,
+    JSON.stringify(r.body.playlist)
   );
 
   // --- Límite de dispositivos ---
@@ -225,7 +231,11 @@ function extractCookie(setCookie, name) {
 
   const homCookie = extractCookie(r.setCookie, "xp_customer");
   r = await call("/api/customer/me", {}, homCookie);
-  check("Y recibe la lista de SU proveedor, no la del homónimo", r.body.playlist?.username === "otro", r.body.playlist?.username);
+  /* Que le toque la de su proveedor y no la del homónimo se sigue
+     comprobando, pero por lo que se ve reproduciendo y no por la línea, que
+     ya no viaja: aquí basta con que la sesión sea la suya */
+  check("Y su sesión es la suya, no la del homónimo", r.body.customer?.username === U("01"), r.body.customer?.username);
+  check("Sin línea del proveedor en la respuesta", !r.body.playlist?.url && !r.body.playlist?.username, JSON.stringify(r.body.playlist));
 
   // --- Sin sesión ---
   r = await call("/api/provider/customers", {});

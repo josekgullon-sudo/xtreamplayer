@@ -69,9 +69,12 @@ const ck = (sc, n) => {
   check("El cliente importado entra con su usuario del panel", r.status === 200);
   const cli = ck(r.setCookie, "xp_customer");
   r = await call("/api/customer/me", {}, cli);
+  /* El dominio elegido se resuelve en el servidor y no viaja: comprobar que
+     «apunta al dominio» desde aquí era comprobar que se lo estábamos
+     enseñando al cliente */
   check(
-    "Y su lista apunta al dominio elegido con sus credenciales IPTV",
-    r.body.playlist?.username === "panelu1" && (r.body.playlist?.url || "").includes("127.0.0.1"),
+    "El cliente importado recibe su lista, sin dirección dentro",
+    r.body.playlist?.managed === true && !r.body.playlist?.url && !r.body.playlist?.username,
     JSON.stringify(r.body.playlist)
   );
 

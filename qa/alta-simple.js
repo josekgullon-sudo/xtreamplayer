@@ -34,9 +34,16 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   const cli = ck(r.setCookie, "xp_customer");
   check("El cliente entra con ese usuario", r.status === 200);
   r = await call("/api/customer/me", {}, cli);
-  check("Y su lista lleva su usuario, no otro inventado",
-    r.body.playlist?.username === `uno${RUN}` && r.body.playlist?.password === "clave1234",
-    `${r.body.playlist?.username} / ${r.body.playlist?.password}`);
+  /* Antes esto comprobaba que la respuesta traía el usuario y la contraseña
+     de la línea. Comprobaba, o sea, la fuga: cualquier cliente veía en F12 la
+     suscripción entera de su proveedor y se la llevaba a VLC. Ahora se
+     comprueba lo contrario */
+  check("Su lista llega identificada pero sin la línea dentro",
+    r.body.playlist?.managed === true && r.body.playlist?.type === "xtream",
+    JSON.stringify(r.body.playlist));
+  check("Ni servidor, ni usuario, ni contraseña del proveedor",
+    !r.body.playlist?.url && !r.body.playlist?.username && !r.body.playlist?.password,
+    JSON.stringify(r.body.playlist));
 
   // --- Quien las tenga distintas, las sigue mandando ---
   r = await call("/api/provider/customers", {
