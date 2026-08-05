@@ -188,9 +188,25 @@ public class ReproductorActivity extends Activity {
         asomar();
         if (!Traspaso.esDirecto) sacarMandos();
 
-        reproductor.setMediaItem(MediaItem.fromUri(Traspaso.url));
-        reproductor.prepare();
-        reproductor.play();
+        /* La dirección se pide ahora, no cuando se pintó la lista: con lista
+           de la plataforma no baja al aparato con el catálogo */
+        Hilos.fuera(new Hilos.Trabajo<String>() {
+            @Override public String hacer() throws Exception {
+                return Enlaces.paraVer(Traspaso.clase, Traspaso.id, Traspaso.extension, Traspaso.url);
+            }
+        }, new Hilos.Luego<String>() {
+            @Override public void listo(String direccion) {
+                if (reproductor == null) return;
+                reproductor.setMediaItem(MediaItem.fromUri(direccion));
+                reproductor.prepare();
+                reproductor.play();
+            }
+            @Override public void falla(Exception e) {
+                girando.setVisibility(View.GONE);
+                error.setText(Hilos.enCristiano(e));
+                error.setVisibility(View.VISIBLE);
+            }
+        });
 
         if (Traspaso.esDirecto && Traspaso.cola != null) pedirGuia();
     }

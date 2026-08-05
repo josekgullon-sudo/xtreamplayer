@@ -452,7 +452,7 @@ public class DirectoActivity extends Activity {
         });
     }
 
-    private void ponerEnLaVentana(Catalogo.Item canal) {
+    private void ponerEnLaVentana(final Catalogo.Item canal) {
         if (reproductor == null) {
             reproductor = Reproduccion.nuevo(this);
             vista.setPlayer(reproductor);
@@ -471,9 +471,33 @@ public class DirectoActivity extends Activity {
             });
         }
         reintentos = 0;
-        reproductor.setMediaItem(MediaItem.fromUri(canal.url));
-        reproductor.prepare();
-        reproductor.play();
+        /*
+         * La dirección se pide al pulsar, no al pintar la lista.
+         *
+         * Con lista de la plataforma el catálogo llega sin direcciones: la de
+         * un canal de Xtream lleva dentro el servidor, el usuario y la
+         * contraseña del proveedor, y eso ya no baja al aparato. Se pide una,
+         * la del canal que se ha pulsado, y se olvida.
+         */
+        final String cual = canal.id;
+        Hilos.fuera(new Hilos.Trabajo<String>() {
+            @Override public String hacer() throws Exception {
+                return Enlaces.paraVer(canal.clase, canal.id, canal.extension, canal.url);
+            }
+        }, new Hilos.Luego<String>() {
+            @Override public void listo(String direccion) {
+                // Se puede haber zapeado mientras llegaba
+                if (reproductor == null || !cual.equals(sonando)) return;
+                reproductor.setMediaItem(MediaItem.fromUri(direccion));
+                reproductor.prepare();
+                reproductor.play();
+            }
+            @Override public void falla(Exception e) {
+                girando.setVisibility(View.GONE);
+                pista.setText(Hilos.enCristiano(e));
+                pista.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     /**

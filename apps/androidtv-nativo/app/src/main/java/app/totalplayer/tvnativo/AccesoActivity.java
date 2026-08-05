@@ -86,25 +86,33 @@ public class AccesoActivity extends Activity {
                 s.entradaServidor = propio;
 
                 if (propio.isEmpty()) {
+                    /* Entrando con el usuario del proveedor: la lista la
+                       administra la plataforma y su dirección no baja aquí */
                     Acceso.Lista lista = Acceso.entrar(usuario, clave, Sesion.llaveDelAparato(AccesoActivity.this));
+                    s.gestionada = true;
                     s.tipo = Sesion.M3U.equals(lista.tipo) ? Sesion.M3U : Sesion.XTREAM;
-                    s.servidor = Sesion.M3U.equals(s.tipo) ? lista.url : Web.normalizar(lista.url);
-                    s.usuario = lista.usuario;
-                    s.clave = lista.clave;
+                    s.servidor = "";
+                    s.usuario = "";
+                    s.clave = "";
                     s.marca = lista.marca;
                     s.galleta = lista.galleta;
                 } else if (pareceM3u(propio)) {
+                    // Lista escrita aquí: es suya y la conoce, no hay nada que tapar
+                    s.gestionada = false;
                     s.tipo = Sesion.M3U;
                     s.servidor = propio;
                     s.usuario = usuario;
                     s.clave = clave;
                     s.marca = "";
+                    s.galleta = "";
                 } else {
+                    s.gestionada = false;
                     s.tipo = Sesion.XTREAM;
                     s.servidor = propio;
                     s.usuario = usuario;
                     s.clave = clave;
                     s.marca = "";
+                    s.galleta = "";
                 }
 
                 /* Pedir ya las carpetas del directo: si las credenciales están

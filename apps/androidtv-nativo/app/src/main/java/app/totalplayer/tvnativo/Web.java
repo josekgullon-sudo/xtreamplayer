@@ -51,6 +51,74 @@ public final class Web {
         }
     }
 
+    /**
+     * Lo mismo, pero enseñando la galleta de la sesión del panel.
+     *
+     * El catálogo de un cliente de proveedor se pide ya a totalplayer.app y no
+     * al servidor del proveedor, y allí hay que decir quién eres: es
+     * precisamente lo que permite que el servidor resuelva la línea sin que
+     * este aparato la conozca.
+     */
+    public static String enCasa(String direccion) throws Exception {
+        return conGalleta(direccion, null);
+    }
+
+    /** Un POST con cuerpo JSON, para pedir el enlace de una reproducción. */
+    public static String enCasaPost(String direccion, String cuerpo) throws Exception {
+        return conGalleta(direccion, cuerpo);
+    }
+
+    private static String conGalleta(String direccion, String cuerpo) throws Exception {
+        HttpURLConnection con = (HttpURLConnection) new URL(direccion).openConnection();
+        con.setConnectTimeout(15000);
+        con.setReadTimeout(25000);
+        con.setInstanceFollowRedirects(true);
+        con.setRequestProperty("User-Agent", QUIEN_SOY);
+        String galleta = Sesion.actual().galleta;
+        if (!galleta.isEmpty()) con.setRequestProperty("Cookie", galleta);
+        try {
+            if (cuerpo != null) {
+                con.setRequestMethod("POST");
+                con.setDoOutput(true);
+                con.setRequestProperty("Content-Type", "application/json");
+                java.io.OutputStream salida = con.getOutputStream();
+                salida.write(cuerpo.getBytes("UTF-8"));
+                salida.close();
+            }
+            int codigo = con.getResponseCode();
+            if (codigo != 200) {
+                /* El motivo lo cuenta el panel y no se inventa aquí: caducado,
+                   tope de aparatos, sesión perdida */
+                throw new Exception(motivoDe(leerTodo(con, true), codigo));
+            }
+            return leerTodo(con, false);
+        } finally {
+            con.disconnect();
+        }
+    }
+
+    private static String motivoDe(String cuerpo, int codigo) {
+        try {
+            String e = new org.json.JSONObject(cuerpo).optString("error", "");
+            if (!e.isEmpty()) return e;
+        } catch (Exception ignorado) {
+            // No era JSON: se cuenta lo que se sabe
+        }
+        if (codigo == 401 || codigo == 403) return "Tu sesión ha caducado. Vuelve a entrar.";
+        return "No hemos podido conectar. Inténtalo en un momento.";
+    }
+
+    private static String leerTodo(HttpURLConnection con, boolean error) throws Exception {
+        java.io.InputStream flujo = error ? con.getErrorStream() : con.getInputStream();
+        if (flujo == null) return "";
+        BufferedReader lector = new BufferedReader(new InputStreamReader(flujo, "UTF-8"));
+        StringBuilder todo = new StringBuilder();
+        String linea;
+        while ((linea = lector.readLine()) != null) todo.append(linea);
+        lector.close();
+        return todo.toString();
+    }
+
     private static String unaVez(String direccion) throws Exception {
         HttpURLConnection con = (HttpURLConnection) new URL(direccion).openConnection();
         con.setConnectTimeout(15000);

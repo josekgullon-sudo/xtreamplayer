@@ -33,14 +33,20 @@ public class Acceso {
     /** Dónde vive el panel. apps/poner-dominio.sh lo cambia en todas las apps a la vez. */
     public static final String CASA = "https://totalplayer.app";
 
-    /** Lo que hace falta para pedirle los canales al proveedor. */
+    /**
+     * Lo que el panel cuenta de la lista de este cliente.
+     *
+     * Ya no trae servidor, usuario ni contraseña: esa línea se queda en
+     * totalplayer.app y se resuelve allí en cada petición. Aquí solo llega si
+     * es de Xtream o una M3U —que cambia por dónde se pide el catálogo— y de
+     * quién es la marca.
+     */
     public static class Lista {
-        public final String tipo, url, usuario, clave, marca;
-        /** La sesión abierta en el panel: hace falta luego para los perfiles. */
+        public final String tipo, marca;
+        /** La sesión abierta en el panel: con ella se pide todo lo demás. */
         public final String galleta;
-        Lista(String tipo, String url, String usuario, String clave, String marca, String galleta) {
-            this.tipo = tipo; this.url = url; this.usuario = usuario; this.clave = clave;
-            this.marca = marca; this.galleta = galleta;
+        Lista(String tipo, String marca, String galleta) {
+            this.tipo = tipo; this.marca = marca; this.galleta = galleta;
         }
     }
 
@@ -94,13 +100,7 @@ public class Acceso {
             JSONObject yo = new JSONObject(leer(quien, false));
             JSONObject lista = yo.optJSONObject("playlist");
             if (lista == null) throw new NoEntra("Tu proveedor no te ha asignado ninguna lista");
-            return new Lista(
-                    lista.optString("type", "xtream"),
-                    lista.optString("url", ""),
-                    lista.optString("username", ""),
-                    lista.optString("password", ""),
-                    yo.optString("brand", ""),
-                    galleta);
+            return new Lista(lista.optString("type", "xtream"), yo.optString("brand", ""), galleta);
         } finally {
             quien.disconnect();
         }

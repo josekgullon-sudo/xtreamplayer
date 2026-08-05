@@ -113,7 +113,18 @@ public final class Imagenes {
     }
 
     private static byte[] leer(String url) throws Exception {
-        HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
+        /*
+         * Las carátulas del catálogo llegan ya como ruta nuestra
+         * —«/api/img?v=…»— porque el panel cambia cada dirección del proveedor
+         * por un vale cifrado. Hay que completarla y enseñar la galleta: un
+         * vale es de quien lo pidió y no vale sin sesión.
+         */
+        boolean nuestra = url.startsWith("/");
+        HttpURLConnection con = (HttpURLConnection)
+                new URL(nuestra ? Acceso.CASA + url : url).openConnection();
+        if (nuestra && !Sesion.actual().galleta.isEmpty()) {
+            con.setRequestProperty("Cookie", Sesion.actual().galleta);
+        }
         con.setConnectTimeout(8000);
         con.setReadTimeout(8000);
         con.setInstanceFollowRedirects(true);

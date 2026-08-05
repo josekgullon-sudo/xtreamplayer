@@ -22,6 +22,17 @@ import java.util.regex.Pattern;
  */
 public final class Catalogo {
 
+    /**
+     * A quién se le pide.
+     *
+     * Con lista de la plataforma, a totalplayer.app enseñando la galleta; con
+     * lista propia, al panel del proveedor. Escrito una vez aquí para que no
+     * se olvide en la próxima llamada que se añada.
+     */
+    private static String pedir(String direccion) throws Exception {
+        return Sesion.actual().gestionada ? Web.enCasa(direccion) : Web.pedir(direccion);
+    }
+
     public static final String DIRECTO = "directo";
     public static final String PELIS = "pelis";
     public static final String SERIES = "series";
@@ -46,6 +57,14 @@ public final class Catalogo {
         public String imagen = "";
         /** Solo en las listas M3U, donde la dirección viene dada. */
         public String url = "";
+        /**
+         * Qué clase de cosa es, para poder pedir su dirección al ir a verla.
+         *
+         * Con lista de la plataforma, `url` viene vacía a propósito: la
+         * dirección no baja al aparato con el catálogo, se pide una a una al
+         * pulsar. Esto es lo que hace falta saber para pedirla.
+         */
+        public String clase = Enlaces.DIRECTO;
         public String extension = "";
         public String sinopsis = "";
         /** Año, género o lo que el proveedor mande: la línea de debajo. */
@@ -114,7 +133,7 @@ public final class Catalogo {
         if (Sesion.actual().esXtream()) {
             String accion = DIRECTO.equals(seccion) ? "get_live_categories"
                     : PELIS.equals(seccion) ? "get_vod_categories" : "get_series_categories";
-            JSONArray cats = new JSONArray(Web.pedir(Sesion.actual().api() + "&action=" + accion));
+            JSONArray cats = new JSONArray(pedir(Sesion.actual().api() + "&action=" + accion));
             for (int i = 0; i < cats.length(); i++) {
                 JSONObject c = cats.getJSONObject(i);
                 lista.add(new Carpeta(c.optString("category_id", ""), c.optString("category_name", "Otros")));
@@ -167,6 +186,7 @@ public final class Catalogo {
             it.numero = c.optInt("num", 0);
             /* .ts es el formato del directo en Xtream, y justo el que un
                navegador no sabe reproducir sin desmontarlo en JavaScript */
+            it.clase = Enlaces.DIRECTO;
             it.url = Sesion.actual().urlDirecto(id);
             lista.add(it);
         }
@@ -188,6 +208,7 @@ public final class Catalogo {
             it.imagen = c.optString("stream_icon", "");
             it.extension = c.optString("container_extension", "mp4");
             it.extra = juntar(c.optString("year", ""), c.optString("rating", ""));
+            it.clase = Enlaces.PELICULA;
             it.url = Sesion.actual().urlPelicula(id, it.extension);
             lista.add(it);
         }
@@ -337,7 +358,7 @@ public final class Catalogo {
         if (todoElDirecto != null) return todoElDirecto;
         List<Item> lista = new ArrayList<>();
         if (Sesion.actual().esXtream()) {
-            JSONArray flujos = new JSONArray(Web.pedir(Sesion.actual().api() + "&action=get_live_streams"));
+            JSONArray flujos = new JSONArray(pedir(Sesion.actual().api() + "&action=get_live_streams"));
             for (int i = 0; i < flujos.length(); i++) {
                 JSONObject c = flujos.getJSONObject(i);
                 String id = c.optString("stream_id", "");
@@ -348,7 +369,8 @@ public final class Catalogo {
                 it.nombre = nombre;
                 it.imagen = c.optString("stream_icon", "");
                 it.numero = c.optInt("num", 0);
-                it.url = Sesion.actual().urlDirecto(id);
+                it.clase = Enlaces.DIRECTO;
+            it.url = Sesion.actual().urlDirecto(id);
                 lista.add(it);
             }
         } else {
@@ -374,7 +396,7 @@ public final class Catalogo {
         if (ya != null) return ya;
         if (!Sesion.actual().esXtream()) return null;
         try {
-            JSONObject r = new JSONObject(Web.pedir(Sesion.actual().api()
+            JSONObject r = new JSONObject(pedir(Sesion.actual().api()
                     + "&action=get_short_epg&stream_id=" + Web.escapar(streamId) + "&limit=2"));
             JSONArray eps = r.optJSONArray("epg_listings");
             if (eps == null || eps.length() == 0) return null;
@@ -425,7 +447,11 @@ public final class Catalogo {
         troceada.put(PELIS, new LinkedHashMap<String, List<Item>>());
         troceada.put(SERIES, new LinkedHashMap<String, List<Item>>());
 
-        String texto = Web.pedir(Sesion.actual().servidor);
+        /* La M3U de un cliente de proveedor la sirve el panel ya limpia: cada
+           canal y cada logotipo salen convertidos en vales, no en direcciones */
+        String texto = Sesion.actual().gestionada
+                ? Web.enCasa(Acceso.CASA + "/api/m3u")
+                : Web.pedir(Sesion.actual().servidor);
         String[] lineas = texto.split("\n");
         String nombre = "", logo = "", grupo = "";
         int n = 0;

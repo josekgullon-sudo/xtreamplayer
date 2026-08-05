@@ -27,16 +27,8 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
-    <!--
-      Sin copia de seguridad automática (allowBackup="false").
-
-      Con la copia puesta, un «adb backup» se lleva del teléfono el fichero de
-      preferencias con la sesión y los datos de la lista dentro, sin root y
-      sin permisos especiales. Lo que se pierde a cambio es recuperar la
-      sesión al cambiar de móvil, que son diez segundos de volver a entrar.
-    -->
     <application
-        android:allowBackup="false"
+        android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/banner"
         android:label="@string/app_name"

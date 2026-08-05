@@ -76,7 +76,8 @@ public class FichaActivity extends Activity {
         botonVer.setText("Ver ahora");
         botonVer.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                Traspaso.reproducirSuelto(ficha.url, ficha.nombre, ficha.imagen);
+                Traspaso.reproducirSuelto(ficha.url, ficha.nombre, ficha.imagen,
+                        Enlaces.PELICULA, ficha.id, ficha.extension);
                 startActivity(new Intent(FichaActivity.this, ReproductorActivity.class));
             }
         });
@@ -217,7 +218,8 @@ public class FichaActivity extends Activity {
 
     private void ver(Catalogo.Episodio ep) {
         Traspaso.reproducirSuelto(ep.url, ficha.nombre + " · " + ep.titulo,
-                ep.imagen.isEmpty() ? ficha.imagen : ep.imagen);
+                ep.imagen.isEmpty() ? ficha.imagen : ep.imagen,
+                Enlaces.EPISODIO, ep.id, ep.extension);
         startActivity(new Intent(this, ReproductorActivity.class));
     }
 }

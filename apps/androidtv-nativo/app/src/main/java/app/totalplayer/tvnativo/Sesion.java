@@ -29,6 +29,18 @@ public final class Sesion {
     public String clave = "";
     /** El nombre del proveedor, si entró por el panel. */
     public String marca = "";
+    /**
+     * La lista la administra la plataforma.
+     *
+     * Cuando es así, este aparato no sabe —ni tiene por qué— a qué servidor
+     * va, con qué usuario ni con qué contraseña. Antes sí lo sabía: el panel
+     * se lo mandaba al entrar y se quedaba guardado en las preferencias del
+     * teléfono, o sea que la suscripción del proveedor viajaba a cada
+     * aparato de cada cliente y se quedaba allí. Ahora se le pide el catálogo
+     * a totalplayer.app con la galleta de sesión y quien resuelve es el
+     * servidor.
+     */
+    public boolean gestionada = false;
     /** La sesión abierta en el panel: hace falta para los perfiles. */
     public String galleta = "";
     /** El perfil elegido, para saludar y para recordarlo. */
@@ -48,22 +60,41 @@ public final class Sesion {
 
     public boolean esXtream() { return XTREAM.equals(tipo); }
 
-    /** La base de player_api.php ya con usuario y contraseña. */
+    /**
+     * A quién se le pide el catálogo.
+     *
+     * Con lista de la plataforma, a totalplayer.app, que sabe el resto. Con
+     * una lista escrita a mano en este aparato, al panel del proveedor
+     * directamente: esa la ha tecleado quien mira y no hay nada que ocultarle.
+     */
     public String api() {
+        if (gestionada) return Acceso.CASA + "/api/xtream?desde=app";
         return servidor + "/player_api.php?username=" + Web.escapar(usuario)
                 + "&password=" + Web.escapar(clave);
     }
 
+    /*
+     * Las direcciones de vídeo.
+     *
+     * Con lista de la plataforma devuelven vacío a propósito: no se pueden
+     * construir aquí sin tener la línea, y tenerla es justo lo que se ha
+     * quitado. Se piden una a una al ir a reproducir —Enlaces.paraVer—, que
+     * además es cuando hacen falta: una carpeta de ocho mil canales no
+     * necesita ocho mil direcciones, necesita la del canal que se pulsa.
+     */
     public String urlDirecto(String streamId) {
+        if (gestionada) return "";
         return servidor + "/live/" + Web.escapar(usuario) + "/" + Web.escapar(clave) + "/" + streamId + ".ts";
     }
 
     public String urlPelicula(String vodId, String extension) {
+        if (gestionada) return "";
         String ext = (extension == null || extension.isEmpty()) ? "mp4" : extension;
         return servidor + "/movie/" + Web.escapar(usuario) + "/" + Web.escapar(clave) + "/" + vodId + "." + ext;
     }
 
     public String urlEpisodio(String episodioId, String extension) {
+        if (gestionada) return "";
         String ext = (extension == null || extension.isEmpty()) ? "mp4" : extension;
         return servidor + "/series/" + Web.escapar(usuario) + "/" + Web.escapar(clave) + "/" + episodioId + "." + ext;
     }
@@ -127,11 +158,12 @@ public final class Sesion {
                 .putString("lista_clave", clave)
                 .putString("marca", marca)
                 .putString("galleta", galleta)
+                .putBoolean("gestionada", gestionada)
                 .apply();
     }
 
     /** ¿Sabemos a qué servidor pedir? Si no, hay que volver a entrar. */
-    public boolean hayLista() { return !servidor.isEmpty(); }
+    public boolean hayLista() { return gestionada || !servidor.isEmpty(); }
 
     /**
      * Rehace la sesión desde el disco después de un reinicio del proceso.
@@ -142,8 +174,11 @@ public final class Sesion {
         if (s.hayLista()) return true;
 
         SharedPreferences a = ajustes(c);
+        boolean gestionada = a.getBoolean("gestionada", false);
         String servidor = a.getString("lista_servidor", "");
-        if (servidor.isEmpty()) return false;
+        // Con lista de la plataforma no hay servidor guardado, y es lo correcto
+        if (!gestionada && servidor.isEmpty()) return false;
+        s.gestionada = gestionada;
 
         s.tipo = a.getString("tipo", XTREAM);
         s.servidor = servidor;
