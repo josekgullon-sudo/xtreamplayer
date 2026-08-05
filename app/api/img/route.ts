@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertPublicUrl } from "@/lib/safeFetch";
+import { dueñoDeLaSesion } from "@/lib/origen";
+import { abrirVale } from "@/lib/vale";
 
 const PLAYER_UA = "VLC/3.0.20 LibVLC/3.0.20";
 const MAX_IMG_BYTES = 3 * 1024 * 1024;
@@ -7,35 +9,45 @@ const MAX_IMG_BYTES = 3 * 1024 * 1024;
 export const dynamic = "force-dynamic";
 
 /**
- * Proxy de imágenes: los paneles IPTV sirven carátulas y logos por http://,
- * y una página HTTPS no puede cargarlos — el navegador los bloquea en
- * silencio y el catálogo se queda sin portadas. Pasarlas por aquí las
- * convierte en HTTPS, con caché de un día porque una carátula no cambia.
+ * Carátulas y logotipos, con la dirección en un vale.
+ *
+ * Los paneles IPTV sirven las imágenes por http:// y desde su propio
+ * servidor, así que además de que una página HTTPS las bloquea, cada
+ * logotipo era una línea en la pestaña de red con el host del proveedor
+ * dentro. Y una lista tiene miles: el catálogo entero era un directorio de
+ * la dirección del proveedor, repetida una vez por canal.
+ *
+ * Ahora la dirección va cifrada y atada a la sesión, y esta ruta ya no acepta
+ * cualquier URL de cualquiera: era, tal cual, un proxy de imágenes abierto.
  */
 export async function GET(req: NextRequest) {
-  const url = req.nextUrl.searchParams.get("url");
-  if (!url) return NextResponse.json({ error: "Falta la URL" }, { status: 400 });
+  const dueño = await dueñoDeLaSesion();
+  const url = abrirVale(req.nextUrl.searchParams.get("v") || "", dueño);
+  if (!url) return new NextResponse(null, { status: 403 });
 
   try {
     await assertPublicUrl(url);
-    const upstream = await fetch(url, {
+    const arriba = await fetch(url, {
       headers: { "User-Agent": PLAYER_UA },
       signal: AbortSignal.timeout(10000),
       redirect: "follow",
     });
-    if (!upstream.ok) return new NextResponse(null, { status: 502 });
+    if (!arriba.ok) return new NextResponse(null, { status: 502 });
 
-    const tipo = upstream.headers.get("content-type") || "";
+    const tipo = arriba.headers.get("content-type") || "";
     if (!tipo.startsWith("image/")) return new NextResponse(null, { status: 415 });
 
-    const buf = await upstream.arrayBuffer();
+    const buf = await arriba.arrayBuffer();
     if (buf.byteLength > MAX_IMG_BYTES) return new NextResponse(null, { status: 413 });
 
     return new NextResponse(buf, {
       headers: {
         "Content-Type": tipo,
         "Content-Length": String(buf.byteLength),
-        "Cache-Control": "public, max-age=86400",
+        /* Privada: la caché es del navegador de ese cliente y de nadie más.
+           Con «public» un intermediario podría guardar la carátula y servirla
+           a otra sesión con otro vale */
+        "Cache-Control": "private, max-age=86400",
       },
     });
   } catch {

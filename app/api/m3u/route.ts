@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertPublicUrl } from "@/lib/safeFetch";
+import { origenPedido } from "@/lib/origen";
+import { enlaceDeImagen, enlaceDeVideo } from "@/lib/vale";
 
 /**
  * Muchos servidores IPTV filtran por User-Agent y rechazan cualquier cliente
@@ -14,53 +16,86 @@ export const dynamic = "force-dynamic";
 const MAX_M3U_BYTES = 50 * 1024 * 1024; // 50 MB — listas grandes pero acotadas
 
 /**
- * Descarga una lista M3U desde el servidor (evita CORS) y la devuelve como texto.
+ * La lista M3U del cliente, ya sin direcciones dentro.
+ *
+ * Una M3U es, literalmente, un fichero de texto con la dirección completa de
+ * cada canal —servidor, usuario y contraseña— repetida miles de veces.
+ * Entregársela al navegador es entregar la línea, y antes se entregaba
+ * entera. Aquí se descarga en el servidor y sale con cada dirección y cada
+ * logotipo cambiados por un vale.
  */
 export async function GET(req: NextRequest) {
-  const url = req.nextUrl.searchParams.get("url");
-  if (!url) return NextResponse.json({ error: "Falta la URL de la lista" }, { status: 400 });
+  const origen = await origenPedido(req.nextUrl.searchParams.get("lista"), {
+    base: req.nextUrl.searchParams.get("url"),
+    tipo: "m3u",
+  });
+  if (!origen) {
+    return NextResponse.json({ error: "Entra en tu cuenta para ver tu lista" }, { status: 401 });
+  }
 
   try {
-    await assertPublicUrl(url);
-    const upstream = await fetch(url, {
+    await assertPublicUrl(origen.base);
+    const arriba = await fetch(origen.base, {
       signal: AbortSignal.timeout(45000),
       headers: { "User-Agent": PLAYER_UA },
       cache: "no-store",
     });
-    if (!upstream.ok) {
-      return NextResponse.json({ error: `El servidor de la lista respondió ${upstream.status}` }, { status: 502 });
+    if (!arriba.ok) {
+      return NextResponse.json({ error: `Tu proveedor respondió ${arriba.status}` }, { status: 502 });
     }
 
-    const reader = upstream.body?.getReader();
-    if (!reader) return NextResponse.json({ error: "Respuesta vacía" }, { status: 502 });
+    const lector = arriba.body?.getReader();
+    if (!lector) return NextResponse.json({ error: "Respuesta vacía" }, { status: 502 });
 
-    const chunks: Uint8Array[] = [];
+    const trozos: Uint8Array[] = [];
     let total = 0;
     for (;;) {
-      const { done, value } = await reader.read();
+      const { done, value } = await lector.read();
       if (done) break;
       total += value.byteLength;
       if (total > MAX_M3U_BYTES) {
-        reader.cancel();
+        lector.cancel();
         return NextResponse.json({ error: "La lista es demasiado grande (máx. 50 MB)" }, { status: 413 });
       }
-      chunks.push(value);
+      trozos.push(value);
     }
-    const text = Buffer.concat(chunks).toString("utf8");
+    const texto = Buffer.concat(trozos).toString("utf8");
 
-    if (!text.includes("#EXTM3U") && !text.includes("#EXTINF")) {
+    if (!texto.includes("#EXTM3U") && !texto.includes("#EXTINF")) {
       return NextResponse.json(
-        { error: "La URL no parece ser una lista M3U válida. Comprueba el enlace." },
+        { error: "Eso no parece una lista M3U válida." },
         { status: 422 }
       );
     }
-    return new NextResponse(text, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Error de conexión";
-    const status = message.includes("permitido") || message.includes("inválida") ? 400 : 502;
+    return new NextResponse(sinDirecciones(texto, origen.dueño), {
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+    });
+  } catch {
+    // El motivo lleva dentro el nombre del servidor: no sale de aquí
     return NextResponse.json(
-      { error: status === 400 ? message : "No se pudo descargar la lista M3U. Comprueba la URL." },
-      { status }
+      { error: "No hemos podido cargar tu lista. Inténtalo en un momento." },
+      { status: 502 }
     );
   }
+}
+
+/**
+ * Cambia por vales las dos cosas que llevan la dirección: la línea del canal
+ * y el `tvg-logo` de su cabecera. Lo demás —nombres, grupos, identificadores
+ * de guía— se queda tal cual, porque es lo que el reproductor necesita leer.
+ */
+function sinDirecciones(texto: string, dueño: string): string {
+  return texto
+    .split("\n")
+    .map((linea) => {
+      const limpio = linea.trim();
+      if (!limpio) return linea;
+      if (limpio.startsWith("#")) {
+        return linea.replace(/(tvg-logo=")([^"]+)(")/gi, (todo, antes, url, despues) =>
+          /^https?:\/\//i.test(url) ? `${antes}${enlaceDeImagen(url, dueño)}${despues}` : todo
+        );
+      }
+      return /^https?:\/\//i.test(limpio) ? enlaceDeVideo(limpio, dueño) : linea;
+    })
+    .join("\n");
 }

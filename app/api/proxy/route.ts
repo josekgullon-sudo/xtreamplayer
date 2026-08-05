@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertPublicUrl } from "@/lib/safeFetch";
 import { rewriteManifest } from "@/lib/hlsRewrite";
+import { dueñoDeLaSesion } from "@/lib/origen";
+import { abrirVale } from "@/lib/vale";
 
 /**
  * Muchos servidores IPTV filtran por User-Agent y rechazan cualquier cliente
@@ -13,30 +15,40 @@ const PLAYER_UA = "VLC/3.0.20 LibVLC/3.0.20";
 export const dynamic = "force-dynamic";
 
 /**
- * Proxy de compatibilidad para streams cuyo servidor no envía cabeceras CORS.
- * - Manifiestos HLS (.m3u8): se reescriben las URLs de segmentos para que
- *   también pasen por el proxy.
- * - Segmentos/streams: passthrough en streaming con soporte de Range.
+ * El vídeo, servido desde aquí.
  *
- * Se usa como último recurso automático cuando la reproducción directa falla.
- * Puede desactivarse con DISABLE_STREAM_PROXY=1 (p. ej. para ahorrar ancho de banda).
+ * Ya no se le pasa una URL: se le pasa un vale, que es esa URL cifrada con la
+ * clave del servidor y atada a la sesión de quien la pidió. Dos motivos.
+ *
+ * El primero es que antes iba en claro —«?url=http://servidor:8080/live/
+ * pepe/1234/9.ts»—, o sea que el cliente veía el servidor de su proveedor,
+ * su usuario y su contraseña en la pestaña de red. En Xtream la dirección
+ * del vídeo ES la línea: con eso se va a otro reproductor.
+ *
+ * El segundo es que aceptaba cualquier dirección de cualquiera sin mirar la
+ * sesión: totalplayer.app era un proxy anónimo abierto a internet, y el
+ * ancho de banda lo pagábamos nosotros.
+ *
+ * Los manifiestos HLS se reescriben para que cada segmento salga también con
+ * su propio vale; si no, la primera lista de segmentos delataría el origen.
  */
 
-const HLS_TYPES = ["mpegurl", "m3u8", "vnd.apple.mpegurl"];
+const HLS = ["mpegurl", "m3u8", "vnd.apple.mpegurl"];
 
 export async function GET(req: NextRequest) {
   if (process.env.DISABLE_STREAM_PROXY === "1") {
     return NextResponse.json({ error: "Proxy de streams desactivado" }, { status: 403 });
   }
 
-  const url = req.nextUrl.searchParams.get("url");
-  if (!url) return NextResponse.json({ error: "Falta la URL" }, { status: 400 });
+  const dueño = await dueñoDeLaSesion();
+  const url = abrirVale(req.nextUrl.searchParams.get("v") || "", dueño);
+  if (!url) return NextResponse.json({ error: "Este enlace ya no vale" }, { status: 403 });
 
   try {
-    const target = await assertPublicUrl(url);
-    const headers: Record<string, string> = { "User-Agent": PLAYER_UA };
-    const range = req.headers.get("range");
-    if (range) headers["Range"] = range;
+    const destino = await assertPublicUrl(url);
+    const cabeceras: Record<string, string> = { "User-Agent": PLAYER_UA };
+    const rango = req.headers.get("range");
+    if (rango) cabeceras["Range"] = rango;
 
     /*
      * Se corta la petición al proveedor en cuanto el navegador abandona la
@@ -47,29 +59,27 @@ export async function GET(req: NextRequest) {
      */
     const abortar = AbortSignal.any([req.signal, AbortSignal.timeout(30000)]);
 
-    const upstream = await fetch(target.toString(), {
-      headers,
+    const arriba = await fetch(destino.toString(), {
+      headers: cabeceras,
       signal: abortar,
       cache: "no-store",
       redirect: "follow",
     });
 
-    if (!upstream.ok && upstream.status !== 206) {
-      return NextResponse.json(
-        { error: `El servidor del proveedor respondió ${upstream.status}`, status: upstream.status },
-        { status: 502 }
-      );
+    if (!arriba.ok && arriba.status !== 206) {
+      // Sin el estado del proveedor ni su nombre: solo que no ha podido ser
+      return NextResponse.json({ error: "El canal no está disponible ahora mismo" }, { status: 502 });
     }
 
-    const contentType = upstream.headers.get("content-type") || "";
-    const isManifest =
-      HLS_TYPES.some((t) => contentType.toLowerCase().includes(t)) || target.pathname.endsWith(".m3u8");
+    const tipo = arriba.headers.get("content-type") || "";
+    const esManifiesto =
+      HLS.some((t) => tipo.toLowerCase().includes(t)) || destino.pathname.endsWith(".m3u8");
 
-    if (isManifest) {
-      const text = await upstream.text();
+    if (esManifiesto) {
+      const texto = await arriba.text();
       // La URL final puede diferir de la original si hubo redirecciones
-      const finalUrl = upstream.url || target.toString();
-      return new NextResponse(rewriteManifest(text, finalUrl), {
+      const finalUrl = arriba.url || destino.toString();
+      return new NextResponse(rewriteManifest(texto, finalUrl, dueño), {
         headers: {
           "Content-Type": "application/vnd.apple.mpegurl",
           "Cache-Control": "no-store",
@@ -77,23 +87,18 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const passthroughHeaders = new Headers();
-    passthroughHeaders.set("Content-Type", contentType || "application/octet-stream");
-    passthroughHeaders.set("Cache-Control", "no-store");
+    const salida = new Headers();
+    salida.set("Content-Type", tipo || "application/octet-stream");
+    salida.set("Cache-Control", "no-store");
     for (const h of ["content-length", "content-range", "accept-ranges"]) {
-      const v = upstream.headers.get(h);
-      if (v) passthroughHeaders.set(h, v);
+      const v = arriba.headers.get(h);
+      if (v) salida.set(h, v);
     }
 
-    return new NextResponse(upstream.body, {
-      status: upstream.status,
-      headers: passthroughHeaders,
-    });
-  } catch (e) {
+    return new NextResponse(arriba.body, { status: arriba.status, headers: salida });
+  } catch {
     // El navegador se fue: no es un error que haya que reportar
     if (req.signal.aborted) return new NextResponse(null, { status: 499 });
-    const message = e instanceof Error ? e.message : "Error de conexión";
-    const status = message.includes("permitido") || message.includes("inválida") ? 400 : 502;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: "El canal no está disponible ahora mismo" }, { status: 502 });
   }
 }

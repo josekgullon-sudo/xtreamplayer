@@ -1,9 +1,18 @@
 /**
  * Tipos y helpers para la API de Xtream Codes.
- * Las peticiones JSON pasan por /api/xtream (servidor) para evitar CORS;
- * las URLs de streaming se construyen aquí y se reproducen directamente.
+ *
+ * Aquí ya no se construye ninguna dirección. Antes se armaban en el
+ * navegador —`${base}/live/${usuario}/${clave}/${id}.m3u8`— y para eso el
+ * navegador tenía que conocer el servidor del proveedor, el usuario y la
+ * contraseña: la línea entera, a la vista de cualquier cliente que abriera
+ * F12. Ahora se piden por su número a /api/tele/ver y el servidor devuelve un
+ * enlace opaco; a dónde va de verdad no sale de lib/origen.
  */
 
+/**
+ * Credenciales de una lista. Solo se usan al darla de alta, cuando el propio
+ * usuario las escribe: a partir de ahí viven en el servidor y no vuelven.
+ */
 export interface XtreamCreds {
   base: string; // http://host:puerto (sin barra final)
   username: string;
@@ -131,63 +140,83 @@ export function parseXtreamUrl(url: string): XtreamCreds | null {
   }
 }
 
-/** Llama a la API JSON de Xtream a través de nuestro proxy de servidor. */
+/**
+ * De dónde sale una lista, dicho de la única forma que el servidor acepta.
+ *
+ * Para la lista de un cliente de proveedor y para las guardadas en la nube,
+ * su número y nada más: el servidor sabe el resto y no piensa contarlo. Para
+ * la que alguien se pega en su propio navegador, sus datos, porque no están
+ * guardados en ningún sitio y son suyos.
+ */
+export interface Fuente {
+  lista?: string;
+  base?: string;
+  username?: string;
+  password?: string;
+}
+
 export async function xtreamApi<T>(
-  creds: XtreamCreds,
+  fuente: Fuente,
   action: string | null,
   extra?: Record<string, string>
 ): Promise<T> {
-  const params = new URLSearchParams({
-    base: creds.base,
-    username: creds.username,
-    password: creds.password,
-  });
+  const params = new URLSearchParams();
+  if (fuente.lista) params.set("lista", fuente.lista);
+  if (fuente.base) {
+    params.set("base", fuente.base);
+    params.set("username", fuente.username || "");
+    params.set("password", fuente.password || "");
+  }
   if (action) params.set("action", action);
   if (extra) for (const [k, v] of Object.entries(extra)) params.set(k, v);
 
   const res = await fetch(`/api/xtream?${params.toString()}`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Error ${res.status} al consultar el servidor Xtream`);
+    throw new Error(body.error || `Error ${res.status} al consultar tu lista`);
   }
   return res.json();
 }
 
-export function liveStreamUrl(creds: XtreamCreds, streamId: number, ext: "m3u8" | "ts" = "m3u8"): string {
-  return `${creds.base}/live/${encodeURIComponent(creds.username)}/${encodeURIComponent(creds.password)}/${streamId}.${ext}`;
+/** Lo que hay que decirle al servidor para que resuelva una reproducción. */
+export interface Peticion extends Fuente {
+  clase: "live" | "movie" | "series" | "timeshift";
+  id: string;
+  ext?: string;
+  /** Catch Up: AAAA-MM-DD:HH-MM en la hora del panel */
+  inicio?: string;
+  minutos?: number;
 }
 
-/**
- * Catch Up: lo que ya se emitió. El panel lo sirve por su propio guion, con
- * la hora de inicio en la del servidor y la duración en minutos. Devuelve un
- * HLS normal, así que se reproduce por el mismo camino que el directo.
- */
-export function timeshiftUrl(
-  creds: XtreamCreds,
-  streamId: number,
-  inicio: Date,
-  minutos: number
-): string {
-  const dosCifras = (n: number) => String(n).padStart(2, "0");
-  const cuando =
-    `${inicio.getFullYear()}-${dosCifras(inicio.getMonth() + 1)}-${dosCifras(inicio.getDate())}:` +
-    `${dosCifras(inicio.getHours())}-${dosCifras(inicio.getMinutes())}`;
-  const q = new URLSearchParams({
-    username: creds.username,
-    password: creds.password,
-    stream: String(streamId),
-    start: cuando,
-    duration: String(Math.max(1, Math.round(minutos))),
+export interface Enlace {
+  url: string;
+  urlTs?: string;
+  vale?: string;
+  valeTs?: string;
+  directo?: boolean;
+}
+
+/** «Quiero ver esto» → un enlace para reproducirlo. */
+export async function pedirEnlace(p: Peticion): Promise<Enlace> {
+  const res = await fetch("/api/tele/ver", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(p),
   });
-  return `${creds.base}/streaming/timeshift.php?${q.toString()}`;
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || "No hemos podido abrir este canal");
+  }
+  return res.json();
 }
 
-export function vodStreamUrl(creds: XtreamCreds, streamId: number, ext = "mp4"): string {
-  return `${creds.base}/movie/${encodeURIComponent(creds.username)}/${encodeURIComponent(creds.password)}/${streamId}.${ext}`;
-}
-
-export function seriesEpisodeUrl(creds: XtreamCreds, episodeId: string, ext = "mp4"): string {
-  return `${creds.base}/series/${encodeURIComponent(creds.username)}/${encodeURIComponent(creds.password)}/${episodeId}.${ext}`;
+/** El momento de inicio de un Catch Up, en el formato que pide el panel. */
+export function momentoDeArchivo(inicio: Date): string {
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${inicio.getFullYear()}-${dos(inicio.getMonth() + 1)}-${dos(inicio.getDate())}:` +
+    `${dos(inicio.getHours())}-${dos(inicio.getMinutes())}`
+  );
 }
 
 export function decodeBase64Maybe(value: string | undefined): string {

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertPublicUrl } from "@/lib/safeFetch";
+import { dueñoDeLaSesion } from "@/lib/origen";
+import { abrirVale } from "@/lib/vale";
 import { obtenerSesionRemux, esperarSesionLista } from "@/lib/remux";
 
 export const dynamic = "force-dynamic";

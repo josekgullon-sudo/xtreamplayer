@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertPublicUrl } from "@/lib/safeFetch";
+import { dueñoDeLaSesion } from "@/lib/origen";
+import { abrirVale } from "@/lib/vale";
 
 const PLAYER_UA = "VLC/3.0.20 LibVLC/3.0.20";
 
@@ -13,10 +15,16 @@ export const dynamic = "force-dynamic";
  *    tu casa pero no a nuestro servidor), o
  *  - el proveedor entrega datos perfectamente y el problema es del formato
  *    del vídeo en ese navegador (p. ej. MKV en un iPhone).
+ *
+ * Recibe un vale y no una URL. Con la URL suelta, cualquiera podía usar esto
+ * para sondear puertos y máquinas ajenas desde nuestra IP y leerse el
+ * resultado —cuánto tarda, qué devuelve, cuántos bytes—, que es un escáner
+ * de red bastante cómodo pagado por nosotros.
  */
 export async function GET(req: NextRequest) {
-  const url = req.nextUrl.searchParams.get("url");
-  if (!url) return NextResponse.json({ error: "Falta la URL" }, { status: 400 });
+  const dueño = await dueñoDeLaSesion();
+  const url = abrirVale(req.nextUrl.searchParams.get("v") || "", dueño);
+  if (!url) return NextResponse.json({ error: "Este enlace ya no vale" }, { status: 403 });
 
   const inicio = Date.now();
   try {
@@ -49,14 +57,15 @@ export async function GET(req: NextRequest) {
       ms: Date.now() - inicio,
     });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "";
-    const timeout = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+    /* El mensaje de una excepción de red trae el host dentro
+       —«ENOTFOUND cdn.loquesea.com»—, así que se cuenta el qué y no el quién */
     return NextResponse.json({
       ok: false,
       status: 0,
-      timeout,
-      error: timeout ? "El proveedor no respondió al servidor en 10 segundos" : message,
+      contentType: "",
+      bytes: 0,
       ms: Date.now() - inicio,
+      motivo: e instanceof Error && e.name === "TimeoutError" ? "tiempo" : "conexión",
     });
   }
 }

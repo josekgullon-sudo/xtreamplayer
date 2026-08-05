@@ -6,8 +6,17 @@ import { brandingOf, brandCssVars } from "@/lib/branding";
 export const dynamic = "force-dynamic";
 
 /**
- * Devuelve la lista asignada al cliente para que el reproductor la cargue sola.
- * Las credenciales del proveedor viajan solo a su propietario, por sesión firmada.
+ * Quién es el cliente y qué lista le toca, sin decirle de dónde sale.
+ *
+ * Aquí se devolvía `url`, `username` y `password` de la línea del proveedor.
+ * No era solo el dominio: era la suscripción entera, en el cuerpo de un JSON
+ * que cualquier cliente ve con F12 y que la aplicación de Android guardaba
+ * además en el teléfono. Con esos tres datos se va uno a otro reproductor y
+ * deja de pagar, y el proveedor no se entera hasta que le cuadran las
+ * conexiones.
+ *
+ * Ahora sale solo lo que hace falta para pintar la pantalla. El servidor lo
+ * resuelve él en cada petición, desde la galleta —lib/origen— y no viaja.
  */
 export async function GET() {
   const customer = await getCurrentCustomer();
@@ -33,7 +42,9 @@ export async function GET() {
     playlist: {
       id: `provider-${customer.id}`,
       name: provider?.brand_name || "Mi lista",
-      ...resolveCustomerPlaylist(customer),
+      // El tipo sí: el reproductor tiene que saber si pedir catálogo de
+      // Xtream o descargar una M3U. De dónde, no
+      type: resolveCustomerPlaylist(customer).type,
       managed: true,
     },
   });

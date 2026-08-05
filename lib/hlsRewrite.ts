@@ -1,32 +1,39 @@
+import { emitirVale } from "@/lib/vale";
+
 /**
- * Reescritura de manifiestos HLS para el proxy de compatibilidad:
- * cada URI (segmentos, sub-playlists, claves de cifrado) se redirige a /api/proxy.
+ * Reescritura de manifiestos HLS.
+ *
+ * Un manifiesto es una lista de direcciones del proveedor. Devolverlo tal
+ * cual —o reescrito con «?url=…» como antes— enseña el servidor entero en la
+ * primera petición del canal, con su usuario y su contraseña en la ruta.
+ * Cada línea sale con su propio vale: cifrada, atada a la sesión de quien
+ * pidió el canal y caducable. Por fuera, todas iguales y ninguna legible.
  */
 
-export function proxiedUrl(url: string): string {
-  return `/api/proxy?url=${encodeURIComponent(url)}`;
+export function enlaceProxy(url: string, dueño: string): string {
+  return `/api/proxy?v=${encodeURIComponent(emitirVale(url, dueño))}`;
 }
 
-export function rewriteManifest(text: string, baseUrl: string): string {
+export function rewriteManifest(text: string, baseUrl: string, dueño: string): string {
   return text
     .split("\n")
-    .map((line) => {
-      const trimmed = line.trim();
-      if (!trimmed) return line;
-      if (trimmed.startsWith("#")) {
+    .map((linea) => {
+      const limpio = linea.trim();
+      if (!limpio) return linea;
+      if (limpio.startsWith("#")) {
         // Reescribe URI="..." en tags (claves de cifrado, audio alternativo...)
-        return line.replace(/URI="([^"]+)"/g, (match, uri) => {
+        return linea.replace(/URI="([^"]+)"/g, (todo, uri) => {
           try {
-            return `URI="${proxiedUrl(new URL(uri, baseUrl).toString())}"`;
+            return `URI="${enlaceProxy(new URL(uri, baseUrl).toString(), dueño)}"`;
           } catch {
-            return match;
+            return todo;
           }
         });
       }
       try {
-        return proxiedUrl(new URL(trimmed, baseUrl).toString());
+        return enlaceProxy(new URL(limpio, baseUrl).toString(), dueño);
       } catch {
-        return line;
+        return linea;
       }
     })
     .join("\n");

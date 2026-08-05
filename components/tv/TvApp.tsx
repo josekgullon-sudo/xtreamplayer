@@ -7,16 +7,15 @@ import { parseM3U } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
 import { enCristiano } from "@/lib/errores";
 import {
-  XtreamCreds,
+  Fuente,
+  pedirEnlace,
+  momentoDeArchivo,
   XtreamCategory,
   XtreamLiveStream,
   XtreamVodStream,
   XtreamSeries,
   XtreamSeriesInfo,
   xtreamApi,
-  liveStreamUrl,
-  vodStreamUrl,
-  seriesEpisodeUrl,
 } from "@/lib/xtream";
 
 /**
@@ -457,7 +456,17 @@ export default function TvApp() {
 
   /* ---------- Contenido ---------- */
 
-  const creds: XtreamCreds | null = lista
+  /*
+   * De dónde sale la lista de esta tele.
+   *
+   * Aquí conviven dos casos: la que se teclea a mano en el propio televisor
+   * —suya, y por eso puede ir con sus datos— y la del cliente de un
+   * proveedor, que entra con su galleta y a la que el servidor le resuelve
+   * el origen sin que viaje nada. Cuando hay sesión de cliente, el servidor
+   * ignora lo que se le mande aquí y usa la suya: mandarle una dirección
+   * elegida no le sirve de nada.
+   */
+  const creds: Fuente | null = lista
     ? { base: lista.url, username: lista.usuario, password: lista.password }
     : null;
 
@@ -543,7 +552,7 @@ export default function TvApp() {
          * cualquier reproductor de tele.
          */
         if (lista.tipo === "m3u") {
-          const texto = await fetch(`/api/proxy?url=${encodeURIComponent(lista.url)}`).then((r) => r.text());
+          const texto = await fetch(`/api/m3u?url=${encodeURIComponent(lista.url)}`).then((r) => r.text());
           const canales = parseM3U(texto).channels;
           const porGrupo = new Map<string, typeof canales>();
           for (const c of canales) {
@@ -585,7 +594,12 @@ export default function TvApp() {
               id: `live-${c.stream_id}`,
               nombre: c.name,
               logo: c.stream_icon || "",
-              abrir: () => reproducir({ url: liveStreamUrl(creds, c.stream_id), name: c.name, kind: "hls" }),
+              abrir: async () =>
+                reproducir({
+                  ...(await pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) })),
+                  name: c.name,
+                  kind: "hls",
+                }),
             }))
           );
         } else if (destino === "cine") {
@@ -602,9 +616,14 @@ export default function TvApp() {
               nombre: v.name,
               logo: v.stream_icon || "",
               caratula: true,
-              abrir: () =>
+              abrir: async () =>
                 reproducir({
-                  url: vodStreamUrl(creds, v.stream_id, v.container_extension || "mp4"),
+                  ...(await pedirEnlace({
+                    ...creds,
+                    clase: "movie",
+                    id: String(v.stream_id),
+                    ext: v.container_extension || "mp4",
+                  })),
                   name: v.name,
                   kind: "video",
                 }),
@@ -651,9 +670,14 @@ export default function TvApp() {
             id: `ep-${ep.id}`,
             nombre: `T${temporada} · E${ep.episode_num} — ${ep.title || "Episodio"}`,
             logo: s.cover || "",
-            abrir: () =>
+            abrir: async () =>
               reproducir({
-                url: seriesEpisodeUrl(creds, ep.id, ep.container_extension || "mp4"),
+                ...(await pedirEnlace({
+                  ...creds,
+                  clase: "series",
+                  id: ep.id,
+                  ext: ep.container_extension || "mp4",
+                })),
                 name: `${s.name} — ${ep.title || ""}`,
                 kind: "video",
               }),

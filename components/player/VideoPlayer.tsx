@@ -4,10 +4,31 @@ import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 
 export interface PlaySource {
+  /**
+   * El enlace a reproducir, ya resuelto por el servidor. Con el vídeo directo
+   * es la dirección del proveedor; con VIDEO_OCULTO=1 es «/api/proxy?v=…» y
+   * aquí no se sabe —ni hace falta saber— a dónde apunta.
+   */
   url: string;
   name: string;
   /** Pista sobre el tipo de stream para elegir motor */
   kind: "hls" | "ts" | "video" | "auto";
+  /**
+   * El mismo destino cifrado, para pedirlo por nuestro proxy, por el
+   * conversor o por el diagnóstico sin volver a mandar la dirección. Antes
+   * estas tres cosas se pedían con «?url=http://servidor…», que es
+   * exactamente lo que ya no puede salir del servidor.
+   */
+  vale?: string;
+  /** El mismo canal en TS: hay paneles que anuncian .m3u8 y solo sirven TS */
+  urlTs?: string;
+  valeTs?: string;
+  /** false cuando el servidor ha decidido servir el vídeo él */
+  directo?: boolean;
+}
+
+function porElProxy(vale: string): string {
+  return `/api/proxy?v=${encodeURIComponent(vale)}`;
 }
 
 type Attempt = {
@@ -48,10 +69,6 @@ const SIN_AVANCE_DIRECTO_MS = 5000;
    y un VOD pesado puede tardar en soltar el primer byte. */
 const SIN_AVANCE_ULTIMO_MS = 15000;
 const TECHO_INTENTO_MS = 40000;
-
-function proxied(url: string): string {
-  return `/api/proxy?url=${encodeURIComponent(url)}`;
-}
 
 /**
  * Memoria por servidor: si un servidor ya rechazó la conexión directa una
@@ -142,21 +159,36 @@ function guessEngine(url: string, kind: PlaySource["kind"]): "hls" | "mpegts" | 
  */
 function buildAttempts(src: PlaySource): Attempt[] {
   const engine = guessEngine(src.url, src.kind);
-  const clean = src.url.split("?")[0];
-  const esDirecto = /\/live\//.test(src.url) && clean.endsWith(".m3u8");
-  const tsUrl = esDirecto ? src.url.replace(/\.m3u8(\?.*)?$/, ".ts") : "";
-  const mixto = bloqueadoPorContenidoMixto(src.url);
-
+  /*
+   * Con el vídeo servido desde aquí no hay «intento directo» que valga: el
+   * navegador no tiene la dirección del proveedor y ese es justo el objetivo.
+   * Queda un solo camino, el nuestro, y las variantes de formato.
+   */
+  const ocultado = src.directo === false;
+  const mixto = !ocultado && bloqueadoPorContenidoMixto(src.url);
   // Sin directo cuando el navegador lo bloquearía (HTTPS→HTTP) o cuando este
   // servidor ya nos rechazó antes en esta sesión
-  const sinDirecto = mixto || origenSinDirecto(src.url);
+  const sinDirecto = ocultado || mixto || origenSinDirecto(src.url);
 
   const attempts: Attempt[] = [];
   if (!sinDirecto) attempts.push({ url: src.url, engine, label: "conexión directa", direct: true });
-  attempts.push({ url: proxied(src.url), engine, label: "proxy de compatibilidad", direct: false });
-  if (tsUrl) {
-    attempts.push({ url: proxied(tsUrl), engine: "mpegts", label: "proxy en formato TS", direct: false });
-    if (!sinDirecto) attempts.push({ url: tsUrl, engine: "mpegts", label: "formato TS directo", direct: true });
+  if (ocultado) {
+    attempts.push({ url: src.url, engine, label: "conexión protegida", direct: false });
+  } else if (src.vale) {
+    attempts.push({ url: porElProxy(src.vale), engine, label: "proxy de compatibilidad", direct: false });
+  }
+  if (src.urlTs) {
+    /* El TS lo manda el servidor ya resuelto: componerlo aquí cambiando la
+       extensión exigía tener la dirección del proveedor delante */
+    if (src.valeTs && !ocultado) {
+      attempts.push({ url: porElProxy(src.valeTs), engine: "mpegts", label: "proxy en formato TS", direct: false });
+    }
+    attempts.push({
+      url: src.urlTs,
+      engine: "mpegts",
+      label: ocultado ? "formato TS protegido" : "formato TS directo",
+      direct: !ocultado,
+    });
   }
   /*
    * Último recurso para películas y series: el conversor del servidor, que
@@ -167,15 +199,17 @@ function buildAttempts(src: PlaySource): Attempt[] {
   if (engine === "native") {
     // Como HLS: es lo único que Safari/iPhone reproducen en streaming, y de
     // regalo permite saltar dentro de lo ya convertido
-    attempts.push({ url: `/api/remux?url=${encodeURIComponent(src.url)}`, engine: "hls", label: "conversor de formato", direct: false, lento: true });
+    if (src.vale) {
+      attempts.push({ url: `/api/remux?v=${encodeURIComponent(src.vale)}`, engine: "hls", label: "conversor de formato", direct: false, lento: true });
+    }
     /*
      * Plan C: si el dispositivo rechaza hasta la copia convertida (metadatos
      * del códec rotos, perfiles raros), el conversor recodifica el vídeo a
      * H.264 estándar — eso lo reproduce cualquier cosa con pantalla. Va en
      * sesión aparte del servidor, así que no pisa la variante en copia.
      */
-    attempts.push({
-      url: `/api/remux?url=${encodeURIComponent(src.url)}&transcodificar=1`,
+    if (src.vale) attempts.push({
+      url: `/api/remux?v=${encodeURIComponent(src.vale)}&transcodificar=1`,
       engine: "hls",
       label: "conversor (recodificando para este dispositivo)",
       direct: false,
@@ -224,7 +258,7 @@ export default function VideoPlayer({
     }
     const setDiag_ = (texto: string) => setDiag(`${texto} ${firma}`);
     try {
-      const res = await fetch(`/api/diag?url=${encodeURIComponent(source.url)}`);
+      const res = await fetch(`/api/diag?v=${encodeURIComponent(source.vale || "")}`);
       const d = await res.json();
       const ext = (source.url.split("?")[0].match(/\.([a-z0-9]{2,4})$/i)?.[1] || "").toLowerCase();
       const esAppleSinSoporte = ["mkv", "avi", "wmv", "flv"].includes(ext);
@@ -237,7 +271,7 @@ export default function VideoPlayer({
           let veredicto = "";
           while (Date.now() < limite) {
             try {
-              const rc = await fetch(`/api/remux/espera?url=${encodeURIComponent(source.url)}`, {
+              const rc = await fetch(`/api/remux/espera?v=${encodeURIComponent(source.vale || "")}`, {
                 signal: AbortSignal.timeout(15000),
               });
               const rj = (await rc.json()) as { listo?: boolean; error?: string; detalle?: string; codec?: string };
@@ -419,7 +453,7 @@ export default function VideoPlayer({
         while (!cancelled && Date.now() < limite) {
           avanza(); // el sondeo cuenta como señal de vida para el plazo
           try {
-            const r = await fetch(`/api/remux/espera?url=${encodeURIComponent(source!.url)}${forzado}`, {
+            const r = await fetch(`/api/remux/espera?v=${encodeURIComponent(source!.vale || "")}${forzado}`, {
               signal: AbortSignal.timeout(15000),
             });
             const est = (await r.json()) as { listo?: boolean; error?: string; detalle?: string; playlist?: string };

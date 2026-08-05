@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertPublicUrl } from "@/lib/safeFetch";
+import { dueñoDeLaSesion } from "@/lib/origen";
+import { abrirVale } from "@/lib/vale";
 import { obtenerSesionRemux } from "@/lib/remux";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +17,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Conversor desactivado" }, { status: 403 });
   }
 
-  const url = req.nextUrl.searchParams.get("url");
-  if (!url) return NextResponse.json({ error: "Falta la URL" }, { status: 400 });
+  /* Por vale y no por dirección: con la URL suelta, esta ruta convertía
+     cualquier fichero de internet a costa de nuestra CPU, y de paso el
+     cliente veía el servidor de su proveedor en la petición */
+  const url = abrirVale(req.nextUrl.searchParams.get("v") || "", await dueñoDeLaSesion());
+  if (!url) return NextResponse.json({ error: "Este enlace ya no vale" }, { status: 403 });
 
   try {
     await assertPublicUrl(url);

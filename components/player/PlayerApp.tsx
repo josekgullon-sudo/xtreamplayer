@@ -26,7 +26,9 @@ import { parseM3U, M3UChannel } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
 import { enCristiano } from "@/lib/errores";
 import {
-  XtreamCreds,
+  Fuente,
+  pedirEnlace,
+  momentoDeArchivo,
   XtreamCategory,
   XtreamLiveStream,
   XtreamVodStream,
@@ -34,10 +36,6 @@ import {
   XtreamSeriesInfo,
   XtreamVodInfo,
   xtreamApi,
-  liveStreamUrl,
-  timeshiftUrl,
-  vodStreamUrl,
-  seriesEpisodeUrl,
   decodeBase64Maybe,
 } from "@/lib/xtream";
 
@@ -63,8 +61,23 @@ interface XtreamData {
 
 const K_LAST_PLAYLIST = "xp.lastPlaylist.v1";
 
-function credsOf(p: StoredPlaylist): XtreamCreds {
+/**
+ * De dónde sale esta lista, en el lenguaje que entiende el servidor.
+ *
+ * Si está guardada —la de un cliente de proveedor, o una de las de la nube—
+ * va su número y nada más: el servidor sabe a qué servidor apunta y no lo
+ * cuenta. Si es una que el usuario se ha pegado aquí y vive solo en este
+ * navegador, van sus datos, porque no están en ningún otro sitio y además
+ * son suyos.
+ */
+function credsOf(p: StoredPlaylist): Fuente {
+  if (p.managed || p.remote) return { lista: idDeLista(p) };
   return { base: p.url, username: p.username || "", password: p.password || "" };
+}
+
+/** El número con el que el servidor conoce la lista. */
+function idDeLista(p: StoredPlaylist): string {
+  return p.id.startsWith("cloud-") ? p.id.slice(6) : p.id;
 }
 
 /* ---------- Parrilla ---------- */
@@ -269,8 +282,13 @@ export default function PlayerApp() {
    * resueltos cuando el usuario pincha un canal, que en una Smart TV o en una
    * conexión móvil es casi un segundo menos de espera.
    */
+  /*
+   * Abrir la conexión antes de que haga falta ahorra el saludo TLS al primer
+   * canal. Solo se puede con las listas propias: de la de un cliente de
+   * proveedor no se sabe el origen aquí, que es justamente el objetivo.
+   */
   useEffect(() => {
-    if (!active) return;
+    if (!active || !active.url) return;
     let origen = "";
     try {
       origen = new URL(active.url).origin;
@@ -295,7 +313,13 @@ export default function PlayerApp() {
         if (m3uData[p.id]) return;
         setLoading(true);
         try {
-          const res = await fetch(`/api/m3u?url=${encodeURIComponent(p.url)}`);
+          /* Igual que el catálogo: por su número si está guardada, y con sus
+             datos solo si es una que vive en este navegador */
+          const f = credsOf(p);
+          const q = new URLSearchParams();
+          if (f.lista) q.set("lista", f.lista);
+          if (f.base) q.set("url", f.base);
+          const res = await fetch(`/api/m3u?${q.toString()}`);
           if (!res.ok) {
             const body = await res.json().catch(() => ({}));
             throw new Error(body.error || "No se pudo cargar la lista");
@@ -482,11 +506,14 @@ export default function PlayerApp() {
   }
 
   const playLive = useCallback(
-    (p: StoredPlaylist, ch: XtreamLiveStream) => {
+    async (p: StoredPlaylist, ch: XtreamLiveStream) => {
       const favKey = `${p.id}:live:${ch.stream_id}`;
       setViendo(true);
+      /* La dirección la resuelve el servidor. Aquí solo se sabe el número de
+         canal, que es todo lo que hace falta saber */
+      const enlace = await pedirEnlace({ ...credsOf(p), clase: "live", id: String(ch.stream_id) });
       setCurrent({
-        source: { url: liveStreamUrl(credsOf(p), ch.stream_id), name: ch.name, kind: "hls" },
+        source: { ...enlace, name: ch.name, kind: "hls" },
         logo: ch.stream_icon,
         playlistId: p.id,
         kind: "live",
@@ -513,15 +540,18 @@ export default function PlayerApp() {
    * grabación no había forma de pedirla desde aquí.
    */
   const playArchivo = useCallback(
-    (p: StoredPlaylist, streamId: number, logo: string | undefined, titulo: string, ini: number, fin: number) => {
+    async (p: StoredPlaylist, streamId: number, logo: string | undefined, titulo: string, ini: number, fin: number) => {
       const minutos = Math.max(1, Math.round((fin - ini) / 60000));
       setViendo(true);
+      const enlace = await pedirEnlace({
+        ...credsOf(p),
+        clase: "timeshift",
+        id: String(streamId),
+        inicio: momentoDeArchivo(new Date(ini)),
+        minutos,
+      });
       setCurrent({
-        source: {
-          url: timeshiftUrl(credsOf(p), streamId, new Date(ini), minutos),
-          name: titulo,
-          kind: "hls",
-        },
+        source: { ...enlace, name: titulo, kind: "hls" },
         logo,
         playlistId: p.id,
         kind: "live",
@@ -565,11 +595,12 @@ export default function PlayerApp() {
     }
   }
 
-  function playVod(p: StoredPlaylist, item: XtreamVodStream) {
+  async function playVod(p: StoredPlaylist, item: XtreamVodStream) {
     const ext = item.container_extension || "mp4";
     setViendo(true);
+    const enlace = await pedirEnlace({ ...credsOf(p), clase: "movie", id: String(item.stream_id), ext });
     setCurrent({
-      source: { url: vodStreamUrl(credsOf(p), item.stream_id, ext), name: item.name, kind: "video" },
+      source: { ...enlace, name: item.name, kind: "video" },
       logo: item.stream_icon,
       playlistId: p.id,
       kind: "vod",
@@ -603,10 +634,11 @@ export default function PlayerApp() {
     }
   }
 
-  function playEpisode(p: StoredPlaylist, s: XtreamSeries, epId: string, title: string, ext?: string) {
+  async function playEpisode(p: StoredPlaylist, s: XtreamSeries, epId: string, title: string, ext?: string) {
     setViendo(true);
+    const enlace = await pedirEnlace({ ...credsOf(p), clase: "series", id: epId, ext: ext || "mp4" });
     setCurrent({
-      source: { url: seriesEpisodeUrl(credsOf(p), epId, ext || "mp4"), name: `${s.name} — ${title}`, kind: "video" },
+      source: { ...enlace, name: `${s.name} — ${title}`, kind: "video" },
       logo: s.cover,
       playlistId: p.id,
       kind: "episode",
@@ -617,7 +649,7 @@ export default function PlayerApp() {
     setFavorites(toggleFavorite(key));
   }
 
-  function playRecent(item: RecentItem) {
+  async function playRecent(item: RecentItem) {
     const p = playlists.find((x) => x.id === item.playlistId);
     if (!p) return;
     if (item.kind === "live") {
@@ -626,8 +658,9 @@ export default function PlayerApp() {
       playM3u(p, item.payload as unknown as M3UChannel);
     } else if (item.kind === "vod") {
       const pl = item.payload as { stream_id: number; name: string; ext?: string };
+      const enlace = await pedirEnlace({ ...credsOf(p), clase: "movie", id: String(pl.stream_id), ext: pl.ext || "mp4" });
       setCurrent({
-        source: { url: vodStreamUrl(credsOf(p), pl.stream_id, pl.ext || "mp4"), name: pl.name, kind: "video" },
+        source: { ...enlace, name: pl.name, kind: "video" },
         logo: item.logo,
         playlistId: p.id,
         kind: "vod",
