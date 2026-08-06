@@ -13,7 +13,7 @@ const fs = require("fs");
     await p.evaluate((yy) => window.scrollTo(0, yy), y);
     await p.waitForTimeout(500);
     await p.screenshot({ path: `/tmp/rev/home-${String(i).padStart(2, "0")}.png` });
-    console.log("✓ tramo", i, "en y =", y);
   }
+  console.log("listo");
   await nav.close();
 })();

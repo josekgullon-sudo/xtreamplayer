@@ -1,3 +1,31 @@
+/*
+  La tipografía de la marca.
+
+  Antes iba la pila del sistema —San Francisco en un Mac, Segoe en Windows,
+  Roboto en Android—, que es lo que usa cualquier plantilla de SaaS y lo que
+  hace que diez mil webs se parezcan entre sí. Outfit es geométrica, tiene
+  carácter en un titular grande y sigue siendo legible a 13 px, que es donde
+  vive la mitad del panel.
+
+  Va servida desde aquí y no desde Google: una petición menos a un tercero,
+  nada que se caiga si su CDN falla, y ningún dato de quien nos visita saliendo
+  a otro sitio. Recortada a lo que se escribe en español, pesan 27 KB las dos.
+  `swap` para que el texto se lea desde el primer fotograma aunque la fuente
+  todavía no haya llegado.
+*/
+@font-face {
+  font-family: "Outfit";
+  src: url("/tipos/Outfit-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Outfit";
+  src: url("/tipos/Outfit-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
 /* ============ TOTALplayer — Design System ============ */
 /*
  * Toda la marca sale de las variables de :root. Cambiar el bloque de
@@ -55,7 +83,7 @@
   --radius-sm: 11px;
   --radius-lg: 22px;
   --radius-pill: 999px;
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
   --shadow: 0 8px 28px rgba(0, 0, 0, 0.34);
   --shadow-lg: 0 28px 80px rgba(0, 0, 0, 0.55);
@@ -143,9 +171,12 @@ button { font-family: inherit; }
 .btn-primary {
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 6px 22px var(--accent-glow);
+  /* Sin halo. Un resplandor rojo de 22 px debajo de cada botón era la firma
+     de las plantillas de 2016; lo que se lee como caro es plano, con una
+     sombra corta que solo sugiere que hay un plano por encima */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
-.btn-primary:hover:not(:disabled) { background: var(--accent-bright); box-shadow: 0 8px 30px var(--accent-glow); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-bright); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45); }
 
 .btn-ghost {
   background: var(--surface-quiet);
@@ -365,6 +396,10 @@ button { font-family: inherit; }
     radial-gradient(ellipse 40% 35% at 80% 10%, var(--accent-halo-deep), transparent);
 }
 .hero h1 {
+  /* Sin esto el navegador parte por donde le cabe, y la primera línea acababa
+     en un «al» rojo suelto con «instante» en la siguiente: el acento de color
+     cortado en dos, que parecía un accidente porque lo era */
+  text-wrap: balance;
   font-size: clamp(38px, 6.4vw, 76px);
   line-height: 1.04;
   font-weight: 700;
@@ -797,7 +832,11 @@ select.input { appearance: none; cursor: pointer; }
 .tv-mode .modal { max-width: 640px; padding: 40px; }
 .tv-mode .modal h2 { font-size: 28px; }
 
-.tv-mode .hero h1 { font-size: clamp(44px, 5vw, 68px); }
+.tv-mode .hero h1 {
+  /* Sin esto el navegador parte por donde le cabe, y la primera línea acababa
+     en un «al» rojo suelto con «instante» en la siguiente: el acento de color
+     cortado en dos, que parecía un accidente porque lo era */
+  text-wrap: balance; font-size: clamp(44px, 5vw, 68px); }
 .tv-mode .hero p.sub { font-size: 23px; max-width: 760px; }
 .tv-mode .section-title { font-size: clamp(32px, 4vw, 44px); }
 .tv-mode .section-sub { font-size: 20px; max-width: 760px; }

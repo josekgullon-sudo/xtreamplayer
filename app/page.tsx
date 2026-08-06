@@ -194,7 +194,7 @@ export default function HomePage() {
               <div className="feature-card">
                 <div className="feature-icon"><Icon name="lock" size={22} /></div>
                 <h3>Privacidad primero</h3>
-                <p>Modo invitado real: tus listas y credenciales se guardan en tu navegador, no en nuestros servidores. Tú decides si quieres cuenta.</p>
+                <p>Sin cuenta, tu lista se queda en tu navegador y no sale de ahí. Con proveedor, sus credenciales viven cifradas en el servidor y no llegan nunca a tu aparato: es lo que impide que se las lleve nadie.</p>
               </div>
               <div className="feature-card">
                 <div className="feature-icon"><Icon name="shield" size={22} /></div>
