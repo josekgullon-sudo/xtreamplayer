@@ -353,8 +353,12 @@ button { font-family: inherit; }
 
 /* ============ Landing ============ */
 
+/* 104 px por debajo de la letra pequeña, más los 10 de la tira de
+   compatibilidad, dejaban 135 px de nada justo donde debía verse en qué
+   aparatos funciona: la sexta parte del primer golpe de vista, en blanco, y
+   la prueba social empujada fuera de la pantalla */
 .hero {
-  padding: 128px 0 104px;
+  padding: 116px 0 56px;
   text-align: center;
   background:
     radial-gradient(ellipse 60% 50% at 50% -10%, var(--accent-halo), transparent),

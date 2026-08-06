@@ -63,14 +63,18 @@ export default function AccessChooser({ initial = "cliente" }: { initial?: "clie
           )}
         </p>
 
-        <p style={{ textAlign: "center", marginTop: 20, fontSize: 13.5, color: "var(--text-dim)" }}>
-          ¿Solo quieres usar tu propia lista M3U o Xtream?{" "}
-          <Link href="/player">Entra sin registro</Link>
-        </p>
-        {/* Tercera puerta, la de quien se registró aquí mismo. Sin esto no
-            había ninguna: solo se entraba como cliente o como proveedor */}
-        <p style={{ textAlign: "center", marginTop: 8, fontSize: 13.5, color: "var(--text-dim)" }}>
-          ¿Tienes una cuenta de TOTALplayer? <Link href="/login">Inicia sesión</Link>
+        {/*
+          Las otras dos puertas, en una línea y no en dos párrafos.
+          Alrededor de dos campos había cuatro salidas —crear cuenta, recuperar
+          contraseña, entrar sin registro e iniciar sesión—, cada una en su
+          renglón y del mismo tamaño que las demás. Leídas en fila parecen
+          cuatro decisiones; puestas así se ven por lo que son: por si no eres
+          ninguno de los dos de arriba.
+        */}
+        <p style={{ textAlign: "center", marginTop: 22, fontSize: 13, color: "var(--text-faint)" }}>
+          Otra forma de entrar: <Link href="/player">con mi propia lista</Link>
+          {" · "}
+          <Link href="/login">con mi cuenta de TOTALplayer</Link>
         </p>
       </div>
     </div>
