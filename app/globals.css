@@ -399,9 +399,16 @@ button { font-family: inherit; }
  * que parece un catálogo de una que parece un producto: sin él, el ojo no
  * distingue dónde acaba una idea y empieza la siguiente.
  */
-.section { padding: 108px 0; }
+/*
+  108 arriba y 108 abajo son 216 px de nada entre una sección y la siguiente,
+  y la portada tiene cinco: más de mil píxeles de una página de 4.280 son
+  aire entre bloques. Separar no es alejar — lo que agrupa es que el título
+  de la sección esté más cerca de su contenido que del bloque anterior, y eso
+  se consigue con menos hueco y no con más.
+*/
+.section { padding: 76px 0; }
 .section-title { font-size: clamp(28px, 4vw, 46px); font-weight: 700; letter-spacing: -0.032em; text-align: center; margin-bottom: 16px; }
-.section-sub { text-align: center; color: var(--text-dim); font-size: 17px; max-width: 600px; margin: 0 auto 62px; }
+.section-sub { text-align: center; color: var(--text-dim); font-size: 17px; max-width: 600px; margin: 0 auto 44px; }
 
 .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
 .feature-card {

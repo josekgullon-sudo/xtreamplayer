@@ -151,6 +151,18 @@ function check(name, ok, detail = "") {
   await page.locator(".pa-live-cat", { hasText: "Generalistas" }).click();
   await page.locator(".pa-live-chan", { hasText: "La Uno Test" }).click();
   await page.waitForSelector(".pa-live-titulo p", { timeout: 15000 });
+  /*
+   * La ficha del canal sale al pulsar y la guía llega después, en su propia
+   * petición: desde que la ficha dejó de esperar al vídeo para pintarse, leer
+   * el texto en el instante en que aparece pilla el «En directo» de relleno.
+   * Se espera a la guía, que es lo que esta comprobación mira.
+   */
+  await page
+    .waitForFunction(
+      () => !/^En directo\s*$/.test(document.querySelector(".pa-live-titulo p")?.innerText || ""),
+      { timeout: 15000 }
+    )
+    .catch(() => {});
   const epgText = await page.locator(".pa-live-titulo p").innerText();
   check("EPG ahora/después decodificada", epgText.includes("Telediario de prueba") && epgText.includes("El programa siguiente"), epgText);
 
