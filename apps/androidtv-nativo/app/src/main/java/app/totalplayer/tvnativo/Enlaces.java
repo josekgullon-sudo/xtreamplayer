@@ -33,6 +33,18 @@ public final class Enlaces {
         // Lista escrita a mano en este aparato: la dirección ya está hecha
         if (!Sesion.actual().gestionada) return yaLaTengo;
 
+        /*
+         * Y una M3U de la plataforma, también.
+         *
+         * El panel sirve la lista ya reescrita: cada canal sale con su
+         * dirección puesta —o con su vale, si el vídeo va por nuestro
+         * servidor—, así que no hay nada que resolver. Preguntar igualmente
+         * era pedirle a /api/tele/ver algo que solo sabe dar para Xtream, y
+         * contestaba «esa lista no es de tipo Xtream». El catálogo entraba
+         * perfectamente y luego no arrancaba ni un canal.
+         */
+        if (yaLaTengo != null && !yaLaTengo.isEmpty()) return completar(yaLaTengo);
+
         JSONObject peticion = new JSONObject();
         peticion.put("clase", clase);
         peticion.put("id", id);
@@ -41,7 +53,11 @@ public final class Enlaces {
         JSONObject r = new JSONObject(Web.enCasaPost(Acceso.CASA + "/api/tele/ver", peticion.toString()));
         String url = r.optString("url", "");
         if (url.isEmpty()) throw new Exception("No hemos podido abrir esto. Prueba con otro.");
-        // Con el vídeo servido por la plataforma, la respuesta es una ruta suya
+        return completar(url);
+    }
+
+    /** Una ruta nuestra necesita el dominio delante; una del proveedor, no. */
+    private static String completar(String url) {
         return url.startsWith("/") ? Acceso.CASA + url : url;
     }
 }
