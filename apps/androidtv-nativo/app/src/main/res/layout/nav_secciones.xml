@@ -40,7 +40,7 @@
                 android:layout_width="19dp"
                 android:layout_height="19dp"
                 android:layout_gravity="center"
-                android:src="@drawable/ic_atras"
+                android:src="@drawable/ic_casa"
                 android:tint="@color/apagado"
                 android:contentDescription="@null" />
         </FrameLayout>

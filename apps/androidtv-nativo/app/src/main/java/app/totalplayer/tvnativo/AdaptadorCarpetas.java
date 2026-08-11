@@ -83,7 +83,7 @@ public class AdaptadorCarpetas extends RecyclerView.Adapter<AdaptadorCarpetas.Ce
 
     @Override public void onBindViewHolder(@NonNull final Celda celda, int posicion) {
         Catalogo.Carpeta c = datos.get(posicion);
-        celda.nombre.setText(c.nombre);
+        celda.nombre.setText(Categorias.bonito(c.nombre));
         /* El dibujo sale del nombre de la carpeta, que es lo único que manda
            el panel. Ver Categorias.java */
         celda.icono.setImageResource(Categorias.icono(c.nombre));

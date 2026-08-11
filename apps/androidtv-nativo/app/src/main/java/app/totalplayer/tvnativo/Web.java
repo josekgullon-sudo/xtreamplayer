@@ -71,7 +71,7 @@ public final class Web {
     private static String conGalleta(String direccion, String cuerpo) throws Exception {
         HttpURLConnection con = (HttpURLConnection) new URL(direccion).openConnection();
         con.setConnectTimeout(15000);
-        con.setReadTimeout(25000);
+        con.setReadTimeout(40000);
         con.setInstanceFollowRedirects(true);
         con.setRequestProperty("User-Agent", QUIEN_SOY);
         String galleta = Sesion.actual().galleta;
@@ -111,7 +111,10 @@ public final class Web {
             // No era JSON: se cuenta lo que se sabe
         }
         if (codigo == 401 || codigo == 403) return "Tu sesión ha caducado. Vuelve a entrar.";
-        return "No hemos podido conectar. Inténtalo en un momento.";
+        if (codigo == 404) return "Tu proveedor dice que eso no existe (404).\nSuele ser que la dirección no es la que toca.";
+        if (codigo >= 500) return "El servidor de tu proveedor está dando error (" + codigo + ").\nNo es cosa de tu conexión: pregúntale a quien te dio la lista.";
+        /* Con el número delante: es lo que sirve para que alguien lo mire */
+        return "Tu proveedor ha contestado con un error " + codigo + ".";
     }
 
     private static String leerTodo(HttpURLConnection con, boolean error) throws Exception {
@@ -128,10 +131,26 @@ public final class Web {
     private static String unaVez(String direccion) throws Exception {
         HttpURLConnection con = (HttpURLConnection) new URL(direccion).openConnection();
         con.setConnectTimeout(15000);
-        con.setReadTimeout(25000);
+        /*
+         * Cuarenta segundos para leer, no veinticinco.
+         *
+         * Una carpeta de un proveedor de verdad son dos mil canales y varios
+         * megas de JSON que el panel genera en el momento. En un Fire Stick
+         * con wifi de casa, veinticinco segundos se agotaban justo en las
+         * carpetas grandes —las interesantes— y el cliente veía «comprueba tu
+         * conexión» con la conexión perfecta.
+         */
+        con.setReadTimeout(40000);
         con.setInstanceFollowRedirects(true);
         con.setRequestProperty("User-Agent", QUIEN_SOY);
         try {
+            /* Mirar el código antes de leer: un 404 o un 500 salían de aquí
+               como una excepción de entrada/salida cualquiera, y acababan
+               contados como «no hay internet» */
+            int codigo = con.getResponseCode();
+            if (codigo < 200 || codigo >= 300) {
+                throw new Acceso.NoEntra(motivoDe(leerTodo(con, true), codigo));
+            }
             StringBuilder sb = new StringBuilder();
             BufferedReader r = new BufferedReader(new InputStreamReader(con.getInputStream(), "UTF-8"), 16384);
             String linea;

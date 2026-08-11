@@ -42,6 +42,9 @@ public final class Categorias {
     }
 
     private static final Familia[] FAMILIAS = {
+        /* Los favoritos primero: casi todos los paneles llaman así a su
+           primera carpeta y es la que más se abre */
+        new Familia(R.drawable.ic_estrella, "favorito", "favoritos", "favorite", "favorites"),
         new Familia(R.drawable.ic_cat_casco,
             "f1", "formula", "formula 1", "moto", "motogp", "moto gp", "motor", "rally", "nascar", "indycar", "superbike"),
         new Familia(R.drawable.ic_cat_guante,
@@ -70,6 +73,32 @@ public final class Categorias {
         new Familia(R.drawable.ic_cat_antena,
             "tdt", "autonomico", "autonomicos", "nacional", "nacionales", "locales", "generalista", "generalistas"),
     };
+
+    /**
+     * El nombre de la carpeta, quitándole los adornos del proveedor.
+     *
+     * Los paneles vienen llenos de decoración delante del nombre: «▶ TDT»,
+     * «★ FAVORITOS», «=== CINE ===», «|ES| Deportes». Puesto todo junto en
+     * una fila que ya lleva su propio icono, salen dos dibujos seguidos y el
+     * nombre se queda sin sitio: en una columna de televisor eso era la
+     * diferencia entre «AUTONÓMICOS» y «AUT…».
+     *
+     * Solo se limpia lo que se PINTA. El nombre de verdad no se toca: es lo
+     * que el panel espera de vuelta y lo que hay que buscar.
+     */
+    public static String bonito(String nombre) {
+        if (nombre == null) return "";
+        String n = nombre;
+        /* Los símbolos y espacios del principio y del final. Las letras, los
+           números y el paréntesis del recuento se quedan; todo lo demás
+           —flechas, estrellas, barras, guiones, igualdades y los emojis, que
+           en Java son parejas de caracteres sustitutos— se cae */
+        n = n.replaceAll("^[^\\p{L}\\p{N}]+", "");
+        n = n.replaceAll("[^\\p{L}\\p{N})]+$", "");
+        n = n.replaceAll("\\s{2,}", " ").trim();
+        // Si de tanto limpiar no queda nada, se devuelve lo que había
+        return n.isEmpty() ? nombre.trim() : n;
+    }
 
     /**
      * Qué dibujo le toca a esta carpeta. Lo que no encaja en nada se queda

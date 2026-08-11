@@ -59,6 +59,32 @@ public final class Navegacion {
         seccion(donde, R.id.navDirecto, Catalogo.DIRECTO, "TV en directo", seccionActual);
         seccion(donde, R.id.navCine, Catalogo.PELIS, "Películas", seccionActual);
         seccion(donde, R.id.navSeries, Catalogo.SERIES, "Series", seccionActual);
+        caminos(donde, seccionActual);
+    }
+
+    /**
+     * Por dónde entra y sale el foco del carril.
+     *
+     * Escrito a mano y no dejado a la geometría. Un RecyclerView atiende él
+     * mismo la búsqueda de foco y, al pulsar ◀ desde la primera columna, se
+     * lo quedaba: el carril se veía, se entendía y no había manera de llegar
+     * a él con el mando. Con la aplicación en la tele eso significaba que
+     * desde el directo no se podía ir a cine ni a series de ninguna forma.
+     *
+     * Al entrar se cae en la sección donde estás —no en la primera—, que es
+     * de donde se sale con ▶ sin haber tocado nada.
+     */
+    private static void caminos(Activity donde, String seccionActual) {
+        View carpetas = donde.findViewById(R.id.listaCarpetas);
+        if (carpetas == null) return;
+        int actual = Catalogo.PELIS.equals(seccionActual) ? R.id.navCine
+                : Catalogo.SERIES.equals(seccionActual) ? R.id.navSeries
+                : R.id.navDirecto;
+        carpetas.setNextFocusLeftId(actual);
+        for (int id : new int[]{R.id.navInicio, R.id.navDirecto, R.id.navCine, R.id.navSeries, R.id.navBuscar}) {
+            View v = donde.findViewById(id);
+            if (v != null) v.setNextFocusRightId(R.id.listaCarpetas);
+        }
     }
 
     private static void seccion(final Activity donde, int id, final String seccion,

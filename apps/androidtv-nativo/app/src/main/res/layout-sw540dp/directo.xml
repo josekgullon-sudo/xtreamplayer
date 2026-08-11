@@ -17,13 +17,13 @@
     <include
         android:id="@+id/carril"
         layout="@layout/nav_secciones"
-        android:layout_width="112dp"
+        android:layout_width="92dp"
         android:layout_height="match_parent" />
 
     <!-- Carpetas -->
     <LinearLayout
         android:id="@+id/columnaCarpetas"
-        android:layout_width="240dp"
+        android:layout_width="288dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:background="@color/superficie"
