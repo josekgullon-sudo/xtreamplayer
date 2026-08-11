@@ -40,7 +40,19 @@ public final class Imagenes {
 
     public static void cargar(final ImageView donde, final String url, final int deReserva) {
         if (donde == null) return;
-        if (url == null || url.isEmpty() || !url.startsWith("http")) {
+        /*
+         * Vale «http://…» y vale «/api/img?v=…».
+         *
+         * Aquí estaba el fallo que dejaba la aplicación sin una sola imagen
+         * con cuenta de proveedor: las carátulas y los logotipos de una
+         * lista de la plataforma no llegan como dirección, llegan como vale
+         * —una ruta nuestra que el servidor cambia por la imagen de verdad—,
+         * y esta línea las descartaba por no empezar por «http». Justo el
+         * caso que `leer()`, treinta líneas más abajo, sabe resolver y
+         * explica en su comentario. El resultado era una tele entera de
+         * cuadrados grises: ni un logotipo de canal ni un cartel.
+         */
+        if (url == null || url.isEmpty() || !(url.startsWith("http") || url.startsWith("/"))) {
             donde.setTag(null);
             donde.setImageResource(deReserva);
             return;

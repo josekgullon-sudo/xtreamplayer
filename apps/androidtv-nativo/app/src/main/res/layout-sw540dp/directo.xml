@@ -6,24 +6,31 @@
   buscar canal, y para eso hay que ver la lista. Cuando ya se ha elegido, con
   otro OK se va a pantalla completa, que es donde se ve la tele.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fondo">
+
+  <!--
+    El contenido, dejándole al carril solo el hueco de sus iconos.
+
+    El carril flota por encima (abajo del todo) en vez de ser una columna
+    más: como columna se llevaba 70 puntos enteros de los 960 de una tele, y
+    esos 70 salían del vídeo, que es lo que se ha venido a ver. Así solo
+    ocupa de verdad los 56 del hueco, y cuando tiene el foco se dibuja
+    encima de la lista sin empujar nada.
+  -->
+  <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:background="@color/fondo">
+    android:paddingStart="56dp">
 
-    <!-- El carril de secciones: pasar de películas a series sin volver al
-         menú. Va el primero para que ◀ desde la primera columna caiga aquí -->
-    <include
-        android:id="@+id/carril"
-        layout="@layout/nav_secciones"
-        android:layout_width="70dp"
-        android:layout_height="match_parent" />
 
     <!-- Carpetas -->
     <LinearLayout
         android:id="@+id/columnaCarpetas"
-        android:layout_width="300dp"
+        android:layout_width="256dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:background="@color/superficie"
@@ -54,7 +61,7 @@
     <!-- Canales -->
     <LinearLayout
         android:id="@+id/columnaCanales"
-        android:layout_width="330dp"
+        android:layout_width="286dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:background="@color/columna"
@@ -284,4 +291,13 @@
             android:textSize="14sp"
             android:visibility="gone" />
     </LinearLayout>
-</LinearLayout>
+  </LinearLayout>
+
+  <!-- Y el carril, encima de todo y pegado a la izquierda -->
+  <include
+      android:id="@+id/carril"
+      layout="@layout/nav_secciones"
+      android:layout_width="70dp"
+      android:layout_height="match_parent"
+      android:layout_gravity="start" />
+</FrameLayout>
