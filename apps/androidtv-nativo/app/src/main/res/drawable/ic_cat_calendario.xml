@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El mismo dibujo que en la web (components/Icon.tsx, «calendario»). Aquí en
+  trazados sueltos porque un vector de Android no admite <circle> ni <rect>:
+  todo tiene que ser <path>, así que los círculos van como arcos.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M5.5,5.0 h13.0 a2.0,2.0 0 0 1 2.0,2.0 v12.0 a2.0,2.0 0 0 1 -2.0,2.0 h-13.0 a2.0,2.0 0 0 1 -2.0,-2.0 v-12.0 a2.0,2.0 0 0 1 2.0,-2.0 Z"
+        android:strokeColor="#FFFFFF" android:strokeWidth="1.8"
+        android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
+    <path android:pathData="M3.5 10h17M8 3v4M16 3v4"
+        android:strokeColor="#FFFFFF" android:strokeWidth="1.8"
+        android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
+    <path android:pathData="M12 14h.01"
+        android:strokeColor="#FFFFFF" android:strokeWidth="1.8"
+        android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
+</vector>

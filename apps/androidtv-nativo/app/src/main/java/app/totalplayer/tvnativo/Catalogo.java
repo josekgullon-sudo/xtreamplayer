@@ -42,7 +42,18 @@ public final class Catalogo {
     /** Una carpeta del proveedor. */
     public static class Carpeta {
         public final String id, nombre;
+        /**
+         * Cuántos trae dentro, o 0 si todavía no se sabe.
+         *
+         * Con una lista M3U se sabe desde el principio, porque el fichero
+         * viene entero. Con un panel Xtream no: las carpetas se piden en una
+         * llamada y sus canales en otra, y bajar los ocho mil solo para
+         * poder escribir un número es justo lo que esta aplicación no hace.
+         * Así que se aprende al abrirla y a partir de ahí ya se dice.
+         */
+        public int cuantos;
         public Carpeta(String id, String nombre) { this.id = id; this.nombre = nombre; }
+        public Carpeta(String id, String nombre, int cuantos) { this(id, nombre); this.cuantos = cuantos; }
         @Override public String toString() { return nombre; }
     }
 
@@ -143,7 +154,9 @@ public final class Catalogo {
                carpetas encima: se enseñan todas juntas */
             lista.add(new Carpeta(TODAS, "Todas las series"));
         } else {
-            for (String nombre : m3u().get(seccion).keySet()) lista.add(new Carpeta(nombre, nombre));
+            for (Map.Entry<String, List<Item>> e : m3u().get(seccion).entrySet()) {
+                lista.add(new Carpeta(e.getKey(), e.getKey(), e.getValue().size()));
+            }
         }
         carpetas.put(seccion, lista);
         return lista;
@@ -167,6 +180,14 @@ public final class Catalogo {
             lista = deLaLista == null ? new ArrayList<Item>() : deLaLista;
         }
         contenidos.put(llave, lista);
+        /* Ya sabemos cuántos tiene: se lo apuntamos a su carpeta para la
+           próxima vez que se pinte la columna */
+        List<Carpeta> suyas = carpetas.get(seccion);
+        if (suyas != null) {
+            for (Carpeta c : suyas) {
+                if (c.id.equals(carpetaId)) { c.cuantos = lista.size(); break; }
+            }
+        }
         return lista;
     }
 

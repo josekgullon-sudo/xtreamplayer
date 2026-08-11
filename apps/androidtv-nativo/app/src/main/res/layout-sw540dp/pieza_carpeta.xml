@@ -1,35 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Una carpeta de canales, en un teléfono.
+  La misma carpeta, a tres metros del sofá.
 
-  Era una línea de texto suelta. Sesenta líneas de texto en la única
-  pantalla que hay para entrar al directo no dan ninguna pista de qué hay
-  dentro: media lista empieza por la misma palabra —«DAZN SLB», «DAZN | F1»,
-  «DAZN | EVENTOS»— y hay que leerlas enteras. Con el dibujo delante se
-  distinguen sin leer, y con el número debajo se sabe si merece la pena
-  entrar. Ver Categorias.java.
+  Los mismos identificadores que la del teléfono; lo que cambia son las
+  medidas. Con las del móvil —64dp de alto y 16sp de letra— una carpeta se
+  lee desde el escritorio y desde el sofá no: en una tele la fila tiene que
+  ser una franja, no un renglón.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="64dp"
+    android:layout_height="76dp"
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:background="@drawable/carpeta"
     android:focusable="true"
     android:clickable="true"
-    android:paddingStart="12dp"
-    android:paddingEnd="14dp"
-    android:layout_marginBottom="3dp">
+    android:paddingStart="16dp"
+    android:paddingEnd="18dp"
+    android:layout_marginBottom="4dp">
 
     <FrameLayout
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:background="@drawable/hueco_logo">
 
         <ImageView
             android:id="@+id/icono"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
             android:layout_gravity="center"
             android:tint="@color/marca_viva"
             android:contentDescription="@null" />
@@ -40,14 +38,14 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:layout_marginStart="12dp">
+        android:layout_marginStart="16dp">
 
         <TextView
             android:id="@+id/nombre"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="@color/texto"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:maxLines="1"
             android:ellipsize="end" />
 
@@ -56,7 +54,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="@color/tenue"
-            android:textSize="12sp"
+            android:textSize="14sp"
             android:maxLines="1"
             android:ellipsize="end"
             android:layout_marginTop="2dp"
@@ -65,9 +63,9 @@
 
     <ImageView
         android:id="@+id/flecha"
-        android:layout_width="18dp"
-        android:layout_height="18dp"
-        android:layout_marginStart="8dp"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="10dp"
         android:src="@drawable/ic_alante"
         android:tint="@color/tenue"
         android:contentDescription="@null" />

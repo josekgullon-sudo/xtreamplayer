@@ -3,6 +3,7 @@ package app.totalplayer.tvnativo;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -64,8 +65,14 @@ public class AdaptadorCarpetas extends RecyclerView.Adapter<AdaptadorCarpetas.Ce
     }
 
     static class Celda extends RecyclerView.ViewHolder {
-        final TextView nombre;
-        Celda(View v) { super(v); nombre = v.findViewById(R.id.nombre); }
+        final TextView nombre, cuantos;
+        final ImageView icono;
+        Celda(View v) {
+            super(v);
+            nombre = v.findViewById(R.id.nombre);
+            cuantos = v.findViewById(R.id.cuantos);
+            icono = v.findViewById(R.id.icono);
+        }
     }
 
     @NonNull
@@ -77,13 +84,26 @@ public class AdaptadorCarpetas extends RecyclerView.Adapter<AdaptadorCarpetas.Ce
     @Override public void onBindViewHolder(@NonNull final Celda celda, int posicion) {
         Catalogo.Carpeta c = datos.get(posicion);
         celda.nombre.setText(c.nombre);
-        celda.nombre.setActivated(posicion == elegida);
-        celda.nombre.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+        /* El dibujo sale del nombre de la carpeta, que es lo único que manda
+           el panel. Ver Categorias.java */
+        celda.icono.setImageResource(Categorias.icono(c.nombre));
+        /* Cuántos hay dentro, cuando el panel lo dice. No siempre lo dice:
+           entonces se calla en vez de poner un cero que no es verdad */
+        if (c.cuantos > 0) {
+            celda.cuantos.setText(c.cuantos + (c.cuantos == 1 ? " canal" : " canales"));
+            celda.cuantos.setVisibility(View.VISIBLE);
+        } else {
+            celda.cuantos.setVisibility(View.GONE);
+        }
+        /* El fondo y el foco los lleva la fila entera, no el texto: antes la
+           pieza ERA el TextView y ahora es la caja que lo contiene */
+        celda.itemView.setActivated(posicion == elegida);
+        celda.itemView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override public void onFocusChange(View v, boolean tiene) {
                 if (tiene) alPosarse.en(celda.getAdapterPosition());
             }
         });
-        celda.nombre.setOnClickListener(new View.OnClickListener() {
+        celda.itemView.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { alPosarse.en(celda.getAdapterPosition()); }
         });
     }
