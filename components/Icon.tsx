@@ -41,6 +41,17 @@ export type IconName =
   | "star"
   | "recargar"
   | "casa"
+  | "balon"
+  | "silbato"
+  | "casco"
+  | "guante"
+  | "bebe"
+  | "calendario"
+  | "musica"
+  | "noticias"
+  | "libro"
+  | "antena"
+  | "rejilla"
   | "chart";
 
 const PATHS: Record<IconName, React.ReactNode> = {
@@ -222,6 +233,92 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M20 12a8 8 0 1 1-2.6-5.9" />
       <path d="M20 4v4.5h-4.5" />
+    </>
+  ),
+
+  /*
+   * Los de las carpetas de canales.
+   *
+   * Una lista de proveedor trae sesenta carpetas y la mitad empiezan por la
+   * misma palabra: «DAZN - MOTO GP», «DAZN | EVENTOS», «DAZN - F1». Leídas
+   * en una columna son la misma mancha de texto. Con un casco, un
+   * calendario y otro casco delante, se distinguen sin leer.
+   */
+  balon: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m12 7.5 3.6 2.6-1.4 4.2H9.8L8.4 10.1 12 7.5Z" />
+      <path d="M12 3.5v4M4.4 9.6l4 .5M19.6 9.6l-4 .5M7.2 19.4l2.6-4.5M16.8 19.4l-2.6-4.5" />
+    </>
+  ),
+  silbato: (
+    <>
+      <path d="M2.5 9h9.5a5.5 5.5 0 1 1 0 11H8A5.5 5.5 0 0 1 2.5 14.5V9Z" />
+      <circle cx="12" cy="14.5" r="1.8" />
+      <path d="M12.5 9V7a2 2 0 0 1 2-2h5" />
+    </>
+  ),
+  casco: (
+    <>
+      <path d="M3 13a9 9 0 0 1 18 0v3a2 2 0 0 1-2 2h-8a8 8 0 0 1-8-8v3Z" />
+      <path d="M4.5 13h9a3 3 0 0 0 3-3v-.6" />
+    </>
+  ),
+  guante: (
+    <>
+      <path d="M5 10.5A5.5 5.5 0 0 1 10.5 5h2A5.5 5.5 0 0 1 18 10.5V13a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-2.5Z" />
+      <path d="M5 12.5h3.5" />
+      <path d="M7.5 16v1.5A1.5 1.5 0 0 0 9 19h5a1.5 1.5 0 0 0 1.5-1.5V16" />
+    </>
+  ),
+  bebe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9 10.5h.01M15 10.5h.01" />
+      <path d="M9.5 15a3.5 3.5 0 0 0 5 0" />
+    </>
+  ),
+  calendario: (
+    <>
+      <rect x="3.5" y="5" width="17" height="16" rx="2" />
+      <path d="M3.5 10h17M8 3v4M16 3v4" />
+      <path d="M12 14h.01" />
+    </>
+  ),
+  musica: (
+    <>
+      <path d="M9 18V6l11-2v12" />
+      <circle cx="6.5" cy="18" r="2.5" />
+      <circle cx="17.5" cy="16" r="2.5" />
+    </>
+  ),
+  noticias: (
+    <>
+      <path d="M3 6h13v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6Z" />
+      <path d="M16 10h4v9a2 2 0 0 1-4 0" />
+      <path d="M6 9.5h7M6 13h7M6 16.5h4" />
+    </>
+  ),
+  libro: (
+    <>
+      <path d="M4 4.5h5a3 3 0 0 1 3 3v12a2.5 2.5 0 0 0-2.5-2.5H4v-12Z" />
+      <path d="M20 4.5h-5a3 3 0 0 0-3 3v12a2.5 2.5 0 0 1 2.5-2.5H20v-12Z" />
+    </>
+  ),
+  rejilla: (
+    <>
+      <rect x="3" y="3.5" width="7.5" height="7.5" rx="1.5" />
+      <rect x="13.5" y="3.5" width="7.5" height="7.5" rx="1.5" />
+      <rect x="3" y="13" width="7.5" height="7.5" rx="1.5" />
+      <rect x="13.5" y="13" width="7.5" height="7.5" rx="1.5" />
+    </>
+  ),
+  antena: (
+    <>
+      <path d="M12 13v8M8.5 21h7" />
+      <circle cx="12" cy="10" r="2" />
+      <path d="M8.1 13.9a5.5 5.5 0 0 1 0-7.8M15.9 6.1a5.5 5.5 0 0 1 0 7.8" />
+      <path d="M5.3 16.7a9.5 9.5 0 0 1 0-13.4M18.7 3.3a9.5 9.5 0 0 1 0 13.4" />
     </>
   ),
 };

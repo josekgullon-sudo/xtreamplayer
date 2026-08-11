@@ -23,11 +23,14 @@ export default function RejillaInfinita<T>({
   items,
   tarjeta,
   clave,
+  onRango,
 }: {
   items: T[];
   tarjeta: (item: T, indice: number) => ReactNode;
   /** Al cambiar (otra categoría, otra búsqueda), se vuelve a empezar por el principio. */
   clave?: string;
+  /** Cuántas hay puestas ahora mismo, para quien tenga que traer algo por cada una. */
+  onRango?: (desde: number, hasta: number) => void;
 }) {
   const [tope, setTope] = useState(TRAMO);
   const final = useRef<HTMLDivElement>(null);
@@ -52,6 +55,12 @@ export default function RejillaInfinita<T>({
     ojo.observe(marca);
     return () => ojo.disconnect();
   }, [tope, items.length]);
+
+  /* En un efecto: quien escucha esto guarda algo en su estado, y hacerlo a
+     media pintura es un bucle */
+  useEffect(() => {
+    onRango?.(0, Math.min(tope, items.length));
+  }, [onRango, tope, items.length]);
 
   return (
     <>

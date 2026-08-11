@@ -1936,6 +1936,28 @@ select.input { appearance: none; cursor: pointer; }
 .pa-live-cat.activa { background: var(--accent-tint); color: var(--accent-bright); }
 .pa-live-cat .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/*
+ * El icono de la carpeta, en su cuadro.
+ *
+ * En una lista de proveedor, media docena de carpetas empiezan por la misma
+ * palabra —«DAZN - MOTO GP», «DAZN | EVENTOS», «DAZN - F1»— y leídas en
+ * columna son la misma mancha. El cuadro es lo que le da al icono sitio
+ * fijo: sin él, los nombres bailaban según el ancho del dibujo.
+ */
+.pa-cat-icono {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid var(--hairline);
+  background: var(--surface-quiet);
+  color: var(--text-faint);
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.pa-live-cat:hover .pa-cat-icono { color: var(--text-dim); }
+.pa-live-cat.activa .pa-cat-icono {
+  color: var(--accent-bright); border-color: var(--accent-tint-strong); background: var(--accent-tint-soft);
+}
+
 .pa-live-chan {
   display: flex; align-items: center; gap: 11px; width: 100%;
   padding: 8px 11px; border-radius: 10px; margin-bottom: 1px;
@@ -1959,6 +1981,85 @@ select.input { appearance: none; cursor: pointer; }
 }
 .pa-live-chan .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pa-live-fav { color: var(--warning); flex-shrink: 0; }
+
+/*
+ * Qué echan ahora, debajo del nombre del canal.
+ *
+ * Es la línea que evita el zapeo a ciegas: hasta que estuvo aquí, saber qué
+ * daban en un canal costaba entrar en él, y con doscientos en una carpeta
+ * eso son doscientos clics. El punto rojo late despacio para que se lea
+ * como «esto está pasando», sin convertir la lista en una feria.
+ */
+.pa-live-ahora {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 500; color: var(--text-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pa-punto {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent-bright);
+  animation: pa-late 2.4s ease-in-out infinite;
+}
+@keyframes pa-late {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pa-punto { animation: none; }
+}
+
+/* ---- Los canales en rejilla ---- */
+
+/*
+ * La otra forma de mirar la misma carpeta: el logotipo grande en vez del
+ * nombre. Un canal se reconoce por su logotipo mucho antes que por cómo lo
+ * haya escrito el proveedor —«LA 1 SD», «▶TVE 1 FHD», «ES| La1 HD»— y en
+ * una lista de texto eso obliga a leerlo todo.
+ */
+.pa-vista {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; flex-shrink: 0; margin-left: auto;
+  border-radius: 9px; border: 1px solid var(--hairline);
+  background: var(--surface-quiet); color: var(--text-faint); cursor: pointer;
+  transition: color 0.13s, background 0.13s, border-color 0.13s;
+}
+.pa-vista:hover { color: var(--text); background: var(--bg-hover); border-color: var(--border-strong); }
+
+.pa-canales-rejilla {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 10px; align-content: start; padding: 10px;
+}
+.pa-canal-tarjeta {
+  display: flex; flex-direction: column; gap: 7px; min-width: 0;
+  padding: 0; background: none; border: none; cursor: pointer;
+  color: var(--text-dim); text-align: left;
+}
+.pa-canal-logo {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  aspect-ratio: 16 / 10; width: 100%;
+  border-radius: var(--radius-sm);
+  /* Casi negro y no gris: los logotipos de canal vienen en PNG con fondo
+     transparente y pensados para ir sobre oscuro. Sobre gris medio, los que
+     llevan borde blanco desaparecen */
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+  transition: border-color 0.13s, background 0.13s;
+}
+.pa-canal-logo img { max-width: 74%; max-height: 70%; object-fit: contain; }
+.pa-canal-logo .ph { font-size: 26px; font-weight: 700; color: var(--text-faint); }
+.pa-canal-fav { position: absolute; top: 6px; right: 6px; color: var(--warning); }
+.pa-canal-tarjeta:hover .pa-canal-logo { border-color: var(--border-strong); background: rgba(0, 0, 0, 0.28); }
+.pa-canal-tarjeta.activo .pa-canal-logo { border-color: var(--accent); background: var(--accent-tint); }
+.pa-canal-tarjeta.activo .pa-canal-nombre { color: var(--accent-bright); }
+.pa-canal-nombre {
+  font-size: 12.5px; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pa-canal-tarjeta .pa-live-ahora { font-size: 11px; }
+/* La marca de «hay más abajo» de la rejilla infinita no puede romper la
+   cuadrícula: ocupa una fila entera y no una celda */
+.pa-canales-rejilla .pa-rejilla-final { grid-column: 1 / -1; height: 1px; }
 
 .pa-live-stage { display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 .pa-live-titulo {
@@ -2191,6 +2292,41 @@ select.input { appearance: none; cursor: pointer; }
 .pa-cat-layout:not(:has(.pa-live-cats)) { grid-template-columns: 1fr; }
 .pa-cat-main { display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 .pa-cat-scroll { flex: 1; overflow-y: auto; }
+
+/*
+ * Los chips de género, solo donde hacen falta.
+ *
+ * En el escritorio los géneros son la columna de la izquierda. En el móvil
+ * esa columna no cabe y se escondía —y con ella la única forma de filtrar—:
+ * se entraba en «Películas» y salían las cuatro mil seguidas. Esta fila se
+ * arrastra con el dedo y hace lo mismo en el sitio donde sí cabe.
+ */
+.pa-chips { display: none; }
+
+@media (max-width: 900px) {
+  .pa-chips {
+    display: flex; gap: 8px; flex-shrink: 0;
+    padding: 12px 14px; overflow-x: auto;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    /* Que el primero y el último no se peguen al borde al llegar al final */
+    scroll-padding: 14px;
+  }
+  .pa-chips::-webkit-scrollbar { display: none; }
+  .pa-chip {
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    min-height: 38px; padding: 8px 16px; border-radius: var(--radius-pill);
+    background: var(--surface-quiet); border: 1px solid var(--hairline);
+    color: var(--text-dim); font-size: 13.5px; font-weight: 600;
+    white-space: nowrap; cursor: pointer;
+    transition: background 0.13s, color 0.13s, border-color 0.13s;
+  }
+  /* El activo va sólido y con el texto oscuro encima: a media luz, un chip
+     relleno se distingue de los otros doce aunque no se lea lo que pone */
+  .pa-chip.activo {
+    background: var(--accent); border-color: var(--accent);
+    color: #fff;
+  }
+}
 
 /* Viendo una película o episodio: vídeo y, al lado, los episodios */
 .pa-watch { flex: 1; display: grid; grid-template-columns: 1fr; overflow: hidden; min-height: 0; }

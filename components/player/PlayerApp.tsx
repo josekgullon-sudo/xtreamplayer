@@ -24,6 +24,7 @@ import {
 } from "@/lib/storage";
 import { parseM3U, M3UChannel } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
+import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
 import {
   Fuente,
@@ -61,6 +62,7 @@ interface XtreamData {
 }
 
 const K_LAST_PLAYLIST = "xp.lastPlaylist.v1";
+const K_VISTA_CANALES = "xp.vistaCanales.v1";
 
 /**
  * De dónde sale esta lista, en el lenguaje que entiende el servidor.
@@ -192,6 +194,29 @@ export default function PlayerApp() {
 
   const [current, setCurrent] = useState<NowPlaying | null>(null);
   const [epg, setEpg] = useState<{ now?: string; next?: string } | null>(null);
+  /**
+   * Qué echan ahora en cada canal, por lista y número de canal.
+   *
+   * Es el dato que decide qué se pone y hasta ahora solo se pintaba DESPUÉS
+   * de entrar: había que probar canales para saber qué había en cada uno.
+   * Cadena vacía significa «preguntado y no hay guía», que no es lo mismo
+   * que «todavía sin preguntar» —eso es no tener la clave— y por eso se
+   * guarda en vez de dejarlo sin poner.
+   */
+  const [epgAhora, setEpgAhora] = useState<Record<string, string>>({});
+  /** Los que ya se han pedido, para no volver a pedirlos al desplazar */
+  const epgPedidos = useRef<Set<string>>(new Set());
+  /** Qué trozo de la lista de canales se está viendo, que nos lo dice ella */
+  const [rangoCanales, setRangoCanales] = useState<[number, number]>([0, 0]);
+  /**
+   * Los canales, en lista o en rejilla.
+   *
+   * La lista da el nombre y qué echan; la rejilla da el logotipo grande, que
+   * es como se reconoce un canal de un vistazo cuando no te sabes el nombre
+   * exacto. Ninguna de las dos sobra, y cuál prefiere cada uno no lo sabemos:
+   * se elige y se recuerda.
+   */
+  const [vistaCanales, setVistaCanales] = useState<"lista" | "rejilla">("lista");
   const [favorites, setFavorites] = useState<Record<string, true>>({});
   const [recents, setRecents] = useState<RecentItem[]>([]);
   const [seriesDetail, setSeriesDetail] = useState<{ series: XtreamSeries; info: XtreamSeriesInfo; season: string } | null>(null);
@@ -209,6 +234,7 @@ export default function PlayerApp() {
     setRecents(getRecents());
     const locals = getLocalPlaylists();
     setPlaylists(locals);
+    if (localStorage.getItem(K_VISTA_CANALES) === "rejilla") setVistaCanales("rejilla");
     const last = localStorage.getItem(K_LAST_PLAYLIST);
     if (last && locals.some((p) => p.id === last)) setActiveId(last);
     else if (locals.length) setActiveId(locals[0].id);
@@ -432,6 +458,8 @@ export default function PlayerApp() {
       return siguiente;
     });
     setGuiaEpg({});
+    setEpgAhora({});
+    epgPedidos.current = new Set();
   }
 
   useEffect(() => {
@@ -491,6 +519,27 @@ export default function PlayerApp() {
       cancelled = true;
     };
   }, [current, playlists]);
+
+  /* ---------- «Qué echan ahora» en la lista de canales ---------- */
+
+  /*
+   * El mismo dato que ya se pedía para el canal que suena —`get_short_epg`—,
+   * pero para los canales que se están viendo en la lista. Es lo que hace
+   * que se elija canal sin entrar a probar: hasta ahora la lista era una
+   * columna de nombres, y saber qué echaban costaba un clic por canal.
+   *
+   * Solo de los que están a la vista. Una lista de proveedor trae ocho mil
+   * canales y esto son ocho mil peticiones; la lista virtual dice cuáles son
+   * las treinta que se ven y se piden esas, de seis en seis, según se baja.
+   */
+  const verRangoCanales = useCallback((desde: number, hasta: number) => {
+    setRangoCanales((v) => (v[0] === desde && v[1] === hasta ? v : [desde, hasta]));
+  }, []);
+
+  useEffect(() => {
+    setEpgAhora({});
+    epgPedidos.current = new Set();
+  }, [activeId]);
 
   /* ---------- Acciones ---------- */
 
@@ -1146,6 +1195,74 @@ export default function PlayerApp() {
   }, [liveGroups, grupoSel]);
 
   /*
+   * Los canales que se están viendo ahora mismo, como una cadena.
+   *
+   * Y como cadena a propósito: la lista de canales se rehace entera cada vez
+   * que llega algo por detrás —cine y series se precargan al entrar—, y con
+   * la lista como dependencia el efecto de abajo se relanzaba cinco veces
+   * seguidas, cancelando cada vez las guías a medio traer. Con los números
+   * pegados con comas, «los mismos canales» es la misma cadena y el efecto
+   * no se entera de nada.
+   */
+  const canalesALaVista = useMemo(() => {
+    if (!active || active.type !== "xtream") return "";
+    if (tab !== "live" && tab !== "favs") return "";
+    /* Con tope: la rejilla pinta ciento veinte de golpe y eso son ciento
+       veinte peticiones al proveedor por asomarse a una carpeta. Sesenta es
+       lo que cabe en dos pantallas; el resto llega al seguir bajando */
+    return canalesVisibles
+      .slice(rangoCanales[0], Math.min(rangoCanales[1], rangoCanales[0] + 60))
+      .map((c) => c.id)
+      .join(",");
+  }, [active, tab, canalesVisibles, rangoCanales]);
+
+  /*
+   * Y aquí se piden sus guías, de seis en seis: treinta peticiones a la vez
+   * contra un panel modesto acaban en tiempos de espera.
+   *
+   * Sin cancelar nada. Una guía que llega tarde sigue siendo la guía de ese
+   * canal, así que se guarda igual; lo que la ata a su lista es la clave,
+   * que lleva delante cuál era. Cancelar era peor: los canales quedaban
+   * marcados como pedidos y sin respuesta, y ya no se volvían a pedir nunca.
+   */
+  useEffect(() => {
+    if (!canalesALaVista || !active) return;
+    const lista = active.id;
+    const faltan = canalesALaVista
+      .split(",")
+      .filter((id) => id && !epgPedidos.current.has(`${lista}:${id}`));
+    if (!faltan.length) return;
+    for (const id of faltan) epgPedidos.current.add(`${lista}:${id}`);
+
+    const creds = credsOf(active);
+    (async () => {
+      for (let i = 0; i < faltan.length; i += 6) {
+        const tanda = faltan.slice(i, i + 6);
+        const hechas = await Promise.all(
+          tanda.map(async (id) => {
+            try {
+              const res = await xtreamApi<{ epg_listings?: { title?: string }[] }>(
+                creds,
+                "get_short_epg",
+                { stream_id: id, limit: "1" }
+              );
+              return [id, decodeBase64Maybe(res.epg_listings?.[0]?.title) || ""] as const;
+            } catch {
+              /* Un canal sin guía no puede dejar en blanco a los otros cinco */
+              return [id, ""] as const;
+            }
+          })
+        );
+        setEpgAhora((prev) => {
+          const siguiente = { ...prev };
+          for (const [id, titulo] of hechas) siguiente[`${lista}:${id}`] = titulo;
+          return siguiente;
+        });
+      }
+    })();
+  }, [canalesALaVista, active]);
+
+  /*
    * La puerta. Antes de pintar nada: si quien mira es cliente de un
    * proveedor, aquí no se reproduce, se le manda a las aplicaciones.
    */
@@ -1493,6 +1610,7 @@ export default function PlayerApp() {
                 onClick={() => setGrupoSel(g.name)}
                 title={g.name}
               >
+                <span className="pa-cat-icono"><Icon name={iconoDeCategoria(g.name)} size={16} /></span>
                 <span className="name">{g.name}</span>
                 <span className="pa-live-n">{g.channels.length}</span>
               </button>
@@ -1657,6 +1775,8 @@ export default function PlayerApp() {
             >
               <span className="name">Todos los canales</span>
             </button>
+            {/* Con su icono: en sesenta carpetas que empiezan igual, el
+                dibujo distingue antes que el nombre — ver lib/categorias */}
             {liveGroups.map((g) => (
               <button
                 key={g.name}
@@ -1664,6 +1784,7 @@ export default function PlayerApp() {
                 onClick={() => { setGrupoSel(g.name); setVerCanales(true); }}
                 title={g.name}
               >
+                <span className="pa-cat-icono"><Icon name={iconoDeCategoria(g.name)} size={16} /></span>
                 <span className="name">{g.name}</span>
                 <span className="pa-live-n">{g.channels.length}</span>
               </button>
@@ -1691,33 +1812,100 @@ export default function PlayerApp() {
               <Icon name="back" size={15} />
             </button>
             <span>{grupoSel || "Todos los canales"}</span>
+            {/* Lista o rejilla. La rejilla enseña el logotipo grande, que es
+                como se reconoce un canal cuando no te sabes el nombre */}
+            <button
+              className="pa-vista"
+              onClick={() => {
+                const otra = vistaCanales === "lista" ? "rejilla" : "lista";
+                setVistaCanales(otra);
+                try {
+                  localStorage.setItem(K_VISTA_CANALES, otra);
+                } catch {
+                  /* almacenamiento bloqueado: vale para esta sesión igual */
+                }
+              }}
+              title={vistaCanales === "lista" ? "Ver en rejilla" : "Ver en lista"}
+              aria-label={vistaCanales === "lista" ? "Ver en rejilla" : "Ver en lista"}
+            >
+              <Icon name={vistaCanales === "lista" ? "rejilla" : "list"} size={16} />
+            </button>
           </div>
-          <div className="pa-live-scroll">
+          <div className={`pa-live-scroll ${vistaCanales === "rejilla" ? "pa-canales-rejilla" : ""}`}>
             {loading && <SkeletonList rows={8} />}
+            {vistaCanales === "rejilla" ? (
+              <RejillaInfinita
+                items={canalesVisibles}
+                clave={`${tab}:${grupoSel || "todos"}`}
+                onRango={verRangoCanales}
+                tarjeta={(ch) => {
+                  const ahora = epgAhora[`${active.id}:${ch.id}`];
+                  return (
+                    <button
+                      key={ch.favKey}
+                      className={`pa-canal-tarjeta ${current?.favKey === ch.favKey ? "activo" : ""}`}
+                      onClick={ch.play}
+                      title={ahora ? `${ch.name} — ${ahora}` : ch.name}
+                    >
+                      <span className="pa-canal-logo">
+                        {imgSrc(ch.logo) ? (
+                          <img src={imgSrc(ch.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+                        ) : (
+                          <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
+                        )}
+                        {favorites[ch.favKey] && <Icon name="star" size={13} className="pa-canal-fav" />}
+                      </span>
+                      <span className="pa-canal-nombre">{ch.name}</span>
+                      {ahora && (
+                        <span className="pa-live-ahora">
+                          <span className="pa-punto" aria-hidden="true" />
+                          {ahora}
+                        </span>
+                      )}
+                    </button>
+                  );
+                }}
+              />
+            ) : (
             <ListaVirtual
               items={canalesVisibles}
               clave={`${tab}:${grupoSel || "todos"}`}
-              fila={(ch, i) => (
-                <button
-                  key={ch.favKey}
-                  className={`pa-live-chan ${current?.favKey === ch.favKey ? "activo" : ""}`}
-                  onClick={ch.play}
-                  title={ch.name}
-                >
-                  <span className="pa-live-num">{i + 1}</span>
-                  {imgSrc(ch.logo) ? (
-                    <img src={imgSrc(ch.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
-                  ) : (
-                    <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
-                  )}
-                  <span className="pa-live-txt">
-                    <span className="name">{ch.name}</span>
-                    {ch.grupo && <span className="pa-live-sub">{ch.grupo}</span>}
-                  </span>
-                  {favorites[ch.favKey] && <Icon name="star" size={13} className="pa-live-fav" />}
-                </button>
-              )}
+              onRango={verRangoCanales}
+              fila={(ch, i) => {
+                /* Qué echan ahora manda sobre de qué carpeta es: lo segundo
+                   se sabe por dónde has entrado, lo primero es a lo que se
+                   viene. Si el canal no trae guía, vuelve la carpeta. */
+                const ahora = epgAhora[`${active.id}:${ch.id}`];
+                return (
+                  <button
+                    key={ch.favKey}
+                    className={`pa-live-chan ${current?.favKey === ch.favKey ? "activo" : ""}`}
+                    onClick={ch.play}
+                    title={ahora ? `${ch.name} — ${ahora}` : ch.name}
+                  >
+                    <span className="pa-live-num">{i + 1}</span>
+                    {imgSrc(ch.logo) ? (
+                      <img src={imgSrc(ch.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+                    ) : (
+                      <span className="ph">{ch.name.trim().slice(0, 1).toUpperCase()}</span>
+                    )}
+                    <span className="pa-live-txt">
+                      <span className="name">{ch.name}</span>
+                      {ahora ? (
+                        <span className="pa-live-ahora">
+                          <span className="pa-punto" aria-hidden="true" />
+                          {ahora}
+                        </span>
+                      ) : (
+                        ch.grupo && <span className="pa-live-sub">{ch.grupo}</span>
+                      )}
+                    </span>
+                    {favorites[ch.favKey] && <Icon name="star" size={13} className="pa-live-fav" />}
+                  </button>
+                );
+              }}
             />
+            )}
 
             {!loading && !canalesVisibles.length && (
               <p className="pa-empty">
@@ -1810,6 +1998,47 @@ export default function PlayerApp() {
       )}
 
       <main className="pa-cat-main">
+        {/*
+          Los chips, y solo en el móvil.
+          En el escritorio los géneros son la columna de la izquierda; en el
+          móvil esa columna no cabe y se escondía, así que no había ninguna
+          forma de filtrar: se entraba en «Películas» y salían las cuatro mil
+          seguidas. Esta fila se arrastra con el dedo y hace lo mismo.
+        */}
+        {active && (tab === "vod" || tab === "series") && !viendo && (
+          <div className="pa-chips" role="tablist" aria-label={tab === "vod" ? "Géneros" : "Categorías"}>
+            <button
+              className={`pa-chip ${catFilter === "all" ? "activo" : ""}`}
+              onClick={() => setCatFilter("all")}
+              role="tab"
+              aria-selected={catFilter === "all"}
+            >
+              Todo
+            </button>
+            {hayNovedades && (
+              <button
+                className={`pa-chip ${catFilter === NOVEDADES ? "activo" : ""}`}
+                onClick={() => setCatFilter(NOVEDADES)}
+                role="tab"
+                aria-selected={catFilter === NOVEDADES}
+              >
+                <Icon name="sparkle" size={13} /> Novedades
+              </button>
+            )}
+            {(tab === "vod" ? vodCats : seriesCats).map((c) => (
+              <button
+                key={c.category_id}
+                className={`pa-chip ${catFilter === c.category_id ? "activo" : ""}`}
+                onClick={() => setCatFilter(c.category_id)}
+                role="tab"
+                aria-selected={catFilter === c.category_id}
+              >
+                {c.category_name}
+              </button>
+            ))}
+          </div>
+        )}
+
         {!active && (
           <div className="pa-welcome">
             <h2>Bienvenido a TOTALplayer</h2>

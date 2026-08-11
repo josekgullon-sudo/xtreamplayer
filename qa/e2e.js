@@ -174,6 +174,20 @@ function check(name, ok, detail = "") {
   const epgText = await page.locator(".pa-live-titulo p").innerText();
   check("EPG ahora/después decodificada", epgText.includes("Telediario de prueba") && epgText.includes("El programa siguiente"), epgText);
 
+  /* Qué echan ahora, en la propia lista y no solo dentro del canal: es lo
+     que evita entrar en veinte para descubrir qué dan. El dato ya se pedía */
+  await page.waitForSelector(".pa-live-chan .pa-live-ahora", { timeout: 20000 });
+  const enLista = await page.locator(".pa-live-chan .pa-live-ahora").first().innerText();
+  check("La lista de canales dice qué echan ahora", enLista.includes("Telediario de prueba"), enLista);
+  check("Y cada carpeta lleva su icono", (await page.locator(".pa-live-cat .pa-cat-icono").count()) >= 2);
+
+  // La otra forma de mirar la misma carpeta: el logotipo grande
+  await page.locator('[aria-label="Ver en rejilla"]').click();
+  await page.waitForSelector(".pa-canal-tarjeta", { timeout: 15000 });
+  check("Los canales se pueden ver en rejilla", (await page.locator(".pa-canal-tarjeta").count()) >= 1);
+  await page.locator('[aria-label="Ver en lista"]').click();
+  await page.waitForSelector(".pa-live-chan", { timeout: 15000 });
+
   // Credenciales malas
   await page.locator('[aria-label="Listas"]:visible').click();
   await page.locator('[aria-label="Añadir lista"]:visible').click();

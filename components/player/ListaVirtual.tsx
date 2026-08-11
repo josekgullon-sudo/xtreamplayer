@@ -37,6 +37,7 @@ export default function ListaVirtual<T>({
   fila,
   altoPorDefecto = 48,
   clave,
+  onRango,
 }: {
   items: T[];
   fila: (item: T, indice: number) => ReactNode;
@@ -44,6 +45,14 @@ export default function ListaVirtual<T>({
   altoPorDefecto?: number;
   /** Al cambiar, se vuelve arriba: al cambiar de categoría se empieza por el principio. */
   clave?: string;
+  /**
+   * Qué trozo de la lista está a la vista ahora mismo.
+   *
+   * Lo pide quien necesita traer algo por cada fila —la guía de «qué echan
+   * ahora», sin ir más lejos— y no puede traerlo de las ocho mil: aquí ya
+   * sabemos cuáles son las treinta que se están viendo.
+   */
+  onRango?: (desde: number, hasta: number) => void;
 }) {
   const ancla = useRef<HTMLDivElement>(null);
   const [alto, setAlto] = useState(altoPorDefecto);
@@ -96,6 +105,12 @@ export default function ListaVirtual<T>({
 
   const desde = virtual ? Math.min(rango[0], Math.max(0, items.length - 1)) : 0;
   const hasta = virtual ? Math.min(rango[1], items.length) : items.length;
+
+  /* En un efecto y no durante el pintado: quien escucha esto suele guardar
+     algo en su propio estado, y hacerlo a media pintura es un bucle */
+  useEffect(() => {
+    onRango?.(desde, hasta);
+  }, [onRango, desde, hasta]);
 
   /* El separador de arriba se pinta siempre, aunque mida cero: es de donde
      sale el contenedor con la barra de desplazamiento. Cuando solo existía

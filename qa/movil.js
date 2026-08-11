@@ -116,6 +116,21 @@ async function abrirCanales(p) {
   await p.locator(".pa-bottomnav-item:has-text('Cine')").click();
   await p.waitForSelector(".pa-card", { timeout: 20000 });
 
+  /* Los géneros, que en el móvil no había forma de tocar: la columna de la
+     izquierda se escondía y con ella el único filtro. Ahora son chips */
+  const chips = await p.locator(".pa-chip").allInnerTexts();
+  check("En el móvil los géneros son chips", chips.length >= 2, chips.join(" | "));
+  const altoChip = await p.locator(".pa-chip").first().evaluate((e) => Math.round(e.getBoundingClientRect().height));
+  check("Con tamaño de dedo", altoChip >= 36, `${altoChip}px`);
+  const todas = await p.locator(".pa-card").count();
+  await p.locator(".pa-chip").last().click();
+  await p.waitForTimeout(600);
+  const filtradas = await p.locator(".pa-card").count();
+  check("Y el chip filtra de verdad", filtradas >= 1 && filtradas <= todas, `${todas} → ${filtradas}`);
+  check("Quedando marcado el elegido", (await p.locator(".pa-chip.activo").count()) === 1);
+  await p.locator(".pa-chip:has-text('Todo')").first().click();
+  await p.waitForTimeout(400);
+
   /* La ficha de una película se apilaba bien en el móvil, pero sus botones
      seguían con las medidas del escritorio: el aspa 36px y «Reproducir»
      41px. Son los únicos controles que tiene esa pantalla. */
