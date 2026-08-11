@@ -59,6 +59,39 @@ Tres cosas se pueden enseñar mañana porque el dato ya está pedido y se tira:
 | Ajustes | Interruptores agrupados, con icono en cuadro de color | No existe |
 | Descargas | Barra de almacenamiento y estado por título | No existe |
 
+### Y las de la misma aplicación en un televisor
+
+Las de arriba eran de un teléfono. Estas son de la referencia corriendo en
+un Fire Stick, que es donde se juega el partido: es el aparato con el que
+el cliente ve la tele, y es la única de nuestras aplicaciones cuyo diseño
+viaja dentro y no se arregla desplegando la web.
+
+- **El carril de la tele no lleva etiquetas.** Solo iconos, en una columna
+  estrechísima —cabe de sobra en 70 px—, y la sección abierta se marca con
+  una línea corta debajo del icono. Nada de pastillas ni de texto: a tres
+  metros el icono ya se reconoce, y las palabras solo roban ancho a lo que
+  se ha venido a ver. Abajo del todo, separado, el avatar del perfil.
+- **Cine y series no son una lista de carpetas.** Son una portada: un héroe
+  a pantalla casi completa con el fondo del título, la nota en estrellas y
+  en número, los géneros, el reparto, la duración, el año, la edad
+  recomendada en una esquina, dos líneas de sinopsis, el botón grande de
+  reproducir, el círculo del porcentaje y los puntos del carrusel. Debajo,
+  las filas.
+- **La fila «En tendencia» va numerada del 1 al 10**, con el número enorme
+  ocupando media carátula y saliéndose del marco por abajo. La carátula con
+  el foco lleva el borde de color y el título aparece debajo; las demás van
+  sin título. La nota va en un chip de color en la esquina de arriba.
+- **La cabecera de la fila destacada es una pastilla sólida** con el texto
+  en oscuro —«EN TENDENCIA!»—, y las demás filas llevan su nombre en blanco
+  y a secas. No todas las filas pesan lo mismo.
+- **El arranque es su propia pantalla, con el carril ya puesto**, y cuenta
+  por dónde va con nombres de verdad: «Step 3: 2/2 · HBO». No es una barra
+  girando: es el catálogo cargándose y diciéndolo.
+- **Los perfiles**: «¿Quién está viendo ahora?», avatar redondo con anillo
+  de color y halo cuando tiene el foco, «Agregar perfil» en un círculo con
+  el borde punteado, y en las dos esquinas de arriba «Cerrar sesión» y
+  «Editar» en píldoras.
+
 ### Lo que enseñaron las capturas del reproductor
 
 Tres cosas que no estaban en la lista de arriba y que salieron al ver la
