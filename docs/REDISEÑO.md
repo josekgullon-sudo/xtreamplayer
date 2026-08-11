@@ -42,17 +42,43 @@ Tres cosas se pueden enseñar mañana porque el dato ya está pedido y se tira:
 
 | Pieza | Cómo es en la referencia | Cómo lo hacemos |
 |---|---|---|
+| Arranque | Pantalla propia con la marca, «Preparando categorías», cinco puntos de etapa y un porcentaje que sube | Nuevo: hoy hay mensajes que rotan solos y una barra que no mide nada |
 | Navegación en móvil | Cápsula flotante abajo, 5 destinos, icono en pastilla + etiqueta en color | Igual, en rojo de marca |
 | Navegación en tele y escritorio | Carril vertical de iconos a la izquierda: directo, cine, series, favoritos, historial, ajustes, buscar, recargar | Igual. Sustituye a las tres columnas de hoy |
-| Categorías | Columna con nombre y recuento | Igual |
+| Categorías | Fila alta con icono en cuadro, nombre y «N Canales» debajo, flecha a la derecha. En escritorio, columna | Igual |
+| Icono de categoría | Uno distinto según de qué va: silbato en deportes, guante en UFC, casco en F1, balón en fútbol, calendario en eventos, bebé en infantiles | Igual, deducido del nombre de la carpeta |
 | Chips | Fila arrastrable, activo sólido con texto oscuro | Igual |
 | Rejilla de canales | Logotipo grande sobre su color, nombre y **qué echan ahora** con punto rojo | Igual |
+| Ver como lista o como rejilla | Un botón al lado del buscador, dentro de la sección | Igual |
+| Reproductor de directo | Vídeo arriba sin comerse la pantalla, y debajo dos pestañas: **Canales** y **EPG**. Chip de calidad, «● LIVE» con la hora, PiP y AirPlay sobre el vídeo | Casi: hoy la lista está debajo, pero sin pestañas, sin EPG y sin chip de calidad |
 | Héroe de cine y series | Fondo del título, nota en chip, géneros, reparto, sinopsis de dos líneas, botón grande, porcentaje en círculo, puntos de carrusel | Igual |
-| Filas | Cabecera + «ver más», corazón arriba a la izquierda, nota arriba a la derecha | Igual |
+| Filas | Cabecera con icono en cuadro de color + «ver más» en píldora, corazón arriba a la izquierda, nota arriba a la derecha | Igual |
+| En tendencia | Las tres primeras con un número gigante encima de la carátula, medio salido del marco | Igual |
 | Historial | Dos columnas, barra de progreso, «continuar» | Nuevo: hoy solo hay «recientes» sin progreso |
 | Perfiles | Círculo con avatar, anillo de color, candado en el infantil, «editar» y «cerrar sesión» en las esquinas | Hoy es un cuadrado con la inicial |
 | Ajustes | Interruptores agrupados, con icono en cuadro de color | No existe |
 | Descargas | Barra de almacenamiento y estado por título | No existe |
+
+### Lo que enseñaron las capturas del reproductor
+
+Tres cosas que no estaban en la lista de arriba y que salieron al ver la
+aplicación funcionando, no en pantallas sueltas:
+
+- **El arranque es una pantalla, no un rato en blanco.** La referencia tarda
+  lo mismo que nosotros en bajar un catálogo grande, pero lo cuenta: dice en
+  qué está («Preparando categorías»), enseña cinco etapas y sube un
+  porcentaje. Nosotros tenemos frases que se van sucediendo solas y una barra
+  que se mueve sin medir nada — que es exactamente lo que hace pensar que se
+  ha colgado. Las etapas ya las sabemos: categorías, canales, cine, series.
+- **La categoría se reconoce por su icono antes que por su nombre.** En una
+  lista de sesenta carpetas, «DAZN - MOTO GP» y «DAZN | EVENTOS» son la misma
+  mancha de texto; con un casco y un calendario delante, no. El icono sale del
+  nombre de la carpeta, así que no hay que pedirle nada a nadie.
+- **Su barra inferior no lleva las mismas cinco cosas que la nuestra.** Ellos
+  ponen abajo *TV en vivo, Películas, Serie, Historial y Almacén*, y se llevan
+  favoritos y buscar a la cabecera. Nosotros llevamos *Directo, Guía, Cine,
+  Series y Favoritos*. Cuando lleguen el historial (4) y las descargas (8),
+  esa barra hay que rehacerla: no caben nueve destinos en una cápsula.
 
 ## El orden, y por qué
 
@@ -79,6 +105,17 @@ Tres cosas se pueden enseñar mañana porque el dato ya está pedido y se tira:
    y aquí los textos están escritos a pelo dentro de cada pantalla, en la web y
    en Android. Sacarlos todos a un sitio es lo que abre la puerta a vender a
    proveedores de fuera.
+
+Lo que salió de las capturas nuevas no reordena esto, se reparte dentro:
+el icono de categoría y el conmutador lista/rejilla van con el 2, que es
+cuando se toca esa pantalla; las pestañas Canales/EPG del reproductor de
+directo también. El arranque con porcentaje es lo único suelto —no
+pertenece a ninguno de los nueve— y es media tarde: se puede colar donde
+convenga.
+
+Y el punto 1 está hecho en el reproductor web y en la aplicación de
+televisión. **Falta en la aplicación nativa** (`apps/androidtv-nativo`), que
+sigue con la navegación de antes.
 
 ## Dónde se toca cada cosa
 
