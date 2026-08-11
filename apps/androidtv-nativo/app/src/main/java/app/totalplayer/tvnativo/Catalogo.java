@@ -91,6 +91,23 @@ public final class Catalogo {
         public String sinopsis = "";
         /** Año, género o lo que el proveedor mande: la línea de debajo. */
         public String extra = "";
+        /*
+         * Y lo mismo, pero desmenuzado.
+         *
+         * `extra` es una sola cadena con todo pegado por puntos, que vale
+         * para una línea debajo de un cartel y no vale para nada más: en la
+         * ficha cada dato quiere su sitio —la nota en un chip, la edad en
+         * otro, el reparto en su párrafo—. Se rellenan al abrir la ficha,
+         * que es cuando se le pregunta al proveedor por el detalle.
+         */
+        public String nota = "";
+        public String anio = "";
+        public String edad = "";
+        public String generos = "";
+        public String reparto = "";
+        public String duracion = "";
+        /** Si ya se le ha preguntado al proveedor por el detalle de este. */
+        public boolean detallePedido = false;
         public boolean esSerie = false;
         /** El número que le ha puesto el proveedor. Solo en el directo. */
         public int numero = 0;
@@ -283,7 +300,12 @@ public final class Catalogo {
 
     /** Rellena sinopsis y demás; si el proveedor no los da, se queda como estaba. */
     public static void detallePelicula(Item peli) {
-        if (!Sesion.actual().esXtream() || !peli.sinopsis.isEmpty()) return;
+        /* La guarda mira si YA se preguntó, no si hay sinopsis: algunos
+           paneles mandan la sinopsis en el listado y el resto —nota, año,
+           reparto, edad— solo en la ficha, y con la condición vieja esos
+           títulos se quedaban para siempre sin nada que enseñar */
+        if (!Sesion.actual().esXtream() || peli.detallePedido) return;
+        peli.detallePedido = true;
         try {
             JSONObject r = new JSONObject(pedir(
                     Sesion.actual().api() + "&action=get_vod_info&vod_id=" + Web.escapar(peli.id)));
@@ -294,6 +316,14 @@ public final class Catalogo {
             if (!portada.isEmpty()) peli.imagen = portada;
             String duracion = info.optString("duration", "");
             String genero = info.optString("genre", "");
+            /* Cada dato por su lado, además de la línea de siempre: la ficha
+               los coloca en su sitio y el cartel sigue usando `extra` */
+            peli.duracion = limpio(duracion);
+            peli.generos = limpio(genero);
+            peli.nota = limpio(info.optString("rating", ""));
+            peli.reparto = primero(limpio(info.optString("cast", "")), limpio(info.optString("actors", "")));
+            peli.edad = limpio(info.optString("age", ""));
+            peli.anio = anioDe(primero(info.optString("releasedate", ""), info.optString("release_date", "")));
             StringBuilder extra = new StringBuilder(peli.extra);
             if (!genero.isEmpty() && !"null".equals(genero)) {
                 if (extra.length() > 0) extra.append("  ·  ");
@@ -307,6 +337,20 @@ public final class Catalogo {
         } catch (Exception e) {
             // Una ficha sin sinopsis se sigue viendo; sin película, no
         }
+    }
+
+    /** El texto que manda el panel, o nada. Los paneles escriben «null». */
+    private static String limpio(String v) {
+        if (v == null) return "";
+        String t = v.trim();
+        return ("null".equals(t) || "0".equals(t) || "N/A".equalsIgnoreCase(t)) ? "" : t;
+    }
+
+    /** Los cuatro dígitos del año, de una fecha escrita como sea. */
+    private static String anioDe(String fecha) {
+        if (fecha == null) return "";
+        Matcher m = Pattern.compile("(19|20)\\d{2}").matcher(fecha);
+        return m.find() ? m.group() : "";
     }
 
     private static String primero(String a, String b) {
@@ -324,7 +368,19 @@ public final class Catalogo {
             JSONObject r = new JSONObject(pedir(
                     Sesion.actual().api() + "&action=get_series_info&series_id=" + Web.escapar(serie.id)));
             JSONObject info = r.optJSONObject("info");
-            if (info != null && serie.sinopsis.isEmpty()) serie.sinopsis = info.optString("plot", "");
+            if (info != null) {
+                if (serie.sinopsis.isEmpty()) serie.sinopsis = limpio(info.optString("plot", ""));
+                if (serie.nota.isEmpty()) serie.nota = limpio(info.optString("rating", ""));
+                if (serie.generos.isEmpty()) serie.generos = limpio(info.optString("genre", ""));
+                if (serie.reparto.isEmpty()) serie.reparto = limpio(info.optString("cast", ""));
+                if (serie.anio.isEmpty()) {
+                    serie.anio = anioDe(primero(info.optString("releaseDate", ""), info.optString("release_date", "")));
+                }
+                if (serie.duracion.isEmpty()) {
+                    String porEp = limpio(info.optString("episode_run_time", ""));
+                    if (!porEp.isEmpty()) serie.duracion = porEp + " min/ep";
+                }
+            }
             JSONObject porTemporada = r.optJSONObject("episodes");
             if (porTemporada != null) {
                 JSONArray temporadas = porTemporada.names();

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El mismo corazón, relleno: marcado -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M12 20.5C12 20.5 3 15 3 8.9 3 6.2 5.1 4 7.7 4c1.8 0 3.4 1 4.3 2.5C12.9 5 14.5 4 16.3 4 18.9 4 21 6.2 21 8.9c0 6.1-9 11.6-9 11.6Z"
+        android:fillColor="#FFFFFF" />
+</vector>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Los datos sueltos de la ficha —nota, año, edad, géneros, calidad— cada
+     uno en su píldora. Antes iban todos pegados en una línea de texto -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/encima" />
+    <corners android:radius="999dp" />
+</shape>

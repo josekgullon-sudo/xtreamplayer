@@ -75,6 +75,96 @@
                         android:maxLines="2"
                         android:ellipsize="end" />
 
+
+                    <!--
+                      Los datos, cada uno en su chip.
+
+                      Antes era una sola línea con todo pegado por puntos:
+                      «2022 · Sci-Fi & Fantasy, Drama · 60 min». Se leía como
+                      un pie de foto y no como lo que es —cinco datos
+                      distintos—, y el que más se busca, la nota, quedaba
+                      escondido en medio. Los que el proveedor no manda no se
+                      pintan, en vez de dejar el hueco o un cero.
+                    -->
+                    <LinearLayout
+                        android:id="@+id/chips"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="14dp">
+
+                        <TextView
+                            android:id="@+id/chipNota"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/chip_ficha"
+                            android:paddingStart="14dp"
+                            android:paddingEnd="14dp"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"
+                            android:textColor="@color/texto"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/chipAnio"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/chip_ficha"
+                            android:paddingStart="14dp"
+                            android:paddingEnd="14dp"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"
+                            android:textColor="@color/texto"
+                            android:textSize="15sp"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/chipEdad"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/chip_ficha"
+                            android:paddingStart="14dp"
+                            android:paddingEnd="14dp"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"
+                            android:textColor="@color/texto"
+                            android:textSize="15sp"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/chipDuracion"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/chip_ficha"
+                            android:paddingStart="14dp"
+                            android:paddingEnd="14dp"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"
+                            android:textColor="@color/texto"
+                            android:textSize="15sp"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/chipCalidad"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/chip_calidad"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:paddingTop="5dp"
+                            android:paddingBottom="5dp"
+                            android:textColor="@color/apagado"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
                     <TextView
                         android:id="@+id/datos"
                         android:layout_width="match_parent"
@@ -94,11 +184,61 @@
                         android:ellipsize="end"
                         android:layout_marginTop="18dp" />
 
+
+                    <!-- Elenco y géneros, con su etiqueta en color: son dos
+                         listas de nombres y sin rótulo se leen como una -->
+                    <TextView
+                        android:id="@+id/rotuloElenco"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Elenco"
+                        android:textColor="@color/marca_viva"
+                        android:textSize="17sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="18dp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/elenco"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/apagado"
+                        android:textSize="16sp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:layout_marginTop="4dp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/rotuloGeneros"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Géneros"
+                        android:textColor="@color/marca_viva"
+                        android:textSize="17sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="14dp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/generos"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/apagado"
+                        android:textSize="16sp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:layout_marginTop="4dp"
+                        android:visibility="gone" />
+
+                    <!-- Reproducir, el corazón aparte y el círculo de la
+                         nota, como en la referencia -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginTop="26dp">
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="24dp">
 
                         <Button
                             android:id="@+id/botonVer"
@@ -111,6 +251,55 @@
                             android:textStyle="bold"
                             android:textAllCaps="false"
                             android:background="@drawable/boton" />
+
+                        <ImageView
+                            android:id="@+id/botonFavorito"
+                            android:layout_width="58dp"
+                            android:layout_height="58dp"
+                            android:layout_marginStart="14dp"
+                            android:padding="16dp"
+                            android:background="@drawable/circulo_accion"
+                            android:src="@drawable/ic_corazon"
+                            android:tint="@color/apagado"
+                            android:focusable="true"
+                            android:clickable="true"
+                            android:contentDescription="Favorito" />
+
+                        <FrameLayout
+                            android:id="@+id/bloqueNota"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="20dp"
+                            android:visibility="gone">
+
+                            <ProgressBar
+                                android:id="@+id/anilloNota"
+                                style="?android:attr/progressBarStyleHorizontal"
+                                android:layout_width="62dp"
+                                android:layout_height="62dp"
+                                android:indeterminate="false"
+                                android:max="100"
+                                android:progressDrawable="@drawable/anillo_nota" />
+
+                            <TextView
+                                android:id="@+id/textoNota"
+                                android:layout_width="62dp"
+                                android:layout_height="62dp"
+                                android:gravity="center"
+                                android:textColor="@color/texto"
+                                android:textSize="17sp"
+                                android:textStyle="bold" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:id="@+id/pieNota"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Calificación de\nlos usuarios"
+                            android:textColor="@color/apagado"
+                            android:textSize="14sp"
+                            android:visibility="gone" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>

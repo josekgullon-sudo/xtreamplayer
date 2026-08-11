@@ -87,6 +87,15 @@ viaja dentro y no se arregla desplegando la web.
 - **El arranque es su propia pantalla, con el carril ya puesto**, y cuenta
   por dónde va con nombres de verdad: «Step 3: 2/2 · HBO». No es una barra
   girando: es el catálogo cargándose y diciéndolo.
+- **La ficha de un título** es una pantalla entera, no una ventana: el
+  cartel vertical a la izquierda, el título en grande, y debajo una fila de
+  chips con la nota, el año, la edad, los géneros y la calidad. Luego dos
+  líneas de sinopsis y dos bloques etiquetados en color —«Elenco» y
+  «Géneros»— con los nombres separados por puntos. La fila de acciones lleva
+  «Reproducir desde el inicio», el corazón en un círculo aparte y el círculo
+  del porcentaje. En una serie, debajo va el selector de temporada en una
+  píldora y la lista de episodios con su miniatura, su número, su título, su
+  sinopsis y su duración. De fondo, la imagen del título difuminada.
 - **Los perfiles**: «¿Quién está viendo ahora?», avatar redondo con anillo
   de color y halo cuando tiene el foco, «Agregar perfil» en un círculo con
   el borde punteado, y en las dos esquinas de arriba «Cerrar sesión» y

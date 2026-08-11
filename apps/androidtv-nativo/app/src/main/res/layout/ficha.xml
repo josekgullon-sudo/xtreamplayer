@@ -52,6 +52,81 @@
                 android:ellipsize="end"
                 android:layout_marginTop="18dp" />
 
+
+            <!--
+              Los mismos datos que en la tele y en el mismo orden, pero en
+              una fila que se arrastra: cinco píldoras no caben en los 360
+              puntos de un móvil y partirlas en dos líneas descoloca todo lo
+              que va debajo.
+            -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:layout_marginTop="12dp">
+
+                <LinearLayout
+                    android:id="@+id/chips"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/chipNota"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/chip_ficha"
+                        android:paddingStart="12dp" android:paddingEnd="12dp"
+                        android:paddingTop="5dp" android:paddingBottom="5dp"
+                        android:textColor="@color/texto" android:textSize="13sp"
+                        android:textStyle="bold" android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/chipAnio"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/chip_ficha"
+                        android:paddingStart="12dp" android:paddingEnd="12dp"
+                        android:paddingTop="5dp" android:paddingBottom="5dp"
+                        android:textColor="@color/texto" android:textSize="13sp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/chipEdad"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/chip_ficha"
+                        android:paddingStart="12dp" android:paddingEnd="12dp"
+                        android:paddingTop="5dp" android:paddingBottom="5dp"
+                        android:textColor="@color/texto" android:textSize="13sp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/chipDuracion"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/chip_ficha"
+                        android:paddingStart="12dp" android:paddingEnd="12dp"
+                        android:paddingTop="5dp" android:paddingBottom="5dp"
+                        android:textColor="@color/texto" android:textSize="13sp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/chipCalidad"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/chip_calidad"
+                        android:paddingStart="10dp" android:paddingEnd="10dp"
+                        android:paddingTop="4dp" android:paddingBottom="4dp"
+                        android:textColor="@color/apagado" android:textSize="12sp"
+                        android:textStyle="bold" android:visibility="gone" />
+                </LinearLayout>
+            </HorizontalScrollView>
             <TextView
                 android:id="@+id/datos"
                 android:layout_width="match_parent"
@@ -61,17 +136,118 @@
                 android:textSize="14sp"
                 android:layout_marginTop="8dp" />
 
-            <Button
-                android:id="@+id/botonVer"
+
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:text="Ver ahora"
-                android:textColor="@color/texto"
-                android:textSize="16sp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="18dp">
+
+                <Button
+                    android:id="@+id/botonVer"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="54dp"
+                    android:text="Ver ahora"
+                    android:textColor="@color/texto"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textAllCaps="false"
+                    android:background="@drawable/boton" />
+
+                <ImageView
+                    android:id="@+id/botonFavorito"
+                    android:layout_width="54dp"
+                    android:layout_height="54dp"
+                    android:layout_marginStart="10dp"
+                    android:padding="15dp"
+                    android:background="@drawable/circulo_accion"
+                    android:src="@drawable/ic_corazon"
+                    android:tint="@color/apagado"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Favorito" />
+
+                <FrameLayout
+                    android:id="@+id/bloqueNota"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:visibility="gone">
+
+                    <ProgressBar
+                        android:id="@+id/anilloNota"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="54dp"
+                        android:layout_height="54dp"
+                        android:indeterminate="false"
+                        android:max="100"
+                        android:progressDrawable="@drawable/anillo_nota" />
+
+                    <TextView
+                        android:id="@+id/textoNota"
+                        android:layout_width="54dp"
+                        android:layout_height="54dp"
+                        android:gravity="center"
+                        android:textColor="@color/texto"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                </FrameLayout>
+
+                <!-- En el móvil el rótulo del porcentaje no cabe al lado, y
+                     el círculo con su número ya se entiende solo -->
+                <TextView
+                    android:id="@+id/pieNota"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:text="Calificación de los usuarios"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/rotuloElenco"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Elenco"
+                android:textColor="@color/marca_viva"
+                android:textSize="15sp"
                 android:textStyle="bold"
-                android:textAllCaps="false"
-                android:background="@drawable/boton"
-                android:layout_marginTop="18dp" />
+                android:layout_marginTop="16dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/elenco"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/apagado"
+                android:textSize="14sp"
+                android:maxLines="3"
+                android:ellipsize="end"
+                android:layout_marginTop="3dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/rotuloGeneros"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Géneros"
+                android:textColor="@color/marca_viva"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:layout_marginTop="12dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/generos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/apagado"
+                android:textSize="14sp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:layout_marginTop="3dp"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/sinopsis"

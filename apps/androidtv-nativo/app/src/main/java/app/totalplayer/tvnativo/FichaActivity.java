@@ -54,14 +54,144 @@ public class FichaActivity extends Activity {
         girando = findViewById(R.id.girando);
 
         titulo.setText(ficha.nombre);
-        datos.setText(ficha.extra);
-        datos.setVisibility(ficha.extra.isEmpty() ? View.GONE : View.VISIBLE);
+        /* `datos` se queda para lo que de verdad hace falta contar —un error
+           al pedir los episodios, sobre todo—, no para la ficha: eso ahora
+           son chips y bloques con su rótulo */
+        datos.setVisibility(View.GONE);
+        pintarDatos();
         pintarSinopsis();
+        prepararFavorito();
         Imagenes.cargar(cartel, ficha.imagen, ficha.esSerie ? R.drawable.ic_series : R.drawable.ic_cine);
         Imagenes.cargar((ImageView) findViewById(R.id.fondo), ficha.imagen, android.R.color.transparent);
 
         if (ficha.esSerie) prepararSerie();
         else prepararPelicula();
+    }
+
+    /**
+     * Los datos del título, cada uno en su sitio.
+     *
+     * Lo que el proveedor no manda no se pinta. Un chip vacío o un «0» de
+     * nota es peor que no decir nada: parece que la película está sin
+     * valorar cuando lo que pasa es que ese panel no manda valoraciones.
+     */
+    private void pintarDatos() {
+        chip(R.id.chipNota, ficha.nota.isEmpty() ? "" : "★ " + ficha.nota);
+        chip(R.id.chipAnio, ficha.anio);
+        chip(R.id.chipEdad, ficha.edad);
+        chip(R.id.chipDuracion, ficha.duracion);
+        chip(R.id.chipCalidad, calidadDe(ficha.nombre));
+
+        rotulado(R.id.rotuloElenco, R.id.elenco, conPuntos(ficha.reparto));
+        rotulado(R.id.rotuloGeneros, R.id.generos, conPuntos(ficha.generos));
+
+        pintarNota();
+    }
+
+    /**
+     * El círculo del porcentaje.
+     *
+     * La nota viene de 0 a 10 y aquí se enseña de 0 a 100, que es como la
+     * lee cualquiera que venga de otra aplicación. Sin nota no se pinta el
+     * círculo: un 0% dice algo que no sabemos.
+     */
+    private void pintarNota() {
+        double n;
+        try {
+            n = Double.parseDouble(ficha.nota.replace(',', '.'));
+        } catch (Exception noEsUnNumero) {
+            return;
+        }
+        if (n <= 0) return;
+        /* Algunos paneles la mandan ya sobre 100 */
+        int porciento = (int) Math.round(n > 10 ? n : n * 10);
+        if (porciento > 100) porciento = 100;
+        ProgressBar anillo = findViewById(R.id.anilloNota);
+        if (anillo != null) anillo.setProgress(porciento);
+        TextView texto = findViewById(R.id.textoNota);
+        if (texto != null) texto.setText(porciento + "%");
+        View bloque = findViewById(R.id.bloqueNota);
+        if (bloque != null) bloque.setVisibility(View.VISIBLE);
+        View pie = findViewById(R.id.pieNota);
+        if (pie != null && pie.getLayoutParams() != null && pie.getLayoutParams().width != 0) {
+            pie.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /** El corazón: marca y desmarca, y nace sabiendo cómo está. */
+    private void prepararFavorito() {
+        final ImageView corazon = findViewById(R.id.botonFavorito);
+        if (corazon == null) return;
+        pintarCorazon(corazon, Favoritos.marcados(this).contains(ficha.id));
+        corazon.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                pintarCorazon(corazon, Favoritos.alternar(FichaActivity.this, ficha));
+            }
+        });
+    }
+
+    private void pintarCorazon(ImageView corazon, boolean marcado) {
+        corazon.setImageResource(marcado ? R.drawable.ic_corazon_lleno : R.drawable.ic_corazon);
+        corazon.setColorFilter(getResources().getColor(marcado ? R.color.marca_viva : R.color.apagado));
+    }
+
+    /** Pone un chip, o lo deja escondido si no hay nada que poner. */
+    private void chip(int id, String valor) {
+        TextView v = findViewById(id);
+        if (v == null) return;
+        if (valor == null || valor.trim().isEmpty()) {
+            v.setVisibility(View.GONE);
+            return;
+        }
+        v.setText(valor.trim());
+        v.setVisibility(View.VISIBLE);
+    }
+
+    /** Un bloque con su rótulo de color: o se ven los dos, o ninguno. */
+    private void rotulado(int idRotulo, int idTexto, String valor) {
+        View rotulo = findViewById(idRotulo);
+        TextView texto = findViewById(idTexto);
+        boolean hay = valor != null && !valor.trim().isEmpty();
+        if (rotulo != null) rotulo.setVisibility(hay ? View.VISIBLE : View.GONE);
+        if (texto != null) {
+            texto.setText(hay ? valor.trim() : "");
+            texto.setVisibility(hay ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    /**
+     * «Matt Smith, Emma D'Arcy» → «Matt Smith • Emma D'Arcy».
+     *
+     * Los paneles los separan por comas y los nombres compuestos también
+     * llevan comas dentro a veces; el punto medio deja claro dónde acaba
+     * cada uno y es lo que hace la referencia.
+     */
+    private String conPuntos(String lista) {
+        if (lista == null || lista.trim().isEmpty()) return "";
+        String[] trozos = lista.split("\\s*,\\s*");
+        StringBuilder sb = new StringBuilder();
+        for (String t : trozos) {
+            if (t.trim().isEmpty()) continue;
+            if (sb.length() > 0) sb.append("  •  ");
+            sb.append(t.trim());
+        }
+        return sb.toString();
+    }
+
+    /**
+     * La calidad, sacada del nombre.
+     *
+     * No hay ningún campo para esto: los proveedores la escriben dentro del
+     * título —«La casa del dragón FHD», «[4K] Obsesión»— y en la lista queda
+     * como ruido. Aquí se saca a su chip.
+     */
+    private String calidadDe(String nombre) {
+        String n = nombre == null ? "" : nombre.toUpperCase(java.util.Locale.ROOT);
+        if (n.contains("4K") || n.contains("UHD") || n.contains("2160")) return "4K";
+        if (n.contains("FHD") || n.contains("1080")) return "FHD";
+        if (n.contains("HD")) return "HD";
+        if (n.contains("SD")) return "SD";
+        return "";
     }
 
     private void pintarSinopsis() {
@@ -93,8 +223,8 @@ public class FichaActivity extends Activity {
         }, new Hilos.Luego<Boolean>() {
             @Override public void listo(Boolean b) {
                 pintarSinopsis();
-                datos.setText(ficha.extra);
-                datos.setVisibility(ficha.extra.isEmpty() ? View.GONE : View.VISIBLE);
+                /* La nota, el reparto y el año llegan en esa misma respuesta */
+                pintarDatos();
                 Imagenes.cargar(cartel, ficha.imagen, R.drawable.ic_cine);
             }
             @Override public void falla(Exception e) { /* la ficha ya se ve */ }
@@ -117,6 +247,8 @@ public class FichaActivity extends Activity {
             @Override public void listo(List<Catalogo.Episodio> lista) {
                 girando.setVisibility(View.GONE);
                 pintarSinopsis();
+                /* La nota, el reparto y el año llegan en esa misma respuesta */
+                pintarDatos();
                 if (lista.isEmpty()) {
                     botonVer.setVisibility(View.GONE);
                     bloqueSerie.setVisibility(View.GONE);

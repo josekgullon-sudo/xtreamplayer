@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El círculo del porcentaje de la ficha.
+
+  Un anillo de fondo y otro que se rellena según la nota, como el de la
+  referencia. Va con un ProgressBar corriente en vez de con una vista
+  dibujada a mano: es lo que ya sabe animar y redondear Android, y una
+  clase propia para pintar un arco es código que hay que mantener.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape android:shape="ring" android:innerRadiusRatio="3.4" android:thicknessRatio="11" android:useLevel="false">
+            <solid android:color="@color/encima" />
+        </shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <rotate android:fromDegrees="270" android:toDegrees="270" android:pivotX="50%" android:pivotY="50%">
+            <shape android:shape="ring" android:innerRadiusRatio="3.4" android:thicknessRatio="11" android:useLevel="true">
+                <solid android:color="@color/marca_viva" />
+            </shape>
+        </rotate>
+    </item>
+</layer-list>
