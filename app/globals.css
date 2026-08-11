@@ -1714,7 +1714,21 @@ select.input { appearance: none; cursor: pointer; }
   border-radius: 0.6vw; background: rgba(0, 0, 0, 0.4);
 }
 .tv-fila-ph { display: flex; align-items: center; justify-content: center; font-size: 1.4vw; }
-.tv-fila-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tv-fila-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.3vh; }
+.tv-fila-nombre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Qué echan ahora, en la tele. Con un mando, asomarse a un canal y volver
+   cuesta cuatro pulsaciones: sin esta línea se elige a ciegas */
+.tv-fila-ahora {
+  display: flex; align-items: center; gap: 0.6vw;
+  font-size: 1.05vw; color: rgba(255, 255, 255, 0.55);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tv-punto {
+  width: 0.55vw; height: 0.55vw; max-width: 10px; max-height: 10px;
+  border-radius: 50%; flex-shrink: 0; background: var(--accent-bright);
+}
+.tv-fila.foco .tv-fila-ahora { color: rgba(255, 255, 255, 0.8); }
 
 /* ---- Cine y series: carátulas grandes, como en cualquier tele ----
    Una lista de nombres obliga a leer; una pared de carátulas se mira. Las
@@ -1957,6 +1971,9 @@ select.input { appearance: none; cursor: pointer; }
 .pa-live-cat.activa .pa-cat-icono {
   color: var(--accent-bright); border-color: var(--accent-tint-strong); background: var(--accent-tint-soft);
 }
+.pa-cat-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* En el escritorio manda la pastilla del número, que ocupa menos */
+.pa-cat-cuantos, .pa-cat-flecha { display: none; }
 
 .pa-live-chan {
   display: flex; align-items: center; gap: 11px; width: 100%;
@@ -2108,6 +2125,31 @@ select.input { appearance: none; cursor: pointer; }
   .pa-live.con-video .pa-live-chans .pa-live-head { display: none; }
   .pa-live-atras { display: inline-flex; }
   .pa-live-scroll { padding: 6px 10px 90px; }
+
+  /*
+   * La carpeta, en el móvil, es una tarjeta y no un renglón.
+   *
+   * Es la pantalla por la que se entra al directo y lo único que hay en
+   * ella: sesenta renglones de 40 px con un número en una pastilla no dan
+   * ninguna pista de qué hay dentro y se fallan al pulsar. Alta, con el
+   * icono en su cuadro, cuántos canales trae escrito y la flecha de que
+   * lleva a algún sitio.
+   */
+  .pa-live-cats .pa-live-cat {
+    min-height: 64px; padding: 12px 14px; gap: 12px; margin-bottom: 6px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-quiet); border: 1px solid var(--hairline);
+    font-size: 15px;
+  }
+  .pa-live-cats .pa-live-cat .pa-cat-icono { width: 40px; height: 40px; border-radius: 11px; }
+  .pa-live-cats .pa-live-cat .pa-cat-icono svg { width: 20px; height: 20px; }
+  .pa-cat-cuantos { display: block; font-size: 12.5px; font-weight: 500; color: var(--text-faint); }
+  .pa-cat-flecha { display: block; color: var(--text-faint); flex-shrink: 0; }
+  /* El número ya está escrito debajo del nombre: la pastilla sobra */
+  .pa-live-cats .pa-live-cat .pa-live-n { display: none; }
+  /* «Todos los canales» y «Seguir viendo» no llevan icono ni cuenta: sin
+     esto se quedaban con el hueco del icono a la izquierda */
+  .pa-live-cats .pa-live-cat:not(:has(.pa-cat-icono)) { min-height: 52px; }
   .pa-live-stage .pa-video-zone { flex: none; aspect-ratio: 16/9; }
   .pa-live-titulo { padding: 11px 14px; }
   .pa-live-titulo h2 { font-size: 15.5px; }

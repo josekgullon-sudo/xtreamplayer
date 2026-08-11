@@ -1785,8 +1785,17 @@ export default function PlayerApp() {
                 title={g.name}
               >
                 <span className="pa-cat-icono"><Icon name={iconoDeCategoria(g.name)} size={16} /></span>
-                <span className="name">{g.name}</span>
+                <span className="pa-cat-txt">
+                  <span className="name">{g.name}</span>
+                  {/* Cuántos hay dentro, escrito. En el escritorio cabe la
+                      pastilla del número; en el móvil, donde la fila es alta
+                      y hay sitio, se dice con todas las letras */}
+                  <span className="pa-cat-cuantos">
+                    {g.channels.length} {g.channels.length === 1 ? "canal" : "canales"}
+                  </span>
+                </span>
                 <span className="pa-live-n">{g.channels.length}</span>
+                <Icon name="chevronRight" size={16} className="pa-cat-flecha" />
               </button>
             ))}
             {!liveGroups.length && !loading && (

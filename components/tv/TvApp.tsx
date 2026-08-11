@@ -5,6 +5,7 @@ import Icon, { IconName } from "@/components/Icon";
 import VideoPlayer, { PlaySource } from "@/components/player/VideoPlayer";
 import { parseM3U } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
+import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
 import {
   Fuente,
@@ -16,6 +17,7 @@ import {
   XtreamSeries,
   XtreamSeriesInfo,
   xtreamApi,
+  decodeBase64Maybe,
 } from "@/lib/xtream";
 
 /**
@@ -67,6 +69,15 @@ interface Fila {
    * importa de ellos es el nombre y el número.
    */
   caratula?: boolean;
+  /** El dibujo de la carpeta, deducido de su nombre. Ver lib/categorias. */
+  icono?: IconName;
+  /**
+   * El número de canal en el panel, para pedirle su guía.
+   *
+   * Solo lo llevan los canales de directo de una lista Xtream: son los
+   * únicos de los que hay algo que contar sobre «qué echan ahora».
+   */
+  epgId?: string;
   /** Qué hacer al pulsar OK: reproducir, o abrir la lista de episodios */
   abrir: () => void;
 }
@@ -274,6 +285,15 @@ export default function TvApp() {
    * la lista siempre arriba del todo.
    */
   const [focoCarril, setFocoCarril] = useState<number | null>(null);
+  /**
+   * Qué echan ahora en cada canal de la carpeta abierta.
+   *
+   * En una tele es donde más falta hace: con el mando no hay forma barata de
+   * asomarse a un canal y volver, así que sin esto se elige a ciegas por el
+   * nombre. Solo de la carpeta abierta y de los primeros, que es hasta donde
+   * llega la vista antes de empezar a bajar.
+   */
+  const [epgAhora, setEpgAhora] = useState<Record<string, string>>({});
   /*
    * Y el mismo dato en una caja que el mando pueda leer siempre.
    *
@@ -567,6 +587,7 @@ export default function TvApp() {
           nombre: `${titulo}  (${suyos.length})`,
           logo: "",
           carpeta: true,
+          icono: iconoDeCategoria(titulo),
           abrir: () => entrarEnCarpeta(titulo, suyos.map(aFila)),
         };
       });
@@ -609,6 +630,7 @@ export default function TvApp() {
               nombre: `${grupo}  (${suyos.length})`,
               logo: "",
               carpeta: true,
+              icono: iconoDeCategoria(grupo),
               abrir: () =>
                 entrarEnCarpeta(
                   grupo,
@@ -637,6 +659,7 @@ export default function TvApp() {
               id: `live-${c.stream_id}`,
               nombre: c.name,
               logo: c.stream_icon || "",
+              epgId: String(c.stream_id),
               abrir: async () =>
                 reproducir({
                   ...(await pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) })),
@@ -815,6 +838,52 @@ export default function TvApp() {
     setPantalla("portada");
     setFilas([]);
   }
+
+  /*
+   * Las guías de los canales de la carpeta abierta.
+   *
+   * De seis en seis y hasta cuarenta: en una tele caben doce filas en
+   * pantalla, y una carpeta de noventa canales no justifica noventa
+   * peticiones al panel para enseñar las doce que se ven. Se vacía al
+   * cambiar de carpeta, que es cuando dejan de valer.
+   */
+  useEffect(() => {
+    setEpgAhora({});
+    if (pantalla !== "directo" || !creds || lista?.tipo !== "xtream") return;
+    const ids = filas.map((f) => f.epgId).filter((id): id is string => Boolean(id)).slice(0, 40);
+    if (!ids.length) return;
+
+    let cancelado = false;
+    (async () => {
+      for (let i = 0; i < ids.length && !cancelado; i += 6) {
+        const tanda = ids.slice(i, i + 6);
+        const hechas = await Promise.all(
+          tanda.map(async (id) => {
+            try {
+              const res = await xtreamApi<{ epg_listings?: { title?: string }[] }>(
+                creds,
+                "get_short_epg",
+                { stream_id: id, limit: "1" }
+              );
+              return [id, decodeBase64Maybe(res.epg_listings?.[0]?.title) || ""] as const;
+            } catch {
+              return [id, ""] as const;
+            }
+          })
+        );
+        if (cancelado) return;
+        setEpgAhora((prev) => {
+          const siguiente = { ...prev };
+          for (const [id, titulo] of hechas) siguiente[id] = titulo;
+          return siguiente;
+        });
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pantalla, filas, lista]);
 
   const ultimaLista = useRef<Pantalla>("directo");
   useEffect(() => {
@@ -1209,14 +1278,25 @@ export default function TvApp() {
             >
               <span className="tv-fila-n">{String(i + 1).padStart(3, "0")}</span>
               {f.carpeta ? (
-                <span className="tv-fila-ph"><Icon name="globe" size={20} /></span>
+                <span className="tv-fila-ph"><Icon name={f.icono || "globe"} size={20} /></span>
               ) : imgSrc(f.logo) ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={imgSrc(f.logo)} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
               ) : (
                 <span className="tv-fila-ph">{f.nombre.trim().slice(0, 1).toUpperCase()}</span>
               )}
-              <span className="tv-fila-nombre">{f.nombre}</span>
+              <span className="tv-fila-txt">
+                <span className="tv-fila-nombre">{f.nombre}</span>
+                {/* Qué echan ahora: con un mando, asomarse a un canal y
+                    volver cuesta cuatro pulsaciones, así que sin esto se
+                    elige a ciegas por el nombre */}
+                {f.epgId && epgAhora[f.epgId] && (
+                  <span className="tv-fila-ahora">
+                    <span className="tv-punto" aria-hidden="true" />
+                    {epgAhora[f.epgId]}
+                  </span>
+                )}
+              </span>
             </button>
           ),
         )}
