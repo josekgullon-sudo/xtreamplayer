@@ -90,6 +90,29 @@
   --header-h: 66px;
 
   /*
+   * El armazón del reproductor: el carril de iconos de la izquierda y la
+   * franja de arriba del móvil. Están aquí y no dentro de sus reglas porque
+   * el alto y el ancho de las columnas se calculan restándolos, y dos
+   * números que tienen que cuadrar no pueden vivir en dos sitios.
+   *
+   * `--tira` vale cero en escritorio: allí no hay franja superior, manda el
+   * carril, y las columnas llegan hasta arriba.
+   */
+  --carril: 78px;
+  --carril-icono: 40px;
+  --tira: 0px;
+  --capsula: 66px;
+
+  /*
+   * Cristal: el material del que están hechos el carril, la cápsula de abajo
+   * y el buscador. Flotan sobre el contenido en vez de recortarle un trozo
+   * de pantalla, y por eso dejan ver algo de lo que pasa por debajo.
+   */
+  --cristal: rgba(46, 43, 57, 0.82);
+  --cristal-borde: rgba(255, 255, 255, 0.10);
+  --cristal-sombra: 0 18px 44px rgba(0, 0, 0, 0.46);
+
+  /*
    * Las líneas de separación se ven: al 7% no dibujaban nada y las tarjetas
    * flotaban sin contorno sobre el fondo, que es de donde venía la sensación
    * de «todo negro, me pierdo».
@@ -741,23 +764,47 @@ select.input { appearance: none; cursor: pointer; }
   /* Viendo un canal: vídeo arriba (sin comerse la pantalla) y zapeo debajo */
   .pa-video-zone { aspect-ratio: 16/9; max-height: 42vh; flex: none; }
 
+  /*
+   * La barra ya no es un zócalo pegado al borde: es una cápsula que flota
+   * sobre el contenido, separada de los tres lados. Pegada abajo, en un
+   * móvil con gesto de inicio, el último botón cae justo donde el sistema
+   * pone su propia barra; y visualmente convertía el fondo de la pantalla
+   * en un mueble en vez de en contenido que sigue.
+   */
   .pa-bottomnav {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    position: fixed; z-index: 40;
+    left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom));
     display: flex; justify-content: space-around; align-items: stretch;
-    background: var(--bg-blur);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
-    border-top: 1px solid var(--hairline-strong);
-    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    background: var(--cristal);
+    backdrop-filter: blur(22px) saturate(170%);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    border: 1px solid var(--cristal-borde);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--cristal-sombra);
+    padding: 7px 6px;
   }
   .pa-bottomnav-item {
-    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-    padding: 7px 4px; min-height: 52px; max-width: 120px;
-    background: none; border: none; cursor: pointer; border-radius: 12px;
-    color: var(--text-faint); font-size: 11px; font-weight: 600;
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 0; min-height: 52px; max-width: 120px;
+    background: none; border: none; cursor: pointer; border-radius: var(--radius-pill);
+    color: var(--text-faint); font-size: 10.5px; font-weight: 600;
     transition: color 0.15s;
   }
+  /*
+   * El icono va dentro de su propia pastilla y es ella la que se enciende,
+   * no el botón entero: así la sección activa se ve de un vistazo desde
+   * lejos —una mancha de color entre cinco iconos apagados— sin que la
+   * barra parezca que tiene un botón hundido.
+   */
+  .pa-bottomnav-pastilla {
+    display: flex; align-items: center; justify-content: center;
+    width: 52px; height: 30px; border-radius: var(--radius-pill);
+    transition: background 0.16s, color 0.16s;
+  }
   .pa-bottomnav-item.active { color: var(--accent-bright); }
+  .pa-bottomnav-item.active .pa-bottomnav-pastilla {
+    background: var(--accent-tint-strong); color: var(--accent-bright);
+  }
   .pa-bottomnav-item:active { color: var(--text); }
 }
 
@@ -816,9 +863,17 @@ select.input { appearance: none; cursor: pointer; }
 .tv-mode .pa-live-num { font-size: 16px; min-width: 34px; }
 .tv-mode .pa-live-cat { font-size: 21px; padding: 16px 18px; min-height: 64px; }
 .tv-mode .pa-live-head { font-size: 17px; }
-.tv-mode .pa-nav-item { padding: 12px 18px; font-size: 18px; }
+/* El carril, a tres metros: iconos y etiquetas que se leen desde el sofá.
+   `:root.tv-mode` y no `.tv-mode` a secas: así gana al ajuste por ancho de
+   los portátiles, que en un televisor de 1280 px no viene a cuento */
+:root.tv-mode { --carril: 128px; --carril-icono: 66px; }
+.tv-mode .pa-rail { padding: 16px 10px 18px; gap: 8px; }
+.tv-mode .pa-rail-item { font-size: 16px; padding: 8px 2px; }
+.tv-mode .pa-rail-icono { border-radius: 20px; }
 .tv-mode .pa-tab { padding: 12px 8px; font-size: 17px; }
-.tv-mode .pa-nav-busca input { font-size: 18px; padding-top: 12px; padding-bottom: 12px; }
+.tv-mode .pa-busca .input { font-size: 20px; height: 48px; }
+.tv-mode .pa-listas { width: 380px; }
+.tv-mode .pa-listas-item, .tv-mode .pa-listas-acc { font-size: 19px; padding: 14px 12px; }
 .tv-mode .pa-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 22px; padding: 28px; }
 .tv-mode .pa-card .title { font-size: 17px; }
 .tv-mode .pa-welcome h2 { font-size: 34px; }
@@ -1590,6 +1645,44 @@ select.input { appearance: none; cursor: pointer; }
 }
 .tv-pie { font-size: 1.25vw; color: rgba(255, 255, 255, 0.45); }
 
+/* ---- El carril de secciones, dentro de las listas ---- */
+
+/*
+ * Antes, pasar de las películas a las series eran dos ATRÁS y volver a
+ * recorrer la portada con las flechas. Ahora las secciones están siempre
+ * ahí, a la izquierda, como en cualquier aplicación de televisión.
+ */
+.tv-con-carril { flex-direction: row; }
+.tv-cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+.tv-carril {
+  width: 9vw; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 0.6vh;
+  padding: 3vh 0.8vw;
+  background: rgba(0, 0, 0, 0.28); border-right: 1px solid rgba(255, 255, 255, 0.07);
+}
+.tv-carril-item {
+  display: flex; flex-direction: column; align-items: center; gap: 0.7vh;
+  padding: 1.4vh 0.2vw; border-radius: 1vw;
+  background: none; border: 0.2vw solid transparent; cursor: pointer;
+  color: rgba(255, 255, 255, 0.55); font-size: 1.05vw; font-weight: 700;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.tv-carril-icono {
+  display: flex; align-items: center; justify-content: center;
+  width: 4.2vw; height: 4.2vw; max-width: 82px; max-height: 82px;
+  border-radius: 1.1vw; background: rgba(255, 255, 255, 0.06);
+  transition: background 0.12s, color 0.12s;
+}
+/* La sección en la que estás, en rojo; la que tiene el foco del mando,
+   además con el marco: son dos cosas distintas y hay que verlas a la vez */
+.tv-carril-item.activo { color: var(--accent-bright); }
+.tv-carril-item.activo .tv-carril-icono { background: var(--accent-tint-strong); color: var(--accent-bright); }
+.tv-carril-item.foco {
+  border-color: var(--accent); color: #fff;
+  background: rgba(255, 255, 255, 0.10);
+}
+
 /* ---- Listas: una columna, filas altas, foco imposible de perder ---- */
 
 .tv-cabecera {
@@ -1897,7 +1990,7 @@ select.input { appearance: none; cursor: pointer; }
  * tamaño de letra.
  */
 @media (max-width: 900px) {
-  .pa-live { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: calc(100vh - var(--header-h) - 54px); }
+  .pa-live { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: calc(100vh - var(--header-h) - var(--tira)); }
   .pa-live-cats, .pa-live-chans { grid-column: 1; grid-row: 1 / -1; border-right: none; }
   .pa-live-stage { grid-column: 1; grid-row: 1; }
   .pa-live-chans, .pa-live-stage { display: none; }
@@ -1919,71 +2012,167 @@ select.input { appearance: none; cursor: pointer; }
   .pa-live-titulo h2 { font-size: 15.5px; }
 }
 
-/* ---- Barra de secciones del reproductor ---- */
+/* ---- El carril: la navegación en escritorio y en tele ---- */
 
-.pa-nav {
-  display: flex; align-items: center; gap: 14px;
-  padding: 0 18px; height: 54px; flex-shrink: 0;
-  background: var(--bg-elev); border-bottom: 1px solid var(--hairline);
+/*
+ * Una columna de iconos pegada a la izquierda, siempre visible.
+ *
+ * Antes esto era una franja horizontal arriba con las secciones, el
+ * buscador y el selector de lista, encima de las tres columnas del directo:
+ * cuatro barras apiladas antes de llegar al primer canal. El carril ocupa
+ * 78 px de ancho —los mismos que la franja robaba de alto— pero se lee de
+ * un vistazo, no se mueve al cambiar de sección y deja la altura entera de
+ * la pantalla para el contenido, que es lo que se ha venido a mirar.
+ */
+.pa-marco.con-carril { padding-left: var(--carril); }
+
+.pa-rail {
+  position: fixed; z-index: 45;
+  top: var(--header-h); left: 0; bottom: 0; width: var(--carril);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px 12px;
+  background: var(--bg-elev); border-right: 1px solid var(--hairline);
+  overflow-y: auto; scrollbar-width: none;
 }
-.pa-nav-secciones { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
-.pa-nav-secciones::-webkit-scrollbar { display: none; }
-.pa-nav-item {
-  display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
-  padding: 8px 15px; border-radius: var(--radius-pill);
+.pa-rail::-webkit-scrollbar { display: none; }
+/* Las secciones arriba y las herramientas abajo, separadas por el hueco */
+.pa-rail-pie { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
+
+.pa-rail-item {
+  width: 100%; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 2px; border-radius: 14px;
   background: none; border: none; cursor: pointer;
-  color: var(--text-dim); font-size: 14px; font-weight: 600;
-  transition: background 0.13s, color 0.13s;
+  color: var(--text-faint); font-size: 10.5px; font-weight: 600;
+  line-height: 1.2; text-align: center;
+  transition: color 0.15s;
 }
-.pa-nav-item:hover { background: var(--bg-hover); color: var(--text); }
-.pa-nav-item.activo { background: var(--accent); color: #fff; }
-.pa-nav-busca { position: relative; margin-left: auto; width: 260px; flex-shrink: 0; }
-.pa-nav-busca .input { padding-left: 36px; height: 38px; }
-.pa-nav-lista { width: 170px; height: 38px; flex-shrink: 0; }
+/* Igual que abajo en el móvil: se enciende la pastilla del icono, no el
+   botón entero. Es el mismo gesto visual en los dos aparatos */
+.pa-rail-icono {
+  display: flex; align-items: center; justify-content: center;
+  width: var(--carril-icono); height: var(--carril-icono);
+  border-radius: 13px;
+  background: var(--surface-quiet);
+  transition: background 0.16s, color 0.16s;
+}
+.pa-rail-txt { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pa-rail-item:hover { color: var(--text); }
+.pa-rail-item:hover .pa-rail-icono { background: var(--bg-hover); }
+.pa-rail-item.activo { color: var(--accent-bright); }
+.pa-rail-item.activo .pa-rail-icono { background: var(--accent-tint-strong); color: var(--accent-bright); }
+.pa-rail-borrar:hover { color: var(--danger); }
+.pa-rail-borrar:hover .pa-rail-icono { background: var(--danger-tint); }
 
-/* Con la barra arriba, las columnas ocupan lo que queda de pantalla */
-.pa-live { height: calc(100vh - var(--header-h) - 54px); }
+/* Con el carril al lado, las columnas llegan de arriba abajo */
+.pa-live { height: calc(100vh - var(--header-h) - var(--tira)); }
+
+/* En un portátil, el carril se lleva 78 px que antes iban al vídeo: las dos
+   columnas de texto ceden lo suyo antes de que la imagen se quede en un
+   sello. Por debajo de 900 esto ya son tres pantallas y no tres columnas */
+@media (min-width: 901px) and (max-width: 1200px) {
+  .pa-live { grid-template-columns: 214px 262px 1fr; }
+  .pa-cat-layout { grid-template-columns: 214px 1fr; }
+  :root { --carril: 70px; --carril-icono: 38px; }
+}
+
+/* ---- La franja de arriba: solo en el móvil ---- */
+
+/*
+ * En el móvil no cabe un carril, así que las secciones se van abajo a la
+ * cápsula y aquí arriba queda lo que no es navegar: qué lista se está
+ * viendo, la lupa y la vuelta al selector.
+ */
+.pa-tira { display: none; }
 
 @media (max-width: 900px) {
-  /* En el móvil manda la barra inferior: arriba solo queda el buscador.
-     min-width:0 es lo que impide que el campo empuje la barra más allá del
-     ancho de la pantalla y deje la página desplazándose a lo ancho */
-  .pa-nav { padding: 0 12px; gap: 10px; overflow: hidden; }
-  .pa-nav-secciones { display: none; }
-  .pa-nav-busca { margin-left: 0; flex: 1; width: auto; min-width: 0; }
-  .pa-nav-lista { display: none; }
-  .pa-live { height: calc(100vh - var(--header-h) - 54px); }
+  :root { --tira: 54px; }
+  .pa-marco.con-carril { padding-left: 0; }
+  .pa-rail { display: none; }
+  .pa-tira {
+    position: sticky; top: var(--header-h); z-index: 30;
+    display: flex; align-items: center; gap: 8px;
+    height: var(--tira); padding: 0 10px; flex-shrink: 0;
+    background: var(--bg-elev); border-bottom: 1px solid var(--hairline);
+  }
+  .pa-tira-lista {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px;
+    padding: 7px 12px; border-radius: var(--radius-pill);
+    background: var(--surface-quiet); border: 1px solid var(--hairline);
+    color: var(--text); font-size: 13.5px; font-weight: 600; cursor: pointer;
+  }
+  .pa-tira-lista span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* ---- El buscador, flotando sobre lo que haya ---- */
+
+/*
+ * Vivía plegado dentro de la barra de arriba y se abría empujando al resto.
+ * Ahora se llama desde el carril o desde la lupa del móvil y aparece encima,
+ * sin mover nada de sitio: se busca en toda la lista, no en la sección en la
+ * que uno estaba, y por eso no tiene por qué pertenecer a ninguna.
+ */
+.pa-busca {
+  position: fixed; z-index: 60;
+  top: calc(var(--header-h) + 12px);
+  left: calc(var(--carril) + 18px); right: 18px; max-width: 640px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px 7px 15px;
+  background: var(--cristal);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid var(--cristal-borde); border-radius: var(--radius-pill);
+  box-shadow: var(--cristal-sombra);
+  color: var(--text-faint);
+}
+.pa-busca .input {
+  flex: 1; min-width: 0; height: 38px;
+  background: none; border: none; padding: 0; color: var(--text); font-size: 15px;
+}
+/* El campo no lleva su propio marco: el marco es la cápsula entera, y el
+   recuadro rojo del foco dentro de otra caja redonda se veía como un error */
+.pa-busca .input:focus { outline: none; border: none; background: none; box-shadow: none; }
+
+@media (max-width: 900px) {
+  .pa-busca { left: 10px; right: 10px; top: calc(var(--header-h) + var(--tira) + 10px); }
+}
+
+/* ---- Las listas del usuario, en un panel que se abre desde el carril ---- */
+
+.pa-listas-fondo { position: fixed; inset: 0; z-index: 55; background: transparent; border: none; }
+.pa-listas {
+  position: fixed; z-index: 56;
+  left: calc(var(--carril) + 10px); bottom: 16px; width: 268px;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px; border-radius: var(--radius);
+  background: var(--bg-elev-2); border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+.pa-listas-t {
+  font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--text-faint); padding: 2px 8px 6px;
+}
+.pa-listas-item, .pa-listas-acc {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 9px 10px; border-radius: 10px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 13.5px; font-weight: 600; text-align: left;
+}
+.pa-listas-item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pa-listas-item:hover, .pa-listas-acc:hover { background: var(--bg-hover); color: var(--text); }
+.pa-listas-item.activa { background: var(--accent-tint); color: var(--accent-bright); }
+.pa-listas-sep { height: 1px; background: var(--hairline); margin: 6px 4px; }
+.pa-listas-borrar:hover { background: var(--danger-tint); color: var(--danger); }
+
+@media (max-width: 900px) {
+  .pa-listas {
+    left: 10px; right: 10px; width: auto;
+    top: calc(var(--header-h) + var(--tira) + 10px); bottom: auto;
+  }
 }
 
 /* Envoltorio sin efecto de caja: la barra inferior y los modales siguen
    colocándose respecto a la ventana, no a él */
 .pa-flotantes { display: contents; }
-
-/* El botón de volver al selector, ahora en la barra de secciones */
-.pa-nav .pa-inicio { margin-top: 0; padding: 8px 12px; border-radius: var(--radius-pill); flex-shrink: 0; }
-.pa-nav .pa-inicio:hover { background: var(--bg-hover); }
-
-/* ---- Buscador plegable, selector de lista y vídeo que cabe ---- */
-
-.pa-nav-busca {
-  display: flex; align-items: center; gap: 0;
-  margin-left: auto; width: auto; position: static; flex-shrink: 0;
-}
-.pa-nav-busca .input {
-  width: 0; padding: 0; border: none; opacity: 0; height: 38px;
-  transition: width 0.18s ease, padding 0.18s ease, opacity 0.15s;
-}
-.pa-nav-busca.abierta .input {
-  width: 240px; padding: 0 14px; opacity: 1;
-  border: 1px solid var(--border); margin-left: 8px;
-}
-.pa-nav-busca.abierta .pa-icon-btn { display: none; }
-
-/* El nombre de la lista se lee entero: el ancho fijo lo cortaba */
-.pa-nav-lista {
-  width: auto; min-width: 120px; max-width: 200px;
-  padding: 0 32px 0 12px; height: 38px;
-}
 
 /*
  * min-height: 0 en el hijo flexible es lo que impide que el vídeo empuje
@@ -1997,7 +2186,7 @@ select.input { appearance: none; cursor: pointer; }
 
 .pa-cat-layout {
   display: grid; grid-template-columns: 268px 1fr;
-  height: calc(100vh - var(--header-h) - 54px); overflow: hidden; background: var(--bg);
+  height: calc(100vh - var(--header-h) - var(--tira)); overflow: hidden; background: var(--bg);
 }
 .pa-cat-layout:not(:has(.pa-live-cats)) { grid-template-columns: 1fr; }
 .pa-cat-main { display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
@@ -2078,7 +2267,7 @@ select.input { appearance: none; cursor: pointer; }
 .ficha-episodios .pa-episode svg { color: var(--text-faint); flex-shrink: 0; }
 
 @media (max-width: 900px) {
-  .pa-cat-layout { grid-template-columns: 1fr; height: calc(100vh - var(--header-h) - 54px); }
+  .pa-cat-layout { grid-template-columns: 1fr; height: calc(100vh - var(--header-h) - var(--tira)); }
   .pa-cat-layout .pa-live-cats { display: none; }
   .pa-watch.con-episodios { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .pa-watch-video .pa-video-zone { flex: none; aspect-ratio: 16/9; }
@@ -2097,8 +2286,6 @@ select.input { appearance: none; cursor: pointer; }
   /* Y el título se pega al aspa si es largo */
   .ficha-datos h2 { padding-right: 40px; }
   .ficha-episodios .pa-episode { min-height: 56px; font-size: 15px; }
-  .pa-nav-busca.abierta .input { width: 100%; }
-  .pa-nav-busca.abierta { flex: 1; }
 }
 
 /* En cine y series el botón de volver sí hace falta en escritorio: es la
@@ -2301,7 +2488,8 @@ select.input { appearance: none; cursor: pointer; }
 }
 
 /* ---- Búsqueda global: canales, cine y series a la vez ---- */
-.pa-buscador { padding: 20px 24px 40px; overflow-y: auto; }
+/* Con hueco arriba: el buscador flota justo encima de sus resultados */
+.pa-buscador { padding: 80px 24px 40px; overflow-y: auto; }
 .pa-buscador-cab {
   display: flex; align-items: center; justify-content: space-between;
   gap: 14px; flex-wrap: wrap; margin-bottom: 20px;
@@ -2327,7 +2515,7 @@ select.input { appearance: none; cursor: pointer; }
 .pa-buscador-mas { font-size: 13px; color: var(--text-faint); margin-top: 10px; }
 
 @media (max-width: 700px) {
-  .pa-buscador { padding: 16px 14px 90px; }
+  .pa-buscador { padding: 74px 14px 90px; }
   .pa-buscador-canales { grid-template-columns: 1fr; }
 }
 

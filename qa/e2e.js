@@ -50,19 +50,19 @@ function check(name, ok, detail = "") {
 
   // Favorito
   await page.locator(".pa-live-titulo button", { hasText: "Favorito" }).click();
-  await page.click('.pa-nav-item:has-text("Favoritos")');
+  await page.click('.pa-rail-item:has-text("Favoritos")');
   await page.waitForTimeout(400);
   const favVisible = await page.locator(".pa-live-chan", { hasText: "Canal Test WebM" }).count();
   check("Favoritos funciona", favVisible >= 1);
-  await page.click('.pa-nav-item:has-text(\"Canales\")');
+  await page.click('.pa-rail-item:has-text(\"Canales\")');
 
-  // Búsqueda. El campo vive plegado tras una lupa: primero se abre
-  await page.locator(".pa-nav-busca .pa-icon-btn").click();
-  await page.fill(".pa-nav-busca input", "Deporte");
+  // Búsqueda. El campo se llama desde el carril y aparece flotando encima
+  await page.locator('[aria-label="Buscar"]:visible').click();
+  await page.fill(".pa-busca input", "Deporte");
   await page.waitForTimeout(400);
   const filtered = await page.locator(".pa-live-chan").allInnerTexts();
   check("Búsqueda filtra", filtered.length >= 1 && filtered.every((t) => t.toLowerCase().includes("deporte")), filtered.join("|"));
-  await page.fill(".pa-nav-busca input", "");
+  await page.fill(".pa-busca input", "");
   await page.keyboard.press("Escape"); // salir del campo de búsqueda
 
   // Zapping con teclado
@@ -81,7 +81,8 @@ function check(name, ok, detail = "") {
   check("Lista persiste tras recargar (localStorage)", true);
 
   // ---------- Xtream ----------
-  await page.locator('.pa-nav .pa-icon-btn[aria-label="Añadir lista"]').click();
+  await page.locator('[aria-label="Listas"]:visible').click();
+  await page.locator('[aria-label="Añadir lista"]:visible').click();
   await page.waitForSelector(".modal");
   await page.fill("#pl-name", "Xtream Test");
   await page.fill("#pl-host", "127.0.0.1:8090");
@@ -99,8 +100,15 @@ function check(name, ok, detail = "") {
   );
   await page.locator(".section-card:has-text('TV en directo')").click();
 
-  await page.waitForSelector('.pa-nav-item:has-text(\"Películas\")', { timeout: 15000 });
+  await page.waitForSelector('.pa-rail-item:has-text(\"Cine\")', { timeout: 15000 });
   check("Xtream conectado (handshake OK)", true);
+
+  /* El carril es toda la navegación del escritorio: si le falta un destino,
+     no hay otra forma de llegar a esa sección */
+  const carril = await page.locator(".pa-rail-item .pa-rail-txt").allInnerTexts();
+  check("El carril lleva las secciones y las herramientas",
+    ["Directo", "Guía", "Cine", "Series", "Favoritos", "Buscar", "Recargar", "Listas"].every((t) => carril.includes(t)),
+    carril.join(" | "));
 
   await page.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 15000 });
   const xg = await page.locator(".pa-live-cat:not(.pa-live-reciente)").allInnerTexts();
@@ -110,7 +118,7 @@ function check(name, ok, detail = "") {
   // (comprobamos después; primero VOD y series)
 
   // Cine
-  await page.click('.pa-nav-item:has-text(\"Películas\")');
+  await page.click('.pa-rail-item:has-text(\"Cine\")');
   await page.waitForSelector(".pa-card", { timeout: 15000 });
   check("Catálogo VOD carga", true);
   await page.locator(".pa-card", { hasText: "Película Demo" }).click();
@@ -128,7 +136,7 @@ function check(name, ok, detail = "") {
   await page.screenshot({ path: __dirname + "/08-playing-vod.png" });
 
   // Series
-  await page.click('.pa-nav-item:has-text(\"Series\")');
+  await page.click('.pa-rail-item:has-text(\"Series\")');
   await page.waitForSelector(".pa-card", { timeout: 15000 });
   await page.locator(".pa-card", { hasText: "Serie Demo" }).click();
   await page.waitForSelector(".pa-episode", { timeout: 15000 });
@@ -146,7 +154,7 @@ function check(name, ok, detail = "") {
   await page.screenshot({ path: __dirname + "/09-playing-episode.png" });
 
   // Directo Xtream: EPG (el stream HLS fallará con segmentos dummy, pero la EPG debe llegar)
-  await page.click('.pa-nav-item:has-text(\"TV en directo\")');
+  await page.click('.pa-rail-item:has-text(\"Directo\")');
   await page.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 15000 });
   await page.locator(".pa-live-cat", { hasText: "Generalistas" }).click();
   await page.locator(".pa-live-chan", { hasText: "La Uno Test" }).click();
@@ -167,7 +175,8 @@ function check(name, ok, detail = "") {
   check("EPG ahora/después decodificada", epgText.includes("Telediario de prueba") && epgText.includes("El programa siguiente"), epgText);
 
   // Credenciales malas
-  await page.locator('.pa-nav .pa-icon-btn[aria-label="Añadir lista"]').click();
+  await page.locator('[aria-label="Listas"]:visible').click();
+  await page.locator('[aria-label="Añadir lista"]:visible').click();
   await page.waitForSelector(".modal");
   await page.fill("#pl-host", "127.0.0.1:8090");
   await page.fill("#pl-user", "demo");
@@ -179,10 +188,16 @@ function check(name, ok, detail = "") {
 
   // Borrar lista
   page.on("dialog", (d) => d.accept());
-  const before = await page.locator(".pa-nav-lista option").count();
-  await page.locator(".pa-nav .pa-icon-btn-danger").click();
-  await page.waitForTimeout(500);
-  const after = await page.locator(".pa-nav-lista option").count();
+  await page.locator('[aria-label="Listas"]:visible').click();
+  const before = await page.locator(".pa-listas-item").count();
+  await page.locator('[aria-label="Eliminar esta lista"]:visible').click();
+  /* Al quedarse con otra lista, el reproductor vuelve a preguntar qué ver:
+     lo que ofrece cada lista no tiene por qué ser lo mismo. Se elige, y ya
+     desde dentro se mira cuántas quedan */
+  await page.waitForSelector(".section-gate", { timeout: 15000 });
+  await page.locator(".section-card").first().click();
+  await page.locator('[aria-label="Listas"]:visible').click();
+  const after = await page.locator(".pa-listas-item").count();
   check("Eliminar lista funciona", after === before - 1, `${before} → ${after}`);
 
   await browser.close();

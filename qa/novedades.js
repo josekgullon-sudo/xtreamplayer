@@ -44,7 +44,7 @@ async function conLista(p) {
   await p.screenshot({ path: __dirname + "/79-novedades.png" });
 
   // En series, igual
-  await p.locator(".pa-nav-item:has-text('Series')").click();
+  await p.locator(".pa-rail-item:has-text('Series')").click();
   await p.waitForSelector(".pa-grid .pa-card", { timeout: 20000 });
   check("También en series", (await p.locator(".pa-live-nuevo").count()) === 1);
   await p.locator(".pa-live-nuevo").click();

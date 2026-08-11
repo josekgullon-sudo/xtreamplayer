@@ -26,8 +26,8 @@ async function conLista(p) {
 
   await conLista(p);
 
-  check("«Guía» está en la barra de secciones", (await p.locator(".pa-nav-item:has-text('Guía')").count()) === 1);
-  await p.locator(".pa-nav-item:has-text('Guía')").click();
+  check("«Guía» está en el carril", (await p.locator(".pa-rail-item:has-text('Guía')").count()) === 1);
+  await p.locator(".pa-rail-item:has-text('Guía')").click();
   await p.waitForSelector(".pa-guia", { timeout: 20000 });
   await p.waitForSelector(".pa-guia-prog", { timeout: 25000 });
 
@@ -75,7 +75,7 @@ async function conLista(p) {
   check("Pulsar un programa pone ese canal", (await p.locator(".pa-video-zone").count()) === 1);
 
   // La categoría manda sobre qué canales salen
-  await p.locator(".pa-nav-item:has-text('Guía')").click();
+  await p.locator(".pa-rail-item:has-text('Guía')").click();
   await p.waitForSelector(".pa-guia-fila", { timeout: 20000 });
   const cats = await p.locator(".pa-guia .pa-live-cat .name").allInnerTexts();
   check("Las categorías siguen a la izquierda", cats.length >= 2, cats.join(" | "));

@@ -154,13 +154,23 @@ async function abrirCanales(p) {
   await p.waitForSelector(".pa-live", { timeout: 20000 });
   check("Y de vuelta al directo", true);
 
-  // Sin pestañas duplicadas ni lista lateral aplastada
-  check("Las secciones de escritorio no estorban en móvil", !(await p.locator(".pa-nav-secciones").isVisible()));
-  // La lupa, no el campo: el buscador vive plegado hasta que se pulsa
-  check("La franja superior conserva lista y buscador", await p.locator(".pa-nav-busca .pa-icon-btn").isVisible());
+  // El carril es de escritorio: en el móvil manda la cápsula de abajo
+  check("El carril de escritorio no estorba en móvil", !(await p.locator(".pa-rail").isVisible()));
+  check("La franja superior conserva lista y buscador",
+    (await p.locator(".pa-tira-lista").isVisible()) && (await p.locator('.pa-tira [aria-label="Buscar"]').isVisible()));
+
+  /* La cápsula flota: pegada al borde, su último botón cae donde el sistema
+     pone la barra de gestos del teléfono */
+  const capsula = await p.locator(".pa-bottomnav").evaluate((e) => {
+    const r = e.getBoundingClientRect();
+    return { hueco: Math.round(window.innerHeight - r.bottom), izq: Math.round(r.left), radio: getComputedStyle(e).borderRadius };
+  });
+  check("La barra de abajo flota, no está pegada al borde",
+    capsula.hueco >= 6 && capsula.izq >= 6, `${capsula.hueco}px abajo · ${capsula.izq}px al lado · radio ${capsula.radio}`);
 
   // ---------- Ver un canal y zapear (lista M3U: el mock emite de verdad) ----------
-  await p.locator('.pa-nav .pa-icon-btn[aria-label="Añadir lista"]').click();
+  await p.locator('[aria-label="Listas"]:visible').click();
+  await p.locator('[aria-label="Añadir lista"]:visible').click();
   await p.waitForSelector(".modal");
   /* Elegir entre Xtream y M3U es la primera decisión de quien entra, y las
      dos pestañas medían 29px de alto: se fallaba al pulsarlas */

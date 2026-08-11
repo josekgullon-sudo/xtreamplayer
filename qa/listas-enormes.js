@@ -95,19 +95,20 @@ async function alFinal(p, selector) {
   check("Y sale el primero de esa carpeta", primeroDeCarpeta.includes("Canal 3801"), primeroDeCarpeta.replace(/\s+/g, " "));
 
   // ---------- Buscar dentro de 8.000 ----------
-  await p.locator(".pa-nav-busca .pa-icon-btn").click();
-  await p.fill(".pa-nav-busca input", "Canal 7777");
+  await p.locator('[aria-label="Buscar"]:visible').click();
+  await p.fill(".pa-busca input", "Canal 7777");
   await p.waitForTimeout(600);
   const encontrados = await p.locator(".pa-live-chan").allInnerTexts();
   check("Buscar un canal concreto entre 8.000 lo encuentra",
     encontrados.some((t) => t.includes("Canal 7777")), `${encontrados.length} resultados`);
-  await p.fill(".pa-nav-busca input", "");
+  await p.fill(".pa-busca input", "");
   await p.keyboard.press("Escape");
 
   await p.screenshot({ path: __dirname + "/95-lista-enorme.png" });
 
   // ---------- Catálogo de verdad por Xtream: 3.000 películas ----------
-  await p.locator('.pa-nav .pa-icon-btn[aria-label="Añadir lista"]').click();
+  await p.locator('[aria-label="Listas"]:visible').click();
+  await p.locator('[aria-label="Añadir lista"]:visible').click();
   await p.waitForSelector(".modal");
   await p.fill("#pl-name", "Catálogo Enorme");
   await p.fill("#pl-host", "127.0.0.1:8090");
@@ -135,7 +136,7 @@ async function alFinal(p, selector) {
     cartelesLuego > 400 && cartelesLuego > cartelesInicio, `${cartelesInicio} → ${cartelesLuego}`);
 
   // ---------- Lo mismo en series ----------
-  await p.locator(".pa-nav-item:has-text('Series')").first().click();
+  await p.locator(".pa-rail-item:has-text('Series')").first().click();
   await p.waitForSelector(".pa-grid .pa-card", { timeout: 40000 });
   const seriesInicio = await p.locator(".pa-grid .pa-card").count();
   for (let i = 0; i < 6; i++) await alFinal(p, rejilla);

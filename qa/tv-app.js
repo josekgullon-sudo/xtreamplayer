@@ -111,6 +111,34 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
   check("Y otra vez, a la portada", true);
 
+  /* --- El carril de secciones ---
+     Pasar de las películas a las series eran dos ATRÁS y volver a recorrer
+     la portada con las flechas. Ahora las secciones están siempre a la
+     izquierda, como en cualquier aplicación de televisión. */
+  await tv.locator(".tv-tile:has-text('TV en directo')").click();
+  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 20000 });
+  check("Las listas traen el carril de secciones", (await tv.locator(".tv-carril-item").count()) === 5);
+  check("Con la sección en la que estás marcada",
+    (await tv.locator(".tv-carril-item.activo").innerText()).includes("Directo"));
+  await tv.keyboard.press("ArrowLeft");
+  check("◀ desde la primera columna entra en el carril",
+    (await tv.locator(".tv-carril-item.foco").innerText()).replace(/\n/g, " ").includes("Directo"));
+  await tv.keyboard.press("ArrowDown");
+  await tv.keyboard.press("Enter");
+  await tv.waitForFunction(
+    () => (document.querySelector(".tv-cabecera h2")?.textContent || "").includes("Películas"),
+    { timeout: 25000 }
+  );
+  await tv.waitForSelector(".tv-fila", { timeout: 25000 });
+  check("Y un OK salta a Cine sin pasar por la portada", true);
+  await tv.keyboard.press("ArrowLeft");
+  await tv.keyboard.press("Escape");
+  check("ATRÁS dentro del carril solo sale del carril, no de la sección",
+    (await tv.locator(".tv-carril-item.foco").count()) === 0 && (await tv.locator(".tv-fila").count()) > 0);
+  await tv.screenshot({ path: __dirname + "/92-tv-carril.png" });
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
+
   /* --- El mando de cada fabricante ---
      Un televisor no manda «Escape»: Samsung manda el código 10009 y LG el
      461, y ninguno rellena e.key con nada reconocible. Sin traducirlos, el

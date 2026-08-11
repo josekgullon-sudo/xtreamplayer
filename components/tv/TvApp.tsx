@@ -25,8 +25,14 @@ import {
  * OK, desde el sofá, a tres metros. Por eso esto no es el reproductor web
  * con la letra más grande, sino otra aplicación: una portada con cuatro
  * accesos, listas de una columna que se recorren con el mando y el vídeo a
- * pantalla completa. Nada de menús laterales, pestañas, buscadores ni
- * ajustes — lo que no se puede usar cómodamente con un mando, no está.
+ * pantalla completa. Nada de pestañas, buscadores ni ajustes — lo que no se
+ * puede usar cómodamente con un mando, no está.
+ *
+ * Sí hay un carril de iconos a la izquierda, dentro de las listas. No es un
+ * menú de ordenador: es lo que hace cualquier aplicación de televisión, y
+ * está porque sin él pasar de las películas a las series eran dos ATRÁS y
+ * volver a recorrer la portada. Se entra en él con ◀ desde la primera
+ * columna y se sale con ▶ o con ATRÁS.
  *
  * Y no se escribe: la tele enseña un código y el cliente lo teclea desde su
  * móvil, donde escribir es gratis.
@@ -259,6 +265,26 @@ export default function TvApp() {
    * una tele de 4K y el navegador de pruebas no caben lo mismo.
    */
   const [columnas, setColumnas] = useState(1);
+  /**
+   * Qué icono del carril tiene el foco, o null si el foco está en la lista.
+   *
+   * Va aparte de `foco` a propósito: el carril y la lista son dos sitios
+   * distintos y el mando tiene que poder volver de uno al otro sin perder
+   * por dónde iba. Con un solo número, entrar en el carril y salir dejaba
+   * la lista siempre arriba del todo.
+   */
+  const [focoCarril, setFocoCarril] = useState<number | null>(null);
+  /*
+   * Y el mismo dato en una caja que el mando pueda leer siempre.
+   *
+   * El manejador de teclas se vuelve a colgar en un efecto, que corre
+   * después de pintar. Dos pulsaciones seguidas —◀ y ATRÁS, que con un
+   * mando es lo normal— llegaban antes de eso, y la segunda la atendía
+   * todavía el manejador de la pulsación anterior: creía que el foco seguía
+   * en la lista y ATRÁS salía de la sección en vez de salir del carril.
+   */
+  const focoCarrilRef = useRef<number | null>(null);
+  focoCarrilRef.current = focoCarril;
 
   useEffect(() => {
     setUltimo(leer<UltimoCanal>(K_ULTIMO));
@@ -736,11 +762,25 @@ export default function TvApp() {
       salir();
       return;
     }
+    /* Volver a la portada desde el carril deja lo mismo que ATRÁS: sin la
+       lista de la sección anterior debajo y con el foco en el acceso del
+       que se sale, no en la fila 47 de una lista que ya no está */
+    if (destino === "portada") {
+      const vengoDe = DESTINOS.findIndex((d) => d.id === pantalla);
+      setFoco(vengoDe >= 0 ? vengoDe : 0);
+      setFilas([]);
+      setSerieAbierta("");
+      setCarpetaAbierta("");
+      setFocoCarril(null);
+      setPantalla("portada");
+      return;
+    }
     ir(destino);
   }
 
   function ir(destino: Pantalla) {
     setPantalla(destino);
+    setFocoCarril(null);
     if (destino !== "portada" && destino !== "viendo") cargar(destino);
   }
 
@@ -820,10 +860,49 @@ export default function TvApp() {
 
       if (tecla === "Atras") {
         e.preventDefault();
-        atras();
+        /* Estando en el carril, ATRÁS es salir del carril y no de la
+           pantalla: si no, entrar sin querer costaba volver a cargarlo todo */
+        if (focoCarrilRef.current !== null) setFocoCarril(null);
+        else atras();
         return;
       }
       if (pantalla === "viendo") return;
+
+      /* El carril: mientras el foco está en él, se mueve por sus iconos y
+         nada de lo que hay a la derecha se entera */
+      if (focoCarrilRef.current !== null) {
+        if (tecla === "Arriba" || tecla === "Abajo") {
+          e.preventDefault();
+          setFocoCarril((f) => {
+            const n = (f ?? 0) + (tecla === "Abajo" ? 1 : -1);
+            return (n + CARRIL.length) % CARRIL.length;
+          });
+        } else if (tecla === "Derecha") {
+          e.preventDefault();
+          setFocoCarril(null);
+        } else if (tecla === "Ok") {
+          e.preventDefault();
+          const destino = CARRIL[focoCarrilRef.current]?.id;
+          setFocoCarril(null);
+          elegirDestino(destino);
+        }
+        return;
+      }
+
+      /*
+       * ◀ pegado al borde izquierdo entra en el carril: es donde está, y es
+       * lo que hace cualquier aplicación de televisión.
+       *
+       * Va ANTES de mirar si hay filas. Mientras una sección carga la lista
+       * está vacía, y ahí el carril es lo único a lo que se puede llegar:
+       * comprobándolo después, ◀ no hacía nada y el ATRÁS siguiente se
+       * llevaba por delante la sección entera.
+       */
+      if (tecla === "Izquierda" && pantalla !== "portada" && (columnas <= 1 || foco % columnas === 0)) {
+        e.preventDefault();
+        setFocoCarril(Math.max(0, CARRIL.findIndex((d) => d.id === pantalla)));
+        return;
+      }
 
       const total = pantalla === "portada" ? 4 : filas.length;
       if (!total) return;
@@ -843,6 +922,8 @@ export default function TvApp() {
         e.preventDefault();
         setFoco(siguiente);
       } else if (tecla === "Izquierda") {
+        /* En medio de una fila de carátulas sigue siendo «la anterior»: el
+           borde izquierdo, que es el que lleva al carril, ya se ha atendido */
         e.preventDefault();
         setFoco(anterior);
       } else if (tecla === "Abajo") {
@@ -868,7 +949,7 @@ export default function TvApp() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, foco, ultimo, reproducir, columnas]);
+  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril]);
 
   // La fila con el foco siempre a la vista, sin que el usuario persiga nada
   useEffect(() => {
@@ -1066,11 +1147,28 @@ export default function TvApp() {
   }
 
   return (
-    <div className="tv-app">
+    <div className="tv-app tv-con-carril">
+      {/* El carril: cambiar de sección sin volver a la portada. Con el mando
+          se entra con ◀ desde la primera columna y se sale con ▶ */}
+      <nav className="tv-carril" aria-label="Secciones">
+        {CARRIL.map((d, i) => (
+          <button
+            key={d.id}
+            className={`tv-carril-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
+            onMouseEnter={() => setFocoCarril(i)}
+            onMouseLeave={() => setFocoCarril(null)}
+            onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
+          >
+            <span className="tv-carril-icono"><Icon name={d.icono} size={34} /></span>
+            <span className="tv-carril-txt">{d.titulo}</span>
+          </button>
+        ))}
+      </nav>
+      <div className="tv-cuerpo">
       <header className="tv-cabecera">
         <h2>{serieAbierta || carpetaAbierta || TITULOS[pantalla]}</h2>
         {(serieAbierta || carpetaAbierta) && <span className="tv-cabecera-de">{TITULOS[pantalla]}</span>}
-        <span className="tv-cabecera-pista">ATRÁS para volver</span>
+        <span className="tv-cabecera-pista">◀ para las secciones · ATRÁS para volver</span>
       </header>
       {cargando && <p className="tv-cargando">Cargando…</p>}
       {error && <p className="tv-activar-error">{error}</p>}
@@ -1124,6 +1222,7 @@ export default function TvApp() {
         )}
         {!cargando && !filas.length && !error && <p className="tv-cargando">Aquí no hay nada todavía.</p>}
       </div>
+      </div>
     </div>
   );
 }
@@ -1137,6 +1236,19 @@ const TITULOS: Record<string, string> = {
 const DESTINOS: { id: Pantalla; titulo: string; icono: IconName }[] = [
   { id: "directo", titulo: "TV en directo", icono: "tv" },
   { id: "cine", titulo: "Películas", icono: "film" },
+  { id: "series", titulo: "Series", icono: "series" },
+  { id: "salir", titulo: "Salir", icono: "power" },
+];
+
+/*
+ * Los mismos destinos, de canto y con «Inicio» delante, para el carril de
+ * las listas. Los nombres van cortos: en una columna de 9vw, «TV en
+ * directo» se parte en tres líneas y deja de leerse a tres metros.
+ */
+const CARRIL: { id: Pantalla; titulo: string; icono: IconName }[] = [
+  { id: "portada", titulo: "Inicio", icono: "casa" },
+  { id: "directo", titulo: "Directo", icono: "tv" },
+  { id: "cine", titulo: "Cine", icono: "film" },
   { id: "series", titulo: "Series", icono: "series" },
   { id: "salir", titulo: "Salir", icono: "power" },
 ];

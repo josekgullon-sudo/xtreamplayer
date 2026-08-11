@@ -39,6 +39,8 @@ export type IconName =
   | "film"
   | "series"
   | "star"
+  | "recargar"
+  | "casa"
   | "chart";
 
 const PATHS: Record<IconName, React.ReactNode> = {
@@ -209,6 +211,19 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   star: <path d="m12 3.5 2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.9l6-.8L12 3.5Z" />,
+  casa: (
+    <>
+      <path d="m3 10.5 9-7 9 7" />
+      <path d="M5.5 9v11h13V9" />
+      <path d="M9.5 20v-6h5v6" />
+    </>
+  ),
+  recargar: (
+    <>
+      <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+      <path d="M20 4v4.5h-4.5" />
+    </>
+  ),
 };
 
 export default function Icon({

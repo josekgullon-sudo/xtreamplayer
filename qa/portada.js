@@ -42,7 +42,7 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
 
   // Volver a la portada y abrir una carátula: ficha directa aunque la
   // pestaña activa fuera otra
-  await p.locator(".pa-inicio").click();
+  await p.locator('[aria-label="Elegir qué ver"]:visible').click();
   await p.waitForSelector(".portada", { timeout: 10000 });
   await p.locator(".portada-rail:has(h3:text('Películas')) .portada-poster").first().click();
   await p.waitForSelector(".ficha", { timeout: 15000 });

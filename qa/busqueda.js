@@ -31,12 +31,14 @@ const check = (n, ok, d = "") => {
   for (const [tab, letra] of [["Series", "o"], ["Cine", "demo"], ["Directo", "test"]]) {
     await p.locator(`.pa-bottomnav-item:has-text('${tab}')`).click();
     await p.waitForTimeout(600);
-    // El campo vive plegado tras una lupa: se abre antes de escribir
-    await p.locator(".pa-nav-busca .pa-icon-btn").click().catch(() => {});
-    await p.fill(".pa-nav-busca input", letra);
+    // La lupa de la franja de arriba abre el buscador flotante
+    if (!(await p.locator(".pa-busca").count())) {
+      await p.locator('[aria-label="Buscar"]:visible').click();
+    }
+    await p.fill(".pa-busca input", letra);
     await p.waitForTimeout(700);
     check(`Buscar en ${tab} con títulos sin nombre no revienta`, errores.length === 0, errores.join(" | "));
-    await p.fill(".pa-nav-busca input", "");
+    await p.fill(".pa-busca input", "");
   }
 
   // El título sin nombre se pinta sin romper nada
@@ -103,7 +105,8 @@ const check = (n, ok, d = "") => {
   /* Un 200 que no es una lista —el aviso de «suscripción caducada» en HTML,
      que devuelven muchos paneles— no se traga como si fuera una lista */
   await vacia.goto(BASE + "/player", { waitUntil: "networkidle" });
-  await vacia.locator('.pa-nav .pa-icon-btn[aria-label="Añadir lista"]').click();
+  await vacia.locator('[aria-label="Listas"]:visible').click();
+  await vacia.locator('[aria-label="Añadir lista"]:visible').click();
   await vacia.waitForSelector(".modal");
   await vacia.click(".modal .pa-tab:has-text('URL M3U')");
   await vacia.fill("#pl-name", "No es lista");

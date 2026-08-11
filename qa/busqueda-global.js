@@ -20,8 +20,12 @@ async function conLista(p) {
 }
 
 async function buscar(p, texto) {
-  await p.locator(".pa-nav-busca .pa-icon-btn").click().catch(() => {});
-  await p.fill(".pa-nav-busca input", texto);
+  // La lupa está en el carril (escritorio) o en la franja de arriba (móvil):
+  // la misma etiqueta en los dos, y solo una de las dos se ve a la vez
+  if (!(await p.locator(".pa-busca").count())) {
+    await p.locator('[aria-label="Buscar"]:visible').click();
+  }
+  await p.fill(".pa-busca input", texto);
 }
 
 (async () => {
@@ -37,7 +41,7 @@ async function buscar(p, texto) {
   check("Con una sola letra no se busca todavía", (await p.locator(".pa-buscador").count()) === 0);
 
   // Estando en el directo, se encuentra una película
-  await p.fill(".pa-nav-busca input", "Demo");
+  await p.fill(".pa-busca input", "Demo");
   await p.waitForSelector(".pa-buscador", { timeout: 10000 });
   // El CSS los pinta en mayúsculas: comparamos sin distinguir
   const bloques = (await p.locator(".pa-buscador-bloque h3").allInnerTexts()).map((t) => t.toLowerCase());
@@ -51,9 +55,12 @@ async function buscar(p, texto) {
   await p.locator(".pa-buscador-bloque:has-text('Películas') .portada-poster").first().click();
   await p.waitForSelector(".ficha", { timeout: 20000 });
   check("Una película lleva directa a su ficha", true);
-  check("Y la búsqueda se limpia sola", (await p.locator(".pa-nav-busca input").inputValue()) === "");
+  check("Y el buscador se quita de en medio", (await p.locator(".pa-busca").count()) === 0);
   await p.locator(".ficha-cerrar").click();
   await p.waitForSelector(".ficha", { state: "detached", timeout: 10000 });
+  await p.locator('[aria-label="Buscar"]:visible').click();
+  check("Y la búsqueda se limpia sola", (await p.locator(".pa-busca input").inputValue()) === "");
+  await p.locator('[aria-label="Cerrar la búsqueda"]').click();
 
   // Y al revés: buscando un canal aparece su bloque
   await buscar(p, "Test");
@@ -62,7 +69,7 @@ async function buscar(p, texto) {
     (await p.locator(".pa-buscador-bloque h3").allInnerTexts()).some((t) => t.toLowerCase().includes("canales")));
 
   // Un canal desde el buscador se pone y devuelve al directo
-  await p.fill(".pa-nav-busca input", "Uno");
+  await p.fill(".pa-busca input", "Uno");
   await p.waitForSelector(".pa-buscador-canales .pa-live-chan", { timeout: 10000 });
   const nombreCanal = (await p.locator(".pa-buscador-canales .pa-live-chan .name").first().innerText()).trim();
   await p.locator(".pa-buscador-canales .pa-live-chan").first().click();

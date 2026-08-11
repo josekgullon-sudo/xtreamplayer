@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import Icon from "@/components/Icon";
+import Icon, { IconName } from "@/components/Icon";
 import VideoPlayer, { PlaySource } from "./VideoPlayer";
 import AddPlaylistModal from "./AddPlaylistModal";
 import ProfileGate from "./ProfileGate";
@@ -175,6 +175,8 @@ export default function PlayerApp() {
   const [verCanales, setVerCanales] = useState(false);
   /** El buscador vive plegado en una lupa hasta que se pide */
   const [buscando, setBuscando] = useState(false);
+  /** El panel de listas, colgado del carril; cerrado salvo que se pida */
+  const [verListas, setVerListas] = useState(false);
 
   const [tab, setTab] = useState<Tab>("live");
   const [search, setSearch] = useState("");
@@ -396,6 +398,40 @@ export default function PlayerApp() {
     setTab(t);
     setViendo(false);
     setGrupoSel(null);
+  }
+
+  /** La lupa del carril y la del móvil hacen lo mismo: abrir y poner el cursor */
+  function abrirBusqueda() {
+    setBuscando(true);
+    setVerListas(false);
+    setTimeout(() => searchRef.current?.focus(), 0);
+  }
+
+  function cerrarBusqueda() {
+    setSearch("");
+    setBuscando(false);
+  }
+
+  /**
+   * Volver a pedirle el catálogo al proveedor.
+   *
+   * Lo que se ve está guardado desde que se entró: si el proveedor añade un
+   * canal o sube una película, aquí no aparece hasta recargar la página
+   * entera. Vaciar lo guardado de esta lista basta —el efecto que carga la
+   * pestaña vuelve a dispararse solo al ver que ya no está—, y así se
+   * refresca sin perder ni el perfil ni lo que se estuviera viendo.
+   */
+  function recargar() {
+    if (!active) return;
+    setVerListas(false);
+    setLoadError(null);
+    setXtreamData((prev) => ({ ...prev, [active.id]: {} }));
+    setM3uData((prev) => {
+      const siguiente = { ...prev };
+      delete siguiente[active.id];
+      return siguiente;
+    });
+    setGuiaEpg({});
   }
 
   useEffect(() => {
@@ -972,8 +1008,7 @@ export default function PlayerApp() {
       }
       if (e.key === "/") {
         e.preventDefault();
-        setBuscando(true);
-        setTimeout(() => searchRef.current?.focus(), 0);
+        abrirBusqueda();
       } else if (e.key === "f" || e.key === "F") {
         document.querySelector<HTMLVideoElement>(".pa-video-zone video")?.requestFullscreen?.().catch(() => {});
       } else if (e.key === "m" || e.key === "M") {
@@ -995,6 +1030,25 @@ export default function PlayerApp() {
   /* ---------- Render ---------- */
 
   const isXtream = active?.type === "xtream";
+  /*
+   * Los destinos, escritos una sola vez.
+   *
+   * El carril de escritorio y la cápsula del móvil son el mismo menú puesto
+   * de canto o tumbado: cuando estaban escritos dos veces, «Guía» se añadió
+   * abajo y arriba no, y durante un mes en el escritorio no había forma de
+   * llegar a la parrilla.
+   */
+  const destinos: { id: Tab; icono: IconName; texto: string }[] = [
+    { id: "live", icono: "tv", texto: isXtream ? "Directo" : "Canales" },
+    ...(isXtream
+      ? ([
+          { id: "guia", icono: "clock", texto: "Guía" },
+          { id: "vod", icono: "film", texto: "Cine" },
+          { id: "series", icono: "series", texto: "Series" },
+        ] as const)
+      : []),
+    { id: "favs", icono: "star", texto: "Favoritos" },
+  ];
   const showSidebar = tab === "live" || tab === "favs" || !isXtream;
   /** Cine/series sin nada elegido: catálogo a pantalla completa, sin vídeo */
   const modoCatalogo = isXtream && (tab === "vod" || tab === "series") && !viendo;
@@ -1061,6 +1115,10 @@ export default function PlayerApp() {
   useAtras([
     { abierta: !!active && (!!vodDetail || !!seriesDetail), cerrar: () => { setVodDetail(null); setSeriesDetail(null); } },
     { abierta: !!active && viendo, cerrar: () => { setViendo(false); setCurrent(null); } },
+    /* El buscador y el panel de listas flotan por encima de todo lo demás:
+       son los primeros que tiene que cerrar «atrás», no la aplicación */
+    { abierta: !!active && verListas, cerrar: () => setVerListas(false) },
+    { abierta: !!active && buscando, cerrar: cerrarBusqueda },
   ]);
 
   const canalesVisibles: {
@@ -1184,94 +1242,148 @@ export default function PlayerApp() {
       mirando sin perder el sitio— y la que usan los reproductores de
       escritorio a los que ya está acostumbrado el cliente.
     */}
-    {/* Barra de secciones: en escritorio es la única forma de cambiar de
-        sitio ahora que el directo ocupa las tres columnas */}
+    {/*
+      El carril. En escritorio y en tele, la navegación entera vive en esta
+      columna de iconos pegada a la izquierda: secciones arriba,
+      herramientas abajo. Sustituye a la franja horizontal que había encima
+      de las tres columnas del directo, que sumaba una cuarta barra apilada
+      antes de llegar al primer canal.
+    */}
     {active && (
-      <nav className="pa-nav" aria-label="Secciones">
+      <nav className="pa-rail" aria-label="Secciones">
         {hayDondeElegir && (
           <button
-            className="pa-inicio"
-            onClick={() => setSeccionGate("mostrando")}
+            className="pa-rail-item"
+            onClick={() => { setSeccionGate("mostrando"); setVerListas(false); }}
             title="Volver a elegir qué ver"
+            aria-label="Elegir qué ver"
           >
-            <Icon name="back" size={14} /> <span className="oculta-movil">Elegir qué ver</span>
+            <span className="pa-rail-icono"><Icon name="casa" size={20} /></span>
+            <span className="pa-rail-txt">Inicio</span>
           </button>
         )}
-        <div className="pa-nav-secciones">
-          <button className={`pa-nav-item ${tab === "live" ? "activo" : ""}`} onClick={() => irAPestana("live")}>
-            <Icon name="tv" size={16} /> {isXtream ? "TV en directo" : "Canales"}
+        {destinos.map((d) => (
+          <button
+            key={d.id}
+            className={`pa-rail-item ${tab === d.id ? "activo" : ""}`}
+            onClick={() => { irAPestana(d.id); setSeccionGate("hecho"); }}
+            aria-current={tab === d.id ? "page" : undefined}
+          >
+            <span className="pa-rail-icono"><Icon name={d.icono} size={20} /></span>
+            <span className="pa-rail-txt">{d.texto}</span>
           </button>
-          {isXtream && (
-            <>
-              <button className={`pa-nav-item ${tab === "guia" ? "activo" : ""}`} onClick={() => irAPestana("guia")}>
-                <Icon name="clock" size={16} /> Guía
-              </button>
-              <button className={`pa-nav-item ${tab === "vod" ? "activo" : ""}`} onClick={() => irAPestana("vod")}>
-                <Icon name="film" size={16} /> Películas
-              </button>
-              <button className={`pa-nav-item ${tab === "series" ? "activo" : ""}`} onClick={() => irAPestana("series")}>
-                <Icon name="series" size={16} /> Series
-              </button>
-            </>
-          )}
-          <button className={`pa-nav-item ${tab === "favs" ? "activo" : ""}`} onClick={() => irAPestana("favs")}>
-            <Icon name="star" size={16} /> Favoritos
+        ))}
+        <div className="pa-rail-pie">
+          <button className="pa-rail-item" onClick={abrirBusqueda} title="Buscar" aria-label="Buscar">
+            <span className="pa-rail-icono"><Icon name="search" size={20} /></span>
+            <span className="pa-rail-txt">Buscar</span>
+          </button>
+          {/* Recargar: el catálogo se guarda al entrar y lo que el proveedor
+              suba después no aparece hasta pedirlo otra vez */}
+          <button className="pa-rail-item" onClick={recargar} title="Volver a pedir el catálogo" aria-label="Recargar">
+            <span className="pa-rail-icono"><Icon name="recargar" size={20} /></span>
+            <span className="pa-rail-txt">Recargar</span>
+          </button>
+          <button
+            className={`pa-rail-item ${verListas ? "activo" : ""}`}
+            onClick={() => { setVerListas((v) => !v); setBuscando(false); }}
+            title={active.name}
+            aria-label="Listas"
+          >
+            <span className="pa-rail-icono"><Icon name="list" size={20} /></span>
+            <span className="pa-rail-txt">Listas</span>
           </button>
         </div>
-        {/* Una lupa, y el campo solo cuando hace falta: un buscador siempre
-            abierto con su texto de ayuda ocupaba media barra para algo que
-            se usa de vez en cuando */}
-        <div className={`pa-nav-busca ${buscando || search ? "abierta" : ""}`}>
-          <button
-            className="pa-icon-btn"
-            onClick={() => { setBuscando(true); setTimeout(() => searchRef.current?.focus(), 0); }}
-            title="Buscar"
-            aria-label="Buscar"
-          >
-            <Icon name="search" size={16} />
-          </button>
-          <input
-            ref={searchRef}
-            className="input"
-            placeholder="Buscar…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onBlur={() => { if (!search) setBuscando(false); }}
-            aria-label="Buscar canales y contenido"
-          />
-        </div>
-        {/* Siempre visible, aunque solo haya una: es lo único que dice qué
-            lista se está viendo ahora que la barra lateral no está */}
-        {playlists.length > 0 && (
-          <select
-            className="input pa-nav-lista"
-            value={activeId || ""}
-            onChange={(e) => setActiveId(e.target.value || null)}
-            aria-label="Seleccionar lista"
-          >
-            {playlists.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-        )}
-        {/* Añadir lista: sin esto, quien no tiene proveedor se quedaba sin
-            manera de meter otra desde el reproductor */}
-        <button className="pa-icon-btn" onClick={() => setShowAdd(true)} title="Añadir lista" aria-label="Añadir lista">
-          <Icon name="plus" size={16} />
-        </button>
-        {active && !active.managed && (
-          <button
-            className="pa-icon-btn pa-icon-btn-danger"
-            onClick={() => handleDeletePlaylist(active)}
-            title="Eliminar esta lista"
-            aria-label="Eliminar esta lista"
-          >
-            <Icon name="trash" size={15} />
-          </button>
-        )}
       </nav>
     )}
 
+    {/* En el móvil no cabe el carril: las secciones se van a la cápsula de
+        abajo y aquí arriba queda lo que no es navegar */}
+    {active && (
+      <div className="pa-tira">
+        {hayDondeElegir && (
+          <button
+            className="pa-icon-btn"
+            onClick={() => { setSeccionGate("mostrando"); setVerListas(false); }}
+            title="Volver a elegir qué ver"
+            aria-label="Elegir qué ver"
+          >
+            <Icon name="back" size={16} />
+          </button>
+        )}
+        <button
+          className="pa-tira-lista"
+          onClick={() => { setVerListas((v) => !v); setBuscando(false); }}
+          aria-label="Listas"
+        >
+          <Icon name="list" size={15} />
+          <span>{active.name}</span>
+        </button>
+        <button className="pa-icon-btn" onClick={abrirBusqueda} title="Buscar" aria-label="Buscar">
+          <Icon name="search" size={16} />
+        </button>
+      </div>
+    )}
+
+    {/* El buscador, encima de lo que haya: lo que se busca no pertenece a
+        ninguna sección, así que no vive dentro de ninguna */}
+    {active && buscando && (
+      <div className="pa-busca">
+        <Icon name="search" size={17} />
+        <input
+          ref={searchRef}
+          className="input"
+          placeholder="Buscar canales, películas o series…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Escape") cerrarBusqueda(); }}
+          aria-label="Buscar canales y contenido"
+        />
+        <button className="pa-icon-btn" onClick={cerrarBusqueda} title="Cerrar la búsqueda" aria-label="Cerrar la búsqueda">
+          <Icon name="cerrar" size={15} />
+        </button>
+      </div>
+    )}
+
+    {/* Las listas del usuario: cambiar de una a otra, añadir y quitar. Era
+        un desplegable y dos botones sueltos en la barra de arriba */}
+    {active && verListas && (
+      <>
+        <button className="pa-listas-fondo" onClick={() => setVerListas(false)} aria-label="Cerrar el panel de listas" />
+        <div className="pa-listas" role="dialog" aria-label="Tus listas">
+          <p className="pa-listas-t">Tus listas</p>
+          {playlists.map((p) => (
+            <button
+              key={p.id}
+              className={`pa-listas-item ${p.id === activeId ? "activa" : ""}`}
+              onClick={() => { setActiveId(p.id); setVerListas(false); }}
+            >
+              <Icon name={p.id === activeId ? "check" : "list"} size={14} />
+              <span>{p.name}</span>
+            </button>
+          ))}
+          <div className="pa-listas-sep" />
+          <button
+            className="pa-listas-acc"
+            onClick={() => { setVerListas(false); setShowAdd(true); }}
+            aria-label="Añadir lista"
+          >
+            <Icon name="plus" size={14} /> Añadir lista
+          </button>
+          {!active.managed && (
+            <button
+              className="pa-listas-acc pa-listas-borrar"
+              onClick={() => { setVerListas(false); handleDeletePlaylist(active); }}
+              aria-label="Eliminar esta lista"
+            >
+              <Icon name="trash" size={14} /> Eliminar esta lista
+            </button>
+          )}
+        </div>
+      </>
+    )}
+
+    <div className={`pa-marco ${active ? "con-carril" : ""}`}>
     {active && buscandoTodo ? (
       /* Resultados de la búsqueda global, en lugar del contenido de la
          pestaña: lo que se busca manda sobre dónde se estaba */
@@ -1280,7 +1392,7 @@ export default function PlayerApp() {
           <h2>
             {resultados.total} resultado{resultados.total === 1 ? "" : "s"} para «{search.trim()}»
           </h2>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setSearch(""); setBuscando(false); }}>
+          <button className="btn btn-ghost btn-sm" onClick={cerrarBusqueda}>
             <Icon name="cerrar" size={14} /> Limpiar
           </button>
         </div>
@@ -1846,6 +1958,7 @@ export default function PlayerApp() {
       </main>
     </div>
     )}
+    </div>
 
     {/* Ficha en ventana: la carátula, la sinopsis y los episodios encima de
         lo que estabas viendo, sin cambiar de pantalla ni perder el sitio */}
@@ -1952,49 +2065,22 @@ export default function PlayerApp() {
     )}
 
     <div className="pa-flotantes">
+      {/* La cápsula: los mismos destinos que el carril, tumbados y al
+          alcance del pulgar. El icono va dentro de una pastilla que se
+          enciende, para que la sección activa se vea sin leer */}
       {active && (
         <nav className="pa-bottomnav" aria-label="Secciones">
-          <button
-            className={`pa-bottomnav-item ${tab === "live" ? "active" : ""}`}
-            onClick={() => { irAPestana("live"); setSeccionGate("hecho"); }}
-          >
-            <Icon name="tv" size={21} />
-            <span>{isXtream ? "Directo" : "Canales"}</span>
-          </button>
-          {isXtream && (
-            <>
-              {/* La parrilla también abajo: en el móvil esta barra es la
-                  única forma de cambiar de sección */}
-              <button
-                className={`pa-bottomnav-item ${tab === "guia" ? "active" : ""}`}
-                onClick={() => { irAPestana("guia"); setSeccionGate("hecho"); }}
-              >
-                <Icon name="clock" size={21} />
-                <span>Guía</span>
-              </button>
-              <button
-                className={`pa-bottomnav-item ${tab === "vod" ? "active" : ""}`}
-                onClick={() => { irAPestana("vod"); setSeccionGate("hecho"); }}
-              >
-                <Icon name="film" size={21} />
-                <span>Cine</span>
-              </button>
-              <button
-                className={`pa-bottomnav-item ${tab === "series" ? "active" : ""}`}
-                onClick={() => { irAPestana("series"); setSeccionGate("hecho"); }}
-              >
-                <Icon name="series" size={21} />
-                <span>Series</span>
-              </button>
-            </>
-          )}
-          <button
-            className={`pa-bottomnav-item ${tab === "favs" ? "active" : ""}`}
-            onClick={() => { irAPestana("favs"); setSeccionGate("hecho"); }}
-          >
-            <Icon name="star" size={21} />
-            <span>Favoritos</span>
-          </button>
+          {destinos.map((d) => (
+            <button
+              key={d.id}
+              className={`pa-bottomnav-item ${tab === d.id ? "active" : ""}`}
+              onClick={() => { irAPestana(d.id); setSeccionGate("hecho"); }}
+              aria-current={tab === d.id ? "page" : undefined}
+            >
+              <span className="pa-bottomnav-pastilla"><Icon name={d.icono} size={20} /></span>
+              <span>{d.texto}</span>
+            </button>
+          ))}
         </nav>
       )}
 

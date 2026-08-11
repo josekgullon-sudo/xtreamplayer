@@ -17,7 +17,7 @@ async function enLaGuia(p) {
   await p.waitForSelector(".section-gate", { timeout: 25000 });
   await p.locator(".section-card:has-text('TV en directo')").click();
   await p.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 20000 });
-  await p.locator('.pa-nav-item:has-text("Guía")').click();
+  await p.locator('.pa-rail-item:has-text("Guía")').click();
   await p.waitForSelector(".pa-guia-prog", { timeout: 25000 });
 }
 
@@ -67,7 +67,7 @@ async function enLaGuia(p) {
     titulo);
 
   // Un canal sin archivo no ofrece nada que recuperar
-  await p.locator('.pa-nav-item:has-text("Guía")').click();
+  await p.locator('.pa-rail-item:has-text("Guía")').click();
   await p.waitForSelector(".pa-guia-fila", { timeout: 20000 });
   await p.locator(".pa-guia .pa-live-cat").nth(1).click();
   await p.waitForTimeout(1200);

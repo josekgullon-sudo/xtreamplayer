@@ -95,7 +95,7 @@ const ck = (sc, n) => {
   await p2.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();
   await p2.locator(".pa-live-chan").first().click();
   await p2.waitForSelector(".pa-video-zone", { timeout: 15000 });
-  await p2.click('.pa-nav-item:has-text(\"Películas\")');
+  await p2.click('.pa-rail-item:has-text(\"Cine\")');
   await p2.waitForSelector(".pa-card", { timeout: 20000 });
   check("En Cine no hay reproductor: catálogo a pantalla completa", (await p2.locator("video").count()) === 0);
   check("Las carátulas ocupan el hueco del vídeo", await p2.locator(".pa-cat-scroll").isVisible());
@@ -123,7 +123,7 @@ const ck = (sc, n) => {
   check("Y de la ficha se vuelve a las carátulas", true);
 
   // Series: catálogo → ficha → episodio → reproducción
-  await p2.click('.pa-nav-item:has-text(\"Series\")');
+  await p2.click('.pa-rail-item:has-text(\"Series\")');
   await p2.waitForSelector(".pa-card", { timeout: 20000 });
   check("Series también navega a pantalla completa", (await p2.locator("video").count()) === 0);
   await p2.locator(".pa-card").first().click();

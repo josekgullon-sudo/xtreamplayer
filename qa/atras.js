@@ -103,7 +103,8 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   // ---------- Un canal en directo ----------
   /* Con una lista M3U, que es la que tiene vídeo de verdad detrás de cada
      canal: el directo es lo que más se usa y no puede quedar sin probar */
-  await p.locator('.pa-nav .pa-icon-btn[aria-label="Añadir lista"]').click();
+  await p.locator('[aria-label="Listas"]:visible').click();
+  await p.locator('[aria-label="Añadir lista"]:visible').click();
   await p.waitForSelector(".modal");
   await p.click(".modal .pa-tab:has-text('URL M3U')");
   await p.fill("#pl-name", "Directo");
