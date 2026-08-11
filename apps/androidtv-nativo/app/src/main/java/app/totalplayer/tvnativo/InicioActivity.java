@@ -113,8 +113,11 @@ public class InicioActivity extends Activity {
             @Override public void onClick(View v) {
                 // Una tarjeta vacía se puede enfocar, pero no lleva a ninguna parte
                 if (vacias.contains(seccion)) return;
+                /* Cine y series entran por su portada —un destacado y filas
+                   de carteles—; el directo, por sus carpetas, que es como se
+                   busca un canal */
                 Intent i = new Intent(InicioActivity.this,
-                        Catalogo.DIRECTO.equals(seccion) ? DirectoActivity.class : VodActivity.class);
+                        Catalogo.DIRECTO.equals(seccion) ? DirectoActivity.class : PortadaActivity.class);
                 i.putExtra("seccion", seccion);
                 i.putExtra("titulo", titulo);
                 startActivity(i);

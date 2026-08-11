@@ -108,6 +108,13 @@ public final class Catalogo {
         public String duracion = "";
         /** Si ya se le ha preguntado al proveedor por el detalle de este. */
         public boolean detallePedido = false;
+        /**
+         * Cuándo lo subió el proveedor, en segundos.
+         *
+         * Viene en el listado, no en la ficha, y es lo único con lo que se
+         * puede armar una fila de «recién añadidos» sin pedir mil fichas.
+         */
+        public long alta = 0;
         public boolean esSerie = false;
         /** El número que le ha puesto el proveedor. Solo en el directo. */
         public int numero = 0;
@@ -190,6 +197,113 @@ public final class Catalogo {
         return lista;
     }
 
+    /* ---------------- La portada: filas de una sección ---------------- */
+
+    /** Una fila de la portada: un rótulo y sus títulos. */
+    public static class Fila {
+        public final String titulo;
+        public final List<Item> items;
+        /**
+         * Si va numerada del 1 al 10, como el «en tendencia» de cualquier
+         * aplicación de este tipo.
+         */
+        public final boolean numerada;
+        /** La carpeta de la que sale, para el «ver todas». Vacío si es inventada. */
+        public final String carpetaId;
+        public Fila(String titulo, List<Item> items, boolean numerada, String carpetaId) {
+            this.titulo = titulo;
+            this.items = items;
+            this.numerada = numerada;
+            this.carpetaId = carpetaId;
+        }
+    }
+
+    /** Cuántas carpetas se traen para la portada: más son más esperas. */
+    private static final int CARPETAS_EN_PORTADA = 6;
+    /** Y cuántos títulos por fila: los que caben de largo y un poco más. */
+    private static final int POR_FILA = 20;
+
+    /**
+     * Las filas de la portada de cine o de series.
+     *
+     * Se traen las primeras carpetas del proveedor y con ellas se arman dos
+     * filas inventadas —lo mejor valorado y lo último subido— más una fila
+     * por carpeta. Las inventadas van primero porque son las que contestan a
+     * «¿y qué veo?», que es la pregunta con la que se entra aquí.
+     *
+     * Un aviso que conviene tener escrito: «en tendencia» **no es un dato
+     * que exista**. Nadie nos dice qué se está viendo más. Lo que hay es la
+     * nota que manda el proveedor, así que esa fila es «mejor valoradas» y
+     * se llama así. Inventar una tendencia ordenando por cualquier cosa y
+     * ponerle ese nombre sería mentirle al cliente.
+     */
+    public static List<Fila> portada(String seccion) throws Exception {
+        List<Fila> filas = new ArrayList<>();
+        List<Carpeta> suyas = carpetas(seccion);
+        List<Item> todos = new ArrayList<>();
+
+        for (Carpeta c : suyas) {
+            if (filas.size() >= CARPETAS_EN_PORTADA) break;
+            List<Item> dentro;
+            try {
+                dentro = contenido(seccion, c.id);
+            } catch (Exception falloDeUna) {
+                /* Una carpeta que no contesta no puede dejar la portada en
+                   blanco: se salta y las demás siguen */
+                continue;
+            }
+            if (dentro.isEmpty()) continue;
+            todos.addAll(dentro);
+            filas.add(new Fila(Categorias.bonito(c.nombre), recorta(dentro), false, c.id));
+        }
+
+        if (todos.isEmpty()) return filas;
+
+        List<Fila> arriba = new ArrayList<>();
+        List<Item> valoradas = mejorValoradas(todos);
+        if (valoradas.size() >= 4) arriba.add(new Fila("Mejor valoradas", valoradas, true, ""));
+        List<Item> recientes = recienAnadidas(todos);
+        if (recientes.size() >= 4) arriba.add(new Fila("Añadidas recientemente", recientes, false, ""));
+        arriba.addAll(filas);
+        return arriba;
+    }
+
+    private static List<Item> recorta(List<Item> de) {
+        return new ArrayList<>(de.subList(0, Math.min(POR_FILA, de.size())));
+    }
+
+    /** Las diez mejor valoradas, de las que traen nota y carátula. */
+    private static List<Item> mejorValoradas(List<Item> todos) {
+        List<Item> con = new ArrayList<>();
+        for (Item i : todos) {
+            if (!i.imagen.isEmpty() && nota(i) > 0) con.add(i);
+        }
+        Collections.sort(con, new Comparator<Item>() {
+            @Override public int compare(Item a, Item b) { return Double.compare(nota(b), nota(a)); }
+        });
+        return new ArrayList<>(con.subList(0, Math.min(10, con.size())));
+    }
+
+    /** Lo último que ha subido el proveedor, de lo que trae fecha. */
+    private static List<Item> recienAnadidas(List<Item> todos) {
+        List<Item> con = new ArrayList<>();
+        for (Item i : todos) {
+            if (!i.imagen.isEmpty() && i.alta > 0) con.add(i);
+        }
+        Collections.sort(con, new Comparator<Item>() {
+            @Override public int compare(Item a, Item b) { return Long.compare(b.alta, a.alta); }
+        });
+        return new ArrayList<>(con.subList(0, Math.min(POR_FILA, con.size())));
+    }
+
+    private static double nota(Item i) {
+        try {
+            return Double.parseDouble(i.nota.replace(',', '.'));
+        } catch (Exception noEsUnNumero) {
+            return 0;
+        }
+    }
+
     /* ---------------- Contenido de una carpeta ---------------- */
 
     public static List<Item> contenido(String seccion, String carpetaId) throws Exception {
@@ -257,6 +371,12 @@ public final class Catalogo {
             it.imagen = c.optString("stream_icon", "");
             it.extension = c.optString("container_extension", "mp4");
             it.extra = juntar(c.optString("year", ""), c.optString("rating", ""));
+            /* La nota y la fecha vienen ya en el listado: guardarlas aquí es
+               lo que permite ordenar las filas de la portada sin pedir la
+               ficha de cada uno de los cuatrocientos títulos */
+            it.nota = limpio(c.optString("rating", ""));
+            it.anio = limpio(c.optString("year", ""));
+            it.alta = c.optLong("added", 0);
             it.clase = Enlaces.PELICULA;
             it.url = Sesion.actual().urlPelicula(id, it.extension);
             lista.add(it);
@@ -277,9 +397,15 @@ public final class Catalogo {
             it.id = id;
             it.nombre = nombre;
             it.imagen = c.optString("cover", "");
-            it.sinopsis = c.optString("plot", "");
+            it.sinopsis = limpio(c.optString("plot", ""));
             it.extra = juntar(c.optString("releaseDate", "").length() >= 4
                     ? c.optString("releaseDate", "").substring(0, 4) : "", c.optString("rating", ""));
+            it.nota = limpio(c.optString("rating", ""));
+            it.anio = anioDe(primero(c.optString("releaseDate", ""), c.optString("release_date", "")));
+            it.generos = limpio(c.optString("genre", ""));
+            it.reparto = limpio(c.optString("cast", ""));
+            /* En las series el panel manda «last_modified» en vez de «added» */
+            it.alta = c.optLong("last_modified", 0);
             it.esSerie = true;
             lista.add(it);
         }

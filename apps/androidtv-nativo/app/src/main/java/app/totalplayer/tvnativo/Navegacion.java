@@ -97,8 +97,10 @@ public final class Navegacion {
         }
         alPulsar(donde, id, new Runnable() {
             @Override public void run() {
+                /* Cine y series entran por su portada, no por la lista de
+                   carpetas: las carpetas siguen a un OK de cada rótulo */
                 Intent i = new Intent(donde,
-                        Catalogo.DIRECTO.equals(seccion) ? DirectoActivity.class : VodActivity.class);
+                        Catalogo.DIRECTO.equals(seccion) ? DirectoActivity.class : PortadaActivity.class);
                 i.putExtra("seccion", seccion);
                 i.putExtra("titulo", titulo);
                 donde.startActivity(i);
