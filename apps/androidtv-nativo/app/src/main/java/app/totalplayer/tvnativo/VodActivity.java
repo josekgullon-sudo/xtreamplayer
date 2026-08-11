@@ -44,6 +44,9 @@ public class VodActivity extends Activity {
         if (seccion == null) seccion = Catalogo.PELIS;
         String titulo = getIntent().getStringExtra("titulo");
 
+        /* El carril de secciones, con la de aquí encendida */
+        Navegacion.montar(this, seccion);
+
         ((TextView) findViewById(R.id.tituloSeccion))
                 .setText(titulo == null ? "" : titulo.toUpperCase());
         tituloCarpeta = findViewById(R.id.tituloCarpeta);

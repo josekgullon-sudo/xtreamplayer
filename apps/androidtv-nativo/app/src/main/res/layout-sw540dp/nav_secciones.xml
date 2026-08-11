@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El carril de secciones, a tres metros del sofá.
+
+  Pasar de las películas a las series eran dos ATRÁS y volver a recorrer el
+  menú con las flechas. Con el carril siempre a la izquierda, es ◀ y OK.
+
+  Los mismos identificadores que la cápsula del teléfono: los engancha el
+  mismo código (Navegacion.java) y las dos pantallas hacen lo mismo.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="112dp"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:background="@drawable/carril"
+    android:paddingTop="24dp"
+    android:paddingBottom="24dp"
+    android:paddingStart="6dp"
+    android:paddingEnd="6dp">
+
+    <LinearLayout
+        android:id="@+id/navInicio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:focusable="true"
+        android:clickable="true">
+
+        <FrameLayout
+            android:id="@+id/navInicioPastilla"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:background="@drawable/carril_icono">
+
+            <ImageView
+                android:id="@+id/navInicioIcono"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_atras"
+                android:tint="@color/apagado"
+                android:contentDescription="@null" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/navInicioTexto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Inicio"
+            android:textColor="@color/apagado"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="6dp" />
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/navDirecto"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:focusable="true"
+        android:clickable="true">
+
+        <FrameLayout
+            android:id="@+id/navDirectoPastilla"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:background="@drawable/carril_icono">
+
+            <ImageView
+                android:id="@+id/navDirectoIcono"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_tv"
+                android:tint="@color/apagado"
+                android:contentDescription="@null" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/navDirectoTexto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Directo"
+            android:textColor="@color/apagado"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="6dp" />
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/navCine"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:focusable="true"
+        android:clickable="true">
+
+        <FrameLayout
+            android:id="@+id/navCinePastilla"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:background="@drawable/carril_icono">
+
+            <ImageView
+                android:id="@+id/navCineIcono"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_cine"
+                android:tint="@color/apagado"
+                android:contentDescription="@null" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/navCineTexto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cine"
+            android:textColor="@color/apagado"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="6dp" />
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/navSeries"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:focusable="true"
+        android:clickable="true">
+
+        <FrameLayout
+            android:id="@+id/navSeriesPastilla"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:background="@drawable/carril_icono">
+
+            <ImageView
+                android:id="@+id/navSeriesIcono"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_series"
+                android:tint="@color/apagado"
+                android:contentDescription="@null" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/navSeriesTexto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Series"
+            android:textColor="@color/apagado"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="6dp" />
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/navBuscar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:focusable="true"
+        android:clickable="true">
+
+        <FrameLayout
+            android:id="@+id/navBuscarPastilla"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:background="@drawable/carril_icono">
+
+            <ImageView
+                android:id="@+id/navBuscarIcono"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_buscar"
+                android:tint="@color/apagado"
+                android:contentDescription="@null" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/navBuscarTexto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Buscar"
+            android:textColor="@color/apagado"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="6dp" />
+    </LinearLayout>
+</LinearLayout>

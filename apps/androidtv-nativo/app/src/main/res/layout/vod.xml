@@ -146,4 +146,16 @@
         android:layout_gravity="center"
         android:indeterminateTint="@color/marca"
         android:visibility="gone" />
+
+    <!-- La cápsula de secciones, flotando abajo. Va la última del
+         FrameLayout para quedar por encima de las capas de contenido -->
+    <include
+        android:id="@+id/carril"
+        layout="@layout/nav_secciones"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="12dp" />
 </FrameLayout>

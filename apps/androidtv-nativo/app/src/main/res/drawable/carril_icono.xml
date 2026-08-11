@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  .pa-rail-icono / .pa-bottomnav-pastilla: la pastilla de detrás del icono.
+
+  Es ella la que se enciende, no el botón entero: así la sección en la que
+  estás se ve de un vistazo desde tres metros —una mancha de color entre
+  cinco iconos apagados— sin que el carril parezca tener un botón hundido.
+  Y con el mando, el foco es el borde, que es otra cosa distinta.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/marca_tinte_fuerte" />
+            <stroke android:width="3dp" android:color="@color/marca_viva" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+    <item android:state_activated="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/marca_tinte" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/tranquilo" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+</selector>

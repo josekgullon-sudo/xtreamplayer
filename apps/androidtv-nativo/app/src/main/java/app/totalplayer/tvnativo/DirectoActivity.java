@@ -63,6 +63,10 @@ public class DirectoActivity extends Activity {
         setContentView(R.layout.directo);
         if (!Guardia.haySesion(this)) return;
 
+        /* El carril de secciones: cine y series a un OK de aquí, sin volver
+           al menú a buscarlos con las flechas */
+        Navegacion.montar(this, Catalogo.DIRECTO);
+
         listaCarpetas = findViewById(R.id.listaCarpetas);
         listaCanales = findViewById(R.id.listaCanales);
         tituloCarpeta = findViewById(R.id.tituloCarpeta);
