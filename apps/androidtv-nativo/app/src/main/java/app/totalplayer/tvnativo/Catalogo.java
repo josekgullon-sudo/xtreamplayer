@@ -33,6 +33,17 @@ public final class Catalogo {
         return Sesion.actual().gestionada ? Web.enCasa(direccion) : Web.pedir(direccion);
     }
 
+    /*
+     * TODO lo que pide catálogo pasa por `pedir`, nunca por `Web.pedir`.
+     *
+     * Aquí estaba el fallo que dejaba la aplicación inservible con una cuenta
+     * de proveedor: las CARPETAS se pedían con `pedir` —con la galleta— y su
+     * CONTENIDO con `Web.pedir` —sin ella—. El resultado era que las carpetas
+     * cargaban, se veían, y al entrar en cualquiera salía «Entra en tu cuenta
+     * para ver tu lista» estando dentro. Con lista propia no se notaba,
+     * porque ahí las dos rutas hacen lo mismo.
+     */
+
     public static final String DIRECTO = "directo";
     public static final String PELIS = "pelis";
     public static final String SERIES = "series";
@@ -192,7 +203,7 @@ public final class Catalogo {
     }
 
     private static List<Item> directoXtream(String carpetaId) throws Exception {
-        JSONArray flujos = new JSONArray(Web.pedir(
+        JSONArray flujos = new JSONArray(pedir(
                 Sesion.actual().api() + "&action=get_live_streams&category_id=" + Web.escapar(carpetaId)));
         List<Item> lista = new ArrayList<>();
         for (int i = 0; i < flujos.length(); i++) {
@@ -215,7 +226,7 @@ public final class Catalogo {
     }
 
     private static List<Item> pelisXtream(String carpetaId) throws Exception {
-        JSONArray flujos = new JSONArray(Web.pedir(
+        JSONArray flujos = new JSONArray(pedir(
                 Sesion.actual().api() + "&action=get_vod_streams&category_id=" + Web.escapar(carpetaId)));
         List<Item> lista = new ArrayList<>();
         for (int i = 0; i < flujos.length(); i++) {
@@ -237,7 +248,7 @@ public final class Catalogo {
     }
 
     private static List<Item> seriesXtream(String carpetaId) throws Exception {
-        JSONArray flujos = new JSONArray(Web.pedir(
+        JSONArray flujos = new JSONArray(pedir(
                 Sesion.actual().api() + "&action=get_series&category_id=" + Web.escapar(carpetaId)));
         List<Item> lista = new ArrayList<>();
         for (int i = 0; i < flujos.length(); i++) {
@@ -274,7 +285,7 @@ public final class Catalogo {
     public static void detallePelicula(Item peli) {
         if (!Sesion.actual().esXtream() || !peli.sinopsis.isEmpty()) return;
         try {
-            JSONObject r = new JSONObject(Web.pedir(
+            JSONObject r = new JSONObject(pedir(
                     Sesion.actual().api() + "&action=get_vod_info&vod_id=" + Web.escapar(peli.id)));
             JSONObject info = r.optJSONObject("info");
             if (info == null) return;
@@ -310,7 +321,7 @@ public final class Catalogo {
 
         List<Episodio> lista = new ArrayList<>();
         if (Sesion.actual().esXtream()) {
-            JSONObject r = new JSONObject(Web.pedir(
+            JSONObject r = new JSONObject(pedir(
                     Sesion.actual().api() + "&action=get_series_info&series_id=" + Web.escapar(serie.id)));
             JSONObject info = r.optJSONObject("info");
             if (info != null && serie.sinopsis.isEmpty()) serie.sinopsis = info.optString("plot", "");

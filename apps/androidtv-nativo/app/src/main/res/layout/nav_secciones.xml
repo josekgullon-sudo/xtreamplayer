@@ -26,6 +26,7 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:gravity="center"
+        android:background="@drawable/carril_item"
         android:focusable="true"
         android:clickable="true">
 
@@ -62,6 +63,7 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:gravity="center"
+        android:background="@drawable/carril_item"
         android:focusable="true"
         android:clickable="true">
 
@@ -98,6 +100,7 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:gravity="center"
+        android:background="@drawable/carril_item"
         android:focusable="true"
         android:clickable="true">
 
@@ -134,6 +137,7 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:gravity="center"
+        android:background="@drawable/carril_item"
         android:focusable="true"
         android:clickable="true">
 
@@ -170,6 +174,7 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:gravity="center"
+        android:background="@drawable/carril_item"
         android:focusable="true"
         android:clickable="true">
 
