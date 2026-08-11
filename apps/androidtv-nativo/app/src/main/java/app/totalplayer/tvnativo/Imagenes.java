@@ -104,6 +104,52 @@ public final class Imagenes {
         });
     }
 
+    /** Para cuando lo que hace falta es la imagen, no pintarla en un hueco. */
+    public interface Traida { void llega(Bitmap b); }
+
+    /**
+     * Baja una imagen y la entrega, sin pintar nada.
+     *
+     * Existe por el destacado de la portada. `cargar` vale para un cartel de
+     * una fila: si no llega, se queda el dibujo de reserva y no pasa nada.
+     * Arriba sí pasa: el destacado ocupa media pantalla y sin su imagen deja
+     * un hueco negro. Con esto la portada puede probar candidatos hasta que
+     * uno conteste, y enseñar ese.
+     *
+     * Se apoya en la misma memoria y en la misma lista de rotas que `cargar`,
+     * así que probar un candidato que ya falló antes no cuesta ni una
+     * conexión.
+     */
+    public static void probar(final String url, final int anchoDestino, final Traida quien) {
+        if (url == null || url.isEmpty()
+                || !(url.startsWith("http") || url.startsWith("/"))
+                || ROTAS.contains(url)) {
+            quien.llega(null);
+            return;
+        }
+        Bitmap ya = CACHE.get(url);
+        if (ya != null) {
+            quien.llega(ya);
+            return;
+        }
+        Hilos.fueraLento(new Hilos.Trabajo<Bitmap>() {
+            @Override public Bitmap hacer() {
+                Bitmap b = bajar(url, anchoDestino);
+                if (b == null) ROTAS.add(url);
+                return b;
+            }
+        }, new Hilos.Luego<Bitmap>() {
+            @Override public void listo(Bitmap b) {
+                if (b != null) CACHE.put(url, b);
+                quien.llega(b);
+            }
+            @Override public void falla(Exception e) {
+                ROTAS.add(url);
+                quien.llega(null);
+            }
+        });
+    }
+
     private static Bitmap bajar(String url, int anchoDestino) {
         try {
             byte[] bytes = leer(url);

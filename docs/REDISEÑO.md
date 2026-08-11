@@ -71,6 +71,10 @@ viaja dentro y no se arregla desplegando la web.
   una línea corta debajo del icono. Nada de pastillas ni de texto: a tres
   metros el icono ya se reconoce, y las palabras solo roban ancho a lo que
   se ha venido a ver. Abajo del todo, separado, el avatar del perfil.
+  **Esto se probó y no funcionó**: en nuestra tele, el icono de cine y el de
+  series son los dos un rectángulo con algo dentro, y desde el sofá no hay
+  quien los distinga. Llevan etiqueta de 11 puntos debajo y el carril pasa
+  de 70 a 78 px. Es lo único de la referencia que se ha copiado y devuelto.
 - **Cine y series no son una lista de carpetas.** Son una portada: un héroe
   a pantalla casi completa con el fondo del título, la nota en estrellas y
   en número, los géneros, el reparto, la duración, el año, la edad
@@ -116,6 +120,28 @@ aplicación funcionando, no en pantallas sueltas:
   lista de sesenta carpetas, «DAZN - MOTO GP» y «DAZN | EVENTOS» son la misma
   mancha de texto; con un casco y un calendario delante, no. El icono sale del
   nombre de la carpeta, así que no hay que pedirle nada a nadie.
+- **El destacado no se elige, se busca.** Poner arriba «el primero que tenga
+  carátula» no basta: una parte del catálogo de cualquier proveedor apunta a
+  imágenes que ya no existen, y cuando le toca a la de arriba la portada abre
+  con media pantalla en negro y un título flotando. Se prueban hasta ocho
+  candidatos, ordenados por lo que tienen que contar —sinopsis, nota, año—, y
+  el bloque no aparece hasta que una imagen ha llegado de verdad. Si no llega
+  ninguna, no hay destacado y la portada empieza por las filas.
+- **Y la carátula va dos veces.** Lo que manda un panel Xtream es una imagen
+  vertical, no un fondo apaisado: estirada a lo ancho de la tele sale
+  gigante y blanda. Va de fondo a media luz —ahí lo borroso es un efecto— y
+  otra vez entera y a su tamaño en el lado derecho, que es donde se mira. Con
+  dos velos, uno de lado y otro de abajo, para poder leer encima.
+- **El mismo título no puede salir dos veces en una fila.** La misma película
+  está en «ESTRENOS» y en «ACCIÓN», y a veces la segunda copia lleva un «4K»
+  detrás. En las capturas del cliente, «30 (2007)» salía en los puestos 1 y 4.
+  Se comparan los títulos sin tildes, sin signos y sin las etiquetas de
+  calidad; el año **no** se quita, porque «Alien (1979)» y «Alien (2017)» no
+  son la misma película.
+- **Un cartel que no carga tiene que seguir diciendo qué es.** El dibujo de
+  reserva era el icono de cine estirado a 150×225: cuatrocientos cuadrados
+  grises idénticos con un triángulo dentro. Detrás de cada carátula va ahora
+  el título en pequeño, y se ve mientras la imagen no esté.
 - **Su barra inferior no lleva las mismas cinco cosas que la nuestra.** Ellos
   ponen abajo *TV en vivo, Películas, Serie, Historial y Almacén*, y se llevan
   favoritos y buscar a la cabecera. Nosotros llevamos *Directo, Guía, Cine,

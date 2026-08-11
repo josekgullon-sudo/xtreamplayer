@@ -2,7 +2,11 @@
 <!--
   El carril de secciones, a tres metros del sofá.
 
-  Solo iconos, y estrecho. La versión anterior llevaba cada icono en una
+  Con la etiqueta debajo, en pequeño. Se probó sin ellas —la referencia no
+  las lleva— y en una tele de verdad no hay quien sepa cuál es cine y cuál
+  series: los dos dibujos son un rectángulo con algo dentro, y a tres
+  metros esa diferencia no existe. Once puntos de letra ocupan poco y
+  quitan la duda. La versión anterior llevaba cada icono en una
   pastilla de 58 con su etiqueta debajo, y entre eso y el ancho de la
   columna el nombre de la carpeta de al lado se quedaba en «AUT…». A tres
   metros el dibujo ya se reconoce; la palabra solo roba sitio a lo que se
@@ -17,7 +21,7 @@
   mismo código (Navegacion.java).
 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="70dp"
+    android:layout_width="78dp"
     android:layout_height="match_parent"
     android:background="@drawable/carril"
     android:scrollbars="none"
@@ -53,24 +57,27 @@
                 android:tint="@color/apagado"
                 android:contentDescription="@null" />
 
-            <!-- La raya de debajo: dice en qué sección ESTÁS. Se enciende
-                 desde Navegacion.java y no tiene nada que ver con el foco -->
+            <!-- La raya: dice en qué sección ESTÁS, y va pegada al icono.
+                 Se enciende desde Navegacion.java y no tiene nada que ver
+                 con el foco, que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navInicioPastilla"
                 android:layout_width="22dp"
                 android:layout_height="3dp"
-                android:layout_marginTop="7dp"
+                android:layout_marginTop="5dp"
                 android:background="@drawable/carril_icono" />
 
-            <!-- La etiqueta ya no se pinta en la tele: el icono se reconoce
-                 a tres metros y la palabra solo robaba ancho. Sigue aquí
-                 porque el teléfono sí la usa y las dos pantallas tienen que
-                 declarar lo mismo -->
             <TextView
                 android:id="@+id/navInicioTexto"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:visibility="gone" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Inicio"
+                android:textColor="@color/apagado"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:layout_marginTop="5dp" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/navDirecto"
@@ -92,24 +99,27 @@
                 android:tint="@color/apagado"
                 android:contentDescription="@null" />
 
-            <!-- La raya de debajo: dice en qué sección ESTÁS. Se enciende
-                 desde Navegacion.java y no tiene nada que ver con el foco -->
+            <!-- La raya: dice en qué sección ESTÁS, y va pegada al icono.
+                 Se enciende desde Navegacion.java y no tiene nada que ver
+                 con el foco, que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navDirectoPastilla"
                 android:layout_width="22dp"
                 android:layout_height="3dp"
-                android:layout_marginTop="7dp"
+                android:layout_marginTop="5dp"
                 android:background="@drawable/carril_icono" />
 
-            <!-- La etiqueta ya no se pinta en la tele: el icono se reconoce
-                 a tres metros y la palabra solo robaba ancho. Sigue aquí
-                 porque el teléfono sí la usa y las dos pantallas tienen que
-                 declarar lo mismo -->
             <TextView
                 android:id="@+id/navDirectoTexto"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:visibility="gone" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Directo"
+                android:textColor="@color/apagado"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:layout_marginTop="5dp" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/navCine"
@@ -131,24 +141,27 @@
                 android:tint="@color/apagado"
                 android:contentDescription="@null" />
 
-            <!-- La raya de debajo: dice en qué sección ESTÁS. Se enciende
-                 desde Navegacion.java y no tiene nada que ver con el foco -->
+            <!-- La raya: dice en qué sección ESTÁS, y va pegada al icono.
+                 Se enciende desde Navegacion.java y no tiene nada que ver
+                 con el foco, que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navCinePastilla"
                 android:layout_width="22dp"
                 android:layout_height="3dp"
-                android:layout_marginTop="7dp"
+                android:layout_marginTop="5dp"
                 android:background="@drawable/carril_icono" />
 
-            <!-- La etiqueta ya no se pinta en la tele: el icono se reconoce
-                 a tres metros y la palabra solo robaba ancho. Sigue aquí
-                 porque el teléfono sí la usa y las dos pantallas tienen que
-                 declarar lo mismo -->
             <TextView
                 android:id="@+id/navCineTexto"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:visibility="gone" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Cine"
+                android:textColor="@color/apagado"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:layout_marginTop="5dp" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/navSeries"
@@ -170,24 +183,27 @@
                 android:tint="@color/apagado"
                 android:contentDescription="@null" />
 
-            <!-- La raya de debajo: dice en qué sección ESTÁS. Se enciende
-                 desde Navegacion.java y no tiene nada que ver con el foco -->
+            <!-- La raya: dice en qué sección ESTÁS, y va pegada al icono.
+                 Se enciende desde Navegacion.java y no tiene nada que ver
+                 con el foco, que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navSeriesPastilla"
                 android:layout_width="22dp"
                 android:layout_height="3dp"
-                android:layout_marginTop="7dp"
+                android:layout_marginTop="5dp"
                 android:background="@drawable/carril_icono" />
 
-            <!-- La etiqueta ya no se pinta en la tele: el icono se reconoce
-                 a tres metros y la palabra solo robaba ancho. Sigue aquí
-                 porque el teléfono sí la usa y las dos pantallas tienen que
-                 declarar lo mismo -->
             <TextView
                 android:id="@+id/navSeriesTexto"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:visibility="gone" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Series"
+                android:textColor="@color/apagado"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:layout_marginTop="5dp" />
         </LinearLayout>
         <LinearLayout
             android:id="@+id/navBuscar"
@@ -209,24 +225,27 @@
                 android:tint="@color/apagado"
                 android:contentDescription="@null" />
 
-            <!-- La raya de debajo: dice en qué sección ESTÁS. Se enciende
-                 desde Navegacion.java y no tiene nada que ver con el foco -->
+            <!-- La raya: dice en qué sección ESTÁS, y va pegada al icono.
+                 Se enciende desde Navegacion.java y no tiene nada que ver
+                 con el foco, que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navBuscarPastilla"
                 android:layout_width="22dp"
                 android:layout_height="3dp"
-                android:layout_marginTop="7dp"
+                android:layout_marginTop="5dp"
                 android:background="@drawable/carril_icono" />
 
-            <!-- La etiqueta ya no se pinta en la tele: el icono se reconoce
-                 a tres metros y la palabra solo robaba ancho. Sigue aquí
-                 porque el teléfono sí la usa y las dos pantallas tienen que
-                 declarar lo mismo -->
             <TextView
                 android:id="@+id/navBuscarTexto"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:visibility="gone" />
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Buscar"
+                android:textColor="@color/apagado"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:layout_marginTop="5dp" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

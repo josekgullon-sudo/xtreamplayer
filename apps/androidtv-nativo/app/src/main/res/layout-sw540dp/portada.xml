@@ -7,6 +7,21 @@
   «¿y qué veo?», que es la pregunta con la que se entra: un título grande
   arriba con su ficha, y debajo filas de carteles.
 
+  El destacado se monta con tres capas y una carátula:
+
+    1. la carátula ampliada a lo ancho, de fondo y a media luz — al estirar
+       una imagen vertical hasta 1280 puntos sale suave, y ahí eso es un
+       efecto y no un defecto;
+    2. un velo de izquierda a derecha, que apaga la imagen justo donde va el
+       texto y la deja entera donde no;
+    3. un velo de abajo a arriba que la funde con el fondo, para que no se
+       vea el corte de la banda;
+    4. y la misma carátula otra vez, entera y a su tamaño, a la derecha.
+
+  Ese cuarto punto es el que arregla lo que se veía mal: la carátula que
+  manda el proveedor es vertical, y una imagen vertical estirada de lado a
+  lado no es un fondo de película, es una mancha.
+
   Es un ScrollView y no una lista reciclada a propósito. Son seis u ocho
   filas contadas, cada una con su propia lista horizontal dentro; una lista
   vertical reciclando listas horizontales es justo donde el foco de un mando
@@ -17,25 +32,32 @@
     android:layout_height="match_parent"
     android:background="@color/fondo">
 
-    <!-- El fondo del título destacado, difuminado por el velo de encima -->
+    <!-- 1. La carátula del destacado, ampliada -->
     <ImageView
         android:id="@+id/fondo"
         android:layout_width="match_parent"
-        android:layout_height="440dp"
+        android:layout_height="470dp"
         android:scaleType="centerCrop"
-        android:alpha="0.5"
+        android:alpha="0.32"
         android:contentDescription="@null" />
 
+    <!-- 2. El velo del lado, para poder leer encima -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="440dp"
-        android:background="@drawable/velo" />
+        android:layout_height="470dp"
+        android:background="@drawable/velo_lado" />
+
+    <!-- 3. Y el de abajo, que funde la banda con el fondo -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="470dp"
+        android:background="@drawable/velo_portada" />
 
     <ScrollView
         android:id="@+id/scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingStart="56dp"
+        android:paddingStart="64dp"
         android:scrollbars="none"
         android:clipToPadding="false">
 
@@ -45,93 +67,119 @@
             android:orientation="vertical"
             android:paddingBottom="30dp">
 
-            <!-- El héroe -->
+            <!-- El héroe: la ficha a la izquierda, la carátula a la derecha -->
             <LinearLayout
                 android:id="@+id/heroe"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:paddingStart="24dp"
-                android:paddingEnd="24dp"
-                android:paddingTop="40dp"
-                android:paddingBottom="26dp">
-
-                <TextView
-                    android:id="@+id/heroeTitulo"
-                    android:layout_width="620dp"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/texto"
-                    android:textSize="40sp"
-                    android:textStyle="bold"
-                    android:maxLines="2"
-                    android:ellipsize="end" />
-
-                <TextView
-                    android:id="@+id/heroeDatos"
-                    android:layout_width="620dp"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/apagado"
-                    android:textSize="16sp"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:layout_marginTop="10dp" />
-
-                <TextView
-                    android:id="@+id/heroeSinopsis"
-                    android:layout_width="620dp"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/apagado"
-                    android:textSize="16sp"
-                    android:lineSpacingExtra="4dp"
-                    android:maxLines="2"
-                    android:ellipsize="end"
-                    android:layout_marginTop="12dp" />
+                android:paddingEnd="56dp"
+                android:paddingTop="38dp"
+                android:paddingBottom="26dp"
+                android:visibility="gone">
 
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="20dp">
+                    android:orientation="vertical">
 
-                    <Button
-                        android:id="@+id/heroeVer"
-                        android:layout_width="wrap_content"
-                        android:layout_height="60dp"
-                        android:minWidth="230dp"
-                        android:text="Reproducir"
+                    <TextView
+                        android:id="@+id/heroeTitulo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
                         android:textColor="@color/texto"
-                        android:textSize="18sp"
+                        android:textSize="42sp"
                         android:textStyle="bold"
-                        android:textAllCaps="false"
-                        android:background="@drawable/boton" />
+                        android:maxLines="2"
+                        android:ellipsize="end" />
 
-                    <FrameLayout
-                        android:id="@+id/heroeBloqueNota"
+                    <TextView
+                        android:id="@+id/heroeDatos"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/apagado"
+                        android:textSize="16sp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:layout_marginTop="10dp" />
+
+                    <TextView
+                        android:id="@+id/heroeSinopsis"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/apagado"
+                        android:textSize="16sp"
+                        android:lineSpacingExtra="4dp"
+                        android:maxLines="3"
+                        android:ellipsize="end"
+                        android:layout_marginTop="12dp" />
+
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="18dp"
-                        android:visibility="gone">
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="20dp">
 
-                        <ProgressBar
-                            android:id="@+id/heroeAnillo"
-                            style="?android:attr/progressBarStyleHorizontal"
-                            android:layout_width="58dp"
-                            android:layout_height="58dp"
-                            android:indeterminate="false"
-                            android:max="100"
-                            android:progressDrawable="@drawable/anillo_nota" />
-
-                        <TextView
-                            android:id="@+id/heroeNota"
-                            android:layout_width="58dp"
-                            android:layout_height="58dp"
-                            android:gravity="center"
+                        <Button
+                            android:id="@+id/heroeVer"
+                            android:layout_width="wrap_content"
+                            android:layout_height="60dp"
+                            android:minWidth="230dp"
+                            android:text="Reproducir"
                             android:textColor="@color/texto"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-                    </FrameLayout>
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textAllCaps="false"
+                            android:background="@drawable/boton" />
+
+                        <FrameLayout
+                            android:id="@+id/heroeBloqueNota"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="18dp"
+                            android:visibility="gone">
+
+                            <ProgressBar
+                                android:id="@+id/heroeAnillo"
+                                style="?android:attr/progressBarStyleHorizontal"
+                                android:layout_width="58dp"
+                                android:layout_height="58dp"
+                                android:indeterminate="false"
+                                android:max="100"
+                                android:progressDrawable="@drawable/anillo_nota" />
+
+                            <TextView
+                                android:id="@+id/heroeNota"
+                                android:layout_width="58dp"
+                                android:layout_height="58dp"
+                                android:gravity="center"
+                                android:textColor="@color/texto"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+                        </FrameLayout>
+                    </LinearLayout>
                 </LinearLayout>
+
+                <!-- 4. La carátula entera, sin estirar -->
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="40dp"
+                    android:background="@drawable/marco_heroe"
+                    android:padding="5dp">
+
+                    <ImageView
+                        android:id="@+id/heroeCartel"
+                        android:layout_width="196dp"
+                        android:layout_height="294dp"
+                        android:scaleType="centerCrop"
+                        android:visibility="invisible"
+                        android:contentDescription="@null" />
+                </FrameLayout>
             </LinearLayout>
 
             <!-- Y aquí se cuelgan las filas, una por rótulo -->
@@ -157,7 +205,7 @@
     <include
         android:id="@+id/carril"
         layout="@layout/nav_secciones"
-        android:layout_width="70dp"
+        android:layout_width="78dp"
         android:layout_height="match_parent"
         android:layout_gravity="start" />
 

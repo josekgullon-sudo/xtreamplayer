@@ -47,7 +47,10 @@ public class PortadaActivity extends Activity {
         filas = findViewById(R.id.filas);
         girando = findViewById(R.id.girando);
         vacio = findViewById(R.id.vacio);
-        findViewById(R.id.heroe).setVisibility(View.INVISIBLE);
+        /* Escondido del todo, no invisible: hasta que no haya una imagen de
+           verdad, el destacado no ocupa sitio. Un hueco reservado y vacío es
+           lo que hacía que la portada abriese con media pantalla en negro */
+        findViewById(R.id.heroe).setVisibility(View.GONE);
 
         Navegacion.montar(this, seccion);
         cargar();
@@ -81,16 +84,6 @@ public class PortadaActivity extends Activity {
     }
 
     private void pintar(List<Catalogo.Fila> lista) {
-        /* El destacado sale de la primera fila: es lo mejor valorado que
-           tiene carátula, así que es lo que mejor queda de fondo */
-        for (Catalogo.Fila f : lista) {
-            for (Catalogo.Item i : f.items) {
-                if (!i.imagen.isEmpty()) { destacado = i; break; }
-            }
-            if (destacado != null) break;
-        }
-        pintarHeroe();
-
         LayoutInflater molde = LayoutInflater.from(this);
         boolean primera = true;
         for (Catalogo.Fila f : lista) {
@@ -128,6 +121,68 @@ public class PortadaActivity extends Activity {
         }
 
         verTodas(molde);
+        buscarDestacado(Catalogo.candidatosDestacado(lista), 0);
+    }
+
+    /** Cuántos candidatos se prueban antes de rendirse y dejar solo las filas. */
+    private static final int CANDIDATOS = 8;
+
+    /**
+     * Busca un destacado cuya imagen llegue de verdad.
+     *
+     * Se pide la carátula del primer candidato; si no llega —el proveedor
+     * apunta a una dirección muerta, que pasa a menudo—, se prueba el
+     * siguiente. El bloque de arriba no aparece hasta que hay una imagen en
+     * la mano, así que no existe el caso «título enorme sobre un rectángulo
+     * negro»: o sale entero o no sale.
+     *
+     * Si se acaban los candidatos, la portada se queda en filas y ya. Es lo
+     * honesto: media pantalla ocupada por un hueco no informa de nada.
+     */
+    private void buscarDestacado(final List<Catalogo.Item> candidatos, final int cual) {
+        if (candidatos.isEmpty() || cual >= Math.min(CANDIDATOS, candidatos.size())) return;
+        final Catalogo.Item it = candidatos.get(cual);
+        final int ancho = Math.max(getResources().getDisplayMetrics().widthPixels, 640);
+        Imagenes.probar(it.imagen, ancho, new Imagenes.Traida() {
+            @Override public void llega(android.graphics.Bitmap b) {
+                if (isFinishing()) return;
+                if (b == null) {
+                    buscarDestacado(candidatos, cual + 1);
+                    return;
+                }
+                destacado = it;
+                pintarHeroe(b);
+                completarFicha(it);
+            }
+        });
+    }
+
+    /**
+     * Pide la ficha del destacado para poder enseñar su sinopsis.
+     *
+     * En el listado de películas el panel manda el nombre, la nota y el año,
+     * pero no el argumento: eso solo viene en `get_vod_info`. Es una llamada
+     * y solo para el título de arriba, así que sale a cuenta —sin ella el
+     * bloque grande enseña un nombre y dos números—.
+     */
+    private void completarFicha(final Catalogo.Item it) {
+        if (it.esSerie || !it.sinopsis.isEmpty()) return;
+        Hilos.fuera(new Hilos.Trabajo<Boolean>() {
+            @Override public Boolean hacer() {
+                Catalogo.detallePelicula(it);
+                return Boolean.TRUE;
+            }
+        }, new Hilos.Luego<Boolean>() {
+            @Override public void listo(Boolean r) {
+                if (isFinishing() || destacado != it) return;
+                TextView sinopsis = findViewById(R.id.heroeSinopsis);
+                sinopsis.setText(it.sinopsis);
+                sinopsis.setVisibility(it.sinopsis.isEmpty() ? View.GONE : View.VISIBLE);
+                ((TextView) findViewById(R.id.heroeDatos)).setText(datosDe(it));
+                pintarNota();
+            }
+            @Override public void falla(Exception e) { /* se queda como estaba */ }
+        });
     }
 
     /**
@@ -159,8 +214,8 @@ public class PortadaActivity extends Activity {
         filas.addView(fila);
     }
 
-    /** El título grande de arriba, con lo que se sepa de él. */
-    private void pintarHeroe() {
+    /** El título grande de arriba, con su imagen ya en la mano. */
+    private void pintarHeroe(android.graphics.Bitmap portada) {
         if (destacado == null) return;
         View heroe = findViewById(R.id.heroe);
         heroe.setVisibility(View.VISIBLE);
@@ -171,14 +226,38 @@ public class PortadaActivity extends Activity {
         sinopsis.setText(destacado.sinopsis);
         sinopsis.setVisibility(destacado.sinopsis.isEmpty() ? View.GONE : View.VISIBLE);
 
-        Imagenes.cargar((ImageView) findViewById(R.id.fondo), destacado.imagen,
-                android.R.color.transparent);
+        /*
+         * La misma imagen dos veces y a propósito.
+         *
+         * Lo que manda el proveedor es una carátula vertical, no un fondo
+         * apaisado: estirada de lado a lado sale gigante y borrosa, y eso es
+         * justo lo que se ve mal. Así que va de dos maneras —de fondo,
+         * ampliada y apagada por el velo, que ahí lo borroso es un efecto; y
+         * entera y a su tamaño en el lado, que es donde se mira—.
+         */
+        ((ImageView) findViewById(R.id.fondo)).setImageBitmap(portada);
+        ImageView cartel = findViewById(R.id.heroeCartel);
+        if (cartel != null) {
+            cartel.setImageBitmap(portada);
+            cartel.setVisibility(View.VISIBLE);
+        }
+
+        /* El bloque aparece después de las filas, así que hay que devolver la
+           vista arriba: si no, la portada abre por la mitad */
+        final View scroll = findViewById(R.id.scroll);
+        scroll.post(new Runnable() {
+            @Override public void run() { scroll.scrollTo(0, 0); }
+        });
 
         Button ver = findViewById(R.id.heroeVer);
         ver.setText(destacado.esSerie ? "Ver la serie" : "Reproducir");
         ver.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { abrir(destacado); }
         });
+        /* Y el foco se va con él. Sin esto el mando se queda en el primer
+           cartel de la primera fila y el ScrollView vuelve a bajar solo en
+           cuanto se toca una flecha, deshaciendo el `scrollTo` de arriba */
+        ver.requestFocus();
 
         pintarNota();
     }

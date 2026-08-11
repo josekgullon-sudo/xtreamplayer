@@ -56,13 +56,16 @@ public class AdaptadorCarteles extends RecyclerView.Adapter<AdaptadorCarteles.Ce
 
     static class Celda extends RecyclerView.ViewHolder {
         final ImageView cartel;
-        final TextView nombre, extra, puesto;
+        final View marco;
+        final TextView nombre, extra, puesto, sinCartel;
         Celda(View v) {
             super(v);
             cartel = v.findViewById(R.id.cartel);
+            marco = v.findViewById(R.id.marcoCartel);
             nombre = v.findViewById(R.id.nombre);
             extra = v.findViewById(R.id.extra);
             puesto = v.findViewById(R.id.puesto);
+            sinCartel = v.findViewById(R.id.sinCartel);
         }
     }
 
@@ -78,7 +81,7 @@ public class AdaptadorCarteles extends RecyclerView.Adapter<AdaptadorCarteles.Ce
         Catalogo.Item it = datos.get(posicion);
         if (ancho > 0) {
             // 2:3, la proporción de siempre de una carátula
-            medir(celda.cartel, ancho, ancho * 3 / 2);
+            medir(celda.marco != null ? celda.marco : celda.cartel, ancho, ancho * 3 / 2);
             medir(celda.nombre, ancho, 0);
             medir(celda.extra, ancho, 0);
         }
@@ -86,7 +89,21 @@ public class AdaptadorCarteles extends RecyclerView.Adapter<AdaptadorCarteles.Ce
         celda.extra.setText(it.extra);
         if (celda.puesto != null) celda.puesto.setText(String.valueOf(posicion + 1));
         celda.extra.setVisibility(it.extra.isEmpty() ? View.INVISIBLE : View.VISIBLE);
-        Imagenes.cargar(celda.cartel, it.imagen, it.esSerie ? R.drawable.ic_series : R.drawable.ic_cine);
+        /*
+         * El título detrás del hueco, y la carátula encima cuando llega.
+         *
+         * El dibujo de reserva era el icono de cine o el de series metido en
+         * un ImageView con «centerCrop»: el vector se estiraba a 150×225 y lo
+         * que se veía era un cuadrado gris con un triángulo enorme dentro,
+         * igual para las cuatrocientas películas cuya carátula no cargaba. El
+         * nombre debajo era lo único que las distinguía y a tres metros no se
+         * llegaba a leer. Ahora, mientras no haya imagen, el hueco es el
+         * título.
+         */
+        if (celda.sinCartel != null) celda.sinCartel.setText(it.nombre);
+        Imagenes.cargar(celda.cartel, it.imagen,
+                celda.sinCartel != null ? android.R.color.transparent
+                        : (it.esSerie ? R.drawable.ic_series : R.drawable.ic_cine));
         celda.itemView.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { alElegir.ficha(celda.getAdapterPosition()); }
         });

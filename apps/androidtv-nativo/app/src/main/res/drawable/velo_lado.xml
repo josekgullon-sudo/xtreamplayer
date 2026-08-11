@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El velo del lado: opaco a la izquierda y transparente a la derecha.
+
+  Es lo que hace que el texto del destacado se lea sobre la imagen sin
+  necesidad de una caja detrás. Con solo el velo de abajo, el título grande
+  caía encima de la parte clara de la carátula y había que subrayarlo o
+  ponerle sombra; con este, la imagen se apaga justo donde va la letra y se
+  queda entera donde no.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="0"
+        android:startColor="#FA101012"
+        android:centerColor="#A0101012"
+        android:endColor="#00101012"
+        android:type="linear" />
+</shape>

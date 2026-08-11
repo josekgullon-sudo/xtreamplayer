@@ -5,8 +5,8 @@
   El número va enorme, pegado al borde de abajo y saliéndose de la carátula
   por la izquierda, como en cualquier aplicación de este tipo: es lo que
   hace que se lea como un ranking y no como una fila más. Los mismos
-  identificadores que el cartel normal —«cartel», «nombre», «extra»— porque
-  los rellena el mismo adaptador.
+  identificadores que el cartel normal —«cartel», «nombre», «extra»,
+  «sinCartel»— porque los rellena el mismo adaptador.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
@@ -22,13 +22,30 @@
         android:focusable="true"
         android:padding="6dp">
 
-        <ImageView
-            android:id="@+id/cartel"
+        <FrameLayout
+            android:id="@+id/marcoCartel"
             android:layout_width="132dp"
             android:layout_height="198dp"
-            android:scaleType="centerCrop"
-            android:background="@color/elevada"
-            android:contentDescription="@null" />
+            android:background="@color/elevada">
+
+            <TextView
+                android:id="@+id/sinCartel"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:padding="8dp"
+                android:textColor="@color/apagado"
+                android:textSize="12sp"
+                android:maxLines="4"
+                android:ellipsize="end" />
+
+            <ImageView
+                android:id="@+id/cartel"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="@null" />
+        </FrameLayout>
 
         <TextView
             android:id="@+id/nombre"

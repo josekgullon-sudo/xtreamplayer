@@ -254,7 +254,7 @@ public final class Catalogo {
             }
             if (dentro.isEmpty()) continue;
             todos.addAll(dentro);
-            filas.add(new Fila(Categorias.bonito(c.nombre), recorta(dentro), false, c.id));
+            filas.add(new Fila(Categorias.bonito(c.nombre), recorta(sinRepetir(dentro)), false, c.id));
         }
 
         if (todos.isEmpty()) return filas;
@@ -272,6 +272,52 @@ public final class Catalogo {
         return new ArrayList<>(de.subList(0, Math.min(POR_FILA, de.size())));
     }
 
+    /* ---------------- Que no salga dos veces lo mismo ---------------- */
+
+    /**
+     * Los adornos que un proveedor le cuelga al título y que no lo cambian.
+     *
+     * La misma película está en «ESTRENOS» y en «ACCIÓN», y a veces la
+     * segunda copia se llama igual con un «4K» o un «[LAT]» detrás. Para el
+     * que mira la tele son la misma película, y verla dos veces en la misma
+     * fila —una en el puesto 1 y otra en el 4— es de las cosas que hacen
+     * pensar que la aplicación está rota.
+     *
+     * Van sin tildes porque cuando esto se aplica ya se han quitado: por eso
+     * pone «espanol» y no «español».
+     */
+    private static final Pattern ADORNOS = Pattern.compile(
+            "(?i)\\b(4k|uhd|fhd|hd|sd|hdr|dolby|atmos|latino|castellano|espanol|"
+            + "vose|imax|remux|webdl|web-dl|bluray)\\b");
+
+    /**
+     * El mismo título escrito de dos maneras da la misma llave.
+     *
+     * Se quita el adorno, se quitan tildes y signos y se junta todo: «30
+     * (2007)» y «30 (2007) HD» acaban los dos en «302007». El año se
+     * mantiene a propósito —«Alien (1979)» y «Alien (2017)» no son la misma
+     * película— y por eso no se borra lo que va entre paréntesis.
+     */
+    private static String llaveDeTitulo(String nombre) {
+        if (nombre == null) return "";
+        String n = java.text.Normalizer.normalize(nombre, java.text.Normalizer.Form.NFD)
+                .replaceAll("[\\u0300-\\u036f]", "")
+                .toLowerCase(java.util.Locale.ROOT);
+        n = ADORNOS.matcher(n).replaceAll(" ");
+        return n.replaceAll("[^a-z0-9]+", "");
+    }
+
+    /** La misma lista, quedándose con la primera copia de cada título. */
+    private static List<Item> sinRepetir(List<Item> de) {
+        List<Item> unos = new ArrayList<>();
+        java.util.Set<String> vistos = new java.util.HashSet<>();
+        for (Item i : de) {
+            String llave = llaveDeTitulo(i.nombre);
+            if (llave.isEmpty() || vistos.add(llave)) unos.add(i);
+        }
+        return unos;
+    }
+
     /** Las diez mejor valoradas, de las que traen nota y carátula. */
     private static List<Item> mejorValoradas(List<Item> todos) {
         List<Item> con = new ArrayList<>();
@@ -281,6 +327,9 @@ public final class Catalogo {
         Collections.sort(con, new Comparator<Item>() {
             @Override public int compare(Item a, Item b) { return Double.compare(nota(b), nota(a)); }
         });
+        /* Primero ordenar y luego quitar repetidos, no al revés: así la copia
+           que se queda es la mejor puntuada de las dos */
+        con = sinRepetir(con);
         return new ArrayList<>(con.subList(0, Math.min(10, con.size())));
     }
 
@@ -293,7 +342,47 @@ public final class Catalogo {
         Collections.sort(con, new Comparator<Item>() {
             @Override public int compare(Item a, Item b) { return Long.compare(b.alta, a.alta); }
         });
+        con = sinRepetir(con);
         return new ArrayList<>(con.subList(0, Math.min(POR_FILA, con.size())));
+    }
+
+    /**
+     * Por qué orden se prueban los títulos para el destacado de arriba.
+     *
+     * El destacado no puede elegirse a dedo —«el primero que tenga
+     * carátula»—: si esa carátula no llega, la portada abre con un hueco
+     * negro del alto de media pantalla, que es exactamente lo que se vio en
+     * la tele. Esto devuelve una lista de candidatos, en orden de qué tan
+     * bien queda cada uno arriba, y la pantalla va probando hasta que una
+     * imagen llega de verdad.
+     *
+     * Se ordena por lo que tiene que enseñar el héroe: sinopsis, nota y año.
+     * Un título del que solo sabemos el nombre deja el bloque con un título
+     * grande y nada debajo.
+     */
+    public static List<Item> candidatosDestacado(List<Fila> filas) {
+        List<Item> todos = new ArrayList<>();
+        for (Fila f : filas) todos.addAll(f.items);
+
+        List<Item> con = new ArrayList<>();
+        for (Item i : sinRepetir(todos)) {
+            if (!i.imagen.isEmpty()) con.add(i);
+        }
+        Collections.sort(con, new Comparator<Item>() {
+            @Override public int compare(Item a, Item b) { return riqueza(b) - riqueza(a); }
+        });
+        return con;
+    }
+
+    /** Cuánto tiene que contar un título: manda quién luce más arriba. */
+    private static int riqueza(Item i) {
+        int puntos = 0;
+        if (i.sinopsis.length() > 60) puntos += 4;
+        else if (!i.sinopsis.isEmpty()) puntos += 2;
+        if (nota(i) > 0) puntos += 2;
+        if (!i.anio.isEmpty()) puntos += 1;
+        if (!i.generos.isEmpty()) puntos += 1;
+        return puntos;
     }
 
     private static double nota(Item i) {

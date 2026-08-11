@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Un cartel de la rejilla. Proporción 2:3, la de siempre, para que las
-     carátulas de los proveedores entren sin deformarse. -->
+<!--
+  Un cartel de la rejilla. Proporción 2:3, la de siempre, para que las
+  carátulas de los proveedores entren sin deformarse.
+
+  Detrás de la carátula va el título otra vez, en pequeño y centrado. No se
+  ve casi nunca —en cuanto llega la imagen queda tapado—, y está por el rato
+  en que no llega: un proveedor manda medio catálogo apuntando a carátulas
+  que ya no existen, y lo que se veía en la tele era una fila de cuadrados
+  grises con un dibujo estirado dentro, sin manera de saber qué era cada
+  uno. Con el título debajo del hueco, un cartel que no llega sigue
+  sirviendo.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
@@ -10,13 +20,30 @@
     android:padding="6dp"
     android:layout_margin="8dp">
 
-    <ImageView
-        android:id="@+id/cartel"
+    <FrameLayout
+        android:id="@+id/marcoCartel"
         android:layout_width="150dp"
         android:layout_height="225dp"
-        android:scaleType="centerCrop"
-        android:background="@color/elevada"
-        android:contentDescription="@null" />
+        android:background="@color/elevada">
+
+        <TextView
+            android:id="@+id/sinCartel"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:padding="10dp"
+            android:textColor="@color/apagado"
+            android:textSize="13sp"
+            android:maxLines="4"
+            android:ellipsize="end" />
+
+        <ImageView
+            android:id="@+id/cartel"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:contentDescription="@null" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/nombre"
