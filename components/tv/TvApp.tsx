@@ -8,6 +8,14 @@ import { imgSrc } from "@/lib/img";
 import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
 import {
+  FilaPortada,
+  Titulo,
+  anioDe,
+  armarPortada,
+  candidatosDestacado,
+  datosDe,
+} from "@/lib/portada";
+import {
   Fuente,
   pedirEnlace,
   momentoDeArchivo,
@@ -306,6 +314,68 @@ export default function TvApp() {
   const focoCarrilRef = useRef<number | null>(null);
   focoCarrilRef.current = focoCarril;
 
+  /* ---------- La portada de cine y de series ---------- */
+
+  /**
+   * Cine y series no abren en una lista de carpetas, abren en una portada.
+   *
+   * Entrar en «Películas» y encontrarse cuarenta nombres de carpeta obliga a
+   * saber en cuál buscar antes de poder mirar nada. La portada contesta a la
+   * pregunta con la que se entra —«¿y qué veo?»—: un banner arriba y filas
+   * de carátulas debajo. Las carpetas siguen ahí, al final, en «Ver todas».
+   */
+  const [vista, setVista] = useState<"portada" | "carpetas">("portada");
+  const [filasPortada, setFilasPortada] = useState<FilaPortada[]>([]);
+  /** Qué fila y qué carátula tienen el foco. La fila −1 es el banner. */
+  const [focoFila, setFocoFila] = useState(-1);
+  const [focoCol, setFocoCol] = useState(0);
+  const [candidatos, setCandidatos] = useState<Titulo[]>([]);
+  /**
+   * Las carátulas que el navegador no ha podido cargar.
+   *
+   * Una parte del catálogo de cualquier proveedor apunta a imágenes que ya
+   * no existen. Aquí no hace falta comprobarlas por adelantado como en la
+   * aplicación nativa: el propio `onError` de la imagen lo dice, y con eso
+   * el banner pasa al siguiente candidato y las filas de escaparate se
+   * quedan sin ese hueco. Se arregla solo y no cuesta ni una petición.
+   */
+  const [rotas, setRotas] = useState<Record<string, true>>({});
+  const marcarRota = useCallback((url: string) => {
+    setRotas((prev) => (prev[url] ? prev : { ...prev, [url]: true }));
+  }, []);
+
+  /*
+   * Con una serie abierta la portada se aparta.
+   *
+   * Los episodios se cargan en `filas`, que es la lista de siempre; sin esta
+   * condición se quedaban detrás de la portada y pulsar OK sobre una serie
+   * no hacía nada visible. Lo mismo con una carpeta abierta.
+   */
+  const enPortada =
+    (pantalla === "cine" || pantalla === "series") &&
+    vista === "portada" &&
+    !serieAbierta &&
+    !carpetaAbierta;
+
+  /** El primer candidato cuya carátula no haya fallado. */
+  const destacado = candidatos.find((t) => !rotas[t.imagen]) || null;
+
+  /**
+   * Las filas ya limpias: en las de escaparate, sin los que no tienen imagen.
+   *
+   * En la fila de una carpeta se dejan todos. Ahí están los títulos que hay,
+   * y esconder la mitad porque el proveedor no les puso carátula es quitarle
+   * catálogo al cliente; en un escaparate elegido de entre treinta
+   * candidatos, no.
+   */
+  const filasALaVista: FilaPortada[] = filasPortada
+    .map((f) =>
+      f.escaparate
+        ? { ...f, items: f.items.filter((t) => !rotas[t.imagen]).slice(0, 10) }
+        : f
+    )
+    .filter((f) => f.items.length >= (f.escaparate ? 4 : 1));
+
   useEffect(() => {
     setUltimo(leer<UltimoCanal>(K_ULTIMO));
   }, []);
@@ -595,6 +665,40 @@ export default function TvApp() {
     [entrarEnCarpeta]
   );
 
+  /**
+   * Qué hacer al pulsar OK sobre cada título de la portada.
+   *
+   * La portada trabaja con `Titulo`, que es un dato pelado a propósito —para
+   * poder ordenarlo y compararlo sin arrastrar media aplicación detrás—, así
+   * que las acciones se guardan aparte y se buscan por identificador.
+   */
+  const acciones = useRef(new Map<string, () => void | Promise<void>>());
+
+  const montarPortada = useCallback(
+    (
+      cats: XtreamCategory[] | unknown,
+      titulos: Titulo[],
+      abridores: (() => void | Promise<void>)[]
+    ) => {
+      acciones.current = new Map(titulos.map((t, i) => [t.id, abridores[i]]));
+      const categorias = (Array.isArray(cats) ? (cats as XtreamCategory[]) : []).map((c) => ({
+        id: String(c.category_id),
+        nombre: c.category_name || "Sin nombre",
+      }));
+      const hoy = new Date().getFullYear();
+      const nuevas = armarPortada(titulos, categorias, hoy);
+      setFilasPortada(nuevas);
+      setCandidatos(candidatosDestacado(nuevas, hoy));
+      setFocoFila(-1);
+      setFocoCol(0);
+    },
+    []
+  );
+
+  const abrirTitulo = useCallback((t: Titulo) => {
+    acciones.current.get(t.id)?.();
+  }, []);
+
   const cargar = useCallback(
     async (destino: Pantalla) => {
       if (!lista) return;
@@ -676,24 +780,41 @@ export default function TvApp() {
           const limpias = (Array.isArray(pelis) ? pelis : []).filter(
             (v) => typeof v.name === "string" && v.name.trim()
           );
+          const verPeli = (v: XtreamVodStream) => async () =>
+            reproducir({
+              ...(await pedirEnlace({
+                ...creds,
+                clase: "movie",
+                id: String(v.stream_id),
+                ext: v.container_extension || "mp4",
+              })),
+              name: v.name,
+              kind: "video",
+            });
           setFilas(
             carpetasDe(cats, limpias, (v) => v.category_id, (v) => ({
               id: `vod-${v.stream_id}`,
               nombre: v.name,
               logo: v.stream_icon || "",
               caratula: true,
-              abrir: async () =>
-                reproducir({
-                  ...(await pedirEnlace({
-                    ...creds,
-                    clase: "movie",
-                    id: String(v.stream_id),
-                    ext: v.container_extension || "mp4",
-                  })),
-                  name: v.name,
-                  kind: "video",
-                }),
+              abrir: verPeli(v),
             }))
+          );
+          montarPortada(
+            cats,
+            limpias.map((v) => ({
+              id: `vod-${v.stream_id}`,
+              nombre: v.name,
+              imagen: v.stream_icon || "",
+              anio: anioDe(v.year ?? v.releasedate),
+              nota: String(v.rating ?? ""),
+              alta: Number(v.added) || 0,
+              sinopsis: String(v.plot ?? ""),
+              generos: String(v.genre ?? ""),
+              esSerie: false,
+              categoria: String(v.category_id ?? ""),
+            })),
+            limpias.map(verPeli)
           );
         } else if (destino === "series") {
           const [cats, series] = await Promise.all([
@@ -711,6 +832,22 @@ export default function TvApp() {
               caratula: true,
               abrir: () => abrirSerie(s),
             }))
+          );
+          montarPortada(
+            cats,
+            limpias.map((s) => ({
+              id: `serie-${s.series_id}`,
+              nombre: s.name,
+              imagen: s.cover || "",
+              anio: anioDe(s.releaseDate ?? s.release_date),
+              nota: String(s.rating ?? ""),
+              alta: Number(s.last_modified) || 0,
+              sinopsis: String(s.plot ?? ""),
+              generos: String(s.genre ?? ""),
+              esSerie: true,
+              categoria: String(s.category_id ?? ""),
+            })),
+            limpias.map((s) => () => abrirSerie(s))
           );
         }
       } catch (e) {
@@ -801,9 +938,28 @@ export default function TvApp() {
     ir(destino);
   }
 
+  /**
+   * De la portada a la lista de carpetas de siempre.
+   *
+   * La portada enseña seis carpetas y veinte títulos de cada una. Un
+   * proveedor trae cuarenta carpetas y miles de títulos: sin esta puerta, el
+   * resto del catálogo dejaría de existir. No vuelve a pedir nada —las
+   * carpetas se armaron en la misma carga que la portada—.
+   */
+  function verCarpetas() {
+    setVista("carpetas");
+    setFoco(0);
+  }
+
   function ir(destino: Pantalla) {
     setPantalla(destino);
     setFocoCarril(null);
+    /* Cine y series siempre abren por la portada, aunque la última vez se
+       saliera desde la lista de carpetas: al entrar se pregunta «qué veo», no
+       «en qué carpeta estaba» */
+    setVista("portada");
+    setFilasPortada([]);
+    setCandidatos([]);
     if (destino !== "portada" && destino !== "viendo") cargar(destino);
   }
 
@@ -828,6 +984,12 @@ export default function TvApp() {
     if (carpetaAbierta) {
       setCarpetaAbierta("");
       cargar(pantalla);
+      return;
+    }
+    /* Y de la lista de carpetas se vuelve a la portada, que es de donde se
+       entró: si no, ATRÁS se saltaba un paso y salía al menú */
+    if (vista === "carpetas" && (pantalla === "cine" || pantalla === "series")) {
+      setVista("portada");
       return;
     }
     /* De vuelta en la portada, el foco se queda en el acceso del que sales.
@@ -959,6 +1121,57 @@ export default function TvApp() {
       }
 
       /*
+       * La portada se recorre distinto: filas de lado y no una columna.
+       *
+       * Arriba y abajo cambian de fila —del banner a «Mejor valoradas», de
+       * ahí a la siguiente—, y las flechas de lado se mueven por las
+       * carátulas de la fila en la que estás. Es lo que hace cualquier
+       * aplicación de televisión y lo que la gente ya sabe usar sin que se
+       * lo expliquen.
+       */
+      if (enPortada) {
+        const ultima = filasALaVista.length; // la de «ver todas las carpetas»
+        const primera = destacado ? -1 : 0;
+        const anchoDe = (fi: number) => filasALaVista[fi]?.items.length ?? 1;
+
+        if (tecla === "Arriba" || tecla === "Abajo") {
+          e.preventDefault();
+          const salto = tecla === "Abajo" ? 1 : -1;
+          const nueva = Math.max(primera, Math.min(ultima, focoFila + salto));
+          setFocoFila(nueva);
+          // La columna se mantiene, pero sin salirse de la fila nueva
+          if (nueva >= 0 && nueva < ultima) setFocoCol((c) => Math.min(c, anchoDe(nueva) - 1));
+          return;
+        }
+        if (tecla === "Derecha") {
+          e.preventDefault();
+          if (focoFila >= 0 && focoFila < ultima) {
+            setFocoCol((c) => Math.min(anchoDe(focoFila) - 1, c + 1));
+          }
+          return;
+        }
+        if (tecla === "Izquierda") {
+          e.preventDefault();
+          /* Pegado al borde de la fila, ◀ sale al carril: es lo mismo que en
+             las listas y así no hay que aprenderse dos gestos */
+          if (focoFila >= 0 && focoFila < ultima && focoCol > 0) setFocoCol((c) => c - 1);
+          else setFocoCarril(Math.max(0, CARRIL.findIndex((d) => d.id === pantalla)));
+          return;
+        }
+        if (tecla === "Ok") {
+          e.preventDefault();
+          if (focoFila === -1 && destacado) abrirTitulo(destacado);
+          else if (focoFila === ultima) verCarpetas();
+          else {
+            const t = filasALaVista[focoFila]?.items[focoCol];
+            if (t) abrirTitulo(t);
+          }
+          return;
+        }
+        return;
+      }
+
+      /*
        * ◀ pegado al borde izquierdo entra en el carril: es donde está, y es
        * lo que hace cualquier aplicación de televisión.
        *
@@ -1018,12 +1231,33 @@ export default function TvApp() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril]);
+  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasALaVista, destacado, focoFila, focoCol]);
 
   // La fila con el foco siempre a la vista, sin que el usuario persiga nada
   useEffect(() => {
     listaRef.current?.querySelector<HTMLElement>(`[data-i="${foco}"]`)?.scrollIntoView({ block: "center" });
   }, [foco, filas]);
+
+  /* Lo mismo en la portada, que además se mueve de lado: la carátula
+     enfocada tiene que quedar centrada en su fila, no medio salida */
+  useEffect(() => {
+    if (!enPortada) return;
+    /* Con el foco en el banner se sube del todo: centrarlo dejaría hueco
+       arriba y el banner cortado, que es peor que no hacer nada */
+    if (focoFila === -1) {
+      listaRef.current?.scrollTo({ top: 0 });
+      return;
+    }
+    listaRef.current
+      ?.querySelector<HTMLElement>('[data-foco="1"]')
+      ?.scrollIntoView({ block: "center", inline: "center" });
+  }, [enPortada, focoFila, focoCol, filasALaVista.length]);
+
+  /* Sin banner —ningún título del catálogo trae carátula que cargue— la
+     fila −1 no existe y el foco se quedaría en un sitio que no se ve */
+  useEffect(() => {
+    if (enPortada && !destacado && focoFila === -1) setFocoFila(0);
+  }, [enPortada, destacado, focoFila]);
 
   /* ---------- Pantallas ---------- */
 
@@ -1210,6 +1444,128 @@ export default function TvApp() {
           {/* La MAC siempre a la vista, como en los reproductores de siempre:
               es lo primero que le pide el proveedor cuando algo falla */}
           <p className="tv-pie tv-pie-mac">MAC: {macDelAparato()}</p>
+        </div>
+      </div>
+    );
+  }
+
+  /*
+   * La portada de cine y de series.
+   *
+   * El banner se monta con la carátula del destacado tres veces, y es a
+   * propósito: un panel Xtream solo manda imágenes verticales, así que
+   * estirar una a lo ancho de la pantalla da una mancha gigante y borrosa.
+   * Va de fondo muy ampliada y desenfocada —ahí lo borroso es el efecto—,
+   * entera y en su proporción a la derecha, y con dos velos encima para
+   * poder leer el texto y fundirla con el fondo.
+   */
+  if (enPortada) {
+    const ultima = filasALaVista.length;
+    return (
+      <div className="tv-app tv-con-carril">
+        <nav className="tv-carril" aria-label="Secciones">
+          {CARRIL.map((d, i) => (
+            <button
+              key={d.id}
+              className={`tv-carril-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
+              onMouseEnter={() => setFocoCarril(i)}
+              onMouseLeave={() => setFocoCarril(null)}
+              onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
+            >
+              <span className="tv-carril-icono"><Icon name={d.icono} size={34} /></span>
+              <span className="tv-carril-txt">{d.titulo}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="tv-cuerpo tv-cuerpo-portada" ref={listaRef}>
+          {cargando && <p className="tv-cargando">Cargando…</p>}
+          {error && <p className="tv-activar-error">{error}</p>}
+
+          {destacado && (
+            <section className="tv-banner" data-fila="-1" data-foco={focoFila === -1 ? "1" : undefined}>
+              {imgSrc(destacado.imagen) && (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className="tv-banner-mancha" src={imgSrc(destacado.imagen)} alt="" aria-hidden="true" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    className="tv-banner-arte"
+                    src={imgSrc(destacado.imagen)}
+                    alt=""
+                    onError={() => marcarRota(destacado.imagen)}
+                  />
+                </>
+              )}
+              <span className="tv-banner-velo" aria-hidden="true" />
+              <div className="tv-banner-txt">
+                <h2 className="tv-banner-t">{destacado.nombre}</h2>
+                {datosDe(destacado) && <p className="tv-banner-datos">{datosDe(destacado)}</p>}
+                {destacado.sinopsis && <p className="tv-banner-sinopsis">{destacado.sinopsis}</p>}
+                <button
+                  className={`tv-banner-ver ${focoFila === -1 ? "foco" : ""}`}
+                  onMouseEnter={() => setFocoFila(-1)}
+                  onClick={() => abrirTitulo(destacado)}
+                >
+                  <Icon name="play" size={24} />
+                  {destacado.esSerie ? "Ver la serie" : "Reproducir"}
+                </button>
+              </div>
+            </section>
+          )}
+
+          {filasALaVista.map((f, fi) => (
+            <section className="tv-carrusel" key={`${f.titulo}-${fi}`}>
+              <h3 className="tv-carrusel-t">{f.titulo}</h3>
+              <div className={`tv-carrusel-tira ${f.numerada ? "numerada" : ""}`}>
+                {f.items.map((t, ci) => {
+                  const puesto = focoFila === fi && focoCol === ci;
+                  return (
+                    <button
+                      key={t.id}
+                      className={`tv-poster ${puesto ? "foco" : ""}`}
+                      data-fila={fi}
+                      data-col={ci}
+                      data-foco={puesto ? "1" : undefined}
+                      onMouseEnter={() => { setFocoFila(fi); setFocoCol(ci); }}
+                      onClick={() => abrirTitulo(t)}
+                    >
+                      <span className="tv-poster-marco">
+                        {/* El título detrás del hueco: una carátula que no
+                            llega deja un cuadro gris igual a todos los demás,
+                            y el nombre de debajo no se lee a tres metros */}
+                        <span className="tv-poster-ph">{t.nombre}</span>
+                        {imgSrc(t.imagen) && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={imgSrc(t.imagen)}
+                            alt=""
+                            loading="lazy"
+                            onError={() => marcarRota(t.imagen)}
+                          />
+                        )}
+                        {f.numerada && <span className="tv-poster-num">{ci + 1}</span>}
+                      </span>
+                      <span className="tv-poster-nombre">{t.nombre}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+
+          {!cargando && !filasALaVista.length && !error && (
+            <p className="tv-cargando">Tu proveedor no ha enviado nada en esta sección.</p>
+          )}
+
+          <button
+            className={`tv-vertodas ${focoFila === ultima ? "foco" : ""}`}
+            data-foco={focoFila === ultima ? "1" : undefined}
+            onMouseEnter={() => setFocoFila(ultima)}
+            onClick={verCarpetas}
+          >
+            Ver todas las carpetas  ›
+          </button>
         </div>
       </div>
     );

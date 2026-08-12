@@ -252,6 +252,56 @@ const server = http.createServer((req, res) => {
         })
       );
     }
+    /*
+     * Un catálogo pequeño pero con las trampas de uno de verdad.
+     *
+     * - Ocho estrenos de este año con nota, que es lo mínimo para que la
+     *   portada no afloje el filtro de «los últimos tres años».
+     * - Un clásico de 1928 con un 10: el caso que sacaba una comedia muda a
+     *   pantalla completa por tener la mejor nota del catálogo.
+     * - El mismo título dos veces, uno con «4K» detrás, que es como llega
+     *   cuando el proveedor lo mete en dos carpetas.
+     * - Y uno cuya carátula no existe, para comprobar que se cae de la fila
+     *   en vez de dejar un cuadro gris en el puesto uno.
+     *
+     * Todos subidos hace meses a propósito: son de este año, pero no son
+     * novedades. Si lo fueran se colarían en la fila de recién subidos del
+     * reproductor y taparían lo que comprueba qa/novedades.js.
+     */
+    function portadaDePrueba() {
+      const esteAnio = new Date().getFullYear();
+      const cartel = "http://127.0.0.1:8090/caratula.png";
+      const hace = (dias) => String(Math.floor((Date.now() - dias * 86400000) / 1000));
+      const pelis = [];
+      for (let i = 0; i < 8; i++) {
+        pelis.push({
+          stream_id: 400 + i,
+          name: `Estreno ${i + 1}`,
+          stream_icon: cartel,
+          category_id: "10",
+          container_extension: "webm",
+          rating: String(9 - i * 0.3),
+          year: String(esteAnio),
+          plot: `El estreno número ${i + 1}, con argumento suficiente para dos líneas de sinopsis en el banner de la portada.`,
+          genre: "Thriller",
+          added: hace(200 + i),
+        });
+      }
+      pelis.push({
+        stream_id: 420, name: "Comedia Muda", stream_icon: cartel, category_id: "11",
+        container_extension: "webm", rating: "10", year: "1928", added: hace(4000),
+      });
+      pelis.push({
+        stream_id: 421, name: "Estreno 1 4K", stream_icon: cartel, category_id: "11",
+        container_extension: "webm", rating: "9", year: String(esteAnio), added: hace(201),
+      });
+      pelis.push({
+        stream_id: 422, name: "Sin Caratula", stream_icon: "http://127.0.0.1:8090/no-existe.png",
+        category_id: "10", container_extension: "webm", rating: "9.9", year: String(esteAnio), added: hace(202),
+      });
+      return pelis;
+    }
+
     const data = {
       get_live_categories: [
         { category_id: "1", category_name: "Generalistas" },
@@ -263,13 +313,22 @@ const server = http.createServer((req, res) => {
         { stream_id: 2, name: "Deportes Test HD", stream_icon: "", category_id: "2" },
         { stream_id: 3, name: null, stream_icon: "", category_id: "2" },
       ],
-      get_vod_categories: [{ category_id: "10", category_name: "Estrenos" }],
+      get_vod_categories: [
+        { category_id: "10", category_name: "Estrenos" },
+        { category_id: "11", category_name: "Clásicos" },
+      ],
       get_vod_streams: [
         // «added» en segundos y como texto, que es como lo manda XUI
         { stream_id: 100, name: "Película Demo", stream_icon: "", category_id: "10", container_extension: "webm", added: String(Math.floor((Date.now() - 2 * 86400000) / 1000)) },
         // Dato sucio real: paneles que devuelven títulos sin nombre
         { stream_id: 101, name: null, stream_icon: "", category_id: "10", container_extension: "webm", added: "" },
         { stream_id: 102, name: "Película Vieja", stream_icon: "", category_id: "10", container_extension: "webm", added: String(Math.floor((Date.now() - 900 * 86400000) / 1000)) },
+        /*
+         * Y lo que hace falta para que la portada tenga algo que enseñar:
+         * carátula, nota y año. Sin esas tres cosas no hay ni banner ni fila
+         * de «mejor valoradas», que es justo lo que había que poder probar.
+         */
+        ...portadaDePrueba(),
       ],
       get_series_categories: [{ category_id: "20", category_name: "Drama" }],
       get_series: [{ series_id: 200, name: "Serie Demo", cover: "", category_id: "20", plot: "Una serie de prueba.", last_modified: String(Math.floor((Date.now() - 86400000) / 1000)) }],

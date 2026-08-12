@@ -43,6 +43,12 @@ export interface XtreamVodStream {
   category_id?: string;
   container_extension?: string;
   rating?: string;
+  /** El año, cuando el panel lo manda ya en el listado. */
+  year?: string | number;
+  /** Y algunos lo mandan como fecha entera en vez de como año */
+  releasedate?: string;
+  genre?: string;
+  plot?: string;
   /** Cuándo lo subió el proveedor. XUI lo manda en segundos, y a veces como texto */
   added?: string | number;
 }
@@ -54,6 +60,10 @@ export interface XtreamSeries {
   category_id?: string;
   plot?: string;
   rating?: string;
+  /** La fecha de estreno, escrita de las dos maneras según el panel */
+  releaseDate?: string;
+  release_date?: string;
+  genre?: string;
   /** Última vez que se le añadió algo (temporada o episodio), en segundos */
   last_modified?: string | number;
 }

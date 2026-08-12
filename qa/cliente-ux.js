@@ -100,8 +100,10 @@ const ck = (sc, n) => {
   check("En Cine no hay reproductor: catálogo a pantalla completa", (await p2.locator("video").count()) === 0);
   check("Las carátulas ocupan el hueco del vídeo", await p2.locator(".pa-cat-scroll").isVisible());
 
-  // Elegir una película abre su ficha, y desde ella se reproduce
-  await p2.locator(".pa-card").first().click();
+  /* Elegir una película abre su ficha, y desde ella se reproduce. Se busca
+     por el nombre y no «la primera»: el catálogo simulado tiene ya catorce
+     títulos y el orden lo pone el panel, no esta prueba */
+  await p2.locator(".pa-card:has-text('Película Demo')").first().click();
   await p2.waitForSelector(".ficha button:has-text('Reproducir')", { timeout: 15000 });
   const fichaTxt = await p2.locator(".ficha").innerText();
   check("La película abre su ficha con sinopsis y reparto", fichaTxt.includes("thriller de prueba") && fichaTxt.includes("Ana Actriz"), "");

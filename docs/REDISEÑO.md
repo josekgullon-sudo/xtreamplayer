@@ -218,9 +218,12 @@ directo también. El arranque con porcentaje es lo único suelto —no
 pertenece a ninguno de los nueve— y es media tarde: se puede colar donde
 convenga.
 
-Y el punto 1 está hecho en el reproductor web y en la aplicación de
-televisión. **Falta en la aplicación nativa** (`apps/androidtv-nativo`), que
-sigue con la navegación de antes.
+Y el punto 1 está hecho en los tres. El **punto 3 —la portada de cine y de
+series— está hecho en la aplicación nativa y en la de televisión**, que es la
+que se empaqueta para Samsung, LG y Windows. Las dos comparten criterio:
+`lib/portada.ts` y `Catalogo.java` son la misma idea escrita dos veces, y si
+se cambia una hay que cambiar la otra. **Falta en el reproductor web**, donde
+cine y series siguen abriendo en una rejilla de carátulas.
 
 ## Dónde se toca cada cosa
 

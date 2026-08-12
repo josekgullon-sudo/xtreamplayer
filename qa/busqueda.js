@@ -45,8 +45,10 @@ const check = (n, ok, d = "") => {
   await p.locator(".pa-bottomnav-item:has-text('Cine')").click();
   await p.waitForSelector(".pa-card", { timeout: 15000 });
   const tarjetas = await p.locator(".pa-card").count();
-  // El mock sirve tres: una normal, una sin nombre y una vieja
-  check("Los títulos sin nombre no desaparecen del catálogo", tarjetas === 3, `${tarjetas} tarjetas`);
+  // El mock sirve catorce: las tres de siempre —una normal, una sin nombre y
+  // una vieja— y once más con nota y año, que son las que dan de comer a la
+  // portada de cine de la aplicación de televisión
+  check("Los títulos sin nombre no desaparecen del catálogo", tarjetas === 14, `${tarjetas} tarjetas`);
 
   check("Cero excepciones de cliente en todo el recorrido", errores.length === 0, errores.join(" | "));
 

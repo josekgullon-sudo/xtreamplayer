@@ -78,7 +78,6 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   check("Con la marca del proveedor", (await tv.locator(".tv-marca").innerText()).toUpperCase().includes("TOTALFLIX"));
   check("Y la MAC a la vista", (await tv.locator(".tv-pie-mac").innerText()).includes(":"));
   check("Sin cabecera de la web ni menús", !(await tv.locator(".site-header").isVisible().catch(() => false)));
-  await tv.screenshot({ path: __dirname + "/52-tv-portada.png" });
 
   // --- El mando ---
   await tv.keyboard.press("ArrowDown");
@@ -125,16 +124,12 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
     (await tv.locator(".tv-carril-item.foco").innerText()).replace(/\n/g, " ").includes("Directo"));
   await tv.keyboard.press("ArrowDown");
   await tv.keyboard.press("Enter");
-  await tv.waitForFunction(
-    () => (document.querySelector(".tv-cabecera h2")?.textContent || "").includes("Películas"),
-    { timeout: 25000 }
-  );
-  await tv.waitForSelector(".tv-fila", { timeout: 25000 });
+  await tv.waitForSelector(".tv-carrusel", { timeout: 25000 });
   check("Y un OK salta a Cine sin pasar por la portada", true);
   await tv.keyboard.press("ArrowLeft");
   await tv.keyboard.press("Escape");
   check("ATRÁS dentro del carril solo sale del carril, no de la sección",
-    (await tv.locator(".tv-carril-item.foco").count()) === 0 && (await tv.locator(".tv-fila").count()) > 0);
+    (await tv.locator(".tv-carril-item.foco").count()) === 0 && (await tv.locator(".tv-carrusel").count()) > 0);
   await tv.screenshot({ path: __dirname + "/92-tv-carril.png" });
   await tv.keyboard.press("Escape");
   await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
@@ -159,11 +154,86 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
     check(`El ATRÁS del mando de ${marca} vuelve atrás`, volvio, `código ${codigo}`);
   }
 
-  // --- Cine y series: se eligen por la carátula, no leyendo una lista ---
+  /* --- Cine y series abren en una portada, no en una lista de carpetas ---
+     Entrar en «Películas» y encontrarse cuarenta nombres de carpeta obliga a
+     saber en cuál buscar antes de poder mirar nada. */
   await tv.locator(".tv-tile:has-text('Películas')").click();
-  await tv.waitForSelector(".tv-fila", { timeout: 20000 });
-  await tv.locator(".tv-fila").first().click();
-  await tv.waitForSelector(".tv-poster", { timeout: 20000 });
+  await tv.waitForSelector(".tv-carrusel", { timeout: 25000 });
+
+  const rotulos = (await tv.locator(".tv-carrusel-t").allInnerTexts()).map((s) => s.trim());
+  check("Cine abre en una portada de filas", rotulos.length >= 2, rotulos.join(" | "));
+  check("Con «Mejor valoradas» la primera", rotulos[0] === "Mejor valoradas", rotulos[0]);
+  check("Y «Añadidas recientemente» debajo, sin bajar a buscarla",
+    rotulos[1] === "Añadidas recientemente", rotulos[1]);
+
+  await tv.waitForSelector(".tv-banner", { timeout: 15000 });
+  const titular = (await tv.locator(".tv-banner-t").innerText()).trim();
+  check("Arriba, un banner con un título de verdad", titular.length > 0, titular);
+  /* El caso que sacaba una comedia muda a media pantalla: la nota sola no
+     vale de criterio, porque medio catálogo la trae puesta a 10 a mano */
+  check("Que no es la película de 1928 con el 10 del proveedor",
+    !titular.includes("Comedia Muda"), titular);
+  check("Y cuya carátula ha cargado de verdad, no un hueco negro",
+    await tv.evaluate(() => {
+      const i = document.querySelector(".tv-banner-arte");
+      return Boolean(i && i.naturalWidth > 0);
+    }));
+
+  /* La fila de escaparate se limpia sola: «Sin Caratula» apunta a una imagen
+     que no existe, que es lo que dejaba un cuadro gris en el puesto uno */
+  await tv.waitForFunction(
+    () => {
+      const fila = document.querySelector(".tv-carrusel .tv-carrusel-tira");
+      if (!fila) return false;
+      return ![...fila.querySelectorAll(".tv-poster-nombre")].some((n) =>
+        (n.textContent || "").includes("Sin Caratula")
+      );
+    },
+    { timeout: 15000 }
+  );
+  const primeraFila = (await tv.locator(".tv-carrusel").first().locator(".tv-poster-nombre").allInnerTexts())
+    .map((s) => s.trim());
+  check("Sin cuadros grises: lo que no tiene carátula se cae del escaparate",
+    !primeraFila.some((n) => n.includes("Sin Caratula")), primeraFila.slice(0, 4).join(" | "));
+  check("Y sin el mismo título dos veces, aunque el proveedor le cuelgue un «4K»",
+    primeraFila.includes("Estreno 1") && !primeraFila.includes("Estreno 1 4K"),
+    primeraFila.slice(0, 4).join(" | "));
+  check("Ni la de 1928 entre las mejor valoradas de los últimos años",
+    !primeraFila.includes("Comedia Muda"), primeraFila.slice(0, 4).join(" | "));
+  await tv.screenshot({ path: __dirname + "/52-tv-portada.png" });
+  check("La primera fila va numerada, como cualquier ranking",
+    (await tv.locator(".tv-carrusel").first().locator(".tv-poster-num").first().innerText()) === "1");
+
+  // El mando: las flechas de lado recorren la fila, arriba y abajo cambian
+  const enFoco = () => tv.evaluate(() => {
+    const e = document.querySelector('[data-foco="1"]');
+    return e ? `${e.dataset.fila ?? "banner"}:${e.dataset.col ?? "-"}` : "";
+  });
+  /* El ratón, fuera de la pantalla antes de tocar el mando: pasar por encima
+     de una carátula también mueve el foco —que es lo que se quiere con un
+     ratón— y aquí falsearía lo que hacen las flechas */
+  await tv.mouse.move(2, 2);
+  check("Al entrar, el foco está en el banner", (await enFoco()) === "-1:-", await enFoco());
+  await tv.keyboard.press("ArrowDown");
+  check("▼ baja del banner a la primera fila", (await enFoco()) === "0:0", await enFoco());
+  await tv.keyboard.press("ArrowRight");
+  check("▶ va a la carátula de al lado", (await enFoco()) === "0:1", await enFoco());
+  await tv.keyboard.press("ArrowDown");
+  check("Y ▼ cambia de fila sin perder la columna", (await enFoco()) === "1:1", await enFoco());
+
+  await tv.keyboard.press("ArrowLeft");
+  check("◀ en la columna 0 no sale al carril todavía", (await tv.locator(".tv-carril-item.foco").count()) === 0);
+  await tv.keyboard.press("ArrowLeft");
+  check("Pero pegado al borde, sí", (await tv.locator(".tv-carril-item.foco").count()) === 1);
+  await tv.keyboard.press("Escape");
+
+  // --- Y las carpetas siguen ahí, al final ---
+  await tv.locator(".tv-vertodas").click();
+  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 20000 });
+  check("«Ver todas las carpetas» lleva al catálogo entero",
+    (await tv.locator(".tv-fila.tv-carpeta").count()) > 0);
+  await tv.locator(".tv-fila.tv-carpeta").first().click();
+  await tv.waitForSelector(".tv-rejilla .tv-poster", { timeout: 20000 });
   check("Las películas salen en carátulas, no en lista", (await tv.locator(".tv-poster").count()) > 0);
 
   const caja = await tv.locator(".tv-poster-marco").first().boundingBox();
@@ -179,30 +249,41 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
     enRejilla.columnas > 1, `${enRejilla.columnas} por fila de ${enRejilla.total}`);
 
   // El mando, en una rejilla, no puede moverse como en una lista
+  await tv.mouse.move(2, 2);
   const foco = () => tv.evaluate(() => [...document.querySelectorAll("[data-i]")].findIndex((e) => e.classList.contains("foco")));
+  /* Se mide el movimiento, no la posición: el clic que entró en la carpeta
+     deja el puntero encima de una carátula y pasar por encima también mueve
+     el foco —que es lo que se quiere con un ratón— */
+  const partida = await foco();
   await tv.keyboard.press("ArrowRight");
-  check("Mando: ▶ mueve a la carátula de al lado", (await foco()) === 1);
+  check("Mando: ▶ mueve a la carátula de al lado", (await foco()) === partida + 1,
+    `de ${partida} a ${await foco()}`);
   await tv.keyboard.press("ArrowDown");
   check("Mando: ▼ baja una fila entera, sin salirse de la rejilla",
-    (await foco()) === Math.min(enRejilla.total - 1, 1 + enRejilla.columnas), `foco ${await foco()} de ${enRejilla.total}`);
+    (await foco()) === Math.min(enRejilla.total - 1, partida + 1 + enRejilla.columnas),
+    `foco ${await foco()} de ${enRejilla.total}`);
   await tv.screenshot({ path: __dirname + "/91-tv-caratulas.png" });
 
-  await tv.keyboard.press("Escape");
+  await tv.keyboard.press("Escape"); // de la carpeta, a la lista de carpetas
+  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 15000 });
+  await tv.keyboard.press("Escape"); // de las carpetas, a la portada
+  await tv.waitForSelector(".tv-carrusel", { timeout: 15000 });
+  check("Y ATRÁS deshace un paso cada vez: carpeta, carpetas, portada", true);
   await tv.keyboard.press("Escape");
   await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
+
+  // --- Series: lo mismo, y la carátula abre los episodios ---
   await tv.locator(".tv-tile:has-text('Series')").click();
+  await tv.waitForSelector(".tv-carrusel", { timeout: 25000 });
+  check("Las series también abren en portada", (await tv.locator(".tv-poster").count()) > 0);
+  await tv.locator(".tv-carrusel .tv-poster").first().click();
   await tv.waitForSelector(".tv-fila", { timeout: 20000 });
-  await tv.locator(".tv-fila").first().click();
-  await tv.waitForSelector(".tv-poster", { timeout: 20000 });
-  check("Las series también se eligen por la carátula", (await tv.locator(".tv-poster").count()) > 0);
-  await tv.locator(".tv-poster").first().click();
-  await tv.waitForSelector(".tv-fila", { timeout: 20000 });
-  check("Pero sus episodios son una lista con nombre, que es lo que se lee",
+  check("Y su carátula lleva directa a los episodios",
     (await tv.locator(".tv-poster").count()) === 0,
     (await tv.locator(".tv-fila-nombre").allInnerTexts()).slice(0, 2).join(" | "));
-  await tv.keyboard.press("Escape"); // de los episodios, a las carpetas de series
-  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 15000 });
-  await tv.keyboard.press("Escape"); // y de ahí, a la portada
+  await tv.keyboard.press("Escape"); // de los episodios, a la portada de series
+  await tv.waitForSelector(".tv-carrusel", { timeout: 15000 });
+  await tv.keyboard.press("Escape"); // y de ahí, al menú
   await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
   check("Al volver a la portada, el foco queda en la sección de la que sales",
     (await tv.locator(".tv-tile.foco").innerText()).includes("Series"),
