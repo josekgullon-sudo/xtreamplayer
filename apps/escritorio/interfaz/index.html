@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>TOTALplayer</title>
+<!--
+  La pantalla que no se ve nunca.
+
+  Solo aparece cuando el programa no ha conseguido conectar. Es a propósito
+  que no sea un mensaje de error a secas: el noventa por ciento de las veces
+  es que el portátil no tiene red todavía —Windows tarda en levantar la wifi
+  después de arrancar—, y para eso vale el botón de reintentar. El campo de
+  la dirección está debajo, y en pequeño, porque un cliente no tiene que
+  tocarlo jamás; está para cuando el proveedor tiene su propio dominio o
+  para probar contra otra instalación sin recompilar nada.
+-->
+<style>
+  :root {
+    --fondo: #101012;
+    --superficie: #1b1b1f;
+    --filo: rgba(255, 255, 255, 0.12);
+    --texto: #ffffff;
+    --apagado: #b4b4be;
+    --tenue: #87878f;
+    --marca: #e5192b;
+    --marca-viva: #ff3b4d;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--fondo);
+    color: var(--texto);
+    font: 15px/1.55 system-ui, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  main { width: 100%; max-width: 560px; text-align: center; }
+  .marca {
+    width: 64px; height: 64px; margin: 0 auto 22px;
+    border-radius: 16px; background: var(--superficie);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .marca span {
+    width: 0; height: 0; margin-left: 5px;
+    border-left: 22px solid var(--marca);
+    border-top: 13px solid transparent;
+    border-bottom: 13px solid transparent;
+  }
+  h1 { font-size: 23px; margin: 0 0 10px; }
+  p { color: var(--apagado); margin: 0 0 22px; }
+  .oculto { display: none !important; }
+
+  button {
+    font: inherit; font-weight: 600; color: #fff;
+    background: var(--marca); border: 0; border-radius: 999px;
+    padding: 13px 30px; cursor: pointer;
+  }
+  button:hover { background: var(--marca-viva); }
+  button:disabled { opacity: .55; cursor: default; }
+
+  details { margin-top: 30px; text-align: left; }
+  summary {
+    color: var(--tenue); font-size: 13px; cursor: pointer;
+    list-style: none; text-align: center;
+  }
+  summary::-webkit-details-marker { display: none; }
+  .campo { display: flex; gap: 10px; margin-top: 14px; }
+  input {
+    flex: 1; font: inherit; color: var(--texto);
+    background: var(--superficie); border: 1px solid var(--filo);
+    border-radius: 10px; padding: 12px 14px;
+    -webkit-user-select: text; user-select: text;
+  }
+  input:focus { outline: 2px solid var(--marca); outline-offset: 1px; }
+  .aviso { color: var(--marca-viva); font-size: 13px; margin-top: 12px; min-height: 18px; }
+  .pie { color: var(--tenue); font-size: 12px; margin-top: 26px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="marca"><span></span></div>
+
+  <h1 id="titulo">No se ha podido conectar</h1>
+  <p id="explica">
+    Comprueba que este ordenador tenga internet y vuelve a intentarlo.
+    Si acabas de encenderlo, dale unos segundos a la red.
+  </p>
+
+  <button id="reintentar">Reintentar</button>
+
+  <details>
+    <summary>Conectar con otra dirección</summary>
+    <div class="campo">
+      <input id="direccion" type="text" placeholder="https://totalplayer.app"
+             spellcheck="false" autocapitalize="off" autocomplete="off" />
+      <button id="guardar">Conectar</button>
+    </div>
+    <div class="aviso" id="aviso"></div>
+  </details>
+
+  <p class="pie">Para cerrar la aplicación: Alt + F4</p>
+</main>
+
+<script>
+  const invocar = (orden, datos) => window.__TAURI__.core.invoke(orden, datos);
+
+  const campo = document.getElementById("direccion");
+  const aviso = document.getElementById("aviso");
+  const guardar = document.getElementById("guardar");
+  const reintentar = document.getElementById("reintentar");
+
+  /* Reintentar es probar otra vez la que ya hay guardada: se manda vacía y
+     el programa usa la suya. Así el botón vale igual si el cliente nunca ha
+     tocado la dirección y si la cambió hace un mes */
+  async function conectar(cual) {
+    aviso.textContent = "";
+    guardar.disabled = reintentar.disabled = true;
+    reintentar.textContent = "Conectando…";
+    try {
+      await invocar("guardar_direccion", { direccion: cual });
+      // Si sale bien, esta ventana se cierra sola desde el programa
+    } catch (e) {
+      aviso.textContent = String(e);
+    } finally {
+      guardar.disabled = reintentar.disabled = false;
+      reintentar.textContent = "Reintentar";
+    }
+  }
+
+  reintentar.addEventListener("click", () => {
+    conectar(campo.value.trim() || "https://totalplayer.app");
+  });
+  guardar.addEventListener("click", () => {
+    const escrito = campo.value.trim();
+    if (!escrito) { campo.focus(); return; }
+    conectar(escrito);
+  });
+  campo.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") guardar.click();
+  });
+</script>
+</body>
+</html>

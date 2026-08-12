@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# La dirección de tu instalación, puesta de una vez en las tres aplicaciones
-# de televisor.
+# La dirección de tu instalación, puesta de una vez en las cuatro
+# aplicaciones: las tres de televisor y la de Windows.
 #
 #   bash apps/poner-dominio.sh https://totalplayer.app
 #
-# Existe porque esa dirección está escrita en tres sitios —el WebView de
-# Android, y los arranques de Samsung y de LG—, y es exactamente el tipo de
+# Existe porque esa dirección está escrita en varios sitios —el WebView de
+# Android, los arranques de Samsung y de LG, y el ejecutable de Windows—, y
+# es exactamente el tipo de
 # dato que se queda viejo en uno de ellos. Una aplicación ya publicada
 # apuntando al dominio anterior no se arregla con un despliegue: hay que
 # subir una versión nueva a la tienda y esperar la revisión.
@@ -31,7 +32,13 @@ case "$SITIO" in
 esac
 
 AQUI="$(cd "$(dirname "$0")" && pwd)"
-DESTINO="$SITIO/tv"
+# Con «?app=1» detrás, y no es un adorno: es la señal de que se entra desde
+# un paquete y no desde una pestaña. Sin ella, /tv le enseña a un cliente de
+# proveedor la pantalla de «descárgate la aplicación» —que es justo lo que
+# está haciendo—. El envoltorio de Samsung y el de LG ya la llevaban escrita
+# y este guion se la quitaba al pasar por encima: la primera vez que alguien
+# cambiara de dominio, las dos aplicaciones dejaban de servir.
+DESTINO="$SITIO/tv?app=1"
 
 # Android TV: la constante de MainActivity
 ANDROID="$AQUI/androidtv/app/src/main/java/app/totalplayer/tv/MainActivity.java"
@@ -46,10 +53,16 @@ for ENVOLTORIO in "$AQUI/tizen/index.html" "$AQUI/webos/index.html"; do
   sed -i.bak -E "s|(var INICIO = \")[^\"]*(\";)|\1${DESTINO}\2|" "$ENVOLTORIO"
 done
 
-rm -f "$ANDROID.bak" "$MOVIL.bak" "$AQUI/tizen/index.html.bak" "$AQUI/webos/index.html.bak"
+# Windows: la constante del envoltorio de Tauri. Aquí va solo el servidor,
+# sin «/tv»: eso lo pega el programa, que también lo usa para preguntar si
+# el servidor está ahí antes de abrir la ventana
+ESCRITORIO="$AQUI/escritorio/src-tauri/src/main.rs"
+sed -i.bak -E "s|(const CASA: &str = \")[^\"]*(\";)|\1${SITIO}\2|" "$ESCRITORIO"
 
-echo "Puesto en las tres:"
-grep -h "INICIO" "$ANDROID" "$MOVIL" "$AQUI/tizen/index.html" "$AQUI/webos/index.html" | grep -o "https\?://[^\"]*"
+rm -f "$ESCRITORIO.bak" "$ANDROID.bak" "$MOVIL.bak" "$AQUI/tizen/index.html.bak" "$AQUI/webos/index.html.bak"
+
+echo "Puesto en las cuatro:"
+grep -h "INICIO\|const CASA" "$ANDROID" "$MOVIL" "$AQUI/tizen/index.html" "$AQUI/webos/index.html" "$ESCRITORIO" | grep -o "https\?://[^\"]*"
 echo
 echo "Recuerda que la web también tiene la suya, en las variables de Railway:"
 echo "  NEXT_PUBLIC_SITE_URL=$SITIO"

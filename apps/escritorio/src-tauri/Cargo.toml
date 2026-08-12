@@ -1,0 +1,27 @@
+[package]
+name = "totalplayer-escritorio"
+version = "1.0.0"
+description = "TOTALplayer para Windows"
+edition = "2021"
+rust-version = "1.77"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Para preguntarle al servidor si está ahí antes de abrir la ventana. Es la
+# única petición que hace el programa por su cuenta: todo lo demás lo pide
+# la web desde dentro.
+ureq = "2"
+
+[profile.release]
+# Un envoltorio no necesita ir rápido, necesita pesar poco: esto deja el
+# ejecutable en torno a la mitad
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

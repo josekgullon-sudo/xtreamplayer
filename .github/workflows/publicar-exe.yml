@@ -1,0 +1,75 @@
+# El instalador de Windows, descargable con un enlace directo.
+#
+# Mismo criterio que con los APK: los artefactos de Actions son un .zip y
+# exigen estar identificado en GitHub, así que no valen para mandarle la
+# aplicación a nadie. Esto publica una versión previa fija —la etiqueta no
+# cambia nunca— con el instalador dentro.
+#
+# Corre en Windows porque no queda otra: el ejecutable se compila contra
+# WebView2, que es de Windows. No hay manera de sacarlo desde Linux.
+name: Publicar EXE
+
+on:
+  push:
+    paths:
+      - "apps/escritorio/**"
+      - ".github/workflows/publicar-exe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Compilar Tauri desde cero son unos veinte minutos; con la caché, dos
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/escritorio/src-tauri
+
+      - name: El icono
+        run: |
+          python -m pip install --quiet pillow
+          python apps/escritorio/preparar-icono.py
+
+      # `cargo build` saca el ejecutable pero no el instalador: quien arma el
+      # .exe de instalación es la herramienta de Tauri
+      - name: La herramienta de Tauri
+        run: cargo install tauri-cli --version "^2.0" --locked
+
+      - name: Compilar
+        working-directory: apps/escritorio
+        run: cargo tauri build
+
+      - name: Recoger
+        shell: bash
+        run: |
+          mkdir -p entrega
+          salida=apps/escritorio/src-tauri/target/release/bundle
+          cp "$salida"/nsis/*.exe "entrega/TOTALplayer-instalador.exe"
+          cp "$salida"/msi/*.msi  "entrega/TOTALplayer.msi"
+          ls -lh entrega
+
+      - name: Publicar
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete exe-pruebas --yes --cleanup-tag || true
+          gh release create exe-pruebas entrega/* \
+            --prerelease \
+            --title "TOTALplayer para Windows (pruebas)" \
+            --notes "Compilado de $(git rev-parse --short HEAD).
+
+          - **TOTALplayer-instalador.exe** — el de siempre: doble clic, siguiente, y queda en el menú de inicio. No pide permisos de administrador.
+          - **TOTALplayer.msi** — el mismo, en el formato que reparten las empresas.
+
+          Se abre a pantalla completa en la interfaz de televisión. Para cerrarlo, Alt + F4.
+
+          Sin firmar: Windows enseñará un aviso azul de \"Windows protegió tu PC\" la primera vez. *Más información* → *Ejecutar de todas formas*. Se quita comprando un certificado de firma de código, y eso va cuando esto salga de pruebas."

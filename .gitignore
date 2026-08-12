@@ -8,3 +8,9 @@ data/
 .DS_Store
 tsconfig.tsbuildinfo
 next-env.d.ts
+
+# La aplicación de escritorio: lo que compila Rust y los iconos, que se
+# regeneran con apps/escritorio/preparar-icono.py
+apps/escritorio/src-tauri/target/
+apps/escritorio/src-tauri/gen/
+apps/escritorio/src-tauri/icons/

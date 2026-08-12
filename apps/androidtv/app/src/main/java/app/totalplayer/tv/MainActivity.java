@@ -29,7 +29,7 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
 
     /** Dónde vive la aplicación. Se cambia aquí al montarla para otra marca. */
-    private static final String INICIO = "https://totalplayer.app/tv";
+    private static final String INICIO = "https://totalplayer.app/tv?app=1";
 
     private WebView web;
 

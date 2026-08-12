@@ -1,17 +1,17 @@
-# Las aplicaciones de televisor
+# Las aplicaciones
 
-Cuatro cajas alrededor de la misma cosa: `/tv`, la aplicación de televisión
-que ya funciona en el navegador de cualquier tele. Ninguna de ellas lleva
-lógica de reproductor dentro, y es a propósito: **lo que se arregla en la web
-queda arreglado en todos los televisores esa misma noche**, sin publicar una
-versión nueva ni esperar a que nadie actualice. En estas tiendas, eso son
-semanas.
+Cajas alrededor de la misma cosa: `/tv`, la aplicación de televisión que ya
+funciona en el navegador de cualquier tele. Ninguna de ellas lleva lógica de
+reproductor dentro, y es a propósito: **lo que se arregla en la web queda
+arreglado en todos los aparatos esa misma noche**, sin publicar una versión
+nueva ni esperar a que nadie actualice. En estas tiendas, eso son semanas.
 
 | Carpeta | Aparatos | Empaquetado |
 | --- | --- | --- |
 | `androidtv/` | Android TV, Google TV, Fire TV | `.apk` con Gradle |
 | `tizen/` | Televisores Samsung | `.wgt` con Tizen Studio |
 | `webos/` | Televisores LG | `.ipk` con `ares-package` |
+| `escritorio/` | Windows 10 y 11 | `.exe` y `.msi` con Tauri |
 | — | iPhone, iPad y Android | Ninguno: se instala desde el navegador ([/apps/movil](../app/apps/movil/page.tsx)) |
 
 Cada carpeta tiene su README con lo suyo: cómo compilarla, cómo instalarla en
@@ -19,8 +19,8 @@ una tele con el modo desarrollador y qué pide su tienda.
 
 ## Lo que es nativo, y por qué solo eso
 
-Las tres aplicaciones hacen exactamente lo mismo, que es lo único que una web
-no puede hacer desde dentro de un televisor:
+Todas hacen exactamente lo mismo, que es lo único que una web no puede hacer
+desde dentro de un televisor:
 
 - **Pantalla completa de verdad**, sin barras del sistema.
 - **Que la tele no se apague** mientras se ve algo. Una película son dos
@@ -41,7 +41,7 @@ Está escrita en las tres aplicaciones. Para cambiarla de una vez:
 bash apps/poner-dominio.sh https://totalplayer.app
 ```
 
-Hacerlo a mano en tres ficheros es como acaba una aplicación publicada
+Hacerlo a mano en cinco ficheros es como acaba una aplicación publicada
 apuntando al dominio viejo — y eso no se arregla con un despliegue: hay que
 subir una versión nueva a la tienda y esperar la revisión.
 
@@ -71,6 +71,10 @@ pantalla de un Fire TV.
 
 Con televisor, cada README explica cómo instalarla con el modo desarrollador:
 es media hora la primera vez y luego es un comando.
+
+La de Windows no necesita nada de eso: se compila sola en GitHub y sale un
+instalador que se descarga y se ejecuta. Lo suyo está en
+[`escritorio/README.md`](escritorio/README.md).
 
 ## Publicar
 

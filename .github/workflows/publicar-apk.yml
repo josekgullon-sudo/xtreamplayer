@@ -18,6 +18,8 @@ on:
   push:
     paths:
       - "apps/**"
+      # La de Windows tiene su propio trabajo y su propio runner
+      - "!apps/escritorio/**"
       - ".github/workflows/publicar-apk.yml"
   workflow_dispatch:
 
