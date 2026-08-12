@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El borde izquierdo de la carátula del destacado, fundido con el fondo.
+     Más suave que `velo_lado`: aquí no hay que leer nada encima, solo
+     disimular el canto recto de la imagen -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="0"
+        android:startColor="#FF101012"
+        android:centerColor="#8C101012"
+        android:endColor="#00101012"
+        android:type="linear" />
+</shape>

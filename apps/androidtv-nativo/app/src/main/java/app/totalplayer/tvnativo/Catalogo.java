@@ -210,11 +210,26 @@ public final class Catalogo {
         public final boolean numerada;
         /** La carpeta de la que sale, para el «ver todas». Vacío si es inventada. */
         public final String carpetaId;
+        /**
+         * Si la pantalla puede tirar de esta lista los que no tengan imagen.
+         *
+         * Solo las filas inventadas —lo mejor valorado, lo recién añadido—.
+         * Son un escaparate: se eligen de todo el catálogo, así que sobran
+         * candidatos y no cuesta nada quedarse con los que tienen carátula.
+         * En la fila de una carpeta no vale: ahí están los que hay, y
+         * esconder la mitad porque el proveedor no les puso imagen es
+         * quitarle al cliente películas que sí puede ver.
+         */
+        public final boolean escaparate;
         public Fila(String titulo, List<Item> items, boolean numerada, String carpetaId) {
+            this(titulo, items, numerada, carpetaId, false);
+        }
+        public Fila(String titulo, List<Item> items, boolean numerada, String carpetaId, boolean escaparate) {
             this.titulo = titulo;
             this.items = items;
             this.numerada = numerada;
             this.carpetaId = carpetaId;
+            this.escaparate = escaparate;
         }
     }
 
@@ -236,6 +251,11 @@ public final class Catalogo {
      * nota que manda el proveedor, así que esa fila es «mejor valoradas» y
      * se llama así. Inventar una tendencia ordenando por cualquier cosa y
      * ponerle ese nombre sería mentirle al cliente.
+     *
+     * Y va acotada a los últimos años. La nota sola sacaba arriba una
+     * comedia de 1928 con un 10 puesto a mano por el proveedor: técnicamente
+     * la mejor valorada del catálogo, y ninguna razón para enseñarla la
+     * primera. Lo que se pone en la portada es lo bueno **de ahora**.
      */
     public static List<Fila> portada(String seccion) throws Exception {
         List<Fila> filas = new ArrayList<>();
@@ -261,11 +281,56 @@ public final class Catalogo {
 
         List<Fila> arriba = new ArrayList<>();
         List<Item> valoradas = mejorValoradas(todos);
-        if (valoradas.size() >= 4) arriba.add(new Fila("Mejor valoradas", valoradas, true, ""));
+        if (valoradas.size() >= 4) arriba.add(new Fila("Mejor valoradas", valoradas, true, "", true));
         List<Item> recientes = recienAnadidas(todos);
-        if (recientes.size() >= 4) arriba.add(new Fila("Añadidas recientemente", recientes, false, ""));
+        if (recientes.size() >= 4) {
+            arriba.add(new Fila("Añadidas recientemente", recientes, false, "", true));
+        }
         arriba.addAll(filas);
         return arriba;
+    }
+
+    /* ---------------- Lo de ahora ---------------- */
+
+    /** Cuántos años atrás sigue contando como «de ahora». */
+    private static final int VENTANA_DE_ANIOS = 3;
+
+    /**
+     * El año en el que estamos, para saber qué es reciente.
+     *
+     * Se lee del reloj del aparato. Un Fire Stick recién sacado de la caja
+     * puede tener el reloj en 1970 hasta que coge la hora por la red, y
+     * entonces «los últimos tres años» no dejaría pasar nada; por eso, si el
+     * año que sale es anterior a cuando se escribió esto, no se filtra.
+     */
+    private static int anioDeHoy() {
+        int a = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+        return a < 2026 ? 0 : a;
+    }
+
+    /** Si el título es de los últimos años, con el año que traiga el panel. */
+    private static boolean deAhora(Item i, int hoy) {
+        if (hoy == 0) return true;
+        int suyo = entero(i.anio);
+        return suyo > 0 && suyo >= hoy - (VENTANA_DE_ANIOS - 1);
+    }
+
+    /**
+     * Se queda con los de los últimos años, y solo si quedan bastantes.
+     *
+     * Un proveedor con catálogo viejo, o que no manda el año, se quedaría
+     * con una fila de tres títulos —o de ninguno— si esto no tuviera vuelta
+     * atrás. Debajo de ocho no merece la pena: se enseña el catálogo entero,
+     * que es peor que lo ideal pero mucho mejor que una fila vacía.
+     */
+    private static List<Item> soloDeAhora(List<Item> de) {
+        int hoy = anioDeHoy();
+        if (hoy == 0) return de;
+        List<Item> nuevos = new ArrayList<>();
+        for (Item i : de) {
+            if (deAhora(i, hoy)) nuevos.add(i);
+        }
+        return nuevos.size() >= 8 ? nuevos : de;
     }
 
     private static List<Item> recorta(List<Item> de) {
@@ -318,19 +383,33 @@ public final class Catalogo {
         return unos;
     }
 
-    /** Las diez mejor valoradas, de las que traen nota y carátula. */
+    /**
+     * Cuántos candidatos se preparan para una fila de escaparate.
+     *
+     * Más de los que se van a enseñar, y a propósito: la pantalla prueba las
+     * carátulas una a una y va tirando las que no llegan, así que necesita
+     * de dónde sacar los recambios. Diez puestos, treinta candidatos.
+     */
+    private static final int CANDIDATOS_POR_FILA = 30;
+
+    /** Las mejor valoradas de los últimos años, de las que traen carátula. */
     private static List<Item> mejorValoradas(List<Item> todos) {
         List<Item> con = new ArrayList<>();
-        for (Item i : todos) {
+        for (Item i : soloDeAhora(todos)) {
             if (!i.imagen.isEmpty() && nota(i) > 0) con.add(i);
         }
         Collections.sort(con, new Comparator<Item>() {
-            @Override public int compare(Item a, Item b) { return Double.compare(nota(b), nota(a)); }
+            @Override public int compare(Item a, Item b) {
+                int porNota = Double.compare(nota(b), nota(a));
+                /* Con la mitad del catálogo puesta a 10 por el proveedor, la
+                   nota sola deja el orden al azar: a igualdad, lo más nuevo */
+                return porNota != 0 ? porNota : Long.compare(b.alta, a.alta);
+            }
         });
         /* Primero ordenar y luego quitar repetidos, no al revés: así la copia
            que se queda es la mejor puntuada de las dos */
         con = sinRepetir(con);
-        return new ArrayList<>(con.subList(0, Math.min(10, con.size())));
+        return new ArrayList<>(con.subList(0, Math.min(CANDIDATOS_POR_FILA, con.size())));
     }
 
     /** Lo último que ha subido el proveedor, de lo que trae fecha. */
@@ -343,7 +422,7 @@ public final class Catalogo {
             @Override public int compare(Item a, Item b) { return Long.compare(b.alta, a.alta); }
         });
         con = sinRepetir(con);
-        return new ArrayList<>(con.subList(0, Math.min(POR_FILA, con.size())));
+        return new ArrayList<>(con.subList(0, Math.min(CANDIDATOS_POR_FILA, con.size())));
     }
 
     /**
@@ -356,9 +435,10 @@ public final class Catalogo {
      * bien queda cada uno arriba, y la pantalla va probando hasta que una
      * imagen llega de verdad.
      *
-     * Se ordena por lo que tiene que enseñar el héroe: sinopsis, nota y año.
-     * Un título del que solo sabemos el nombre deja el bloque con un título
-     * grande y nada debajo.
+     * Se ordena por ser de ahora —que pesa más que nada: arriba salía una
+     * película de 1928 con un 10 del proveedor— y luego por lo que tiene
+     * que enseñar el banner: sinopsis, nota y año. Un título del que solo
+     * sabemos el nombre deja el bloque con un rótulo grande y nada debajo.
      */
     public static List<Item> candidatosDestacado(List<Fila> filas) {
         List<Item> todos = new ArrayList<>();
@@ -368,15 +448,25 @@ public final class Catalogo {
         for (Item i : sinRepetir(todos)) {
             if (!i.imagen.isEmpty()) con.add(i);
         }
+        final int hoy = anioDeHoy();
         Collections.sort(con, new Comparator<Item>() {
-            @Override public int compare(Item a, Item b) { return riqueza(b) - riqueza(a); }
+            @Override public int compare(Item a, Item b) {
+                int porLucir = luce(b, hoy) - luce(a, hoy);
+                if (porLucir != 0) return porLucir;
+                int porNota = Double.compare(nota(b), nota(a));
+                return porNota != 0 ? porNota : Long.compare(b.alta, a.alta);
+            }
         });
         return con;
     }
 
-    /** Cuánto tiene que contar un título: manda quién luce más arriba. */
-    private static int riqueza(Item i) {
+    /** Cuánto luce un título arriba: manda el que más tenga que contar. */
+    private static int luce(Item i, int hoy) {
         int puntos = 0;
+        /* Ser de este año o del anterior pesa más que todo lo demás junto:
+           un catálogo tiene miles de títulos viejos con la nota a tope y
+           ninguno de ellos es una razón para abrir la aplicación */
+        if (deAhora(i, hoy)) puntos += 12;
         if (i.sinopsis.length() > 60) puntos += 4;
         else if (!i.sinopsis.isEmpty()) puntos += 2;
         if (nota(i) > 0) puntos += 2;

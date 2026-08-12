@@ -2,6 +2,7 @@ package app.totalplayer.tvnativo;
 
 import android.content.Intent;
 import android.app.Activity;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,6 +15,7 @@ import android.widget.TextView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,8 +23,8 @@ import java.util.List;
  *
  * Antes esta sección era una columna de carpetas y una rejilla: para mirar
  * algo había que saber antes en qué carpeta estaba. Esto contesta a la
- * pregunta con la que se entra —«¿y qué veo?»—: un título grande arriba con
- * su ficha, y debajo filas de carteles que se recorren de lado.
+ * pregunta con la que se entra —«¿y qué veo?»—: un banner arriba con un
+ * título y su ficha, y debajo filas de carteles que se recorren de lado.
  *
  * Las carpetas no desaparecen: siguen en su pantalla, a un OK del botón del
  * final. Lo que cambia es qué se enseña primero.
@@ -48,7 +50,7 @@ public class PortadaActivity extends Activity {
         girando = findViewById(R.id.girando);
         vacio = findViewById(R.id.vacio);
         /* Escondido del todo, no invisible: hasta que no haya una imagen de
-           verdad, el destacado no ocupa sitio. Un hueco reservado y vacío es
+           verdad, el banner no ocupa sitio. Un hueco reservado y vacío es
            lo que hacía que la portada abriese con media pantalla en negro */
         findViewById(R.id.heroe).setVisibility(View.GONE);
 
@@ -83,33 +85,35 @@ public class PortadaActivity extends Activity {
         vacio.setVisibility(View.VISIBLE);
     }
 
+    /** Cuántos carteles se enseñan en una fila de escaparate. */
+    private static final int EN_ESCAPARATE = 10;
+
     private void pintar(List<Catalogo.Fila> lista) {
         LayoutInflater molde = LayoutInflater.from(this);
-        boolean primera = true;
         for (Catalogo.Fila f : lista) {
             View fila = molde.inflate(R.layout.pieza_fila, filas, false);
-            TextView rotulo = fila.findViewById(R.id.rotulo);
-            rotulo.setText(f.titulo);
-            /* La primera fila lleva su rótulo en una pastilla sólida y las
-               demás en blanco a secas: no todas pesan lo mismo, y eso tiene
-               que verse sin leerlas */
-            if (primera) {
-                rotulo.setBackgroundResource(R.drawable.rotulo_fila);
-                rotulo.setTextColor(getResources().getColor(R.color.negro_marca));
-                int x = (int) (14 * getResources().getDisplayMetrics().density);
-                int y = (int) (5 * getResources().getDisplayMetrics().density);
-                rotulo.setPadding(x, y, x, y);
-                primera = false;
-            }
+            ((TextView) fila.findViewById(R.id.rotulo)).setText(f.titulo);
 
-            final Catalogo.Fila suya = f;
-            AdaptadorCarteles carteles = new AdaptadorCarteles(new AdaptadorCarteles.AlElegir() {
+            /* Se pregunta al adaptador por lo que hay en esa posición, no a
+               la lista de la fila: en las de escaparate no son la misma cosa
+               —el repaso cambia unos carteles por otros— y con la lista de
+               la fila se abría la ficha de una película distinta */
+            final AdaptadorCarteles[] suyos = new AdaptadorCarteles[1];
+            final AdaptadorCarteles carteles = new AdaptadorCarteles(new AdaptadorCarteles.AlElegir() {
                 @Override public void ficha(int posicion) {
-                    abrir(suya.items.get(posicion));
+                    Catalogo.Item it = suyos[0].enPosicion(posicion);
+                    if (it != null) abrir(it);
                 }
             });
+            suyos[0] = carteles;
             carteles.numerada(f.numerada);
-            carteles.poner(f.items);
+            carteles.ancho(anchoDeCartel());
+            /* La fila de escaparate se pinta con los primeros y luego se
+               repasa: los que no tengan carátula se cambian por otros */
+            List<Catalogo.Item> aLaVista = f.escaparate
+                    ? f.items.subList(0, Math.min(EN_ESCAPARATE, f.items.size()))
+                    : f.items;
+            carteles.poner(aLaVista);
 
             RecyclerView tira = fila.findViewById(R.id.carteles);
             tira.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
@@ -118,10 +122,53 @@ public class PortadaActivity extends Activity {
                siguiente por dentro del RecyclerView y se pierde el sitio */
             tira.setFocusable(false);
             filas.addView(fila);
+
+            if (f.escaparate) depurar(carteles, tira, f, new ArrayList<Catalogo.Item>(), 0);
         }
 
         verTodas(molde);
         buscarDestacado(Catalogo.candidatosDestacado(lista), 0);
+    }
+
+    /**
+     * Cuánto mide un cartel de la portada.
+     *
+     * Más pequeño que el de la rejilla de carpetas, y por una razón concreta:
+     * con el cartel de 150 puntos, debajo del banner solo cabía una fila y
+     * el cliente no llegaba a ver que hubiera más. Con 132 entra la primera
+     * entera y asoma el rótulo de la segunda, que es lo que hace bajar.
+     */
+    private int anchoDeCartel() {
+        float porPunto = getResources().getDisplayMetrics().density;
+        return (int) ((Pantalla.esMovil(this) ? 112 : 132) * porPunto);
+    }
+
+    /**
+     * Repasa una fila de escaparate y tira lo que no tenga carátula.
+     *
+     * «Mejor valoradas» se elige de todo el catálogo, así que hay treinta
+     * candidatos para diez puestos. Se van probando en orden y se queda con
+     * los diez primeros cuya imagen conteste de verdad: en la tele, esa fila
+     * abría con un cuadrado gris en el puesto uno porque el proveedor
+     * apuntaba a una carátula que ya no existe.
+     *
+     * No se toca la fila si el mando está encima: cambiarle los carteles a
+     * alguien que está pasando por ellos es peor que el cuadrado gris.
+     */
+    private void depurar(final AdaptadorCarteles carteles, final RecyclerView tira,
+                         final Catalogo.Fila fila, final List<Catalogo.Item> buenos, final int cual) {
+        if (buenos.size() >= EN_ESCAPARATE || cual >= fila.items.size()) {
+            if (buenos.size() >= 4 && !tira.hasFocus()) carteles.poner(buenos);
+            return;
+        }
+        final Catalogo.Item it = fila.items.get(cual);
+        Imagenes.probar(it.imagen, 400, new Imagenes.Traida() {
+            @Override public void llega(Bitmap b) {
+                if (isFinishing()) return;
+                if (b != null) buenos.add(it);
+                depurar(carteles, tira, fila, buenos, cual + 1);
+            }
+        });
     }
 
     /** Cuántos candidatos se prueban antes de rendirse y dejar solo las filas. */
@@ -132,9 +179,9 @@ public class PortadaActivity extends Activity {
      *
      * Se pide la carátula del primer candidato; si no llega —el proveedor
      * apunta a una dirección muerta, que pasa a menudo—, se prueba el
-     * siguiente. El bloque de arriba no aparece hasta que hay una imagen en
-     * la mano, así que no existe el caso «título enorme sobre un rectángulo
-     * negro»: o sale entero o no sale.
+     * siguiente. El banner no aparece hasta que hay una imagen en la mano,
+     * así que no existe el caso «título enorme sobre un rectángulo negro»: o
+     * sale entero o no sale.
      *
      * Si se acaban los candidatos, la portada se queda en filas y ya. Es lo
      * honesto: media pantalla ocupada por un hueco no informa de nada.
@@ -144,7 +191,7 @@ public class PortadaActivity extends Activity {
         final Catalogo.Item it = candidatos.get(cual);
         final int ancho = Math.max(getResources().getDisplayMetrics().widthPixels, 640);
         Imagenes.probar(it.imagen, ancho, new Imagenes.Traida() {
-            @Override public void llega(android.graphics.Bitmap b) {
+            @Override public void llega(Bitmap b) {
                 if (isFinishing()) return;
                 if (b == null) {
                     buscarDestacado(candidatos, cual + 1);
@@ -163,7 +210,7 @@ public class PortadaActivity extends Activity {
      * En el listado de películas el panel manda el nombre, la nota y el año,
      * pero no el argumento: eso solo viene en `get_vod_info`. Es una llamada
      * y solo para el título de arriba, así que sale a cuenta —sin ella el
-     * bloque grande enseña un nombre y dos números—.
+     * banner enseña un nombre y dos números—.
      */
     private void completarFicha(final Catalogo.Item it) {
         if (it.esSerie || !it.sinopsis.isEmpty()) return;
@@ -214,8 +261,8 @@ public class PortadaActivity extends Activity {
         filas.addView(fila);
     }
 
-    /** El título grande de arriba, con su imagen ya en la mano. */
-    private void pintarHeroe(android.graphics.Bitmap portada) {
+    /** El banner de arriba, con su imagen ya en la mano. */
+    private void pintarHeroe(Bitmap portada) {
         if (destacado == null) return;
         View heroe = findViewById(R.id.heroe);
         heroe.setVisibility(View.VISIBLE);
@@ -230,19 +277,19 @@ public class PortadaActivity extends Activity {
          * La misma imagen dos veces y a propósito.
          *
          * Lo que manda el proveedor es una carátula vertical, no un fondo
-         * apaisado: estirada de lado a lado sale gigante y borrosa, y eso es
-         * justo lo que se ve mal. Así que va de dos maneras —de fondo,
-         * ampliada y apagada por el velo, que ahí lo borroso es un efecto; y
-         * entera y a su tamaño en el lado, que es donde se mira—.
+         * apaisado. La primera versión la estiraba de lado a lado y salía
+         * gigante y blanda: eso es lo que se veía mal. Ahora va de fondo
+         * convertida en una mancha de sus propios colores, y entera y en su
+         * proporción a la derecha, que es donde se mira.
          */
-        ((ImageView) findViewById(R.id.fondo)).setImageBitmap(portada);
+        ((ImageView) findViewById(R.id.fondo)).setImageBitmap(manchaDe(portada));
         ImageView cartel = findViewById(R.id.heroeCartel);
         if (cartel != null) {
             cartel.setImageBitmap(portada);
             cartel.setVisibility(View.VISIBLE);
         }
 
-        /* El bloque aparece después de las filas, así que hay que devolver la
+        /* El banner aparece después de las filas, así que hay que devolver la
            vista arriba: si no, la portada abre por la mitad */
         final View scroll = findViewById(R.id.scroll);
         scroll.post(new Runnable() {
@@ -260,6 +307,24 @@ public class PortadaActivity extends Activity {
         ver.requestFocus();
 
         pintarNota();
+    }
+
+    /**
+     * Un desenfoque de pobre: bajar la carátula a 24 puntos y volver a
+     * estirarla a lo ancho de la tele.
+     *
+     * Al ampliar tanto una imagen de 24×36, lo que queda es una mancha suave
+     * de sus propios colores —Android interpola al dibujarla—, que es
+     * exactamente el fondo que se quería y no cuesta ni una librería ni un
+     * milisegundo. Un desenfoque de verdad haría falta RenderScript, que
+     * está retirado, o recorrer el mapa de bits a mano.
+     */
+    private static Bitmap manchaDe(Bitmap b) {
+        try {
+            return Bitmap.createScaledBitmap(b, 24, 36, true);
+        } catch (Throwable niEso) {
+            return b;
+        }
     }
 
     /** El círculo del porcentaje, si el proveedor manda nota. */

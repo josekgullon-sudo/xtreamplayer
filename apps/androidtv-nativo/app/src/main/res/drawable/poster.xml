@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- .pa-card: la carátula ya es la información; sin foco, solo un filo -->
+<!--
+  .pa-card: la carátula ya es la información; sin foco, solo un filo.
+
+  El relleno del foco es gris y no rojo. Con el tinte rojo, en un televisor
+  —que satura— la tarjeta enfocada se volvía un bloque fucsia y el título de
+  debajo dejaba de leerse. Quien marca el foco es el borde, que para eso es
+  de color y de cuatro puntos.
+-->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="@color/marca_tinte_fuerte" />
+            <solid android:color="@color/encima" />
             <stroke android:width="4dp" android:color="@color/marca_viva" />
             <corners android:radius="11dp" />
         </shape>

@@ -2,80 +2,82 @@
 <!--
   Un cartel de la fila numerada.
 
-  El número va enorme, pegado al borde de abajo y saliéndose de la carátula
-  por la izquierda, como en cualquier aplicación de este tipo: es lo que
-  hace que se lea como un ranking y no como una fila más. Los mismos
-  identificadores que el cartel normal —«cartel», «nombre», «extra»,
-  «sinCartel»— porque los rellena el mismo adaptador.
+  El número va **encima** de la carátula, en la esquina de abajo a la
+  izquierda. La primera versión lo sacaba fuera del marco, medio salido por
+  el lado, que es como lo hacen las aplicaciones grandes; en la tele no se
+  veía ninguno, porque ese hueco de la izquierda es justo por donde pasa el
+  carril de secciones. Encima de la carátula, con su sombra, se lee siempre
+  y no depende de lo que haya al lado.
+
+  Los mismos identificadores que el cartel normal —«cartel», «nombre»,
+  «extra», «sinCartel»— porque los rellena el mismo adaptador.
 -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/poster"
+    android:focusable="true"
+    android:padding="6dp"
     android:layout_margin="8dp">
 
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginStart="34dp"
-        android:background="@drawable/poster"
-        android:focusable="true"
-        android:padding="6dp">
-
-        <FrameLayout
-            android:id="@+id/marcoCartel"
-            android:layout_width="132dp"
-            android:layout_height="198dp"
-            android:background="@color/elevada">
-
-            <TextView
-                android:id="@+id/sinCartel"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:padding="8dp"
-                android:textColor="@color/apagado"
-                android:textSize="12sp"
-                android:maxLines="4"
-                android:ellipsize="end" />
-
-            <ImageView
-                android:id="@+id/cartel"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:contentDescription="@null" />
-        </FrameLayout>
+    <FrameLayout
+        android:id="@+id/marcoCartel"
+        android:layout_width="132dp"
+        android:layout_height="198dp"
+        android:background="@color/elevada">
 
         <TextView
-            android:id="@+id/nombre"
-            android:layout_width="132dp"
+            android:id="@+id/sinCartel"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:padding="8dp"
+            android:textColor="@color/apagado"
+            android:textSize="12sp"
+            android:maxLines="4"
+            android:ellipsize="end" />
+
+        <ImageView
+            android:id="@+id/cartel"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:id="@+id/puesto"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="6dp"
             android:textColor="@color/texto"
-            android:textSize="13sp"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:layout_marginTop="6dp" />
-
-        <TextView
-            android:id="@+id/extra"
-            android:layout_width="132dp"
-            android:layout_height="wrap_content"
-            android:textColor="@color/tenue"
-            android:textSize="11sp"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:layout_marginTop="1dp" />
-    </LinearLayout>
+            android:textSize="58sp"
+            android:textStyle="bold"
+            android:includeFontPadding="false"
+            android:shadowColor="#CC000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="10" />
+    </FrameLayout>
 
     <TextView
-        android:id="@+id/puesto"
-        android:layout_width="wrap_content"
+        android:id="@+id/nombre"
+        android:layout_width="132dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
-        android:layout_marginBottom="34dp"
-        android:textColor="@color/marca_viva"
-        android:textSize="76sp"
-        android:textStyle="bold"
-        android:includeFontPadding="false" />
-</FrameLayout>
+        android:textColor="@color/texto"
+        android:textSize="13sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:layout_marginTop="6dp" />
+
+    <TextView
+        android:id="@+id/extra"
+        android:layout_width="132dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/tenue"
+        android:textSize="11sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:layout_marginTop="1dp" />
+</LinearLayout>

@@ -2,27 +2,29 @@
 <!--
   Una fila de la portada: su rótulo y sus carteles.
 
-  El rótulo de la primera va en una pastilla sólida y el de las demás en
-  blanco a secas, como en la referencia: no todas las filas pesan lo mismo,
-  y lo que se quiere destacar tiene que verse destacado sin leerlo.
+  El rótulo va en blanco y a secas, todas las filas igual. La primera
+  versión le ponía al de la primera una pastilla roja sólida —la referencia
+  lo hace así—, y en la tele quedaban dos manchas rojas seguidas: el botón
+  de «Reproducir» del banner y la pastilla justo debajo. Con el rótulo en
+  blanco, lo único de color en la pantalla es lo que se puede pulsar.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:layout_marginBottom="10dp">
+    android:layout_marginBottom="8dp">
 
     <TextView
         android:id="@+id/rotulo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/texto"
-        android:textSize="20sp"
+        android:textSize="19sp"
         android:textStyle="bold"
         android:maxLines="1"
         android:ellipsize="end"
         android:layout_marginStart="18dp"
-        android:layout_marginBottom="6dp" />
+        android:layout_marginBottom="4dp" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/carteles"

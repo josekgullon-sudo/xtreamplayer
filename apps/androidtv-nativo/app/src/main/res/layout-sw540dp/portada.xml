@@ -4,23 +4,31 @@
 
   Antes esta sección era una columna de carpetas y una rejilla: había que
   saber en qué carpeta buscar antes de poder mirar nada. Esto contesta a
-  «¿y qué veo?», que es la pregunta con la que se entra: un título grande
-  arriba con su ficha, y debajo filas de carteles.
+  «¿y qué veo?», que es la pregunta con la que se entra: un banner arriba y
+  debajo filas de carteles.
 
-  El destacado se monta con tres capas y una carátula:
+  **El banner va dentro del ScrollView, no detrás.** La primera versión lo
+  dejaba fijo al fondo mientras el texto se iba con el scroll, y al bajar se
+  quedaba una imagen quieta con letras deslizándose por encima. Ahora es un
+  bloque más: sube y desaparece, como en cualquier aplicación de este tipo.
 
-    1. la carátula ampliada a lo ancho, de fondo y a media luz — al estirar
-       una imagen vertical hasta 1280 puntos sale suave, y ahí eso es un
-       efecto y no un defecto;
-    2. un velo de izquierda a derecha, que apaga la imagen justo donde va el
-       texto y la deja entera donde no;
-    3. un velo de abajo a arriba que la funde con el fondo, para que no se
-       vea el corte de la banda;
-    4. y la misma carátula otra vez, entera y a su tamaño, a la derecha.
+  Se monta con cuatro capas, todas sacadas de la misma carátula, porque lo
+  único que manda un panel Xtream es una imagen vertical —fondos apaisados
+  no hay—:
 
-  Ese cuarto punto es el que arregla lo que se veía mal: la carátula que
-  manda el proveedor es vertical, y una imagen vertical estirada de lado a
-  lado no es un fondo de película, es una mancha.
+    1. esa carátula reducida a 24 puntos y vuelta a estirar a lo ancho de la
+       tele: al ampliarla tanto se convierte en una mancha de sus propios
+       colores, que es el desenfoque de toda la vida y sale gratis;
+    2. la carátula de verdad a la derecha, entera y en su proporción, que es
+       lo que la primera versión no hacía —la estiraba a lo ancho y salía
+       una mancha gigante—;
+    3. un velo sobre el canto izquierdo de esa carátula, para que no se vea
+       el corte recto;
+    4. y dos velos más sobre todo el banner: uno de lado, para poder leer el
+       texto encima, y otro de abajo, que lo funde con el fondo.
+
+  Sin recortes a lo ancho: la carátula mide 200×300, que es 2:3 exacto, así
+  que no se le corta la cabeza a nadie.
 
   Es un ScrollView y no una lista reciclada a propósito. Son seis u ocho
   filas contadas, cada una con su propia lista horizontal dentro; una lista
@@ -32,32 +40,10 @@
     android:layout_height="match_parent"
     android:background="@color/fondo">
 
-    <!-- 1. La carátula del destacado, ampliada -->
-    <ImageView
-        android:id="@+id/fondo"
-        android:layout_width="match_parent"
-        android:layout_height="470dp"
-        android:scaleType="centerCrop"
-        android:alpha="0.32"
-        android:contentDescription="@null" />
-
-    <!-- 2. El velo del lado, para poder leer encima -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="470dp"
-        android:background="@drawable/velo_lado" />
-
-    <!-- 3. Y el de abajo, que funde la banda con el fondo -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="470dp"
-        android:background="@drawable/velo_portada" />
-
     <ScrollView
         android:id="@+id/scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingStart="64dp"
         android:scrollbars="none"
         android:clipToPadding="false">
 
@@ -67,31 +53,73 @@
             android:orientation="vertical"
             android:paddingBottom="30dp">
 
-            <!-- El héroe: la ficha a la izquierda, la carátula a la derecha -->
-            <LinearLayout
+            <!--
+              El banner. 300 de los 540 puntos de una tele de 1080p: el que
+              lo llenaba entero dejaba las filas fuera de pantalla y había
+              que bajar para descubrir que existían.
+            -->
+            <FrameLayout
                 android:id="@+id/heroe"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="24dp"
-                android:paddingEnd="56dp"
-                android:paddingTop="38dp"
-                android:paddingBottom="26dp"
+                android:layout_height="300dp"
                 android:visibility="gone">
 
+                <!-- 1. La mancha de color, de la propia carátula -->
+                <ImageView
+                    android:id="@+id/fondo"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:alpha="0.7"
+                    android:contentDescription="@null" />
+
+                <!-- 2 y 3. La carátula de verdad, y su canto disimulado -->
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="end">
+
+                    <ImageView
+                        android:id="@+id/heroeCartel"
+                        android:layout_width="200dp"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:visibility="invisible"
+                        android:contentDescription="@null" />
+
+                    <View
+                        android:layout_width="70dp"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="start"
+                        android:background="@drawable/velo_arte" />
+                </FrameLayout>
+
+                <!-- 4. Los dos velos del banner entero -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/velo_lado" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/velo_portada" />
+
+                <!-- Y el texto, encima de todo -->
                 <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="600dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:layout_gravity="start|center_vertical"
+                    android:orientation="vertical"
+                    android:paddingStart="92dp"
+                    android:paddingEnd="20dp">
 
                     <TextView
                         android:id="@+id/heroeTitulo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textColor="@color/texto"
-                        android:textSize="42sp"
+                        android:textSize="38sp"
                         android:textStyle="bold"
                         android:maxLines="2"
                         android:ellipsize="end" />
@@ -101,37 +129,37 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textColor="@color/apagado"
-                        android:textSize="16sp"
+                        android:textSize="15sp"
                         android:maxLines="1"
                         android:ellipsize="end"
-                        android:layout_marginTop="10dp" />
+                        android:layout_marginTop="8dp" />
 
                     <TextView
                         android:id="@+id/heroeSinopsis"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textColor="@color/apagado"
-                        android:textSize="16sp"
-                        android:lineSpacingExtra="4dp"
-                        android:maxLines="3"
+                        android:textSize="15sp"
+                        android:lineSpacingExtra="3dp"
+                        android:maxLines="2"
                         android:ellipsize="end"
-                        android:layout_marginTop="12dp" />
+                        android:layout_marginTop="10dp" />
 
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:layout_marginTop="20dp">
+                        android:layout_marginTop="16dp">
 
                         <Button
                             android:id="@+id/heroeVer"
                             android:layout_width="wrap_content"
-                            android:layout_height="60dp"
-                            android:minWidth="230dp"
+                            android:layout_height="54dp"
+                            android:minWidth="220dp"
                             android:text="Reproducir"
                             android:textColor="@color/texto"
-                            android:textSize="18sp"
+                            android:textSize="17sp"
                             android:textStyle="bold"
                             android:textAllCaps="false"
                             android:background="@drawable/boton" />
@@ -140,54 +168,39 @@
                             android:id="@+id/heroeBloqueNota"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="18dp"
+                            android:layout_marginStart="16dp"
                             android:visibility="gone">
 
                             <ProgressBar
                                 android:id="@+id/heroeAnillo"
                                 style="?android:attr/progressBarStyleHorizontal"
-                                android:layout_width="58dp"
-                                android:layout_height="58dp"
+                                android:layout_width="54dp"
+                                android:layout_height="54dp"
                                 android:indeterminate="false"
                                 android:max="100"
                                 android:progressDrawable="@drawable/anillo_nota" />
 
                             <TextView
                                 android:id="@+id/heroeNota"
-                                android:layout_width="58dp"
-                                android:layout_height="58dp"
+                                android:layout_width="54dp"
+                                android:layout_height="54dp"
                                 android:gravity="center"
                                 android:textColor="@color/texto"
-                                android:textSize="16sp"
+                                android:textSize="15sp"
                                 android:textStyle="bold" />
                         </FrameLayout>
                     </LinearLayout>
                 </LinearLayout>
-
-                <!-- 4. La carátula entera, sin estirar -->
-                <FrameLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="40dp"
-                    android:background="@drawable/marco_heroe"
-                    android:padding="5dp">
-
-                    <ImageView
-                        android:id="@+id/heroeCartel"
-                        android:layout_width="196dp"
-                        android:layout_height="294dp"
-                        android:scaleType="centerCrop"
-                        android:visibility="invisible"
-                        android:contentDescription="@null" />
-                </FrameLayout>
-            </LinearLayout>
+            </FrameLayout>
 
             <!-- Y aquí se cuelgan las filas, una por rótulo -->
             <LinearLayout
                 android:id="@+id/filas"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                android:orientation="vertical"
+                android:paddingStart="74dp"
+                android:paddingTop="10dp" />
 
             <TextView
                 android:id="@+id/vacio"

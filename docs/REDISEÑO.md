@@ -87,7 +87,8 @@ viaja dentro y no se arregla desplegando la web.
   sin título. La nota va en un chip de color en la esquina de arriba.
 - **La cabecera de la fila destacada es una pastilla sólida** con el texto
   en oscuro —«EN TENDENCIA!»—, y las demás filas llevan su nombre en blanco
-  y a secas. No todas las filas pesan lo mismo.
+  y a secas. No todas las filas pesan lo mismo. *(Probado y descartado: ver
+  más abajo. En nuestra portada quedaban dos manchas rojas seguidas.)*
 - **El arranque es su propia pantalla, con el carril ya puesto**, y cuenta
   por dónde va con nombres de verdad: «Step 3: 2/2 · HBO». No es una barra
   girando: es el catálogo cargándose y diciéndolo.
@@ -129,9 +130,45 @@ aplicación funcionando, no en pantallas sueltas:
   ninguna, no hay destacado y la portada empieza por las filas.
 - **Y la carátula va dos veces.** Lo que manda un panel Xtream es una imagen
   vertical, no un fondo apaisado: estirada a lo ancho de la tele sale
-  gigante y blanda. Va de fondo a media luz —ahí lo borroso es un efecto— y
-  otra vez entera y a su tamaño en el lado derecho, que es donde se mira. Con
-  dos velos, uno de lado y otro de abajo, para poder leer encima.
+  gigante y blanda, y eso fue lo primero que el cliente llamó feo. El banner
+  se monta con cuatro capas y todas salen de la misma carátula: **reducida a
+  24 puntos y vuelta a estirar**, que al ampliarla tanto queda una mancha
+  suave de sus propios colores —el desenfoque de toda la vida, sin librería
+  ni RenderScript, que está retirado—; la carátula de verdad a la derecha,
+  200×300, que es 2:3 exacto y no le corta la cabeza a nadie; un velo sobre
+  su canto izquierdo para que no se vea el corte; y dos velos más sobre todo
+  el banner, uno de lado para leer encima y otro de abajo que lo funde con
+  el fondo.
+- **El banner va dentro del scroll, no detrás.** Fijo al fondo, con el texto
+  yéndose al bajar, quedaba una imagen quieta y unas letras deslizándose por
+  encima. Es un bloque más: sube y desaparece.
+- **Y ocupa 300 de los 540 puntos, no más.** A pantalla completa solo cabía
+  una fila debajo y no había manera de saber que existieran más. Con 300
+  entra la primera entera y asoma el rótulo de la segunda, que es lo que
+  hace bajar. Los carteles de la portada, por lo mismo, miden 132 y no 150.
+- **Lo que se destaca tiene que ser de ahora.** Ordenando solo por la nota,
+  arriba salía una comedia de 1928 con un 10 puesto a mano por el proveedor:
+  técnicamente la mejor valorada del catálogo y ninguna razón para abrir la
+  aplicación. Tanto el destacado como la fila «Mejor valoradas» se acotan a
+  los últimos tres años, y solo se afloja si con ese filtro no quedan ni
+  ocho títulos —un catálogo viejo o sin años es peor con una fila vacía—.
+- **La fila de escaparate se repasa después de pintarla.** «Mejor valoradas»
+  se elige de todo el catálogo, así que hay treinta candidatos para diez
+  puestos: se prueban las carátulas una a una y los que no contestan se
+  cambian por el siguiente. En la fila de una carpeta **no** se hace: ahí
+  están los títulos que hay, y esconder la mitad porque el proveedor no les
+  puso imagen es quitarle al cliente películas que sí puede ver.
+- **El número del ranking va encima de la carátula, no fuera.** Medio salido
+  por el lado izquierdo es como lo hacen las aplicaciones grandes, y en la
+  tele no se veía ninguno: ese hueco es justo por donde pasa el carril de
+  secciones.
+- **Los rótulos de fila, todos en blanco.** La pastilla roja sólida del
+  primero —que es lo que hace la referencia— dejaba dos manchas rojas
+  seguidas con el botón de «Reproducir» del banner justo encima. Lo único de
+  color en la pantalla tiene que ser lo que se puede pulsar.
+- **Y el relleno del foco de una carátula, gris.** Era un tinte rojo, y en un
+  televisor —que satura— la tarjeta enfocada se volvía un bloque fucsia con
+  el título de debajo ilegible. Quien marca el foco es el borde.
 - **El mismo título no puede salir dos veces en una fila.** La misma película
   está en «ESTRENOS» y en «ACCIÓN», y a veces la segunda copia lleva un «4K»
   detrás. En las capturas del cliente, «30 (2007)» salía en los puestos 1 y 4.
