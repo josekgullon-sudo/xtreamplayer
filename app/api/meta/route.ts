@@ -24,8 +24,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ meta: [], activo: false });
   }
 
+  /*
+   * Sin sesión también se contesta, pero con la mano más corta.
+   *
+   * Quien usa el reproductor en el navegador con su propia lista M3U no es
+   * cliente de ningún proveedor ni tiene cuenta: rechazarlo dejaba la
+   * portada sin fondos ni sinopsis justo para el que se instala esto por su
+   * cuenta. Lo que se hace es acortarle la tanda, que es lo que de verdad
+   * limita el gasto —lo demás sale de la caché, que es común—.
+   */
   const dueño = await dueñoDeLaSesion(req.nextUrl.searchParams.get("mac"));
-  if (dueño === "anon") return NextResponse.json({ error: "sin sesión" }, { status: 401 });
+  const tope = dueño === "anon" ? 40 : 200;
 
   let cuerpo: unknown;
   try {
@@ -49,7 +58,7 @@ export async function POST(req: NextRequest) {
     .filter((t) => t.nombre.trim());
 
   try {
-    return NextResponse.json({ meta: await metaDe(titulos), activo: true });
+    return NextResponse.json({ meta: await metaDe(titulos.slice(0, tope)), activo: true });
   } catch {
     /* Si TMDB no contesta, la portada se queda como estaba. Nunca es motivo
        para dejar una pantalla sin pintar */
