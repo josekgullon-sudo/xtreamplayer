@@ -14,6 +14,20 @@ const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
 
+/*
+ * De la portada a la rejilla de siempre.
+ *
+ * Cine y series abren en una portada —banner arriba y filas debajo—, y la
+ * rejilla entera está a un botón. Estas pruebas miran la rejilla, así que
+ * pulsan ese botón si está.
+ */
+async function verRejilla(p) {
+  await p.waitForSelector(".pa-vertodo, .pa-grid .pa-card", { timeout: 60000 });
+  const boton = p.locator(".pa-vertodo");
+  if (await boton.count()) await boton.first().click();
+  await p.waitForSelector(".pa-grid .pa-card", { timeout: 40000 });
+}
+
 (async () => {
   const b = await chromium.launch({ ...ejecutable, args: ["--autoplay-policy=no-user-gesture-required"] });
   const ctx = await b.newContext({
@@ -33,7 +47,7 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   await p.click(".modal button[type=submit]");
   await p.waitForSelector(".section-gate", { timeout: 40000 });
   await p.locator(".section-card:has-text('Películas')").click();
-  await p.waitForSelector(".pa-grid .pa-card", { timeout: 40000 });
+  await verRejilla(p);
 
   // ---------- La ficha de una película ----------
   await p.locator(".pa-grid .pa-card").first().click();
@@ -93,7 +107,7 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
 
   // ---------- La ficha de una serie ----------
   await p.locator(".pa-bottomnav button:has-text('Series')").first().click();
-  await p.waitForSelector(".pa-grid .pa-card", { timeout: 30000 });
+  await verRejilla(p);
   await p.locator(".pa-grid .pa-card").first().click();
   await p.waitForSelector(".ficha", { timeout: 20000 });
   await p.goBack();

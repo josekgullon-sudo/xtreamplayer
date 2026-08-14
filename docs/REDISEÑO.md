@@ -249,12 +249,16 @@ directo también. El arranque con porcentaje es lo único suelto —no
 pertenece a ninguno de los nueve— y es media tarde: se puede colar donde
 convenga.
 
-Y el punto 1 está hecho en los tres. El **punto 3 —la portada de cine y de
-series— está hecho en la aplicación nativa y en la de televisión**, que es la
-que se empaqueta para Samsung, LG y Windows. Las dos comparten criterio:
-`lib/portada.ts` y `Catalogo.java` son la misma idea escrita dos veces, y si
-se cambia una hay que cambiar la otra. **Falta en el reproductor web**, donde
-cine y series siguen abriendo en una rejilla de carátulas.
+Y los puntos **1 y 3 están hechos en los tres sitios**: el reproductor web, la
+aplicación de televisión —la que se empaqueta para Samsung, LG y Windows— y la
+nativa de Android. Las tres comparten criterio: `lib/portada.ts` y
+`Catalogo.java` son la misma idea escrita dos veces, y si se cambia una hay
+que cambiar la otra.
+
+En el reproductor web la portada sale **solo sin categoría elegida y sin
+búsqueda**: en cuanto el cliente filtra por un género o escribe algo, lo que
+quiere es la rejilla entera de eso y no un escaparate de diez. La rejilla de
+siempre está a un botón, «Ver todo el catálogo».
 
 ## Dónde se toca cada cosa
 

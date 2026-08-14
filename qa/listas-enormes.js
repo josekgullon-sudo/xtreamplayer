@@ -17,6 +17,20 @@ const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
 
+/*
+ * De la portada a la rejilla de siempre.
+ *
+ * Cine y series abren en una portada —banner arriba y filas debajo—, y la
+ * rejilla entera está a un botón. Estas pruebas miran la rejilla, así que
+ * pulsan ese botón si está.
+ */
+async function verRejilla(p) {
+  await p.waitForSelector(".pa-vertodo, .pa-grid .pa-card", { timeout: 60000 });
+  const boton = p.locator(".pa-vertodo");
+  if (await boton.count()) await boton.first().click();
+  await p.waitForSelector(".pa-grid .pa-card", { timeout: 40000 });
+}
+
 /** Baja del todo en un contenedor y espera a que se pinte lo nuevo. */
 async function alFinal(p, selector) {
   await p.evaluate((s) => { const c = document.querySelector(s); if (c) c.scrollTop = c.scrollHeight; }, selector);
@@ -117,8 +131,7 @@ async function alFinal(p, selector) {
   await p.click(".modal button[type=submit]");
   await p.waitForSelector(".section-gate", { timeout: 60000 });
   await p.locator(".section-card:has-text('Películas')").click();
-  await p.waitForSelector(".pa-grid .pa-card", { timeout: 60000 });
-  await p.waitForSelector(".pa-grid .pa-card", { timeout: 40000 });
+  await verRejilla(p);
   const cartelesInicio = await p.locator(".pa-grid .pa-card").count();
   check("El catálogo no pinta las 3.000 carátulas de golpe",
     cartelesInicio > 0 && cartelesInicio <= 200, `${cartelesInicio} carátulas`);
@@ -137,7 +150,7 @@ async function alFinal(p, selector) {
 
   // ---------- Lo mismo en series ----------
   await p.locator(".pa-rail-item:has-text('Series')").first().click();
-  await p.waitForSelector(".pa-grid .pa-card", { timeout: 40000 });
+  await verRejilla(p);
   const seriesInicio = await p.locator(".pa-grid .pa-card").count();
   for (let i = 0; i < 6; i++) await alFinal(p, rejilla);
   const seriesLuego = await p.locator(".pa-grid .pa-card").count();

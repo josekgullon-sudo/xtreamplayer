@@ -4,6 +4,20 @@ const BASE = process.env.QA_BASE || "http://localhost:3101";
 const results = [];
 const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`); };
 
+/*
+ * De la portada a la rejilla de siempre.
+ *
+ * Cine y series abren en una portada —banner arriba y filas debajo—, y la
+ * rejilla entera está a un botón. Estas pruebas miran la rejilla, así que
+ * pulsan ese botón si está.
+ */
+async function verRejilla(p) {
+  await p.waitForSelector(".pa-vertodo, .pa-grid .pa-card", { timeout: 60000 });
+  const boton = p.locator(".pa-vertodo");
+  if (await boton.count()) await boton.first().click();
+  await p.waitForSelector(".pa-grid .pa-card", { timeout: 40000 });
+}
+
 async function conLista(p) {
   await p.goto(BASE + "/player", { waitUntil: "networkidle" });
   await p.waitForSelector(".pa-welcome", { timeout: 20000 });
@@ -30,7 +44,7 @@ async function conLista(p) {
   check("En la portada manda lo último subido", portada[0] === "Película Demo", portada.join(" | "));
 
   await p.locator(".section-card:has-text('Películas')").click();
-  await p.waitForSelector(".pa-grid .pa-card", { timeout: 20000 });
+  await verRejilla(p);
 
   const generos = await p.locator(".pa-live-cat .name").allInnerTexts();
   check("«Novedades» sale en la columna, la primera", generos[1] === "Novedades", generos.join(" | "));
@@ -45,7 +59,7 @@ async function conLista(p) {
 
   // En series, igual
   await p.locator(".pa-rail-item:has-text('Series')").click();
-  await p.waitForSelector(".pa-grid .pa-card", { timeout: 20000 });
+  await verRejilla(p);
   check("También en series", (await p.locator(".pa-live-nuevo").count()) === 1);
   await p.locator(".pa-live-nuevo").click();
   await p.waitForTimeout(500);
@@ -54,6 +68,7 @@ async function conLista(p) {
   // Volver a «Todo» devuelve el catálogo entero
   await p.locator(".pa-live-cat:has-text('Todo')").first().click();
   await p.waitForTimeout(400);
+  await verRejilla(p);
   check("«Todo» sigue enseñando el catálogo completo", (await p.locator(".pa-grid .pa-card").count()) >= 1);
 
   await b.close();

@@ -1781,6 +1781,101 @@ select.input { appearance: none; cursor: pointer; }
   box-shadow: 0 1vh 3vh rgba(0, 0, 0, 0.6);
 }
 
+/* ---- La portada del reproductor web ---- */
+
+/*
+ * La misma idea que en la aplicación de televisión, con el ratón y el dedo
+ * en vez de un mando: banner arriba y filas debajo. Sale cuando no hay
+ * categoría elegida ni búsqueda; en cuanto el cliente filtra por algo, lo
+ * que quiere es la rejilla entera de eso.
+ */
+.pa-portada { padding-bottom: 28px; }
+
+.pa-banner {
+  position: relative; height: min(46vh, 380px); min-height: 240px;
+  display: flex; align-items: center; overflow: hidden;
+  border-radius: 16px; margin-bottom: 8px;
+}
+.pa-banner-fondo {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: center 22%;
+}
+/* Sin fondo apaisado hay que apañarse con la carátula vertical: ampliada y
+   desenfocada de fondo, y entera a la derecha. Lo que lo arregla de verdad
+   es TMDB, que es de donde sale el apaisado */
+.pa-banner-mancha {
+  position: absolute; inset: -8%; width: 116%; height: 116%;
+  object-fit: cover; filter: blur(28px) saturate(1.25); opacity: 0.75;
+}
+.pa-banner-arte {
+  position: absolute; right: 0; top: 0; height: 100%; width: 30%;
+  object-fit: cover; object-position: center top;
+}
+.pa-banner-velo {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, var(--bg) 8%, rgba(32, 31, 40, 0.72) 48%, rgba(32, 31, 40, 0) 82%),
+    linear-gradient(0deg, var(--bg) 4%, rgba(32, 31, 40, 0) 60%);
+}
+.pa-banner-txt {
+  position: relative; z-index: 1; max-width: 560px;
+  padding: 0 24px; display: flex; flex-direction: column; gap: 10px;
+  align-items: flex-start;
+}
+.pa-banner-t {
+  font-size: clamp(24px, 3.4vw, 40px); font-weight: 800; line-height: 1.06;
+  letter-spacing: -0.02em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pa-banner-datos { font-size: 14px; color: var(--text-dim); }
+.pa-banner-sinopsis {
+  font-size: 15px; line-height: 1.5; color: var(--text-dim);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.pa-carrusel { padding-top: 18px; }
+.pa-carrusel-t { font-size: 17px; font-weight: 750; margin-bottom: 8px; }
+.pa-carrusel-tira {
+  display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden;
+  padding-bottom: 6px; scrollbar-width: thin;
+  scroll-snap-type: x proximity;
+}
+.pa-carrusel-tira .pa-card {
+  flex: 0 0 140px; width: 140px; scroll-snap-align: start;
+}
+.pa-card-marco {
+  position: relative; display: block; width: 100%; aspect-ratio: 2 / 3;
+  border-radius: 10px; overflow: hidden; background: var(--bg-elev);
+}
+.pa-card-marco .poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pa-card-marco .poster-ph {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  padding: 10px; text-align: center; font-size: 12px; font-weight: 700;
+  line-height: 1.35; color: var(--text-faint);
+}
+/* El número del ranking, encima de la carátula y no fuera: fuera se lo come
+   el borde de la fila en cuanto hay poco sitio */
+.pa-card-num {
+  position: absolute; left: 4px; bottom: -6px;
+  font-size: 54px; font-weight: 800; line-height: 0.85; color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85); pointer-events: none;
+}
+
+.pa-vertodo { margin-top: 20px; }
+/* El aviso que exige TMDB por usar su API */
+.pa-tmdb { margin-top: 18px; font-size: 12px; line-height: 1.5; color: var(--text-faint); max-width: 620px; }
+
+@media (max-width: 640px) {
+  .pa-banner { height: 42vh; min-height: 200px; border-radius: 12px; }
+  .pa-banner-txt { padding: 0 16px; }
+  .pa-carrusel-tira .pa-card { flex-basis: 108px; width: 108px; }
+  .pa-card-num { font-size: 40px; }
+  /* Sitio para la cápsula flotante de abajo: sin esto, lo último de la
+     portada —el botón de ver todo el catálogo— queda debajo de ella y no
+     hay manera de pulsarlo */
+  .pa-portada { padding-bottom: calc(var(--capsula) + 28px); }
+}
+
 /* ---- La portada de cine y de series ---- */
 
 /*

@@ -9,6 +9,20 @@ const check = (n, ok, d = "") => {
   console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`);
 };
 
+/*
+ * De la portada a la rejilla de siempre.
+ *
+ * Cine y series abren en una portada —banner arriba y filas debajo—, y la
+ * rejilla entera está a un botón. Estas pruebas miran la rejilla, así que
+ * esperan a que aparezca una de las dos cosas y, si es la portada, pulsan.
+ */
+async function verRejilla(p) {
+  await p.waitForSelector(".pa-vertodo, .pa-grid .pa-card", { timeout: 60000 });
+  const boton = p.locator(".pa-vertodo");
+  if (await boton.count()) await boton.first().click();
+  await p.waitForSelector(".pa-grid .pa-card", { timeout: 40000 });
+}
+
 (async () => {
   const browser = await chromium.launch({ ...ejecutable });
   const p = await (await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })).newPage();
@@ -43,8 +57,8 @@ const check = (n, ok, d = "") => {
 
   // El título sin nombre se pinta sin romper nada
   await p.locator(".pa-bottomnav-item:has-text('Cine')").click();
-  await p.waitForSelector(".pa-card", { timeout: 15000 });
-  const tarjetas = await p.locator(".pa-card").count();
+  await verRejilla(p);
+  const tarjetas = await p.locator(".pa-grid .pa-card").count();
   // El mock sirve catorce: las tres de siempre —una normal, una sin nombre y
   // una vieja— y once más con nota y año, que son las que dan de comer a la
   // portada de cine de la aplicación de televisión

@@ -24,6 +24,8 @@ import {
 } from "@/lib/storage";
 import { parseM3U, M3UChannel } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
+import PortadaCatalogo from "./PortadaCatalogo";
+import { Titulo, anioDe } from "@/lib/portada";
 import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
 import {
@@ -189,6 +191,17 @@ export default function PlayerApp() {
   const [m3uData, setM3uData] = useState<Record<string, M3UChannel[]>>({});
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [catFilter, setCatFilter] = useState<string>("all");
+  /*
+   * «Ver todo el catálogo»: en qué sección se ha pedido la rejilla entera.
+   *
+   * Hace falta guardarlo aparte porque la portada se decide por «no hay
+   * filtro y no hay búsqueda», y ese botón no cambia ninguna de las dos
+   * cosas. Y se guarda **la sección**, no un sí/no: con un sí/no había que
+   * apagarlo en un efecto al cambiar de pestaña, los efectos corren después
+   * de pintar, y en ese hueco se veía un parpadeo de la rejilla vieja antes
+   * de la portada nueva.
+   */
+  const [verRejilla, setVerRejilla] = useState<string>("");
   /** Carpetas de canales abiertas en el móvil (cerradas por defecto) */
   const [carpetasAbiertas, setCarpetasAbiertas] = useState<Record<string, boolean>>({});
 
@@ -1131,6 +1144,84 @@ export default function PlayerApp() {
   }, [seccionGate, active, loadTab]);
   const vodCats = data?.vodCats || [];
   const seriesCats = data?.seriesCats || [];
+
+  /*
+   * El catálogo de la sección, masticado para la portada.
+   *
+   * `Titulo` es un dato pelado a propósito —lo que `lib/portada.ts` necesita
+   * para ordenar y comparar sin arrastrar media aplicación detrás—, así que
+   * hay que poder volver del identificador al objeto del panel: eso es
+   * `abrirDeLaPortada`.
+   */
+  const titulosPortada = useMemo<Titulo[]>(() => {
+    if (!active || active.type !== "xtream") return [];
+    if (tab === "vod") {
+      return (data?.vodStreams || [])
+        .filter((v) => (v.name || "").trim())
+        .map((v) => ({
+          id: `vod-${v.stream_id}`,
+          nombre: v.name,
+          imagen: v.stream_icon || "",
+          anio: anioDe(v.year ?? v.releasedate),
+          nota: String(v.rating ?? ""),
+          alta: Math.floor(alta(v.added) / 1000),
+          sinopsis: String(v.plot ?? ""),
+          generos: String(v.genre ?? ""),
+          esSerie: false,
+          categoria: String(v.category_id ?? ""),
+        }));
+    }
+    if (tab === "series") {
+      return (data?.seriesList || [])
+        .filter((s) => (s.name || "").trim())
+        .map((s) => ({
+          id: `serie-${s.series_id}`,
+          nombre: s.name,
+          imagen: s.cover || "",
+          anio: anioDe(s.releaseDate ?? s.release_date),
+          nota: String(s.rating ?? ""),
+          alta: Math.floor(alta(s.last_modified) / 1000),
+          sinopsis: String(s.plot ?? ""),
+          generos: String(s.genre ?? ""),
+          esSerie: true,
+          categoria: String(s.category_id ?? ""),
+        }));
+    }
+    return [];
+  }, [active, data, tab]);
+
+  const categoriasPortada = useMemo(
+    () =>
+      (tab === "vod" ? vodCats : seriesCats).map((c) => ({
+        id: String(c.category_id),
+        nombre: c.category_name || "Sin nombre",
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tab, data]
+  );
+
+  /** Del identificador de la portada al objeto del panel, para abrirlo. */
+  function abrirDeLaPortada(id: string) {
+    if (!active) return;
+    const corte = id.indexOf("-");
+    const clase = id.slice(0, corte);
+    const numero = id.slice(corte + 1);
+    if (clase === "vod") {
+      const v = (data?.vodStreams || []).find((x) => String(x.stream_id) === numero);
+      if (v) openVod(active, v);
+      return;
+    }
+    const s = (data?.seriesList || []).find((x) => String(x.series_id) === numero);
+    if (s) openSeries(active, s);
+  }
+
+  /*
+   * Y cuándo se ve la portada: solo sin categoría elegida y sin búsqueda.
+   *
+   * En cuanto el cliente filtra por un género o escribe algo, lo que quiere
+   * es la rejilla entera de eso, no un escaparate de diez.
+   */
+  const enPortada = catFilter === "all" && !q && verRejilla !== tab && titulosPortada.length > 0;
 
   /*
    * Canales de la carpeta abierta. Sin carpeta elegida se enseñan todos
@@ -2136,6 +2227,15 @@ export default function PlayerApp() {
           <div className="pa-cat-scroll">
             {loading && <Loading messages={MENSAJES_CINE} />}
             {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
+            {/* Sin filtro, la portada; con filtro, la rejilla de siempre */}
+            {enPortada && !loading ? (
+              <PortadaCatalogo
+                titulos={titulosPortada}
+                categorias={categoriasPortada}
+                alAbrir={abrirDeLaPortada}
+                alVerTodo={() => setVerRejilla(tab)}
+              />
+            ) : (
             <div className="pa-grid">
               <RejillaInfinita
                 items={vodVisible}
@@ -2154,7 +2254,8 @@ export default function PlayerApp() {
                 )}
               />
             </div>
-            {!loading && !loadError && !vodVisible.length && (
+            )}
+            {!loading && !loadError && !vodVisible.length && !enPortada && (
               <p className="pa-empty">
                 {catFilter === NOVEDADES ? "Tu proveedor no ha subido nada últimamente." : "Aquí no hay películas."}
               </p>
@@ -2167,6 +2268,14 @@ export default function PlayerApp() {
           <div className="pa-cat-scroll">
             {loading && <Loading messages={MENSAJES_SERIES} />}
             {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
+            {enPortada && !loading ? (
+              <PortadaCatalogo
+                titulos={titulosPortada}
+                categorias={categoriasPortada}
+                alAbrir={abrirDeLaPortada}
+                alVerTodo={() => setVerRejilla(tab)}
+              />
+            ) : (
             <div className="pa-grid">
               {!loading && !loadError && !seriesVisible.length && (
               <p className="pa-empty">
@@ -2191,6 +2300,7 @@ export default function PlayerApp() {
             />
 
             </div>
+            )}
           </div>
         )}
       </main>
