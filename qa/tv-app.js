@@ -173,9 +173,11 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
      vale de criterio, porque medio catálogo la trae puesta a 10 a mano */
   check("Que no es la película de 1928 con el 10 del proveedor",
     !titular.includes("Comedia Muda"), titular);
-  check("Y cuya carátula ha cargado de verdad, no un hueco negro",
+  /* La imagen del banner, sea cual sea: el fondo apaisado de TMDB si lo hay
+     y la carátula del proveedor si no. Lo que no puede es no haber ninguna */
+  check("Y cuya imagen ha cargado de verdad, no un hueco negro",
     await tv.evaluate(() => {
-      const i = document.querySelector(".tv-banner-arte");
+      const i = document.querySelector(".tv-banner-fondo, .tv-banner-arte");
       return Boolean(i && i.naturalWidth > 0);
     }));
 
@@ -200,6 +202,26 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
     primeraFila.slice(0, 4).join(" | "));
   check("Ni la de 1928 entre las mejor valoradas de los últimos años",
     !primeraFila.includes("Comedia Muda"), primeraFila.slice(0, 4).join(" | "));
+  /* --- Lo que pone TMDB, que el panel no manda ---
+     Un panel Xtream manda carátulas verticales y una nota puesta a mano. El
+     fondo apaisado, la sinopsis en español y los géneros de verdad salen de
+     TMDB, se piden una vez por título para toda la plataforma y se guardan.
+     Sin clave configurada nada de esto existe y la portada sigue igual. */
+  const conFondo = await tv
+    .waitForSelector(".tv-banner-fondo", { timeout: 15000 })
+    .then(() => true)
+    .catch(() => false);
+  check("El banner usa el fondo apaisado de TMDB, no la carátula estirada", conFondo);
+  check("Y ese fondo carga de verdad",
+    await tv.evaluate(() => {
+      const i = document.querySelector(".tv-banner-fondo");
+      return Boolean(i && i.naturalWidth > 0);
+    }));
+  const sinopsis = (await tv.locator(".tv-banner-sinopsis").innerText()).trim();
+  check("La sinopsis es la de TMDB, en español", sinopsis.includes("Sinopsis de TMDB"), sinopsis.slice(0, 60));
+  const datos = (await tv.locator(".tv-banner-datos").innerText()).trim();
+  check("Y la nota y los géneros también", datos.includes("7.5") && datos.includes("Suspense"), datos);
+
   await tv.screenshot({ path: __dirname + "/52-tv-portada.png" });
   check("La primera fila va numerada, como cualquier ranking",
     (await tv.locator(".tv-carrusel").first().locator(".tv-poster-num").first().innerText()) === "1");

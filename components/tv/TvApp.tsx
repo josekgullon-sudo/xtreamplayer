@@ -9,11 +9,14 @@ import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
 import {
   FilaPortada,
+  MetaTitulo,
   Titulo,
   anioDe,
   armarPortada,
   candidatosDestacado,
+  conMeta,
   datosDe,
+  llaveTmdb,
 } from "@/lib/portada";
 import {
   Fuente,
@@ -357,8 +360,21 @@ export default function TvApp() {
     !serieAbierta &&
     !carpetaAbierta;
 
+  /**
+   * Lo que TMDB sabe de los títulos de la portada, si esta instalación lo usa.
+   *
+   * Llega después de pintar y a propósito: la portada se enseña con lo que
+   * manda el panel —que es instantáneo— y cuando llega lo de TMDB se
+   * refresca sola con el fondo apaisado, la sinopsis en español y la nota de
+   * verdad. Si no hay clave configurada, esto se queda vacío para siempre y
+   * no cambia nada.
+   */
+  const [meta, setMeta] = useState<Record<string, MetaTitulo>>({});
+  const mejor = useCallback((t: Titulo) => conMeta(t, meta[llaveTmdb(t)]), [meta]);
+
   /** El primer candidato cuya carátula no haya fallado. */
-  const destacado = candidatos.find((t) => !rotas[t.imagen]) || null;
+  const crudo = candidatos.find((t) => !rotas[t.imagen]) || null;
+  const destacado = crudo ? mejor(crudo) : null;
 
   /**
    * Las filas ya limpias: en las de escaparate, sin los que no tienen imagen.
@@ -369,11 +385,12 @@ export default function TvApp() {
    * candidatos, no.
    */
   const filasALaVista: FilaPortada[] = filasPortada
-    .map((f) =>
-      f.escaparate
-        ? { ...f, items: f.items.filter((t) => !rotas[t.imagen]).slice(0, 10) }
-        : f
-    )
+    .map((f) => {
+      const items = f.items.map(mejor);
+      return f.escaparate
+        ? { ...f, items: items.filter((t) => !rotas[t.imagen]).slice(0, 10) }
+        : { ...f, items };
+    })
     .filter((f) => f.items.length >= (f.escaparate ? 4 : 1));
 
   useEffect(() => {
@@ -698,6 +715,49 @@ export default function TvApp() {
   const abrirTitulo = useCallback((t: Titulo) => {
     acciones.current.get(t.id)?.();
   }, []);
+
+  /*
+   * Y en cuanto la portada está en pie, se le pregunta a TMDB por lo que se
+   * ve. No por el catálogo: por los títulos de las filas, que son ciento y
+   * pico. El servidor los tiene guardados de la primera vez que alguien —de
+   * cualquier proveedor— abrió una portada con ellos.
+   */
+  useEffect(() => {
+    if (!enPortada || !filasPortada.length) return;
+    const unicos = new Map<string, Titulo>();
+    for (const f of filasPortada) for (const t of f.items) unicos.set(llaveTmdb(t), t);
+    const pendientes = [...unicos.entries()].filter(([llave]) => !meta[llave]);
+    if (!pendientes.length) return;
+
+    let cancelado = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/meta?mac=${encodeURIComponent(macDelAparato())}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            titulos: pendientes.slice(0, 200).map(([, t]) => ({
+              nombre: t.nombre,
+              anio: t.anio,
+              serie: t.esSerie,
+            })),
+          }),
+        }).then((x) => x.json());
+        if (cancelado || !Array.isArray(r.meta) || !r.meta.length) return;
+        setMeta((antes) => {
+          const siguiente = { ...antes };
+          for (const m of r.meta as MetaTitulo[]) siguiente[m.llave] = m;
+          return siguiente;
+        });
+      } catch {
+        /* Sin TMDB la portada se queda con lo del panel, que es como estaba */
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enPortada, filasPortada]);
 
   const cargar = useCallback(
     async (destino: Pantalla) => {
@@ -1484,18 +1544,32 @@ export default function TvApp() {
 
           {destacado && (
             <section className="tv-banner" data-fila="-1" data-foco={focoFila === -1 ? "1" : undefined}>
-              {imgSrc(destacado.imagen) && (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img className="tv-banner-mancha" src={imgSrc(destacado.imagen)} alt="" aria-hidden="true" />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    className="tv-banner-arte"
-                    src={imgSrc(destacado.imagen)}
-                    alt=""
-                    onError={() => marcarRota(destacado.imagen)}
-                  />
-                </>
+              {destacado.fondo && !rotas[destacado.fondo] ? (
+                /* Con fondo apaisado de verdad, el banner es lo que se
+                   espera: la imagen de lado a lado y el texto encima. Lo de
+                   las tres capas era el apaño para cuando lo único que hay
+                   es una carátula vertical */
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  className="tv-banner-fondo"
+                  src={destacado.fondo}
+                  alt=""
+                  onError={() => marcarRota(destacado.fondo || "")}
+                />
+              ) : (
+                imgSrc(destacado.imagen) && (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img className="tv-banner-mancha" src={imgSrc(destacado.imagen)} alt="" aria-hidden="true" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      className="tv-banner-arte"
+                      src={imgSrc(destacado.imagen)}
+                      alt=""
+                      onError={() => marcarRota(destacado.imagen)}
+                    />
+                  </>
+                )
               )}
               <span className="tv-banner-velo" aria-hidden="true" />
               <div className="tv-banner-txt">
@@ -1566,6 +1640,16 @@ export default function TvApp() {
           >
             Ver todas las carpetas  ›
           </button>
+
+          {/* Condición de TMDB para usar su API, y no es negociable. Solo
+              sale cuando de verdad se está usando: una instalación sin clave
+              no enseña nada de esto */}
+          {Object.keys(meta).length > 0 && (
+            <p className="tv-tmdb">
+              Fichas e imágenes de TMDB. Este producto usa la API de TMDB pero no está
+              avalado ni certificado por TMDB.
+            </p>
+          )}
         </div>
       </div>
     );

@@ -35,6 +35,8 @@ El repositorio ya incluye `Dockerfile` y `railway.json`, así que Railway lo det
    | `BILLING_NAME`, `BILLING_TAX_ID`, `BILLING_ADDRESS` | *(recomendadas)* Tus datos fiscales: salen como emisor en las facturas de tus proveedores. Sin ellos la factura va sin NIF y no le sirve a un gestor |
    | `BILLING_VAT_PERCENT` | *(opcional)* Tipo de IVA para el desglose, 21 por defecto. Con `0` no se desglosa nada |
    | `ADMIN_WEBHOOK_URL` | *(opcional)* Dirección a la que avisar cuando un proveedor abre un ticket o responde. Vale un bot de Telegram, un canal de Discord o Slack, o tu propia automatización: recibe un POST con JSON |
+   | `TMDB_API_KEY` | *(recomendada)* Clave gratuita de [themoviedb.org](https://www.themoviedb.org/settings/api). Es lo que le pone a la portada de cine y series el fondo apaisado, la sinopsis en español, los géneros y una nota que signifique algo — un panel IPTV manda carátulas verticales y poco más. Se pregunta **una vez por título y para toda la plataforma**, se guarda en la base de datos y las imágenes las sirve el CDN de TMDB, así que por tu servidor no pasan. Sin ella, todo funciona igual con lo que mande el panel |
+   | `TMDB_A_LA_VEZ` | *(opcional)* Cuántas consultas a TMDB se hacen a la vez, 6 por defecto. Bájalo si el servidor va justo |
    | `RAILWAY_RUN_UID` | `0` — Railway monta los volúmenes como root y sin esto la aplicación no puede escribir la base de datos en `/data` (el registro falla con «No se pudo conectar») |
    | `HOSTNAME` | `0.0.0.0` — ya viene fijado en la imagen; añádelo solo si usas una imagen anterior |
 

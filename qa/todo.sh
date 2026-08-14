@@ -37,9 +37,15 @@ COMUNES=(
   "RESEND_API_URL=http://127.0.0.1:8097"
   "MAIL_FROM=TOTALplayer <hola@pruebas.test>"
   "SESSION_SECRET=cualquier-cadena-larga-solo-para-pruebas"
+  # TMDB simulado: sin estas tres, la portada se queda con lo que manda el
+  # panel —que es como se comporta una instalación sin clave— y la mitad de
+  # lo que hay que probar no llegaría a ejecutarse nunca
+  "TMDB_API_KEY=clave-de-pruebas"
+  "TMDB_API_URL=http://127.0.0.1:8095"
+  "TMDB_IMG_URL=http://127.0.0.1:8095/t/p"
 )
 
-MOCKS=(iptv webhook resend colgado lento cors cuelga tardon)
+MOCKS=(iptv webhook resend colgado lento cors cuelga tardon tmdb)
 
 # `dominio.js` necesita su propio servidor, con el dominio único encendido:
 # comprueba justamente el redirigir, y con eso puesto fallarían las demás

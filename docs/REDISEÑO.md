@@ -185,6 +185,37 @@ aplicación funcionando, no en pantallas sueltas:
   Series y Favoritos*. Cuando lleguen el historial (4) y las descargas (8),
   esa barra hay que rehacerla: no caben nueve destinos en una cápsula.
 
+### Lo que el proveedor no manda, y de dónde sale
+
+Un panel Xtream manda el nombre, una carátula vertical y, con suerte, el año
+y una nota. **No manda fondos apaisados** —y sin fondo apaisado no hay banner
+que valga: lo que hay es una carátula estirada—, ni sinopsis en español, ni
+géneros de verdad. La nota la trae medio catálogo puesta a 10 a mano.
+
+Eso lo pone **TMDB**, y así se paga:
+
+- Se pregunta **una vez por título y para toda la plataforma**. «Dune (2024)»
+  la tienen todos los proveedores: se consulta una vez, no una por proveedor
+  y desde luego no una por cliente. El resultado vive en `tmdb_cache`.
+- Se pregunta **solo por lo que se enseña**: los ciento y pico títulos de una
+  portada, nunca el catálogo entero. Recorrer treinta mil películas por
+  adelantado sería la manera de convertir esto en un problema.
+- **Las imágenes no pasan por nuestro servidor.** Las sirve el CDN de TMDB
+  directamente al cliente. Al contrario que las carátulas del proveedor —que
+  sí van por `/api/img`, porque su dirección no puede salir—, estas son
+  públicas y no hay nada que esconder. Para el ancho de banda es una rebaja,
+  no un gasto.
+- La portada se pinta **antes** de que llegue nada de TMDB, con lo del panel,
+  y se refresca sola cuando llega. Si TMDB tarda o se cae, no se nota.
+- Sin `TMDB_API_KEY`, todo esto queda apagado y la aplicación se comporta
+  como antes.
+- Y sale el aviso que exige TMDB en sus condiciones, al final de la portada.
+
+Lo que **no** arregla: la tendencia. TMDB sabe qué es tendencia *en el
+mundo*, no qué están viendo *tus clientes*. Eso llega con el historial
+(punto 4), y hasta entonces esa fila se llama «Mejor valoradas», que es lo
+que de verdad es.
+
 ## El orden, y por qué
 
 1. **Tokens, barra flotante y carril lateral.** Es el 70% de la sensación de

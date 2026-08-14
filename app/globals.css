@@ -1818,6 +1818,18 @@ select.input { appearance: none; cursor: pointer; }
   position: absolute; right: 0; top: 0; height: 100%; width: 24vw;
   object-fit: cover; object-position: center top;
 }
+/*
+ * Y el caso bueno: un fondo apaisado de verdad, de TMDB.
+ *
+ * Cubre el banner entero y los velos siguen encima para poder leer. Es la
+ * única diferencia entre que esto parezca Netflix o parezca un apaño, y por
+ * eso `lib/tmdb.ts` existe: un panel Xtream no manda fondos, solo carátulas
+ * verticales.
+ */
+.tv-banner-fondo {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: center 22%;
+}
 .tv-banner-velo {
   position: absolute; inset: 0;
   /* El de abajo baja despacio a propósito: cortando de golpe se veía el
@@ -1888,6 +1900,12 @@ select.input { appearance: none; cursor: pointer; }
 }
 .tv-vertodas.foco {
   background: var(--accent); border-color: #fff; color: #fff;
+}
+
+/* El aviso que exige TMDB por usar su API. Pequeño y al final, pero puesto */
+.tv-tmdb {
+  margin: 2.4vh 4vw 0; max-width: 60vw;
+  font-size: 0.95vw; line-height: 1.5; color: var(--text-faint);
 }
 
 /* ---- Vídeo a pantalla completa ---- */

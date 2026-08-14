@@ -53,9 +53,28 @@ fn abrir_tele(app: &AppHandle, base: &str) -> tauri::Result<()> {
         .title("TOTALplayer")
         .fullscreen(true)
         .resizable(true)
+        .initialization_script(RECARGAR)
         .build()?;
     Ok(())
 }
+
+/**
+ * F5 y Ctrl+R, que dentro de una ventana así no existen.
+ *
+ * Un navegador trae esas teclas de fábrica; una ventana de aplicación, no.
+ * Y hacen falta: la primera vez que se despliega una versión nueva de la web,
+ * la que está abierta sigue siendo la vieja hasta que alguien recargue —y sin
+ * barra de direcciones no había manera—. Es JavaScript a secas, no habla con
+ * el programa: se inyecta en cada página que se abra, también en la web.
+ */
+const RECARGAR: &str = r#"
+window.addEventListener('keydown', function (e) {
+  if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
+    e.preventDefault();
+    location.reload();
+  }
+});
+"#;
 
 /// La pantalla de emergencia: solo se ve si no se ha podido conectar.
 fn abrir_arranque(app: &AppHandle) -> tauri::Result<()> {

@@ -27,6 +27,57 @@ export interface Titulo {
   esSerie: boolean;
   /** La categoría del panel a la que pertenece. */
   categoria: string;
+  /**
+   * El fondo apaisado, si TMDB lo conoce.
+   *
+   * Un panel Xtream no manda fondos: manda carátulas verticales. Esto es lo
+   * único que permite que el banner sea un banner de verdad y no una
+   * carátula estirada. Vacío mientras no llegue, o para siempre si la
+   * instalación no usa TMDB.
+   */
+  fondo?: string;
+}
+
+/** Lo que TMDB añade a un título. Ver `lib/tmdb.ts` y `/api/meta`. */
+export interface MetaTitulo {
+  llave: string;
+  fondo: string;
+  cartel: string;
+  sinopsis: string;
+  nota: number;
+  generos: string;
+  anio: string;
+}
+
+/**
+ * La llave con la que se le pregunta a TMDB por un título.
+ *
+ * Tiene que dar exactamente lo mismo aquí y en el servidor (`lib/tmdb.ts`),
+ * porque es con lo que se emparejan la pregunta y la respuesta.
+ */
+export function llaveTmdb(t: Titulo): string {
+  return `${t.esSerie ? "s" : "p"}:${llaveDeTitulo(t.nombre)}:${t.anio || ""}`;
+}
+
+/**
+ * El título, mejorado con lo que sepa TMDB.
+ *
+ * Lo del proveedor manda en dos cosas: el nombre —es el que el cliente ve en
+ * su lista— y la carátula, salvo que no la haya. Lo demás lo pone TMDB si lo
+ * tiene, porque su sinopsis está en español, sus géneros son de verdad y su
+ * nota no está puesta a 10 a mano.
+ */
+export function conMeta(t: Titulo, m?: MetaTitulo): Titulo {
+  if (!m) return t;
+  return {
+    ...t,
+    imagen: t.imagen || m.cartel,
+    fondo: m.fondo || t.fondo,
+    sinopsis: m.sinopsis || t.sinopsis,
+    generos: m.generos || t.generos,
+    nota: m.nota > 0 ? String(Math.round(m.nota * 10) / 10) : t.nota,
+    anio: t.anio || m.anio,
+  };
 }
 
 export interface FilaPortada {
