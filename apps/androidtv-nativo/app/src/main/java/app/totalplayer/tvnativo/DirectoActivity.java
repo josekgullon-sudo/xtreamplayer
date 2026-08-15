@@ -411,6 +411,15 @@ public class DirectoActivity extends Activity {
         columnaCanales.setVisibility(View.GONE);
         bloqueInfo.setVisibility(View.GONE);
         columnaVideo.setPadding(0, 0, 0, 0);
+        /*
+         * Y el carril, que flota encima de todo.
+         *
+         * Se escondían las tres columnas pero no él, así que a pantalla
+         * completa quedaba una franja con «Inicio · Directo · Cine» encima
+         * del partido, y detrás su hueco de 78 puntos en negro. Pantalla
+         * completa es pantalla completa: se va el carril y se va su hueco.
+         */
+        conCarril(false);
 
         ViewGroup.LayoutParams medidas = caja.getLayoutParams();
         medidas.height = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -434,6 +443,7 @@ public class DirectoActivity extends Activity {
             // En el teléfono solo se vuelve al vídeo con su información
             Pantalla.pantallaCompleta(this, false);
             Pantalla.colocar(this);
+            conCarril(true);
             bloqueInfo.setVisibility(View.VISIBLE);
             columnaVideo.setPadding(0, 0, 0, 0);
             caja.post(new Runnable() {
@@ -444,6 +454,7 @@ public class DirectoActivity extends Activity {
         columnaCarpetas.setVisibility(View.VISIBLE);
         columnaCanales.setVisibility(View.VISIBLE);
         bloqueInfo.setVisibility(View.VISIBLE);
+        conCarril(true);
         int p = (int) (22 * getResources().getDisplayMetrics().density);
         columnaVideo.setPadding(p, p, p, p);
         columnaVideo.setFocusable(false);
@@ -454,6 +465,27 @@ public class DirectoActivity extends Activity {
                 listaCanales.requestFocus();
             }
         });
+    }
+
+    /**
+     * El carril y el hueco que le reserva la pantalla.
+     *
+     * Son dos cosas y hay que mover las dos: la columna de iconos flota
+     * encima del contenido, y detrás de ella el contenido lleva un margen de
+     * su ancho para no quedar tapado. Escondiendo solo la primera, a
+     * pantalla completa quedaba una banda negra a la izquierda.
+     */
+    private void conCarril(boolean si) {
+        View c = findViewById(R.id.carril);
+        if (c != null) c.setVisibility(si ? View.VISIBLE : View.GONE);
+        View fila = findViewById(R.id.filaDirecto);
+        if (fila != null) {
+            int hueco = si ? (int) (64 * getResources().getDisplayMetrics().density) : 0;
+            /* Relativo y no izquierda/derecha: el hueco es del carril, y el
+               carril va al principio de la línea, no siempre a la izquierda */
+            fila.setPaddingRelative(enMovil ? 0 : hueco, fila.getPaddingTop(),
+                    fila.getPaddingEnd(), fila.getPaddingBottom());
+        }
     }
 
     private void ponerEnLaVentana(final Catalogo.Item canal) {

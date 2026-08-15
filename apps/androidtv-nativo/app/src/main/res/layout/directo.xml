@@ -13,6 +13,17 @@
     android:layout_height="match_parent"
     android:background="@color/fondo">
 
+    <!--
+      El envoltorio que en la tele reserva el hueco del carril. Aquí no
+      reserva nada —el carril del teléfono flota abajo— pero lleva el mismo
+      identificador porque la actividad es la misma y le quita ese hueco al
+      pasar a pantalla completa.
+    -->
+    <FrameLayout
+        android:id="@+id/filaDirecto"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
     <!-- Carpetas -->
     <LinearLayout
         android:id="@+id/columnaCarpetas"
@@ -281,6 +292,8 @@
                 android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
+
+    </FrameLayout>
 
     <!-- La cápsula de secciones, flotando abajo. Va la última del
          FrameLayout para quedar por encima de las capas de contenido -->
