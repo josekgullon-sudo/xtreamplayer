@@ -89,6 +89,8 @@ interface Fila {
    * únicos de los que hay algo que contar sobre «qué echan ahora».
    */
   epgId?: string;
+  /** El número que le ha puesto el proveedor, para la cabecera del directo. */
+  numero?: number;
   /** Qué hacer al pulsar OK: reproducir, o abrir la lista de episodios */
   abrir: () => void;
 }
@@ -198,6 +200,34 @@ interface ListaManual {
  */
 type Tecla = "Atras" | "Ok" | "Arriba" | "Abajo" | "Izquierda" | "Derecha" | "PaginaArriba" | "PaginaAbajo" | "";
 
+/**
+ * Lo que echan en un canal, con sus horas.
+ *
+ * El título solo ya servía para la línea de debajo del nombre. Con el
+ * principio y el final se puede además decir cuánto queda y pintar la barra,
+ * que es lo que convierte una lista de nombres en una parrilla: sin ella,
+ * «Telediario» no dice si empieza ahora o si le quedan dos minutos.
+ */
+interface Guia {
+  ahora: string;
+  luego: string;
+  /** En milisegundos. 0 si el panel no manda horas, que pasa. */
+  desde: number;
+  hasta: number;
+}
+
+/** El panel manda la hora de dos maneras y a veces de ninguna. */
+function momento(v?: string | number): number {
+  if (v === undefined || v === null || v === "") return 0;
+  const n = Number(v);
+  if (Number.isFinite(n) && n > 1000000000) return n * 1000;
+  /* «2026-08-12 21:00:00» sin zona: los paneles la mandan en la del
+     servidor, así que se lee como local y se acepta el desvío —vale para
+     pintar una barra, no para programar una grabación— */
+  const t = Date.parse(String(v).replace(" ", "T"));
+  return Number.isFinite(t) ? t : 0;
+}
+
 function normalizarTecla(e: KeyboardEvent): Tecla {
   switch (e.key) {
     case "Escape":
@@ -304,7 +334,7 @@ export default function TvApp() {
    * nombre. Solo de la carpeta abierta y de los primeros, que es hasta donde
    * llega la vista antes de empezar a bajar.
    */
-  const [epgAhora, setEpgAhora] = useState<Record<string, string>>({});
+  const [epgAhora, setEpgAhora] = useState<Record<string, Guia>>({});
   /*
    * Y el mismo dato en una caja que el mando pueda leer siempre.
    *
@@ -316,6 +346,18 @@ export default function TvApp() {
    */
   const focoCarrilRef = useRef<number | null>(null);
   focoCarrilRef.current = focoCarril;
+
+  /**
+   * Si el foco lo ha movido el mando o el ratón.
+   *
+   * Con el mando hay que llevar lo enfocado al centro de la pantalla, que si
+   * no se sale por abajo y se navega a ciegas. Con el ratón, **no**: pasar
+   * por encima de una carátula movía la lista para centrarla, con lo que
+   * debajo del puntero quedaba otra distinta, que se enfocaba, y vuelta a
+   * empezar. En el ejecutable de Windows eso era un carrusel que se movía
+   * solo sin tocar nada.
+   */
+  const conElMando = useRef(true);
 
   /* ---------- La portada de cine y de series ---------- */
 
@@ -824,6 +866,7 @@ export default function TvApp() {
               nombre: c.name,
               logo: c.stream_icon || "",
               epgId: String(c.stream_id),
+              numero: Number(c.num) || 0,
               abrir: async () =>
                 reproducir({
                   ...(await pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) })),
@@ -1081,22 +1124,54 @@ export default function TvApp() {
         const tanda = ids.slice(i, i + 6);
         const hechas = await Promise.all(
           tanda.map(async (id) => {
+            const vacia: Guia = { ahora: "", luego: "", desde: 0, hasta: 0 };
             try {
-              const res = await xtreamApi<{ epg_listings?: { title?: string }[] }>(
-                creds,
-                "get_short_epg",
-                { stream_id: id, limit: "1" }
-              );
-              return [id, decodeBase64Maybe(res.epg_listings?.[0]?.title) || ""] as const;
+              const res = await xtreamApi<{
+                epg_listings?: {
+                  title?: string;
+                  start?: string;
+                  end?: string;
+                  start_timestamp?: string | number;
+                  stop_timestamp?: string | number;
+                }[];
+              }>(creds, "get_short_epg", { stream_id: id, limit: "2" });
+              const listado = res.epg_listings || [];
+              if (!listado.length) return [id, vacia] as const;
+              /*
+               * El que está en antena, no el primero de la lista.
+               *
+               * `get_short_epg` empieza donde le parece al panel: unos lo
+               * hacen en el programa en curso y otros en el bloque de la
+               * hora anterior, que ya ha terminado. Cogiendo el primero a
+               * ciegas se anunciaba como «ahora» algo emitido hace una hora,
+               * y la barra de progreso salía llena o no salía.
+               */
+              const horas = listado.map((e) => ({
+                titulo: decodeBase64Maybe(e.title) || "",
+                desde: momento(e.start_timestamp ?? e.start),
+                hasta: momento(e.stop_timestamp ?? e.end),
+              }));
+              const cuando = Date.now();
+              let i = horas.findIndex((e) => e.desde && e.hasta && e.desde <= cuando && cuando < e.hasta);
+              if (i < 0) i = 0;
+              return [
+                id,
+                {
+                  ahora: horas[i].titulo,
+                  luego: horas[i + 1]?.titulo || "",
+                  desde: horas[i].desde,
+                  hasta: horas[i].hasta,
+                } as Guia,
+              ] as const;
             } catch {
-              return [id, ""] as const;
+              return [id, vacia] as const;
             }
           })
         );
         if (cancelado) return;
         setEpgAhora((prev) => {
           const siguiente = { ...prev };
-          for (const [id, titulo] of hechas) siguiente[id] = titulo;
+          for (const [id, guia] of hechas) siguiente[id] = guia;
           return siguiente;
         });
       }
@@ -1118,6 +1193,46 @@ export default function TvApp() {
      canales, las carpetas y los episodios, en filas con su nombre. Basta con
      que algo de lo que hay pida carátula: nunca se mezclan las dos cosas. */
   const rejilla = filas.length > 0 && filas.some((f) => f.caratula);
+
+  /* ---------- La cabecera viva del directo ---------- */
+
+  /*
+   * El canal que hay debajo del foco, con su guía.
+   *
+   * Solo dentro de una carpeta de canales: en la lista de carpetas no hay
+   * canal que enseñar, y en cine y series manda la portada.
+   */
+  const enDirecto = pantalla === "directo" && Boolean(carpetaAbierta);
+  const canalMirado = enDirecto ? filas[foco] : undefined;
+  const guiaMirada = canalMirado?.epgId ? epgAhora[canalMirado.epgId] : undefined;
+
+  /*
+   * Cuánto lleva y cuánto le queda.
+   *
+   * El reloj corre, así que esto se recalcula solo cada medio minuto: sin
+   * eso, la barra se quedaba clavada donde estaba al abrir la carpeta y a
+   * los diez minutos mentía.
+   */
+  const [ahoraMismo, setAhoraMismo] = useState(() => Date.now());
+  useEffect(() => {
+    if (!enDirecto) return;
+    const t = setInterval(() => setAhoraMismo(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, [enDirecto]);
+
+  const avance = (() => {
+    if (!guiaMirada?.desde || !guiaMirada.hasta || guiaMirada.hasta <= guiaMirada.desde) return null;
+    const parte = (ahoraMismo - guiaMirada.desde) / (guiaMirada.hasta - guiaMirada.desde);
+    if (parte < 0 || parte > 1) return null;
+    return Math.round(parte * 100);
+  })();
+
+  const queda = (() => {
+    if (!guiaMirada?.hasta) return "";
+    const minutos = Math.round((guiaMirada.hasta - ahoraMismo) / 60000);
+    if (minutos <= 0 || minutos > 600) return "";
+    return minutos < 60 ? `quedan ${minutos} min` : `quedan ${Math.floor(minutos / 60)} h ${minutos % 60} min`;
+  })();
 
   // Cuántas carátulas ha puesto el navegador por fila, para que baje una fila
   useEffect(() => {
@@ -1146,6 +1261,7 @@ export default function TvApp() {
       // En un input (el emparejado no tiene, pero por si acaso) manda el input
       const el = document.activeElement as HTMLElement | null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
+      conElMando.current = true;
 
       const tecla = normalizarTecla(e);
 
@@ -1295,13 +1411,14 @@ export default function TvApp() {
 
   // La fila con el foco siempre a la vista, sin que el usuario persiga nada
   useEffect(() => {
+    if (!conElMando.current) return;
     listaRef.current?.querySelector<HTMLElement>(`[data-i="${foco}"]`)?.scrollIntoView({ block: "center" });
   }, [foco, filas]);
 
   /* Lo mismo en la portada, que además se mueve de lado: la carátula
      enfocada tiene que quedar centrada en su fila, no medio salida */
   useEffect(() => {
-    if (!enPortada) return;
+    if (!enPortada || !conElMando.current) return;
     /* Con el foco en el banner se sube del todo: centrarlo dejaría hueco
        arriba y el banner cortado, que es peor que no hacer nada */
     if (focoFila === -1) {
@@ -1474,7 +1591,7 @@ export default function TvApp() {
           {ultimo && (
             <button
               className={`tv-seguir ${foco === -1 ? "foco" : ""}`}
-              onMouseEnter={() => setFoco(-1)}
+              onMouseEnter={() => { conElMando.current = false; setFoco(-1); }}
               onClick={() => reproducir(ultimo.source)}
             >
               <Icon name="play" size={28} />
@@ -1489,7 +1606,7 @@ export default function TvApp() {
               <button
                 key={d.id}
                 className={`tv-tile ${foco === i ? "foco" : ""}`}
-                onMouseEnter={() => setFoco(i)}
+                onMouseEnter={() => { conElMando.current = false; setFoco(i); }}
                 onClick={() => elegirDestino(d.id)}
               >
                 <Icon name={d.icono} size={64} />
@@ -1528,7 +1645,7 @@ export default function TvApp() {
             <button
               key={d.id}
               className={`tv-carril-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
-              onMouseEnter={() => setFocoCarril(i)}
+              onMouseEnter={() => { conElMando.current = false; setFocoCarril(i); }}
               onMouseLeave={() => setFocoCarril(null)}
               onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
             >
@@ -1578,7 +1695,7 @@ export default function TvApp() {
                 {destacado.sinopsis && <p className="tv-banner-sinopsis">{destacado.sinopsis}</p>}
                 <button
                   className={`tv-banner-ver ${focoFila === -1 ? "foco" : ""}`}
-                  onMouseEnter={() => setFocoFila(-1)}
+                  onMouseEnter={() => { conElMando.current = false; setFocoFila(-1); }}
                   onClick={() => abrirTitulo(destacado)}
                 >
                   <Icon name="play" size={24} />
@@ -1601,7 +1718,7 @@ export default function TvApp() {
                       data-fila={fi}
                       data-col={ci}
                       data-foco={puesto ? "1" : undefined}
-                      onMouseEnter={() => { setFocoFila(fi); setFocoCol(ci); }}
+                      onMouseEnter={() => { conElMando.current = false; setFocoFila(fi); setFocoCol(ci); }}
                       onClick={() => abrirTitulo(t)}
                     >
                       <span className="tv-poster-marco">
@@ -1635,7 +1752,7 @@ export default function TvApp() {
           <button
             className={`tv-vertodas ${focoFila === ultima ? "foco" : ""}`}
             data-foco={focoFila === ultima ? "1" : undefined}
-            onMouseEnter={() => setFocoFila(ultima)}
+            onMouseEnter={() => { conElMando.current = false; setFocoFila(ultima); }}
             onClick={verCarpetas}
           >
             Ver todas las carpetas  ›
@@ -1664,7 +1781,7 @@ export default function TvApp() {
           <button
             key={d.id}
             className={`tv-carril-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
-            onMouseEnter={() => setFocoCarril(i)}
+            onMouseEnter={() => { conElMando.current = false; setFocoCarril(i); }}
             onMouseLeave={() => setFocoCarril(null)}
             onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
           >
@@ -1679,6 +1796,55 @@ export default function TvApp() {
         {(serieAbierta || carpetaAbierta) && <span className="tv-cabecera-de">{TITULOS[pantalla]}</span>}
         <span className="tv-cabecera-pista">◀ para las secciones · ATRÁS para volver</span>
       </header>
+
+      {/*
+        La cabecera viva del directo: el canal que tienes debajo del foco,
+        en grande y con lo que están echando.
+
+        Una lista de nombres de canal no dice nada —«AXN HD» no es una razón
+        para quedarse— y con un mando asomarse a un canal y volver cuesta
+        cuatro pulsaciones. Aquí se ve sin entrar: el logotipo grande, qué
+        dan ahora, cuánto le queda y qué viene después.
+      */}
+      {enDirecto && canalMirado && (
+        <section className="tv-ahora">
+          <span className="tv-ahora-logo">
+            {imgSrc(canalMirado.logo) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imgSrc(canalMirado.logo)}
+                alt=""
+                onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")}
+              />
+            ) : (
+              <Icon name="tv" size={40} />
+            )}
+          </span>
+          <div className="tv-ahora-txt">
+            <p className="tv-ahora-canal">
+              {canalMirado.numero ? <span className="tv-ahora-num">{canalMirado.numero}</span> : null}
+              {canalMirado.nombre}
+            </p>
+            {guiaMirada?.ahora ? (
+              <>
+                <p className="tv-ahora-prog">
+                  <span className="tv-punto" aria-hidden="true" />
+                  {guiaMirada.ahora}
+                  {queda ? <span className="tv-ahora-queda">{queda}</span> : null}
+                </p>
+                {avance !== null && (
+                  <span className="tv-ahora-barra" aria-hidden="true">
+                    <span style={{ width: `${avance}%` }} />
+                  </span>
+                )}
+                {guiaMirada.luego && <p className="tv-ahora-luego">Después · {guiaMirada.luego}</p>}
+              </>
+            ) : (
+              <p className="tv-ahora-prog tv-ahora-singuia">Tu proveedor no manda la guía de este canal</p>
+            )}
+          </div>
+        </section>
+      )}
       {cargando && <p className="tv-cargando">Cargando…</p>}
       {error && <p className="tv-activar-error">{error}</p>}
       <div className={`tv-lista ${rejilla ? "tv-rejilla" : ""}`} ref={listaRef}>
@@ -1690,7 +1856,7 @@ export default function TvApp() {
               key={f.id}
               data-i={i}
               className={`tv-poster ${foco === i ? "foco" : ""}`}
-              onMouseEnter={() => setFoco(i)}
+              onMouseEnter={() => { conElMando.current = false; setFoco(i); }}
               onClick={f.abrir}
             >
               <span className="tv-poster-marco">
@@ -1713,7 +1879,7 @@ export default function TvApp() {
               key={f.id}
               data-i={i}
               className={`tv-fila ${foco === i ? "foco" : ""} ${f.carpeta ? "tv-carpeta" : ""}`}
-              onMouseEnter={() => setFoco(i)}
+              onMouseEnter={() => { conElMando.current = false; setFoco(i); }}
               onClick={f.abrir}
             >
               <span className="tv-fila-n">{String(i + 1).padStart(3, "0")}</span>
@@ -1730,10 +1896,10 @@ export default function TvApp() {
                 {/* Qué echan ahora: con un mando, asomarse a un canal y
                     volver cuesta cuatro pulsaciones, así que sin esto se
                     elige a ciegas por el nombre */}
-                {f.epgId && epgAhora[f.epgId] && (
+                {f.epgId && epgAhora[f.epgId]?.ahora && (
                   <span className="tv-fila-ahora">
                     <span className="tv-punto" aria-hidden="true" />
-                    {epgAhora[f.epgId]}
+                    {epgAhora[f.epgId].ahora}
                   </span>
                 )}
               </span>

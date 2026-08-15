@@ -30,6 +30,8 @@ export interface XtreamLiveStream {
   stream_icon?: string;
   category_id?: string;
   epg_channel_id?: string;
+  /** El número que le ha puesto el proveedor en su mando: «102» */
+  num?: string | number;
   /** 1 si el canal guarda lo emitido (Catch Up); 0 o ausente si no */
   tv_archive?: string | number;
   /** Cuántos días hacia atrás lo guarda */

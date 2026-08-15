@@ -92,6 +92,36 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   await tv.waitForFunction(() => document.querySelectorAll(".tv-fila:not(.tv-carpeta)").length > 0, { timeout: 20000 });
   check("Al abrir una carpeta salen sus canales", (await tv.locator(".tv-fila:not(.tv-carpeta)").count()) >= 1);
   check("Numerados, que en una tele el número importa", /001/.test(await tv.locator(".tv-fila").first().innerText()));
+  /* --- La cabecera viva del directo ---
+     Una lista de nombres de canal no dice nada: con el mando, asomarse a uno
+     y volver cuesta cuatro pulsaciones. */
+  await tv.waitForSelector(".tv-ahora", { timeout: 20000 });
+  check("El directo enseña el canal enfocado en grande",
+    (await tv.locator(".tv-ahora-canal").innerText()).trim().length > 0,
+    (await tv.locator(".tv-ahora-canal").innerText()).replace(/\n/g, " "));
+  /* El programa que está EN ANTENA, no el primero que mande el panel: el
+     catálogo simulado empieza la guía en el bloque de la hora anterior, que
+     es exactamente lo que hacen la mitad de los paneles de verdad */
+  const conGuia = await tv
+    .waitForFunction(
+      () => (document.querySelector(".tv-ahora-prog")?.textContent || "").includes("El programa siguiente"),
+      { timeout: 20000 }
+    )
+    .then(() => true)
+    .catch(() => false);
+  check("Con lo que echan ahora, sin entrar a probar", conGuia,
+    (await tv.locator(".tv-ahora-prog").innerText()).replace(/\n/g, " "));
+  check("Y no con el bloque que ya ha terminado",
+    !(await tv.locator(".tv-ahora-prog").innerText()).includes("Telediario"),
+    (await tv.locator(".tv-ahora-prog").innerText()).replace(/\n/g, " "));
+  check("Y una barra que dice cuánto lleva", (await tv.locator(".tv-ahora-barra span").count()) === 1);
+  check("Y lo que viene después", (await tv.locator(".tv-ahora-luego").innerText()).includes("Después"),
+    (await tv.locator(".tv-ahora-luego").innerText()).replace(/\n/g, " "));
+  await tv.keyboard.press("ArrowDown");
+  await tv.waitForTimeout(300);
+  check("La cabecera sigue al foco: al bajar, cambia de canal",
+    (await tv.locator(".tv-ahora-canal").innerText()).trim().length > 0);
+
   await tv.keyboard.press("Escape");
   await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 15000 });
   check("ATRÁS vuelve a las carpetas", true);
@@ -310,8 +340,11 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   check("Al volver a la portada, el foco queda en la sección de la que sales",
     (await tv.locator(".tv-tile.foco").innerText()).includes("Series"),
     (await tv.locator(".tv-tile.foco").innerText()).replace(/\n/g, " "));
-  // Y se deja arriba del todo para lo que viene
+  /* Se deja arriba del todo para lo que viene, y el ratón fuera: al volver
+     del vídeo, «Seguir viendo» aparece encima de los accesos y se cuela
+     justo debajo del puntero, que entonces mueve el foco él solo */
   await tv.locator(".tv-tile").first().hover();
+  await tv.mouse.move(2, 2);
 
   // --- Lo último visto, para volver con un solo OK ---
   await tv.keyboard.press("Enter");
@@ -320,6 +353,10 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   await tv.waitForFunction(() => document.querySelectorAll(".tv-fila:not(.tv-carpeta)").length > 0, { timeout: 20000 });
   const canal = (await tv.locator(".tv-fila:not(.tv-carpeta) .tv-fila-nombre").first().innerText()).trim();
   await tv.locator(".tv-fila:not(.tv-carpeta)").first().click();
+  /* El ratón, fuera antes de volver: al salir del vídeo, «Seguir viendo»
+     aparece justo donde quedó el puntero del clic y se enfoca él solo —que
+     con un ratón es lo correcto, pero aquí falsea lo que hace el mando— */
+  await tv.mouse.move(2, 2);
   await tv.waitForSelector(".tv-viendo", { timeout: 20000 });
   await tv.keyboard.press("Escape");
   await tv.keyboard.press("Escape");
@@ -329,6 +366,9 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
     await tv.locator(".tv-seguir").isVisible(), (await tv.locator(".tv-seguir").innerText()).replace(/\n/g, " "));
   check("Con el nombre de lo que se estaba viendo", (await tv.locator(".tv-seguir").innerText()).includes(canal), canal);
   await tv.screenshot({ path: __dirname + "/89-tv-seguir.png" });
+  /* El ratón, otra vez fuera: el clic que puso el canal lo dejó donde ahora
+     está «Seguir viendo», y desde ahí mueve el foco él solo */
+  await tv.mouse.move(2, 2);
 
   // Y el mando llega hasta ahí: está por encima de los cuatro accesos
   await tv.keyboard.press("ArrowUp");

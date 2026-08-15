@@ -185,6 +185,29 @@ aplicación funcionando, no en pantallas sueltas:
   Series y Favoritos*. Cuando lleguen el historial (4) y las descargas (8),
   esa barra hay que rehacerla: no caben nueve destinos en una cápsula.
 
+### El directo también tiene cabecera
+
+Cine y series abren en una portada; el directo abría en una lista de nombres
+de canal, que es la pantalla más sosa de la aplicación y la que más se usa.
+Ahora, dentro de una carpeta, encima de la lista va **el canal que tienes
+debajo del foco**: su logotipo en grande, el número que le ha puesto el
+proveedor, qué están echando con el punto rojo, **cuánto le queda**, una
+barra de cuánto lleva y qué viene después.
+
+No hay ni una petición nueva: `get_short_epg` ya se pedía para la línea
+diminuta de debajo del nombre. Lo que sí cambió es **cuál** de los programas
+que devuelve se enseña: se coge el que está en antena, no el primero de la
+lista. La mitad de los paneles empiezan la guía en el bloque de la hora
+anterior, así que «ahora» anunciaba algo emitido hacía una hora y la barra
+salía llena.
+
+Y un fallo que se vio en el ejecutable de Windows y venía de la tele: **con
+el ratón, pasar por encima de una carátula la centraba en pantalla**, con lo
+que debajo del puntero quedaba otra, que se enfocaba, y vuelta a empezar —un
+carrusel que se movía solo sin tocar nada—. Centrar lo enfocado es lo
+correcto con un mando y no lo es con un ratón, así que ahora se distingue
+quién ha movido el foco.
+
 ### Lo que el proveedor no manda, y de dónde sale
 
 Un panel Xtream manda el nombre, una carátula vertical y, con suerte, el año

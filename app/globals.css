@@ -1876,6 +1876,62 @@ select.input { appearance: none; cursor: pointer; }
   .pa-portada { padding-bottom: calc(var(--capsula) + 28px); }
 }
 
+/* ---- La cabecera viva de TV en directo ---- */
+
+/*
+ * El canal que hay debajo del foco, en grande y con lo que echan.
+ *
+ * Una lista de nombres de canal no dice nada —«AXN HD» no es una razón para
+ * quedarse— y con un mando asomarse a un canal y volver cuesta cuatro
+ * pulsaciones. Esto lo enseña sin entrar, y el dato ya se pedía: solo estaba
+ * en una línea diminuta debajo del nombre.
+ */
+.tv-ahora {
+  display: flex; align-items: center; gap: 2vw; flex: none;
+  margin: 0 4vw 2vh; padding: 2vh 2vw;
+  background: var(--bg-elev); border: 1px solid var(--filo);
+  border-radius: 1vw;
+}
+.tv-ahora-logo {
+  flex: none; width: 10vw; height: 6vw;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.06); border-radius: 0.7vw;
+  color: var(--text-faint); overflow: hidden;
+}
+.tv-ahora-logo img { max-width: 84%; max-height: 84%; object-fit: contain; }
+.tv-ahora-txt { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 0.9vh; }
+.tv-ahora-canal {
+  font-size: 2vw; font-weight: 750; line-height: 1.1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tv-ahora-num {
+  display: inline-block; margin-right: 0.8vw; padding: 0 0.6vw;
+  border-radius: 0.4vw; background: rgba(255, 255, 255, 0.08);
+  color: var(--text-dim); font-size: 1.3vw; font-weight: 700;
+  vertical-align: middle;
+}
+.tv-ahora-prog {
+  display: flex; align-items: center; gap: 0.7vw;
+  font-size: 1.4vw; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tv-ahora-singuia { color: var(--text-faint); font-size: 1.2vw; }
+.tv-ahora-queda { color: var(--text-faint); font-size: 1.1vw; font-weight: 600; }
+/* La barra: cuánto lleva el programa, que es lo que dice si merece la pena
+   entrar ahora o esperar al siguiente */
+.tv-ahora-barra {
+  display: block; height: 0.5vh; min-height: 4px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14); overflow: hidden;
+}
+.tv-ahora-barra span {
+  display: block; height: 100%; background: var(--accent);
+  border-radius: 999px; transition: width 0.4s linear;
+}
+.tv-ahora-luego {
+  font-size: 1.15vw; color: var(--text-faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 /* ---- La portada de cine y de series ---- */
 
 /*
