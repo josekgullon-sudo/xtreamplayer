@@ -1589,7 +1589,20 @@ select.input { appearance: none; cursor: pointer; }
 
 /* ---- Portada: cuatro accesos y nada más ---- */
 
-.tv-portada { width: 100%; }
+/*
+ * La pantalla de inicio, con anchura y no flotando en medio.
+ *
+ * Estaba centrada como un cuadro de diálogo, con los cuatro accesos en fila
+ * y medio televisor vacío alrededor. Ahora ocupa el sitio como una pantalla:
+ * la marca arriba a la izquierda, el bloque de seguir viendo en grande, los
+ * accesos en dos columnas y los datos abajo.
+ */
+.tv-portada {
+  width: 100%; max-width: 1500px; margin: 0 auto;
+  padding: 0 6vw; text-align: left;
+}
+.tv-portada .tv-marca { font-size: 1.7vw; margin-bottom: 4vh; }
+.tv-portada .tv-pie { text-align: left; }
 
 /* La presentación de arranque, con la marca de quien vende el servicio */
 .tv-splash { display: flex; flex-direction: column; align-items: center; gap: 22px; }
@@ -1612,16 +1625,31 @@ select.input { appearance: none; cursor: pointer; }
 }
 
 /* Volver a lo de ayer sin recorrer carpetas: lo primero de la portada */
+/*
+ * «Seguir viendo», que es lo que se viene a hacer nueve de cada diez veces.
+ *
+ * Era un botoncito centrado del tamaño de su texto. Ahora es el bloque
+ * grande de la pantalla, con su franja de color: quien enciende la tele para
+ * seguir con lo suyo no tiene que buscar nada.
+ */
 .tv-seguir {
-  display: inline-flex; align-items: center; gap: 16px;
-  margin: 0 auto 26px; padding: 16px 30px;
-  background: var(--bg-elev); border: 3px solid transparent; border-radius: 18px;
-  color: var(--text); font-size: 24px; text-align: left; cursor: pointer;
+  display: flex; align-items: center; gap: 2vw; width: 100%;
+  margin: 0 0 3vh; padding: 3vh 2.4vw;
+  background: linear-gradient(100deg, var(--accent-tint), var(--bg-elev) 60%);
+  border: 0.2vw solid var(--filo); border-radius: 1.4vw;
+  color: var(--text); text-align: left; cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s;
 }
 .tv-seguir svg { color: var(--accent-bright); flex-shrink: 0; }
-.tv-seguir span { display: flex; flex-direction: column; gap: 2px; font-size: 19px; color: var(--text-dim); }
-.tv-seguir b { font-size: 26px; font-weight: 800; color: var(--text); }
-.tv-seguir.foco { border-color: var(--accent-bright); background: var(--accent-tint); }
+.tv-seguir span { display: flex; flex-direction: column; gap: 0.6vh; font-size: 1.2vw; color: var(--text-faint); min-width: 0; }
+.tv-seguir b {
+  font-size: 2.4vw; font-weight: 800; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tv-seguir.foco {
+  border-color: var(--accent-bright); transform: scale(1.01);
+  box-shadow: 0 1.4vh 4vh rgba(0, 0, 0, 0.5);
+}
 
 /* Se entró con lo guardado porque la tele aún no tenía red */
 .tv-sinred {
@@ -1629,21 +1657,47 @@ select.input { appearance: none; cursor: pointer; }
   background: var(--danger-tint); border: 1px solid var(--danger-border); border-radius: 14px;
   color: var(--danger); font-size: 19px;
 }
-.tv-tiles { display: flex; gap: 2.4vw; justify-content: center; margin-bottom: 5vh; flex-wrap: wrap; }
+/*
+ * Los cuatro accesos, en tarjetas anchas y no en cuadrados sueltos.
+ *
+ * Eran cuatro cuadrados grises flotando en medio de un televisor vacío: la
+ * primera pantalla de la aplicación y la más sosa de todas. Ahora son
+ * tarjetas apaisadas con el icono en su cuadro de color, el nombre y una
+ * línea que dice de qué va cada una, alineadas a la izquierda como el resto
+ * de la aplicación. Ocupan el ancho de la pantalla en vez de dejar medio
+ * televisor en negro.
+ */
+.tv-tiles {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 1.6vw; margin-bottom: 4vh; width: 100%;
+}
 .tv-tile {
-  width: 17vw; height: 17vw; max-width: 260px; max-height: 260px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.6vh;
-  background: rgba(255, 255, 255, 0.05);
-  border: 0.2vw solid transparent; border-radius: 1.6vw;
-  color: rgba(255, 255, 255, 0.75); font-size: 1.6vw; font-weight: 700;
+  display: flex; flex-direction: row; align-items: center; gap: 1.6vw;
+  padding: 2.6vh 2vw; text-align: left;
+  background: var(--bg-elev);
+  border: 0.2vw solid var(--filo); border-radius: 1.2vw;
+  color: var(--text); font-size: 1.7vw; font-weight: 750;
   cursor: pointer; transition: transform 0.12s, background 0.12s, border-color 0.12s, color 0.12s;
 }
 .tv-tile.foco {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: var(--accent);
-  color: #fff; transform: scale(1.06);
+  background: var(--bg-elev-2);
+  border-color: var(--accent-bright);
+  color: #fff; transform: scale(1.03);
+  box-shadow: 0 1.4vh 4vh rgba(0, 0, 0, 0.5);
 }
-.tv-pie { font-size: 1.25vw; color: rgba(255, 255, 255, 0.45); }
+.tv-tile-icono {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 5.4vw; height: 5.4vw; border-radius: 1vw;
+  background: var(--accent-tint); color: var(--accent-bright);
+}
+.tv-tile-txt { display: flex; flex-direction: column; gap: 0.4vh; min-width: 0; }
+.tv-tile-sub {
+  font-size: 1.1vw; font-weight: 500; color: var(--text-faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tv-tile.foco .tv-tile-icono { background: var(--accent); color: #fff; }
+
+.tv-pie { font-size: 1.15vw; color: var(--text-faint); }
 
 /* ---- El carril de secciones, dentro de las listas ---- */
 

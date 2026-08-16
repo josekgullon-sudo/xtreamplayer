@@ -1636,8 +1636,13 @@ export default function TvApp() {
                 onMouseEnter={() => { conElMando.current = false; setFoco(i); }}
                 onClick={() => elegirDestino(d.id)}
               >
-                <Icon name={d.icono} size={64} />
-                <span>{d.titulo}</span>
+                <span className="tv-tile-icono"><Icon name={d.icono} size={44} /></span>
+                <span className="tv-tile-txt">
+                  {d.titulo}
+                  {/* Una línea que diga de qué va: cuatro nombres a secas
+                      obligan a entrar para saber qué hay detrás */}
+                  <span className="tv-tile-sub">{d.pie}</span>
+                </span>
               </button>
             ))}
           </div>
@@ -1946,11 +1951,11 @@ const TITULOS: Record<string, string> = {
   series: "Series",
 };
 
-const DESTINOS: { id: Pantalla; titulo: string; icono: IconName }[] = [
-  { id: "directo", titulo: "TV en directo", icono: "tv" },
-  { id: "cine", titulo: "Películas", icono: "film" },
-  { id: "series", titulo: "Series", icono: "series" },
-  { id: "salir", titulo: "Salir", icono: "power" },
+const DESTINOS: { id: Pantalla; titulo: string; icono: IconName; pie: string }[] = [
+  { id: "directo", titulo: "TV en directo", icono: "tv", pie: "Canales y qué echan ahora" },
+  { id: "cine", titulo: "Películas", icono: "film", pie: "Estrenos y lo mejor valorado" },
+  { id: "series", titulo: "Series", icono: "series", pie: "Temporadas y episodios" },
+  { id: "salir", titulo: "Salir", icono: "power", pie: "Desactivar esta tele" },
 ];
 
 /*

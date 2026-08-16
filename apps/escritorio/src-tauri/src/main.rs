@@ -22,7 +22,7 @@ fn destino(base: &str) -> String {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![guardar_direccion])
+        .invoke_handler(tauri::generate_handler![guardar_direccion, alternar_pantalla_completa])
         .setup(|app| {
             let base = leer(app.handle());
             /*
@@ -72,6 +72,25 @@ window.addEventListener('keydown', function (e) {
   if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
     e.preventDefault();
     location.reload();
+    return;
+  }
+  /*
+   * F11: salir de pantalla completa, y volver a entrar.
+   *
+   * Sin esto la ventana no tiene marco, ni aspa, ni barra de tareas: la
+   * única salida era Alt+F4, que hay que saberse. F11 es la tecla de toda
+   * la vida para esto y la ventana con marco ya trae su aspa.
+   *
+   * No se usa ESCAPE a propósito: dentro de la aplicación, ESCAPE es
+   * «atrás», y robárselo dejaría la navegación coja.
+   */
+  if (e.key === 'F11') {
+    e.preventDefault();
+    try {
+      window.__TAURI_INTERNALS__.invoke('alternar_pantalla_completa');
+    } catch (niIdea) {
+      /* Fuera del programa esto no existe y no pasa nada */
+    }
   }
 });
 "#;
@@ -140,6 +159,23 @@ fn normalizar(escrito: &str) -> String {
         }
     }
     s.trim_end_matches('/').to_string()
+}
+
+/**
+ * Salir de pantalla completa —y volver— desde la propia página.
+ *
+ * Una ventana a pantalla completa y sin marco no tiene aspa ni barra de
+ * tareas: quien no se sepa el Alt+F4 se queda dentro. Con marco, cerrar es
+ * lo de siempre.
+ */
+#[tauri::command]
+fn alternar_pantalla_completa(app: AppHandle) -> Result<(), String> {
+    let v = app.get_webview_window("tele").ok_or("sin ventana")?;
+    let completa = v.is_fullscreen().map_err(|e| e.to_string())?;
+    v.set_fullscreen(!completa).map_err(|e| e.to_string())?;
+    // Sin pantalla completa, el marco: es lo que trae el aspa de cerrar
+    v.set_decorations(completa).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
