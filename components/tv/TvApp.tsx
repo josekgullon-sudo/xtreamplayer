@@ -1651,8 +1651,13 @@ export default function TvApp() {
             {soporte ? ` · Soporte: ${soporte}` : ""}
           </p>
           {/* La MAC siempre a la vista, como en los reproductores de siempre:
-              es lo primero que le pide el proveedor cuando algo falla */}
-          <p className="tv-pie tv-pie-mac">MAC: {macDelAparato()}</p>
+              es lo primero que le pide el proveedor cuando algo falla.
+              Y al lado la versión: sin ella, «no veo los cambios» no se
+              puede contestar sin adivinar si es que no se ha desplegado, si
+              es la caché del aparato o si es otra cosa */}
+          <p className="tv-pie tv-pie-mac">
+            MAC: {macDelAparato()} · versión {process.env.NEXT_PUBLIC_BUILD || "?"}
+          </p>
         </div>
       </div>
     );
