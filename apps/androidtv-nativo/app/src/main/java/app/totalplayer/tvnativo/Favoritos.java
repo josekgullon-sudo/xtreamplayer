@@ -46,7 +46,24 @@ public final class Favoritos {
                 it.imagen = o.optString("imagen", "");
                 it.url = o.optString("url", "");
                 it.numero = o.optInt("numero", 0);
-                if (!it.id.isEmpty() && !it.url.isEmpty()) lista.add(it);
+                /*
+                 * La clase, que es lo que resuelve el canal cuando no hay
+                 * dirección.
+                 *
+                 * Aquí estaba el fallo que dejaba la carpeta de favoritos
+                 * siempre vacía justo a quien más la usa: con lista del
+                 * proveedor los canales llegan SIN dirección —lleva dentro
+                 * su servidor, su usuario y su contraseña, y eso no baja al
+                 * aparato—, así que la línea de abajo, que exigía url, los
+                 * descartaba todos. Marcabas cinco canales y favoritos
+                 * seguía diciendo «aún no has marcado ninguno». Sin
+                 * dirección se resuelve por clase e identificador, que es
+                 * exactamente lo que hace la lista normal al pulsar OK.
+                 * El valor por omisión vale para lo ya guardado antes de
+                 * esto: en favoritos solo hay canales.
+                 */
+                it.clase = o.optString("clase", Enlaces.DIRECTO);
+                if (!it.id.isEmpty()) lista.add(it);
             }
         } catch (Exception e) {
             // Un favorito ilegible no puede impedir ver la tele
@@ -87,6 +104,7 @@ public final class Favoritos {
                 o.put("imagen", it.imagen);
                 o.put("url", it.url);
                 o.put("numero", it.numero);
+                o.put("clase", it.clase);
                 fuera.put(o);
             }
         } catch (Exception e) {

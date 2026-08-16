@@ -224,9 +224,16 @@ public class DirectoActivity extends Activity {
                 }
                 pista.setVisibility(View.VISIBLE);
                 /* Favoritos, siempre la primera: es la carpeta a la que se
-                   va cuando no apetece buscar */
+                   va cuando no apetece buscar.
+                   Y detrás «Los que más ves», que es la misma idea sin tener
+                   que mantenerla —se llena sola con ver la tele—, pero solo
+                   cuando ya hay algo que contar: una carpeta de dos canales
+                   no dice lo que ves, dice que acabas de instalar esto */
                 List<Catalogo.Carpeta> conFavoritos = new java.util.ArrayList<>();
                 conFavoritos.add(new Catalogo.Carpeta(Favoritos.CARPETA, "★  Favoritos"));
+                if (MasVistos.cuantos(DirectoActivity.this) >= MasVistos.MINIMO) {
+                    conFavoritos.add(new Catalogo.Carpeta(MasVistos.CARPETA, "Los que más ves"));
+                }
                 conFavoritos.addAll(lista);
                 carpetas.poner(conFavoritos);
                 pista.setText("Elige un canal de la lista");
@@ -276,6 +283,33 @@ public class DirectoActivity extends Activity {
             return;
         }
         cuantos.setText("");
+
+        /*
+         * «Los que más ves», que como favoritos está en casa y no se pide.
+         *
+         * Se repinta en el turno siguiente por el mismo motivo que aquélla:
+         * esto se llama desde el listener del foco, y rehacer una lista
+         * mientras la otra se desplaza es lo que tiraba la aplicación al menú.
+         */
+        if (MasVistos.CARPETA.equals(carpeta.id)) {
+            if (pendiente != null) Hilos.olvidar(pendiente);
+            pendiente = new Runnable() {
+                @Override public void run() {
+                    List<Catalogo.Item> suyos = MasVistos.lista(DirectoActivity.this);
+                    boolean estabaEnLosCanales = listaCanales.hasFocus();
+                    carpetaPintada = MasVistos.CARPETA;
+                    canales.poner(suyos);
+                    if (estabaEnLosCanales) listaCanales.requestFocus();
+                    canales.sonando(listaCanales, sonando, null);
+                    cuantos.setText(String.valueOf(suyos.size()));
+                    listaCanales.scrollToPosition(0);
+                    vacio.setText("Aquí saldrán los canales que más pongas.");
+                    bloqueVacio.setVisibility(suyos.isEmpty() ? View.VISIBLE : View.GONE);
+                }
+            };
+            Hilos.enPantallaDentroDe(pendiente, 120);
+            return;
+        }
 
         if (Favoritos.CARPETA.equals(carpeta.id)) {
             if (pendiente != null) Hilos.olvidar(pendiente);
@@ -382,6 +416,10 @@ public class DirectoActivity extends Activity {
         if (enMovil) irAlPaso(2);
 
         sonando = canal.id;
+        /* Una raya en la pared, que es lo que llena «Los que más ves». Se
+           apunta al ponerlo y no al terminarlo: en la tele no se «termina»
+           un canal, se deja puesto */
+        MasVistos.apuntar(this, canal);
         canales.sonando(listaCanales, sonando, "");
         nombreCanal.setText(canal.nombre);
         ahora.setText("");
@@ -615,6 +653,8 @@ public class DirectoActivity extends Activity {
         Catalogo.Item siguiente = lista.get(((donde + aDonde) % cuantos + cuantos) % cuantos);
 
         sonando = siguiente.id;
+        // Zapear también es poner un canal, y para el ranking cuenta igual
+        MasVistos.apuntar(this, siguiente);
         canales.sonando(listaCanales, sonando, "");
         nombreCanal.setText(siguiente.nombre);
         girando.setVisibility(View.VISIBLE);
