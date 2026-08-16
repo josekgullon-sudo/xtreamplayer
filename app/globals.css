@@ -1572,6 +1572,26 @@ select.input { appearance: none; cursor: pointer; }
   font-size: 1.35vw;
 }
 .tv-centro { align-items: center; justify-content: center; text-align: center; }
+
+/*
+ * El fondo de las pantallas de antes de entrar.
+ *
+ * Activación, entrar con usuario y poner una lista se veían sobre un gris
+ * plano de lado a lado: correcto y sin una sola señal de que detrás hay un
+ * producto de alguien. Dos brillos muy tenues —uno del rojo de la marca,
+ * otro frío en la esquina contraria— bastan para que la pantalla tenga
+ * profundidad, y no estorban a nada de lo que hay que leer porque van por
+ * debajo del contenido y no llegan al 12 % de opacidad.
+ *
+ * Se pone con una clase y no con `:has()`: las teles Tizen y webOS que hay
+ * en las casas son de hace cinco años y ahí `:has()` no existe.
+ */
+.tv-lienzo {
+  background:
+    radial-gradient(1100px 620px at 12% -10%, rgba(229, 25, 43, 0.18), transparent 62%),
+    radial-gradient(900px 560px at 96% 104%, rgba(90, 120, 255, 0.11), transparent 60%),
+    #1a1921;
+}
 .tv-marca {
   font-size: 1.5vw; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--accent-bright); margin-bottom: 2vh;
@@ -1698,6 +1718,14 @@ select.input { appearance: none; cursor: pointer; }
 .tv-tile.foco .tv-tile-icono { background: var(--accent); color: #fff; }
 
 .tv-pie { font-size: 1.15vw; color: var(--text-faint); }
+
+/* Cómo se cierra la aplicación de Windows, que sin marco no es evidente */
+.tv-salida {
+  margin-top: 2.4vh; padding: 1.2vh 1.6vw;
+  background: var(--bg-elev); border: 1px solid var(--filo); border-radius: 0.8vw;
+  display: inline-block;
+}
+.tv-salida b { color: var(--text); }
 
 /* ---- El carril de secciones, dentro de las listas ---- */
 
@@ -2082,6 +2110,128 @@ select.input { appearance: none; cursor: pointer; }
 }
 .tv-carrusel-tira::-webkit-scrollbar { display: none; }
 .tv-carrusel-tira .tv-poster { flex: 0 0 11.5vw; width: 11.5vw; }
+.tv-carrusel-tira.anchas { gap: 1.2vw; }
+.tv-carrusel-tira.anchas .tv-canal { flex: 0 0 17vw; width: 17vw; }
+
+/* ---- La portada de TV en directo ---- */
+
+/*
+ * La tarjeta de un canal.
+ *
+ * Apaisada y no en 2:3, y por un motivo que se ve en cuanto se prueba: un
+ * canal no tiene cartel, tiene logotipo —un dibujo ancho y bajo, casi
+ * siempre con fondo transparente—. Metido en una carátula vertical queda
+ * flotando en un rectángulo vacío, y veinte seguidos son veinte rectángulos
+ * vacíos. Aquí el logotipo va centrado y en su proporción, y el sitio que
+ * sobra debajo lo ocupa qué están dando, que es la razón por la que alguien
+ * entra en el directo.
+ */
+.tv-canal {
+  display: flex; flex-direction: column; gap: 0.7vh;
+  background: none; border: none; padding: 0;
+  color: rgba(255, 255, 255, 0.7); font-size: 1.1vw; font-weight: 600;
+  text-align: left; cursor: pointer;
+  transition: color 0.1s, transform 0.12s;
+}
+.tv-canal-marco {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+  border-radius: 0.8vw; background: rgba(255, 255, 255, 0.06);
+  border: 0.2vw solid transparent;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.tv-canal-marco img {
+  position: relative; max-width: 74%; max-height: 68%;
+  object-fit: contain; display: block;
+}
+/* El nombre detrás del logotipo: si no llega, la tarjeta sigue diciendo cuál
+   es en vez de ser un cuadro gris más */
+.tv-canal-ph {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0.8vw; text-align: center; line-height: 1.3;
+  font-size: 1.1vw; font-weight: 700; color: rgba(255, 255, 255, 0.5);
+}
+/* Cuánto lleva el programa, pegado al canto de abajo de la tarjeta */
+.tv-canal-barra {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 0.45vh; min-height: 3px; background: rgba(255, 255, 255, 0.16);
+}
+.tv-canal-barra i {
+  display: block; height: 100%; background: var(--accent);
+  transition: width 0.4s linear;
+}
+.tv-canal-nombre {
+  display: flex; align-items: baseline; gap: 0.5vw;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.25;
+}
+.tv-canal-nombre b {
+  flex: none; padding: 0 0.4vw; border-radius: 0.3vw;
+  background: rgba(255, 255, 255, 0.1); color: var(--text-faint);
+  font-size: 0.95vw; font-weight: 700;
+}
+/*
+ * Qué echan ahora. El alto va fijo a propósito: las guías llegan de seis en
+ * seis y unas tardan más que otras, así que sin altura reservada la fila
+ * entera daba un salto cada vez que contestaba una.
+ */
+.tv-canal-prog {
+  height: 1.7vh; min-height: 14px;
+  font-size: 0.95vw; font-weight: 600; color: var(--text-faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tv-canal.foco { color: #fff; transform: scale(1.05); }
+.tv-canal.foco .tv-canal-marco {
+  border-color: var(--accent);
+  box-shadow: 0 1vh 3vh rgba(0, 0, 0, 0.6);
+}
+.tv-canal.foco .tv-canal-prog { color: var(--text-dim); }
+
+/*
+ * El banner del directo.
+ *
+ * Sin imagen de fondo: el logotipo de un canal ampliado a pantalla completa
+ * es una mancha, no un fondo. Lo que llena el sitio es el propio dato —qué
+ * dan, cuánto le queda, qué viene después— y el logotipo en su caja a la
+ * derecha, que es como se ve un logotipo.
+ */
+.tv-banner-canal {
+  height: 40vh;
+  background: linear-gradient(120deg, var(--bg-elev) 30%, rgba(229, 25, 43, 0.16) 100%);
+  border-bottom: 1px solid var(--filo);
+}
+.tv-banner-canal .tv-banner-txt { max-width: 58vw; }
+.tv-banner-antena {
+  display: flex; align-items: center; gap: 0.6vw;
+  font-size: 1.1vw; font-weight: 750; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--accent-bright);
+}
+.tv-banner-canal .tv-banner-t { font-size: 2.8vw; }
+.tv-banner-prog {
+  display: flex; align-items: baseline; gap: 0.8vw;
+  font-size: 1.5vw; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
+}
+.tv-banner-barra {
+  display: block; width: 26vw; max-width: 100%;
+  height: 0.5vh; min-height: 4px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16); overflow: hidden;
+}
+.tv-banner-barra i {
+  display: block; height: 100%; background: var(--accent);
+  border-radius: 999px; transition: width 0.4s linear;
+}
+.tv-banner-luego { font-size: 1.15vw; color: var(--text-faint); }
+.tv-banner-canal-logo {
+  position: absolute; right: 5vw; top: 50%; transform: translateY(-50%);
+  width: 20vw; height: 12vw;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.07); border: 1px solid var(--filo);
+  border-radius: 1.2vw; color: var(--text-faint); overflow: hidden;
+}
+.tv-banner-canal-logo img { max-width: 76%; max-height: 72%; object-fit: contain; }
 
 /*
  * El número del ranking va ENCIMA de la carátula, no fuera.
@@ -2173,6 +2323,20 @@ select.input { appearance: none; cursor: pointer; }
   .tv-poster { font-size: 13px; }
   .tv-poster-marco { border-radius: 10px; border-width: 2px; }
   .tv-poster-ph { font-size: 28px; }
+  /* Las tarjetas de canal: dos y media por pantalla, que el logotipo se vea */
+  .tv-carrusel-tira.anchas .tv-canal { flex: 0 0 38vw; width: 38vw; }
+  .tv-canal { font-size: 13px; }
+  .tv-canal-marco { border-radius: 10px; border-width: 2px; }
+  .tv-canal-ph, .tv-canal-prog, .tv-canal-nombre b { font-size: 12px; }
+  .tv-canal-prog { height: 16px; }
+  .tv-banner-canal { height: 34vh; }
+  .tv-banner-canal .tv-banner-t { font-size: 24px; }
+  .tv-banner-antena, .tv-banner-luego { font-size: 12px; }
+  .tv-banner-prog { font-size: 15px; }
+  .tv-banner-barra { width: 46vw; }
+  /* En pantalla estrecha el logotipo se come el texto: fuera */
+  .tv-banner-canal-logo { display: none; }
+  .tv-banner-canal .tv-banner-txt { max-width: none; }
 }
 
 /* Código de activación en el móvil: se teclea una vez, que se lea bien */
@@ -2198,8 +2362,17 @@ select.input { appearance: none; cursor: pointer; }
   background: rgba(255, 255, 255, 0.04); border: 0.1vw solid rgba(255, 255, 255, 0.1);
 }
 .tv-camino-t {
+  display: flex; align-items: center; gap: 0.8vw;
   font-size: 1.1vw; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--accent-bright); margin-bottom: 0.4vh;
+}
+/* El número del paso, en su círculo. Como «1 ·» delante del rótulo no se
+   leía como un paso a tres metros: era un punto y una cifra pequeña */
+.tv-camino-n {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 2.4vw; height: 2.4vw; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  font-size: 1.3vw; font-weight: 800; letter-spacing: 0;
 }
 .tv-camino-txt { font-size: 1.3vw; color: rgba(255, 255, 255, 0.7); }
 .tv-camino-nota { font-size: 1.1vw; color: rgba(255, 255, 255, 0.45); }
@@ -2256,7 +2429,8 @@ select.input { appearance: none; cursor: pointer; }
      MAC y el código se salían de la pantalla */
   .tv-dos-caminos { grid-template-columns: 1fr; gap: 14px; max-width: 100%; }
   .tv-camino { padding: 16px; border-radius: 14px; gap: 8px; }
-  .tv-camino-t { font-size: 12px; }
+  .tv-camino-t { font-size: 12px; gap: 8px; }
+  .tv-camino-n { width: 24px; height: 24px; font-size: 13px; }
   .tv-camino-txt { font-size: 14px; }
   .tv-camino-nota { font-size: 12px; }
   .tv-dato { font-size: 22px; letter-spacing: 1px; padding: 12px 14px; border-radius: 12px; }

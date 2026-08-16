@@ -312,6 +312,22 @@ const server = http.createServer((req, res) => {
         { stream_id: 1, name: "La Uno Test", stream_icon: "", category_id: "1", epg_channel_id: "uno.test", tv_archive: 1, tv_archive_duration: 7 },
         { stream_id: 2, name: "Deportes Test HD", stream_icon: "", category_id: "2" },
         { stream_id: 3, name: null, stream_icon: "", category_id: "2" },
+        /*
+         * Y unos cuantos más, porque con dos canales no se puede probar el
+         * directo.
+         *
+         * La portada del directo hace lo que hace cualquier aplicación de
+         * televisión: filas por carpeta y un ranking de lo que más se pone.
+         * Con dos canales en total no hay fila que armar ni ranking que
+         * ordenar, así que lo que pasaba es que la prueba no probaba nada.
+         * Ningún proveedor de verdad tiene dos canales.
+         */
+        { stream_id: 4, name: "La Dos Test", stream_icon: "", category_id: "1" },
+        { stream_id: 5, name: "Noticias 24h Test", stream_icon: "", category_id: "1" },
+        { stream_id: 6, name: "Autonómica Test", stream_icon: "", category_id: "1" },
+        { stream_id: 7, name: "Fútbol Test", stream_icon: "", category_id: "2" },
+        { stream_id: 8, name: "Motor Test", stream_icon: "", category_id: "2" },
+        { stream_id: 9, name: "Baloncesto Test", stream_icon: "", category_id: "2" },
       ],
       get_vod_categories: [
         { category_id: "10", category_name: "Estrenos" },

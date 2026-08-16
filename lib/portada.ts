@@ -245,6 +245,75 @@ export function armarPortada(
   return filas;
 }
 
+/** Cuántos canales entran en «Los que más ves». */
+const MAS_VISTOS = 12;
+/** Y a partir de cuántos merece la pena enseñar esa fila. */
+const MINIMO_VISTOS = 3;
+
+/**
+ * La portada de TV en directo.
+ *
+ * Un canal no es una película: no tiene nota, ni sinopsis, ni año, y su
+ * imagen es un logotipo y no un cartel. Así que aquí no valen «mejor
+ * valoradas» ni «añadidas recientemente» —serían dos filas vacías—, y las
+ * tarjetas van apaisadas, que es donde un logotipo se ve.
+ *
+ * Lo que sí hay, y en cine no, es un dato de verdad sobre lo que se ve: los
+ * canales que ha puesto **este aparato**. No es «lo más visto» de nadie más
+ * —eso no lo sabemos y no se va a inventar—, es lo tuyo, y por eso la fila
+ * se llama «Los que más ves» y no «Tendencias».
+ */
+export function armarPortadaDirecto(
+  canales: Titulo[],
+  categorias: { id: string; nombre: string }[],
+  vistos: Record<string, number>
+): FilaPortada[] {
+  if (!canales.length) return [];
+
+  const filas: FilaPortada[] = [];
+
+  const tuyos = canales
+    .filter((c) => (vistos[c.id] || 0) > 0)
+    .sort((a, b) => (vistos[b.id] || 0) - (vistos[a.id] || 0))
+    .slice(0, MAS_VISTOS);
+  if (tuyos.length >= MINIMO_VISTOS) {
+    filas.push({ titulo: "Los que más ves", items: tuyos, numerada: true, anchas: true });
+  }
+
+  for (const c of categorias) {
+    if (filas.filter((f) => f.categoriaId).length >= CARPETAS_EN_PORTADA) break;
+    const suyos = canales.filter((t) => t.categoria === c.id);
+    if (!suyos.length) continue;
+    filas.push({
+      titulo: c.nombre,
+      items: suyos.slice(0, POR_FILA),
+      categoriaId: c.id,
+      anchas: true,
+    });
+  }
+
+  return filas;
+}
+
+/**
+ * Qué canal preside la portada del directo.
+ *
+ * El que más pone este aparato, y si es la primera vez, el primero que tenga
+ * logotipo —un banner sin imagen es un rectángulo negro del alto de media
+ * pantalla—. Igual que en cine, se devuelve una lista y no uno solo: la
+ * pantalla va bajando hasta que una imagen cargue de verdad.
+ */
+export function candidatosCanal(filas: FilaPortada[], vistos: Record<string, number>): Titulo[] {
+  const todos = sinRepetir(filas.flatMap((f) => f.items));
+  return todos
+    .slice()
+    .sort(
+      (a, b) =>
+        (vistos[b.id] || 0) - (vistos[a.id] || 0) ||
+        (b.imagen ? 1 : 0) - (a.imagen ? 1 : 0)
+    );
+}
+
 /**
  * Por qué orden se prueban los títulos para el banner de arriba.
  *

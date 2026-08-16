@@ -45,13 +45,24 @@ fn main() {
         .expect("no se ha podido arrancar TOTALplayer");
 }
 
-/// La ventana de verdad: la web, a pantalla completa y sin marco.
+/**
+ * La ventana de verdad: la web, ocupando la pantalla pero con su marco.
+ *
+ * Antes abría a pantalla completa y sin marco, que se ve muy bien y tiene un
+ * defecto que no es pequeño: no hay aspa, ni barra de tareas, ni menú. Quien
+ * no se sepa el Alt+F4 se queda dentro del programa sin manera de salir, y
+ * eso es exactamente lo que pasó. Maximizada con marco se ve prácticamente
+ * igual —una barra de título de treinta píxeles— y siempre hay por dónde
+ * cerrar. Para ver una película a pantalla completa está F11, que es la
+ * tecla de toda la vida y aquí funciona en los dos sentidos.
+ */
 fn abrir_tele(app: &AppHandle, base: &str) -> tauri::Result<()> {
     let url = tauri::Url::parse(&destino(base))
         .map_err(|_| tauri::Error::UnknownPath)?;
     WebviewWindowBuilder::new(app, "tele", WebviewUrl::External(url))
         .title("TOTALplayer")
-        .fullscreen(true)
+        .maximized(true)
+        .decorations(true)
         .resizable(true)
         .initialization_script(RECARGAR)
         .build()?;
@@ -75,11 +86,11 @@ window.addEventListener('keydown', function (e) {
     return;
   }
   /*
-   * F11: salir de pantalla completa, y volver a entrar.
+   * F11: pantalla completa, y volver.
    *
-   * Sin esto la ventana no tiene marco, ni aspa, ni barra de tareas: la
-   * única salida era Alt+F4, que hay que saberse. F11 es la tecla de toda
-   * la vida para esto y la ventana con marco ya trae su aspa.
+   * La ventana arranca maximizada y con marco —para que siempre haya un
+   * aspa—, así que F11 es lo que se pulsa para ver una película sin barra
+   * de título, y se vuelve a pulsar para recuperarla.
    *
    * No se usa ESCAPE a propósito: dentro de la aplicación, ESCAPE es
    * «atrás», y robárselo dejaría la navegación coja.

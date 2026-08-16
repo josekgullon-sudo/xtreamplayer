@@ -13,6 +13,8 @@ import {
   Titulo,
   anioDe,
   armarPortada,
+  armarPortadaDirecto,
+  candidatosCanal,
   candidatosDestacado,
   conMeta,
   datosDe,
@@ -109,6 +111,15 @@ const K_LISTA_MANUAL = "xp.tvLista.v1";
  */
 const K_SESION = "xp.tvSesion.v1";
 const K_ULTIMO = "xp.tvUltimo.v1";
+/**
+ * Cuántas veces se ha puesto cada canal en este aparato.
+ *
+ * Es la única cuenta de «lo más visto» que se puede dar sin mentir: nadie
+ * nos dice qué está viendo el resto del mundo. Se queda en el televisor, no
+ * viaja a ningún sitio, y es lo que llena la primera fila de la portada del
+ * directo.
+ */
+const K_VISTOS = "xp.tvVistos.v1";
 
 interface SesionGuardada {
   marca: string;
@@ -311,6 +322,8 @@ export default function TvApp() {
   const [sinRed, setSinRed] = useState(false);
   /** Lo último que se estaba viendo, para volver con un solo OK */
   const [ultimo, setUltimo] = useState<UltimoCanal | null>(null);
+  /** Cuántas veces se ha puesto cada canal aquí. Ver `K_VISTOS`. */
+  const [vistos, setVistos] = useState<Record<string, number>>({});
   /**
    * Columnas que ha puesto de verdad la rejilla de carátulas. Se miden en vez
    * de darlas por sabidas: el mando tiene que bajar exactamente una fila, y
@@ -396,8 +409,17 @@ export default function TvApp() {
    * condición se quedaban detrás de la portada y pulsar OK sobre una serie
    * no hacía nada visible. Lo mismo con una carpeta abierta.
    */
+  /**
+   * El directo también tiene portada, pero de canales.
+   *
+   * Con una lista M3U no la hay —de un M3U no salen categorías ni logotipos
+   * fiables, solo grupos—, y por eso se pide que haya filas montadas: si no
+   * las hay, el directo se enseña como siempre, por carpetas.
+   */
+  const portadaDeCanales = pantalla === "directo" && filasPortada.length > 0;
+
   const enPortada =
-    (pantalla === "cine" || pantalla === "series") &&
+    (pantalla === "cine" || pantalla === "series" || portadaDeCanales) &&
     vista === "portada" &&
     !serieAbierta &&
     !carpetaAbierta;
@@ -437,6 +459,7 @@ export default function TvApp() {
 
   useEffect(() => {
     setUltimo(leer<UltimoCanal>(K_ULTIMO));
+    setVistos(leer<Record<string, number>>(K_VISTOS) || {});
   }, []);
 
   /** Entrar con el usuario del proveedor, desde la propia tele */
@@ -666,6 +689,22 @@ export default function TvApp() {
     const ultimoCanal: UltimoCanal = { nombre: source.name, source };
     setUltimo(ultimoCanal);
     guardar(K_ULTIMO, ultimoCanal);
+    /*
+     * Y una raya en la pared por cada canal que se pone.
+     *
+     * Solo el directo —de ahí que se cuente por `epgId`, que es lo único que
+     * llevan los canales—: una película se ve una vez y contarla no dice
+     * nada, mientras que en la tele se vuelve a los mismos cuatro canales
+     * todos los días. Eso es lo que llena «Los que más ves».
+     */
+    if (epgId) {
+      setVistos((antes) => {
+        const clave = `live-${epgId}`;
+        const siguiente = { ...antes, [clave]: (antes[clave] || 0) + 1 };
+        guardar(K_VISTOS, siguiente);
+        return siguiente;
+      });
+    }
   }, []);
 
   /** Entra en una carpeta: su contenido sustituye a la lista de carpetas */
@@ -754,6 +793,36 @@ export default function TvApp() {
     []
   );
 
+  /**
+   * Lo mismo, para la portada de TV en directo.
+   *
+   * Va aparte porque no comparte casi nada con la de cine: aquí no hay notas
+   * ni años que ordenar, la primera fila sale de lo que ha puesto este
+   * aparato, y las tarjetas son apaisadas. Lo único común de verdad es el
+   * mecanismo —filas, foco y el mapa de acciones—, que es justo lo que se
+   * reutiliza.
+   */
+  const montarPortadaDirecto = useCallback(
+    (
+      cats: XtreamCategory[] | unknown,
+      canales: Titulo[],
+      abridores: (() => void | Promise<void>)[],
+      cuenta: Record<string, number>
+    ) => {
+      acciones.current = new Map(canales.map((t, i) => [t.id, abridores[i]]));
+      const categorias = (Array.isArray(cats) ? (cats as XtreamCategory[]) : []).map((c) => ({
+        id: String(c.category_id),
+        nombre: c.category_name || "Sin nombre",
+      }));
+      const nuevas = armarPortadaDirecto(canales, categorias, cuenta);
+      setFilasPortada(nuevas);
+      setCandidatos(candidatosCanal(nuevas, cuenta));
+      setFocoFila(-1);
+      setFocoCol(0);
+    },
+    []
+  );
+
   const abrirTitulo = useCallback((t: Titulo) => {
     acciones.current.get(t.id)?.();
   }, []);
@@ -765,7 +834,10 @@ export default function TvApp() {
    * cualquier proveedor— abrió una portada con ellos.
    */
   useEffect(() => {
-    if (!enPortada || !filasPortada.length) return;
+    /* A TMDB no se le pregunta por canales de televisión: «La 1» no es una
+       película y lo que devolvería sería ruido —o peor, la carátula de otra
+       cosa con ese nombre— */
+    if (!enPortada || portadaDeCanales || !filasPortada.length) return;
     const unicos = new Map<string, Titulo>();
     for (const f of filasPortada) for (const t of f.items) unicos.set(llaveTmdb(t), t);
     const pendientes = [...unicos.entries()].filter(([llave]) => !meta[llave]);
@@ -799,7 +871,7 @@ export default function TvApp() {
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enPortada, filasPortada]);
+  }, [enPortada, portadaDeCanales, filasPortada]);
 
   const cargar = useCallback(
     async (destino: Pantalla) => {
@@ -860,6 +932,15 @@ export default function TvApp() {
           const limpios = (Array.isArray(canales) ? canales : []).filter(
             (c) => typeof c.name === "string" && c.name.trim()
           );
+          const verCanal = (c: XtreamLiveStream) => async () =>
+            reproducir(
+              {
+                ...(await pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) })),
+                name: c.name,
+                kind: "hls",
+              },
+              String(c.stream_id)
+            );
           setFilas(
             carpetasDe(cats, limpios, (c) => c.category_id, (c) => ({
               id: `live-${c.stream_id}`,
@@ -867,16 +948,31 @@ export default function TvApp() {
               logo: c.stream_icon || "",
               epgId: String(c.stream_id),
               numero: Number(c.num) || 0,
-              abrir: async () =>
-                reproducir(
-                  {
-                    ...(await pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) })),
-                    name: c.name,
-                    kind: "hls",
-                  },
-                  String(c.stream_id)
-                ),
+              abrir: verCanal(c),
             }))
+          );
+          montarPortadaDirecto(
+            cats,
+            limpios.map((c) => ({
+              id: `live-${c.stream_id}`,
+              nombre: c.name,
+              imagen: c.stream_icon || "",
+              anio: "",
+              nota: "",
+              alta: 0,
+              sinopsis: "",
+              generos: "",
+              esSerie: false,
+              categoria: String(c.category_id ?? ""),
+              epgId: String(c.stream_id),
+              numero: Number(c.num) || 0,
+            })),
+            limpios.map(verCanal),
+            /* El contador vive en el aparato y se lee una vez al arrancar;
+               aquí se toma el valor de ese momento a propósito, para que la
+               portada no se reordene sola debajo del dedo al volver de ver
+               un canal */
+            leer<Record<string, number>>(K_VISTOS) || {}
           );
         } else if (destino === "cine") {
           const [cats, pelis] = await Promise.all([
@@ -1094,7 +1190,13 @@ export default function TvApp() {
     }
     /* Y de la lista de carpetas se vuelve a la portada, que es de donde se
        entró: si no, ATRÁS se saltaba un paso y salía al menú */
-    if (vista === "carpetas" && (pantalla === "cine" || pantalla === "series")) {
+    if (
+      vista === "carpetas" &&
+      (pantalla === "cine" || pantalla === "series" ||
+        /* El directo solo tiene portada con una lista Xtream; con un M3U no
+           hay a dónde volver y ATRÁS tiene que salir al menú de una vez */
+        (pantalla === "directo" && filasPortada.length > 0))
+    ) {
       setVista("portada");
       return;
     }
@@ -1118,7 +1220,18 @@ export default function TvApp() {
   useEffect(() => {
     setEpgAhora({});
     if (pantalla !== "directo" || !creds || lista?.tipo !== "xtream") return;
-    const ids = filas.map((f) => f.epgId).filter((id): id is string => Boolean(id)).slice(0, 40);
+    /*
+     * De dónde salen los canales que hay que consultar.
+     *
+     * Dentro de una carpeta, de la lista abierta. En la portada del directo,
+     * de las propias filas —empezando por «Los que más ves», que es la de
+     * arriba y la que se mira—. Sin esto la portada enseñaba tarjetas de
+     * canal sin decir qué echan, que es justo lo que había que arreglar.
+     */
+    const deLaPortada = filasPortada.flatMap((f) => f.items.map((t) => t.epgId));
+    const ids = (carpetaAbierta ? filas.map((f) => f.epgId) : deLaPortada)
+      .filter((id): id is string => Boolean(id))
+      .slice(0, 40);
     if (!ids.length) return;
 
     let cancelado = false;
@@ -1183,7 +1296,7 @@ export default function TvApp() {
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, lista]);
+  }, [pantalla, filas, filasPortada, carpetaAbierta, lista]);
 
   const ultimaLista = useRef<Pantalla>("directo");
   useEffect(() => {
@@ -1232,25 +1345,31 @@ export default function TvApp() {
   }, [pantalla, viendo]);
 
   const [ahoraMismo, setAhoraMismo] = useState(() => Date.now());
+  /* El reloj corre en los dos sitios donde se enseña una guía: la cabecera de
+     una carpeta de canales y el banner de la portada del directo */
+  const conGuiaALaVista = enDirecto || portadaDeCanales;
   useEffect(() => {
-    if (!enDirecto) return;
+    if (!conGuiaALaVista) return;
     const t = setInterval(() => setAhoraMismo(Date.now()), 30000);
     return () => clearInterval(t);
-  }, [enDirecto]);
+  }, [conGuiaALaVista]);
 
-  const avance = (() => {
-    if (!guiaMirada?.desde || !guiaMirada.hasta || guiaMirada.hasta <= guiaMirada.desde) return null;
-    const parte = (ahoraMismo - guiaMirada.desde) / (guiaMirada.hasta - guiaMirada.desde);
+  const avanceDe = (g?: Guia) => {
+    if (!g?.desde || !g.hasta || g.hasta <= g.desde) return null;
+    const parte = (ahoraMismo - g.desde) / (g.hasta - g.desde);
     if (parte < 0 || parte > 1) return null;
     return Math.round(parte * 100);
-  })();
+  };
 
-  const queda = (() => {
-    if (!guiaMirada?.hasta) return "";
-    const minutos = Math.round((guiaMirada.hasta - ahoraMismo) / 60000);
+  const quedaDe = (g?: Guia) => {
+    if (!g?.hasta) return "";
+    const minutos = Math.round((g.hasta - ahoraMismo) / 60000);
     if (minutos <= 0 || minutos > 600) return "";
     return minutos < 60 ? `quedan ${minutos} min` : `quedan ${Math.floor(minutos / 60)} h ${minutos % 60} min`;
-  })();
+  };
+
+  const avance = avanceDe(guiaMirada);
+  const queda = quedaDe(guiaMirada);
 
   // Cuántas carátulas ha puesto el navegador por fila, para que baje una fila
   useEffect(() => {
@@ -1480,11 +1599,14 @@ export default function TvApp() {
    * a ver la tele, que es a lo que se venía.
    */
   const caducado = caduca > 0 && caduca < Date.now();
+  /* Solo en la aplicación de Windows: en una tele, decir «Alt+F4» sobra y
+     encima confunde, que ahí no hay teclado */
+  const enWindows = typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent);
 
   if (sesion === "sin-sesion" || caducado) {
     if (haciendoLogin) {
       return (
-        <div className="tv-app tv-centro">
+        <div className="tv-app tv-centro tv-lienzo">
           <form className="tv-activar tv-form" onSubmit={entrarConUsuario}>
             <h1>Entrar con mi usuario</h1>
             <p className="tv-activar-paso">El usuario y la contraseña que te dio tu proveedor.</p>
@@ -1505,7 +1627,7 @@ export default function TvApp() {
     }
     if (poniendoLista) {
       return (
-        <div className="tv-app tv-centro">
+        <div className="tv-app tv-centro tv-lienzo">
           <form className="tv-activar tv-form" onSubmit={guardarListaManual}>
             <h1>Poner mi lista</h1>
             <p className="tv-activar-paso">Pega tu URL M3U, o tu servidor Xtream con usuario y contraseña.</p>
@@ -1526,7 +1648,7 @@ export default function TvApp() {
       );
     }
     return (
-      <div className="tv-app tv-centro">
+      <div className="tv-app tv-centro tv-lienzo">
         <div className="tv-activar">
           <p className="tv-marca">{marca}</p>
 
@@ -1550,16 +1672,24 @@ export default function TvApp() {
 
           {/* Dos tarjetas iguales, no dos columnas sueltas: la misma caja, el
               mismo tamaño de letra y el dato abajo del todo en las dos, para
-              que se vean como dos opciones y no como una principal y un resto */}
+              que se vean como dos opciones y no como una principal y un resto.
+              El número va en su círculo y no como «1 ·» en el rótulo: a tres
+              metros, un punto y una cifra pequeña no se leen como un paso */}
           <div className="tv-dos-caminos">
             <div className="tv-camino">
-              <p className="tv-camino-t">1 · Con tu proveedor</p>
+              <p className="tv-camino-t">
+                <span className="tv-camino-n">1</span>
+                Con tu proveedor
+              </p>
               <p className="tv-camino-txt">Pásale esta MAC y te activa la tele:</p>
               <p className="tv-camino-txt tv-camino-nota">Es el número con el que tu proveedor reconoce este aparato.</p>
               <div className="tv-dato">{macDelAparato()}</div>
             </div>
             <div className="tv-camino">
-              <p className="tv-camino-t">2 · Tú mismo, desde el móvil</p>
+              <p className="tv-camino-t">
+                <span className="tv-camino-n">2</span>
+                Tú mismo, desde el móvil
+              </p>
               <p className="tv-camino-txt">Entra desde el móvil en:</p>
               <div className="tv-sitio">{sitio()}/activar</div>
               <p className="tv-camino-txt">y escribe este código:</p>
@@ -1582,6 +1712,23 @@ export default function TvApp() {
               Tengo mi propia lista M3U
             </button>
           </div>
+
+          {/*
+            Cómo se sale, escrito.
+
+            En un televisor no hace falta: se pulsa el botón de inicio del
+            mando y ya. En Windows sí, y por dos motivos: las versiones
+            antiguas de la aplicación abrían a pantalla completa y sin marco
+            —sin aspa, sin barra de tareas, sin menú—, y aunque a partir de
+            ahora la ventana lleva su marco, quien tenga instalada una de
+            aquellas necesita saber que la salida es Alt+F4.
+          */}
+          {enWindows && (
+            <p className="tv-activar-nota tv-salida">
+              Para cerrar la aplicación, el aspa de la ventana o <b>Alt + F4</b>.
+              Con <b>F11</b> se pasa a pantalla completa y se vuelve.
+            </p>
+          )}
         </div>
       </div>
     );
@@ -1607,7 +1754,7 @@ export default function TvApp() {
 
   if (pantalla === "portada") {
     return (
-      <div className="tv-app tv-centro">
+      <div className="tv-app tv-centro tv-lienzo">
         <div className="tv-portada">
           <p className="tv-marca">{marca}</p>
           {sinRed && (
@@ -1696,7 +1843,76 @@ export default function TvApp() {
           {cargando && <p className="tv-cargando">Cargando…</p>}
           {error && <p className="tv-activar-error">{error}</p>}
 
-          {destacado && (
+          {/*
+            El banner del directo: el canal que más pones, con lo que echan.
+
+            No es el banner de cine con otra imagen. Un canal no tiene cartel
+            apaisado ni sinopsis, así que estirar su logotipo a lo ancho de la
+            pantalla daría una mancha; aquí el logotipo va en su caja, y el
+            sitio del texto lo ocupa lo único que de verdad interesa de un
+            canal: qué están dando, cuánto le queda y qué viene después.
+          */}
+          {portadaDeCanales && destacado && (
+            <section
+              className="tv-banner tv-banner-canal"
+              data-fila="-1"
+              data-foco={focoFila === -1 ? "1" : undefined}
+            >
+              <span className="tv-banner-velo" aria-hidden="true" />
+              <div className="tv-banner-txt">
+                <p className="tv-banner-antena">
+                  <span className="tv-punto" aria-hidden="true" />
+                  En directo
+                </p>
+                <h2 className="tv-banner-t">
+                  {destacado.numero ? <span className="tv-ahora-num">{destacado.numero}</span> : null}
+                  {destacado.nombre}
+                </h2>
+                {(() => {
+                  const g = destacado.epgId ? epgAhora[destacado.epgId] : undefined;
+                  if (!g?.ahora) return null;
+                  const parte = avanceDe(g);
+                  const falta = quedaDe(g);
+                  return (
+                    <>
+                      <p className="tv-banner-prog">
+                        {g.ahora}
+                        {falta ? <span className="tv-ahora-queda">{falta}</span> : null}
+                      </p>
+                      {parte !== null && (
+                        <span className="tv-banner-barra" aria-hidden="true">
+                          <i style={{ width: `${parte}%` }} />
+                        </span>
+                      )}
+                      {g.luego && <p className="tv-banner-luego">Después · {g.luego}</p>}
+                    </>
+                  );
+                })()}
+                <button
+                  className={`tv-banner-ver ${focoFila === -1 ? "foco" : ""}`}
+                  onMouseEnter={() => { conElMando.current = false; setFocoFila(-1); }}
+                  onClick={() => abrirTitulo(destacado)}
+                >
+                  <Icon name="play" size={24} />
+                  Ver ahora
+                </button>
+              </div>
+              <span className="tv-banner-canal-logo">
+                {imgSrc(destacado.imagen) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imgSrc(destacado.imagen)}
+                    alt=""
+                    onError={() => marcarRota(destacado.imagen)}
+                  />
+                ) : (
+                  <Icon name="tv" size={90} />
+                )}
+              </span>
+            </section>
+          )}
+
+          {!portadaDeCanales && destacado && (
             <section className="tv-banner" data-fila="-1" data-foco={focoFila === -1 ? "1" : undefined}>
               {destacado.fondo && !rotas[destacado.fondo] ? (
                 /* Con fondo apaisado de verdad, el banner es lo que se
@@ -1745,9 +1961,62 @@ export default function TvApp() {
           {filasALaVista.map((f, fi) => (
             <section className="tv-carrusel" key={`${f.titulo}-${fi}`}>
               <h3 className="tv-carrusel-t">{f.titulo}</h3>
-              <div className={`tv-carrusel-tira ${f.numerada ? "numerada" : ""}`}>
+              <div
+                className={`tv-carrusel-tira ${f.numerada ? "numerada" : ""} ${f.anchas ? "anchas" : ""}`}
+              >
                 {f.items.map((t, ci) => {
                   const puesto = focoFila === fi && focoCol === ci;
+                  /*
+                   * Un canal no lleva cartel: lleva logotipo.
+                   *
+                   * Metido en una carátula de 2:3 queda un dibujo pequeño
+                   * flotando en un rectángulo vacío, y veinte de esos son
+                   * veinte rectángulos vacíos. En tarjeta apaisada el
+                   * logotipo llena lo suyo y debajo cabe qué están dando,
+                   * que es la razón por la que alguien entra aquí.
+                   */
+                  if (f.anchas) {
+                    const g = t.epgId ? epgAhora[t.epgId] : undefined;
+                    const parte = avanceDe(g);
+                    return (
+                      <button
+                        key={t.id}
+                        className={`tv-canal ${puesto ? "foco" : ""}`}
+                        data-fila={fi}
+                        data-col={ci}
+                        data-foco={puesto ? "1" : undefined}
+                        onMouseEnter={() => { conElMando.current = false; setFocoFila(fi); setFocoCol(ci); }}
+                        onClick={() => abrirTitulo(t)}
+                      >
+                        <span className="tv-canal-marco">
+                          <span className="tv-canal-ph">{t.nombre}</span>
+                          {imgSrc(t.imagen) && !rotas[t.imagen] && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={imgSrc(t.imagen)}
+                              alt=""
+                              loading="lazy"
+                              onError={() => marcarRota(t.imagen)}
+                            />
+                          )}
+                          {f.numerada && <span className="tv-poster-num">{ci + 1}</span>}
+                          {parte !== null && (
+                            <span className="tv-canal-barra" aria-hidden="true">
+                              <i style={{ width: `${parte}%` }} />
+                            </span>
+                          )}
+                        </span>
+                        <span className="tv-canal-nombre">
+                          {t.numero ? <b>{t.numero}</b> : null}
+                          {t.nombre}
+                        </span>
+                        {/* El hueco se reserva siempre: sin esto, las
+                            tarjetas cuya guía llega más tarde crecen solas y
+                            la fila entera da un salto debajo del foco */}
+                        <span className="tv-canal-prog">{g?.ahora || ""}</span>
+                      </button>
+                    );
+                  }
                   return (
                     <button
                       key={t.id}

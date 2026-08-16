@@ -13,6 +13,24 @@ async function call(path, opts = {}, cookie = "") {
 }
 const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return m ? `${n}=${m[1]}` : ""; };
 
+/*
+ * De la portada a la lista de carpetas de siempre.
+ *
+ * Cine, series y ahora también el directo abren en una portada —banner
+ * arriba y filas debajo—, y la lista de carpetas está a un botón. Las
+ * pruebas que miran la lista pulsan ese botón si está.
+ */
+async function verCarpetas(tv) {
+  await tv.waitForSelector(".tv-vertodas, .tv-fila.tv-carpeta", { timeout: 25000 });
+  const boton = tv.locator(".tv-vertodas");
+  if (await boton.count()) await boton.first().click();
+  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 25000 });
+  /* El ratón se queda donde hizo clic, y el foco sigue al ratón: sin esto,
+     la primera flecha del mando parte de donde esté el puntero y no de donde
+     cree la prueba */
+  await tv.mouse.move(2, 2);
+}
+
 (async () => {
   const RUN = Date.now().toString(36).slice(-5);
   const U = `tv${RUN}`;
@@ -84,7 +102,39 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   check("Las flechas mueven el foco", (await tv.locator(".tv-tile.foco").innerText()).includes("Películas"));
   await tv.keyboard.press("ArrowUp");
   await tv.keyboard.press("Enter");
-  await tv.waitForSelector(".tv-fila", { timeout: 25000 });
+
+  /* --- La portada del directo ---
+     El directo era una lista de nombres de carpeta: «Deportes (12)». Eso no
+     es una razón para quedarse. Ahora abre como cine y series, con un banner
+     del canal que más se pone y filas de tarjetas apaisadas —un canal tiene
+     logotipo, no cartel— que dicen qué están dando. */
+  await tv.waitForSelector(".tv-canal", { timeout: 25000 });
+  check("TV en directo abre en una portada, no en una lista de carpetas",
+    (await tv.locator(".tv-carrusel").count()) >= 1);
+  check("Con tarjetas apaisadas y no carátulas de película",
+    (await tv.locator(".tv-carrusel-tira.anchas .tv-canal").count()) >= 4);
+  check("Y un banner del canal, con lo que echan ahora",
+    (await tv.locator(".tv-banner-canal .tv-banner-t").innerText()).trim().length > 0,
+    (await tv.locator(".tv-banner-canal .tv-banner-t").innerText()).replace(/\n/g, " "));
+  const guiaEnBanner = await tv
+    .waitForFunction(
+      () => (document.querySelector(".tv-banner-prog")?.textContent || "").includes("El programa siguiente"),
+      { timeout: 20000 }
+    )
+    .then(() => true)
+    .catch(() => false);
+  check("El banner dice qué está en antena, no el bloque ya emitido", guiaEnBanner,
+    (await tv.locator(".tv-banner-prog").innerText().catch(() => "")).replace(/\n/g, " "));
+  check("Y las tarjetas también lo dicen, sin entrar",
+    (await tv.locator(".tv-canal-prog").allInnerTexts()).some((t) => t.trim().length > 0));
+  /* Sin haber puesto nunca un canal en este aparato no hay «Los que más
+     ves»: inventarla con cualquier orden sería mentir */
+  check("Sin historial no se inventa un «lo más visto»",
+    !(await tv.locator(".tv-carrusel-t").allInnerTexts()).some((t) => t.includes("Los que más ves")),
+    (await tv.locator(".tv-carrusel-t").allInnerTexts()).join(" | "));
+  await tv.screenshot({ path: __dirname + "/93-tv-directo.png" });
+
+  await verCarpetas(tv);
   check("OK entra en TV en directo y lista lo que hay", (await tv.locator(".tv-fila").count()) >= 2);
   check("Empezando por carpetas, no por miles de canales", (await tv.locator(".tv-fila.tv-carpeta").count()) >= 1);
 
@@ -136,16 +186,21 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
     JSON.stringify(carpetas) === JSON.stringify(ordenPanel),
     `${carpetas.join(" › ")}  (panel: ${ordenPanel.join(" › ")})`);
   check("Y ninguna carpeta vacía se cuela", !carpetas.includes("Sin carpeta"), carpetas.join(" | "));
+  /* ATRÁS deshace un paso cada vez, también aquí: de las carpetas se vuelve
+     a la portada del directo —de donde se entró— y de ahí al menú */
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-banner-canal", { timeout: 15000 });
+  check("Y otra vez, a la portada del directo", true);
   await tv.keyboard.press("Escape");
   await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
-  check("Y otra vez, a la portada", true);
+  check("Y otra vez, al menú", true);
 
   /* --- El carril de secciones ---
      Pasar de las películas a las series eran dos ATRÁS y volver a recorrer
      la portada con las flechas. Ahora las secciones están siempre a la
      izquierda, como en cualquier aplicación de televisión. */
   await tv.locator(".tv-tile:has-text('TV en directo')").click();
-  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 20000 });
+  await verCarpetas(tv);
   check("Las listas traen el carril de secciones", (await tv.locator(".tv-carril-item").count()) === 5);
   check("Con la sección en la que estás marcada",
     (await tv.locator(".tv-carril-item.activo").innerText()).includes("Directo"));
@@ -175,7 +230,7 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
 
   for (const [marca, codigo] of [["Samsung (Tizen)", 10009], ["LG (webOS)", 461]]) {
     await tv.locator(".tv-tile:has-text('TV en directo')").click();
-    await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 20000 });
+    await tv.waitForSelector(".tv-canal", { timeout: 20000 });
     await pulsaCodigo(codigo);
     const volvio = await tv
       .waitForSelector(".tv-tiles", { timeout: 8000 })
@@ -348,11 +403,11 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
 
   // --- Lo último visto, para volver con un solo OK ---
   await tv.keyboard.press("Enter");
-  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 20000 });
-  await tv.keyboard.press("Enter");
-  await tv.waitForFunction(() => document.querySelectorAll(".tv-fila:not(.tv-carpeta)").length > 0, { timeout: 20000 });
-  const canal = (await tv.locator(".tv-fila:not(.tv-carpeta) .tv-fila-nombre").first().innerText()).trim();
-  await tv.locator(".tv-fila:not(.tv-carpeta)").first().click();
+  await tv.waitForSelector(".tv-canal", { timeout: 20000 });
+  /* El nombre pelado, del rótulo de detrás del logotipo: el de debajo lleva
+     delante el número del canal y «Seguir viendo» no lo lleva */
+  const canal = (await tv.locator(".tv-canal .tv-canal-ph").first().innerText()).trim();
+  await tv.locator(".tv-canal").first().click();
   /* El ratón, fuera antes de volver: al salir del vídeo, «Seguir viendo»
      aparece justo donde quedó el puntero del clic y se enfoca él solo —que
      con un ratón es lo correcto, pero aquí falsea lo que hace el mando— */
@@ -376,6 +431,41 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   await tv.keyboard.press("Enter");
   await tv.waitForSelector(".tv-viendo", { timeout: 20000 });
   check("Y con un OK vuelve a lo suyo", true);
+
+  /* --- «Los que más ves» ---
+     Es la única cuenta de lo más visto que se puede dar sin mentir: nadie
+     nos dice qué ve el resto del mundo, así que se cuenta lo que pone este
+     aparato. Aquí se comprueban las dos mitades: que poner un canal deja su
+     raya, y que la portada la usa. */
+  const rayas = await tv.evaluate(() => JSON.parse(localStorage.getItem("xp.tvVistos.v1") || "{}"));
+  check("Poner un canal deja su raya en el aparato",
+    Object.values(rayas).some((n) => n > 0), JSON.stringify(rayas));
+  check("Y solo del directo: una película no cuenta",
+    Object.keys(rayas).every((k) => k.startsWith("live-")), Object.keys(rayas).join(" | "));
+
+  /* Sin los que el panel manda sin nombre: la aplicación los descarta y en
+     el ranking no puede salir un canal que no existe */
+  const canales = (await fetch("http://127.0.0.1:8090/player_api.php?username=demo&password=demo123&action=get_live_streams").then((x) => x.json()))
+    .filter((c) => typeof c.name === "string" && c.name.trim());
+  const tresMas = canales.slice(0, 3).map((c) => `live-${c.stream_id}`);
+  await tv.evaluate((ids) => {
+    const ya = JSON.parse(localStorage.getItem("xp.tvVistos.v1") || "{}");
+    ids.forEach((id, i) => { ya[id] = 9 - i; });
+    localStorage.setItem("xp.tvVistos.v1", JSON.stringify(ya));
+  }, tresMas);
+  await tv.goto(BASE + "/tv?app=1", { waitUntil: "networkidle" });
+  await tv.waitForSelector(".tv-tiles", { timeout: 25000 });
+  await tv.locator(".tv-tile:has-text('TV en directo')").click();
+  await tv.waitForSelector(".tv-canal", { timeout: 25000 });
+  const rotulosDirecto = (await tv.locator(".tv-carrusel-t").allInnerTexts()).map((s) => s.trim());
+  check("Con historial, la portada del directo abre con «Los que más ves»",
+    rotulosDirecto[0] === "Los que más ves", rotulosDirecto.join(" | "));
+  check("Y va numerada, como cualquier ranking",
+    (await tv.locator(".tv-carrusel").first().locator(".tv-poster-num").first().innerText()) === "1");
+  const primero = await tv.locator(".tv-carrusel").first().locator(".tv-canal-ph").first().innerText();
+  check("Empezando por el que más se pone",
+    primero.trim() === (canales[0].name || "").trim(), `${primero.trim()} (esperado ${canales[0].name})`);
+  await tv.mouse.move(2, 2);
 
   // --- Encender sin red ---
   const sinRed = await ctx.newPage();
