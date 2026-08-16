@@ -36,6 +36,11 @@ export interface Titulo {
    * instalación no usa TMDB.
    */
   fondo?: string;
+  /* ---- Y lo que solo tiene un canal de televisión ---- */
+  /** Su identificador para pedir la guía. Solo en el directo. */
+  epgId?: string;
+  /** El número que le ha puesto el proveedor en su mando. */
+  numero?: number;
 }
 
 /** Lo que TMDB añade a un título. Ver `lib/tmdb.ts` y `/api/meta`. */
@@ -95,6 +100,14 @@ export interface FilaPortada {
   escaparate?: boolean;
   /** La carpeta de la que sale. Vacío si es una fila inventada. */
   categoriaId?: string;
+  /**
+   * Sus tarjetas son apaisadas y no carátulas verticales.
+   *
+   * Un canal de televisión no tiene cartel: tiene logotipo. Estirarlo a 2:3
+   * deja un dibujo pequeño flotando en un rectángulo vacío, así que las
+   * filas del directo van en tarjetas anchas con el logotipo centrado.
+   */
+  anchas?: boolean;
 }
 
 /** Cuántas carpetas entran en la portada: más son más filas que nadie baja. */

@@ -2061,12 +2061,47 @@ select.input { appearance: none; cursor: pointer; }
 
 /* ---- Vídeo a pantalla completa ---- */
 
+/*
+ * El vídeo, a sangre.
+ *
+ * `.pa-video-zone` lleva «aspect-ratio: 16/9» y «max-height: 62vh» porque en
+ * el reproductor web comparte pantalla con la lista de canales. En la tele no
+ * comparte nada: con esas dos reglas el vídeo salía metido en una caja a
+ * media altura, con el resto en negro y la barra gris de Chrome flotando por
+ * medio. Aquí ocupa la pantalla entera.
+ */
 .tv-viendo { background: #000; }
-.tv-viendo .pa-video-zone { flex: 1; }
+.tv-viendo .pa-video-zone {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; max-height: none; aspect-ratio: auto;
+}
 .tv-viendo video { width: 100%; height: 100%; object-fit: contain; }
+/* Y por si algún televisor se empeña en pintar los suyos igualmente */
+.tv-viendo video::-webkit-media-controls { display: none !important; }
+
+/* Lo que sí se enseña encima: qué estás viendo, arriba y sin estorbar */
+.tv-viendo-canal {
+  position: absolute; top: 4vh; left: 4vw; right: 4vw;
+  display: flex; align-items: center; gap: 1.2vw;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+/* Se va solo a los cinco segundos, como el rótulo de cualquier televisor */
+.tv-viendo-canal.ido, .tv-viendo-pie.ido { opacity: 0; }
+.tv-viendo-canal .tv-punto { width: 0.7vw; height: 0.7vw; min-width: 8px; min-height: 8px; }
+.tv-viendo-nombre {
+  font-size: 2vw; font-weight: 750; color: #fff;
+  text-shadow: 0 0.3vh 1.2vh rgba(0, 0, 0, 0.9);
+}
+.tv-viendo-prog {
+  font-size: 1.3vw; color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 0.3vh 1.2vh rgba(0, 0, 0, 0.9);
+}
 .tv-viendo-pie {
   position: absolute; left: 0; right: 0; bottom: 2vh; text-align: center;
-  font-size: 1.2vw; color: rgba(255, 255, 255, 0.45); pointer-events: none;
+  font-size: 1.2vw; color: rgba(255, 255, 255, 0.55); pointer-events: none;
+  text-shadow: 0 0.2vh 1vh rgba(0, 0, 0, 0.9);
+  transition: opacity 0.6s ease;
 }
 
 /* En una tele pequeña o en el navegador de pruebas, los vw se quedan cortos */

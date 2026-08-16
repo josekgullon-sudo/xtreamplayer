@@ -227,9 +227,19 @@ function buildAttempts(src: PlaySource): Attempt[] {
 
 export default function VideoPlayer({
   source,
+  controles = true,
   onEnded,
 }: {
   source: PlaySource | null;
+  /**
+   * Los mandos del navegador: la barra con play, tiempo y volumen.
+   *
+   * En el reproductor web valen; en un televisor, no. Ahí salía la barra
+   * gris de Chrome —pensada para un ratón— encima del vídeo, con su botón
+   * de pantalla completa y sus tres puntitos. Con un mando no se puede
+   * usar y afea lo único que se ha venido a ver.
+   */
+  controles?: boolean;
   onEnded?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -637,7 +647,7 @@ export default function VideoPlayer({
     <div className="pa-video-zone">
       <video
         ref={videoRef}
-        controls
+        controls={controles}
         playsInline
         onEnded={onEnded}
         aria-label={source ? `Reproduciendo ${source.name}` : "Reproductor de vídeo"}

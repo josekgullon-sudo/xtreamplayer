@@ -299,7 +299,7 @@ export default function TvApp() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
   const [foco, setFoco] = useState(0);
-  const [viendo, setViendo] = useState<{ source: PlaySource } | null>(null);
+  const [viendo, setViendo] = useState<{ source: PlaySource; epgId?: string } | null>(null);
   /** Serie abierta: sus episodios sustituyen a la lista mientras dure */
   const [serieAbierta, setSerieAbierta] = useState<string>("");
   /** Carpeta abierta dentro de una sección (null = viendo las carpetas) */
@@ -658,8 +658,8 @@ export default function TvApp() {
       : { base: lista.url, username: lista.usuario, password: lista.password }
     : null;
 
-  const reproducir = useCallback((source: PlaySource) => {
-    setViendo({ source });
+  const reproducir = useCallback((source: PlaySource, epgId?: string) => {
+    setViendo({ source, epgId });
     setPantalla("viendo");
     /* En una tele se vuelve casi siempre a lo mismo. Guardarlo cuesta una
        línea y ahorra recorrer otra vez carpeta, categoría y canal */
@@ -868,11 +868,14 @@ export default function TvApp() {
               epgId: String(c.stream_id),
               numero: Number(c.num) || 0,
               abrir: async () =>
-                reproducir({
-                  ...(await pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) })),
-                  name: c.name,
-                  kind: "hls",
-                }),
+                reproducir(
+                  {
+                    ...(await pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) })),
+                    name: c.name,
+                    kind: "hls",
+                  },
+                  String(c.stream_id)
+                ),
             }))
           );
         } else if (destino === "cine") {
@@ -1213,6 +1216,21 @@ export default function TvApp() {
    * eso, la barra se quedaba clavada donde estaba al abrir la carpeta y a
    * los diez minutos mentía.
    */
+  /**
+   * El rótulo de encima del vídeo, que se va solo.
+   *
+   * Es lo que hace cualquier televisor: al poner un canal dice cuál es y a
+   * los pocos segundos desaparece. Dejarlo fijo es tener un cartel encima de
+   * la película durante dos horas.
+   */
+  const [osd, setOsd] = useState(true);
+  useEffect(() => {
+    if (pantalla !== "viendo") return;
+    setOsd(true);
+    const t = setTimeout(() => setOsd(false), 5000);
+    return () => clearTimeout(t);
+  }, [pantalla, viendo]);
+
   const [ahoraMismo, setAhoraMismo] = useState(() => Date.now());
   useEffect(() => {
     if (!enDirecto) return;
@@ -1570,10 +1588,19 @@ export default function TvApp() {
   }
 
   if (pantalla === "viendo" && viendo) {
+    /* Lo que se está viendo, encima y sin estorbar: en una tele no hay barra
+       de título ni pestaña que lo diga, y a los dos minutos ya no te acuerdas
+       de en qué canal entraste */
+    const guiaDeEsto = viendo.epgId ? epgAhora[viendo.epgId] : undefined;
     return (
       <div className="tv-app tv-viendo">
-        <VideoPlayer source={viendo.source} />
-        <p className="tv-viendo-pie">Pulsa ATRÁS para volver</p>
+        <VideoPlayer source={viendo.source} controles={false} />
+        <div className={`tv-viendo-canal ${osd ? "" : "ido"}`}>
+          <span className="tv-punto" aria-hidden="true" />
+          <span className="tv-viendo-nombre">{viendo.source.name}</span>
+          {guiaDeEsto?.ahora && <span className="tv-viendo-prog">{guiaDeEsto.ahora}</span>}
+        </div>
+        <p className={`tv-viendo-pie ${osd ? "" : "ido"}`}>Pulsa ATRÁS para volver</p>
       </div>
     );
   }
