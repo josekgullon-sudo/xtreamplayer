@@ -70,6 +70,6 @@ jobs:
           - **TOTALplayer-instalador.exe** — el de siempre: doble clic, siguiente, y queda en el menú de inicio. No pide permisos de administrador.
           - **TOTALplayer.msi** — el mismo, en el formato que reparten las empresas.
 
-          Se abre a pantalla completa en la interfaz de televisión. Para cerrarlo, Alt + F4.
+          Se abre maximizado en la interfaz de televisión, con su marco: se cierra por el aspa de siempre. **F11** pasa a pantalla completa y vuelve; **F5** recarga.
 
           Sin firmar: Windows enseñará un aviso azul de \"Windows protegió tu PC\" la primera vez. *Más información* → *Ejecutar de todas formas*. Se quita comprando un certificado de firma de código, y eso va cuando esto salga de pruebas."
