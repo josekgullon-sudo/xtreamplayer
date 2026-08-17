@@ -213,14 +213,14 @@ public class ReproductorActivity extends Activity {
 
     private void pedirGuia() {
         final Catalogo.Item canal = Traspaso.cola.get(Traspaso.posicion);
-        Hilos.fuera(new Hilos.Trabajo<String[]>() {
-            @Override public String[] hacer() { return Catalogo.guia(canal.id); }
-        }, new Hilos.Luego<String[]>() {
-            @Override public void listo(String[] par) {
-                if (par == null) return;
+        Hilos.fuera(new Hilos.Trabajo<String>() {
+            @Override public String hacer() { return Catalogo.enAntena(canal.id); }
+        }, new Hilos.Luego<String>() {
+            @Override public void listo(String enAntena) {
+                if (enAntena == null || enAntena.isEmpty()) return;
                 // Se puede haber zapeado mientras llegaba
                 if (Traspaso.cola == null || !canal.id.equals(Traspaso.cola.get(Traspaso.posicion).id)) return;
-                ahora.setText(par[0]);
+                ahora.setText(enAntena);
             }
             @Override public void falla(Exception e) { /* la guía es un extra */ }
         });

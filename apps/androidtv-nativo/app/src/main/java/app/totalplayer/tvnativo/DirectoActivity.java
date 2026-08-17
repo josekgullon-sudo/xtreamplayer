@@ -32,7 +32,8 @@ public class DirectoActivity extends Activity {
     private RecyclerView listaCarpetas, listaCanales;
     private AdaptadorCarpetas carpetas;
     private AdaptadorCanales canales;
-    private TextView tituloCarpeta, nombreCanal, ahora, luego, pista, comoAmpliar, vacio;
+    private TextView tituloCarpeta, nombreCanal, ahora, pista, comoAmpliar, vacio;
+    private android.widget.LinearLayout luegoLista;
     private TextView etiquetaAhora, etiquetaLuego, cuantos;
     private View bloqueVacio, columnaCarpetas, columnaCanales, columnaVideo, bloqueInfo;
     /** A pantalla completa se esconde todo menos el vídeo. */
@@ -72,7 +73,7 @@ public class DirectoActivity extends Activity {
         tituloCarpeta = findViewById(R.id.tituloCarpeta);
         nombreCanal = findViewById(R.id.nombreCanal);
         ahora = findViewById(R.id.ahora);
-        luego = findViewById(R.id.luego);
+        luegoLista = findViewById(R.id.luegoLista);
         pista = findViewById(R.id.pista);
         comoAmpliar = findViewById(R.id.comoAmpliar);
         vacio = findViewById(R.id.vacio);
@@ -198,7 +199,7 @@ public class DirectoActivity extends Activity {
         canales.sonando(listaCanales, "", null);
         nombreCanal.setText("");
         ahora.setText("");
-        luego.setText("");
+        luegoLista.removeAllViews();
         etiquetaAhora.setVisibility(View.GONE);
         etiquetaLuego.setVisibility(View.GONE);
         comoAmpliar.setVisibility(View.GONE);
@@ -423,7 +424,7 @@ public class DirectoActivity extends Activity {
         canales.sonando(listaCanales, sonando, "");
         nombreCanal.setText(canal.nombre);
         ahora.setText("");
-        luego.setText("");
+        luegoLista.removeAllViews();
         etiquetaAhora.setVisibility(View.GONE);
         etiquetaLuego.setVisibility(View.GONE);
         pista.setVisibility(View.GONE);
@@ -600,25 +601,71 @@ public class DirectoActivity extends Activity {
         return true;
     }
 
+    /** Cuántos programas se enseñan detrás del que está en antena. */
+    private static final int CUANTOS_DESPUES = 5;
+
     private void pedirGuia(final Catalogo.Item canal) {
-        Hilos.fuera(new Hilos.Trabajo<String[]>() {
-            @Override public String[] hacer() { return Catalogo.guia(canal.id); }
-        }, new Hilos.Luego<String[]>() {
-            @Override public void listo(String[] par) {
-                if (par == null || !canal.id.equals(sonando)) return;
-                if (!par[0].isEmpty()) {
-                    etiquetaAhora.setVisibility(View.VISIBLE);
-                    ahora.setText(par[0]);
+        Hilos.fuera(new Hilos.Trabajo<java.util.List<Catalogo.Programa>>() {
+            @Override public java.util.List<Catalogo.Programa> hacer() { return Catalogo.guia(canal.id); }
+        }, new Hilos.Luego<java.util.List<Catalogo.Programa>>() {
+            @Override public void listo(java.util.List<Catalogo.Programa> parrilla) {
+                if (parrilla == null || parrilla.isEmpty() || !canal.id.equals(sonando)) return;
+                Catalogo.Programa enAntena = parrilla.get(0);
+                etiquetaAhora.setVisibility(View.VISIBLE);
+                ahora.setText(enAntena.hora.isEmpty()
+                        ? enAntena.titulo
+                        : enAntena.hora + "  " + enAntena.titulo);
+
+                /*
+                 * Y detrás, la parrilla. Cinco es lo que cabe sin empujar la
+                 * lista de canales fuera de la pantalla, y son las tres o
+                 * cuatro horas siguientes: bastante para decidir si esperar.
+                 */
+                luegoLista.removeAllViews();
+                int puestos = 0;
+                for (int i = 1; i < parrilla.size() && puestos < CUANTOS_DESPUES; i++, puestos++) {
+                    luegoLista.addView(filaDeGuia(parrilla.get(i)));
                 }
-                if (!par[1].isEmpty()) {
-                    etiquetaLuego.setVisibility(View.VISIBLE);
-                    luego.setText(par[1]);
-                }
+                etiquetaLuego.setVisibility(puestos > 0 ? View.VISIBLE : View.GONE);
+
                 // Y en la lista, debajo del nombre del canal que suena
-                canales.sonando(listaCanales, sonando, par[0]);
+                canales.sonando(listaCanales, sonando, enAntena.titulo);
             }
             @Override public void falla(Exception e) { /* la guía es un extra */ }
         });
+    }
+
+    /**
+     * Una línea de la parrilla: la hora a la izquierda y el título al lado.
+     *
+     * La hora en su columna y no pegada al texto: alineadas en vertical se
+     * leen de un barrido, y sin ellas la lista es un montón de títulos sin
+     * decir cuándo es ninguno.
+     */
+    private View filaDeGuia(Catalogo.Programa p) {
+        android.widget.LinearLayout fila = new android.widget.LinearLayout(this);
+        fila.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        fila.setPadding(0, dp(3), 0, dp(3));
+
+        TextView hora = new TextView(this);
+        hora.setText(p.hora);
+        hora.setTextSize(13);
+        hora.setTextColor(getResources().getColor(R.color.tenue));
+        hora.setWidth(dp(52));
+        fila.addView(hora);
+
+        TextView titulo = new TextView(this);
+        titulo.setText(p.titulo);
+        titulo.setTextSize(13);
+        titulo.setTextColor(getResources().getColor(R.color.apagado));
+        titulo.setMaxLines(1);
+        titulo.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        fila.addView(titulo);
+        return fila;
+    }
+
+    private int dp(int v) {
+        return Math.round(v * getResources().getDisplayMetrics().density);
     }
 
     /** Arriba y abajo zapean cuando se está a pantalla completa. */

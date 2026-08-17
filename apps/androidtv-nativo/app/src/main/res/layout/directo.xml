@@ -271,14 +271,21 @@
                 android:layout_marginTop="10dp"
                 android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/luego"
+            <!--
+                La parrilla, no un solo título.
+
+                Aquí había un único TextView: se veía lo que dan y una cosa
+                más. La pregunta que se hace de verdad delante de un canal
+                —si esperar o seguir zapeando— necesita ver la tarde, no el
+                minuto siguiente. Las filas se meten por código porque son
+                pocas y de altura fija; un adaptador para cinco líneas es
+                más andamiaje que lista.
+            -->
+            <LinearLayout
+                android:id="@+id/luegoLista"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/apagado"
-                android:textSize="14sp"
-                android:maxLines="1"
-                android:ellipsize="end"
+                android:orientation="vertical"
                 android:layout_marginTop="3dp" />
 
             <TextView

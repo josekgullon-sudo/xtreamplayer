@@ -775,32 +775,97 @@ public final class Catalogo {
 
     /* ---------------- Qué echan ahora ---------------- */
 
-    private static final Map<String, String[]> loQueEchan = new LinkedHashMap<>();
+    private static final Map<String, List<Programa>> loQueEchan = new LinkedHashMap<>();
+
+    /** Un programa de la parrilla: cuándo empieza y qué es. */
+    public static class Programa {
+        public final String hora;
+        public final String titulo;
+        public final long inicio;
+        public final long fin;
+        Programa(String hora, String titulo, long inicio, long fin) {
+            this.hora = hora; this.titulo = titulo; this.inicio = inicio; this.fin = fin;
+        }
+        /** Está en antena si el reloj cae dentro de su tramo. */
+        boolean enAntena(long ahora) { return inicio > 0 && fin > 0 && ahora >= inicio && ahora < fin; }
+    }
 
     /**
-     * Lo que están dando y lo que viene después, para el canal enfocado.
+     * La parrilla del canal: lo que dan y lo que viene detrás.
      *
-     * Un nombre de canal no dice nada: «AXN HD» no es una razón para
-     * quedarse. Lo que hace que alguien pare de zapear es ver el título de
-     * lo que están echando.
+     * Pedía dos programas y se quedaba con el primero como «ahora». Dos
+     * problemas. El primero es que el panel empieza la lista donde le
+     * parece: la mitad manda el bloque de la hora anterior, así que lo que
+     * salía como AHORA era un programa que ya había terminado. Se elige por
+     * el reloj, no por el orden de llegada.
+     *
+     * El segundo es que con dos no hay «después» que valga: se ve el de
+     * ahora y uno más, y la pregunta de si esperar o seguir zapeando
+     * necesita ver la tarde, no el minuto siguiente.
      */
-    public static String[] guia(String streamId) {
-        String[] ya = loQueEchan.get(streamId);
+    public static List<Programa> guia(String streamId) {
+        List<Programa> ya = loQueEchan.get(streamId);
         if (ya != null) return ya;
         if (!Sesion.actual().esXtream()) return null;
         try {
             JSONObject r = new JSONObject(pedir(Sesion.actual().api()
-                    + "&action=get_short_epg&stream_id=" + Web.escapar(streamId) + "&limit=2"));
+                    + "&action=get_short_epg&stream_id=" + Web.escapar(streamId) + "&limit=12"));
             JSONArray eps = r.optJSONArray("epg_listings");
             if (eps == null || eps.length() == 0) return null;
-            String ahora = tituloEpg(eps.optJSONObject(0));
-            String luego = eps.length() > 1 ? tituloEpg(eps.optJSONObject(1)) : "";
-            String[] par = new String[] { ahora, luego };
-            loQueEchan.put(streamId, par);
-            return par;
+            List<Programa> parrilla = new ArrayList<>();
+            for (int i = 0; i < eps.length(); i++) {
+                JSONObject ep = eps.optJSONObject(i);
+                if (ep == null) continue;
+                String titulo = tituloEpg(ep);
+                if (titulo.isEmpty()) continue;
+                long ini = momentoEpg(ep, "start_timestamp", "start");
+                long fin = momentoEpg(ep, "stop_timestamp", "end");
+                parrilla.add(new Programa(horaDe(ini), titulo, ini, fin));
+            }
+            if (parrilla.isEmpty()) return null;
+            /* Fuera lo ya emitido: ocupa sitio y no ayuda a decidir nada.
+               Si ninguno cae en el reloj —panel sin horas fiables— se deja
+               la lista entera, que es mejor que quedarse sin guía. */
+            long ahora = System.currentTimeMillis();
+            int deAqui = -1;
+            for (int i = 0; i < parrilla.size(); i++) {
+                if (parrilla.get(i).enAntena(ahora)) { deAqui = i; break; }
+            }
+            if (deAqui > 0) parrilla = new ArrayList<>(parrilla.subList(deAqui, parrilla.size()));
+            loQueEchan.put(streamId, parrilla);
+            return parrilla;
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** Xtream manda la hora en unix y en texto, según el panel. */
+    private static long momentoEpg(JSONObject ep, String campoUnix, String campoTexto) {
+        String unix = ep.optString(campoUnix, "");
+        if (!unix.isEmpty()) {
+            try { return Long.parseLong(unix.trim()) * 1000L; } catch (Exception ignored) { }
+        }
+        String texto = ep.optString(campoTexto, "");
+        if (texto.isEmpty()) return 0;
+        try {
+            java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US);
+            return f.parse(texto.trim()).getTime();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /** «21:30». Sin hora no se pone nada: un «00:00» inventado engaña. */
+    private static String horaDe(long momento) {
+        if (momento <= 0) return "";
+        return new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                .format(new java.util.Date(momento));
+    }
+
+    /** Lo que está en antena, para quien solo necesita eso. */
+    public static String enAntena(String streamId) {
+        List<Programa> g = guia(streamId);
+        return g == null || g.isEmpty() ? "" : g.get(0).titulo;
     }
 
     /** Xtream manda los títulos de la guía en base64. */
