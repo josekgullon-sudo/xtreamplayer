@@ -267,14 +267,19 @@
                 android:layout_marginTop="14dp"
                 android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/luego"
+            <!--
+                La parrilla, no un solo título. Y ojo: esta variante es la
+                que usa cualquier televisor. Cambiar solo la de `layout/`
+                deja aquí un identificador que ya no existe, `findViewById`
+                devuelve null y la pantalla se cae al abrir un canal — sin
+                que la compilación diga nada, porque el identificador sí
+                existe en la otra variante.
+            -->
+            <LinearLayout
+                android:id="@+id/luegoLista"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/apagado"
-                android:textSize="16sp"
-                android:maxLines="2"
-                android:ellipsize="end"
+                android:orientation="vertical"
                 android:layout_marginTop="4dp" />
 
             <View
