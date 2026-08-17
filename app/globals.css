@@ -453,6 +453,220 @@ button { font-family: inherit; }
 .hero-note { margin-top: 24px; font-size: 13.5px; color: var(--text-faint); }
 
 /*
+ * La palabra que importa, subrayada con marcador.
+ *
+ * Convive con `.grad` y no lo sustituye: el degradado tiñe la letra y a
+ * tamaño grande se lee estupendamente, pero de lejos —y en una pantalla que
+ * no calibra bien el color, que son casi todas— pierde contraste contra el
+ * fondo. El marcador es un bloque de color con la letra encima: se ve
+ * siempre y de un vistazo se sabe cuál es la palabra de la frase.
+ */
+.marca-texto {
+  display: inline-block;
+  /* Ceñido y de esquinas casi rectas: con el radio grande y mucho relleno
+     dejaba de leerse como un trazo de marcador y parecía un botón gigante */
+  padding: 0.02em 0.2em 0.08em;
+  border-radius: 0.06em;
+  background: var(--accent);
+  color: #fff;
+  /* Un grado y pico de giro: sin él parece un campo de formulario */
+  transform: rotate(-0.8deg);
+}
+
+/* ---- La barra de novedades, arriba del todo ---- */
+
+.barra-aviso {
+  position: relative;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  padding: 10px 46px;
+  background: var(--accent); color: #fff;
+  font-size: 14.5px; font-weight: 600; text-align: center;
+}
+.barra-aviso a {
+  color: #fff; text-decoration: underline; text-underline-offset: 3px;
+  font-weight: 700;
+}
+.barra-aviso-x {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: none; border: none; color: #fff; cursor: pointer;
+  opacity: 0.75; transition: opacity 0.15s, background 0.15s;
+}
+.barra-aviso-x:hover { opacity: 1; background: rgba(0, 0, 0, 0.18); }
+
+/* ---- La etiqueta que va encima del título de una sección ---- */
+
+/*
+ * Una línea corta antes del titular, en una píldora.
+ *
+ * Sirve para lo que el titular no puede decir sin alargarse: qué hay de
+ * nuevo, para quién es la sección, o el dato que la resume. Y de paso rompe
+ * la columna de titulares centrados, que en una portada larga acaban
+ * pareciendo todos el mismo.
+ */
+.etiqueta-seccion {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin: 0 auto 18px; padding: 7px 16px;
+  border: 1px solid var(--accent-tint-strong); border-radius: var(--radius-pill);
+  background: var(--accent-tint-soft); color: var(--accent-bright);
+  font-size: 13px; font-weight: 700; letter-spacing: 0.02em;
+}
+.etiqueta-fila { display: flex; justify-content: center; }
+
+/* ---- La maqueta del producto ---- */
+
+/*
+ * Dibujada con HTML y CSS, no es una captura: nítida en cualquier pantalla,
+ * pesa unos kilobytes en vez de medio mega —y esto va en el primer golpe de
+ * vista, que es justo donde no se puede gastar— y se adapta sola al móvil.
+ * Ver `components/MaquetaProducto.tsx`.
+ */
+.maqueta {
+  position: relative;
+  max-width: 940px; margin: 0 auto 34px;
+  /* Sitio para el móvil, que se apoya en la esquina y sobresale */
+  padding: 0 0 30px 74px;
+}
+.maqueta-tele {
+  position: relative; overflow: hidden;
+  border-radius: 14px 14px 4px 4px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.55);
+  aspect-ratio: 16 / 10;
+  display: flex; flex-direction: column;
+}
+.maqueta-barra {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 16px; flex: none;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg-elev);
+}
+.maqueta-avatar {
+  width: 20px; height: 20px; border-radius: 50%; flex: none;
+  background: linear-gradient(140deg, var(--accent-bright), var(--accent-deep));
+}
+.maqueta-pestana { font-size: 11px; font-weight: 600; color: var(--text-faint); }
+.maqueta-pestana.activa { color: var(--text); }
+.maqueta-logo {
+  margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+.maqueta-logo b { color: var(--accent-bright); font-weight: 800; }
+.maqueta-logo.pequeno { margin-left: 0; font-size: 8.5px; }
+
+/* El banner de la portada: la mancha, el velo y el texto encima */
+.maqueta-banner {
+  position: relative; flex: 1 1 auto; min-height: 0;
+  background:
+    linear-gradient(90deg, var(--bg) 26%, rgba(32, 31, 40, 0.55) 62%, transparent 88%),
+    linear-gradient(120deg, #3a1b28, #6b2233 55%, #24405c);
+  display: flex; align-items: center;
+}
+.maqueta-banner-txt {
+  display: flex; flex-direction: column; gap: 9px; align-items: flex-start;
+  padding: 0 24px; width: 56%;
+}
+.maqueta-t-grande { display: block; width: 74%; height: 15px; border-radius: 4px; background: rgba(255, 255, 255, 0.9); }
+.maqueta-t-linea { display: block; width: 92%; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.3); }
+.maqueta-t-linea.corta { width: 62%; }
+.maqueta-boton {
+  margin-top: 5px; padding: 6px 16px; border-radius: 999px;
+  background: var(--accent); color: #fff; font-size: 10px; font-weight: 700;
+}
+.maqueta-fila-t { padding: 12px 16px 7px; flex: none; }
+.maqueta-t-rotulo { display: block; width: 108px; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.34); }
+/*
+ * La fila de carátulas manda sobre el banner, no al revés.
+ *
+ * Con el banner creciendo a placer y las carátulas en proporción 2:3, la
+ * fila se salía por debajo del marco y se veían medias carátulas cortadas:
+ * la maqueta pasaba de enseñar el producto a parecer una página rota. Aquí
+ * la fila se lleva un tercio fijo del alto y el banner se queda con lo que
+ * sobra, que es además como se reparte la portada de verdad.
+ */
+.maqueta-fila { display: flex; gap: 9px; padding: 0 16px 14px; flex: none; height: 33%; }
+.maqueta-cartel {
+  position: relative; flex: 1 1 0; height: 100%;
+  border-radius: 6px; overflow: hidden;
+  display: flex; align-items: flex-end;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+.maqueta-cartel-t {
+  padding: 6px 7px; font-size: 8.5px; font-weight: 700; line-height: 1.2;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+.maqueta-num {
+  position: absolute; left: 2px; bottom: -4px;
+  font-size: 30px; font-weight: 800; line-height: 0.8;
+  color: rgba(255, 255, 255, 0.92); text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+/* El móvil, delante y a la izquierda */
+/*
+ * El móvil se apoya en la esquina de la pantalla grande y sobresale.
+ *
+ * Metido dentro del marco tapaba una carátula entera y parecía un error de
+ * maquetación; apoyado en el canto se lee lo que es —la misma aplicación en
+ * el bolsillo— y de paso da la profundidad que una captura plana no tiene.
+ */
+.maqueta-movil {
+  position: absolute; left: 0; bottom: 0; width: 158px;
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 9px 8px 14px;
+  border-radius: 18px; border: 1px solid var(--border);
+  background: var(--bg); box-shadow: 0 28px 60px rgba(0, 0, 0, 0.6);
+}
+.maqueta-movil-barra { display: flex; align-items: center; padding: 2px 3px 5px; }
+.maqueta-movil-rotulo {
+  display: flex; align-items: center; gap: 5px; padding: 0 3px;
+  font-size: 9px; font-weight: 700; color: var(--text-dim);
+}
+.maqueta-movil-rotulo.tenue { height: 7px; width: 62px; margin: 3px 3px 0; border-radius: 4px; background: rgba(255, 255, 255, 0.22); }
+.maqueta-punto { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-bright); }
+.maqueta-movil-fila { display: flex; gap: 6px; padding: 0 3px; }
+.maqueta-cartel.chico { border-radius: 5px; }
+.maqueta-cartel.chico .maqueta-num { font-size: 22px; }
+
+/* El play, encima de todo */
+.maqueta-play {
+  position: absolute; left: calc(50% + 26px); top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 84px; height: 84px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  box-shadow: 0 0 0 12px var(--accent-tint), 0 18px 44px rgba(0, 0, 0, 0.5);
+  padding-left: 5px; /* el triángulo pesa a la izquierda */
+}
+
+/*
+ * Y lo que hay que decir debajo, aunque no luzca.
+ *
+ * Las carátulas son inventadas y esto no vende contenido: es un reproductor,
+ * como VLC. Decirlo donde se ve —y no enterrado en las preguntas
+ * frecuentes— es lo que separa «una herramienta para tu lista» de «un sitio
+ * donde hay películas», que es justo la confusión que no conviene a nadie.
+ */
+.maqueta-nota {
+  margin: 0 auto 36px; max-width: 660px; text-align: center;
+  font-size: 13.5px; line-height: 1.6; color: var(--text-dim);
+}
+
+@media (max-width: 720px) {
+  /* En un móvil, el móvil de la maqueta sobra: se solapa con la tele y se
+     queda todo en un revoltijo de rectángulos de ocho píxeles */
+  .maqueta { padding-left: 0; }
+  .maqueta-movil { display: none; }
+  .maqueta-play { left: 50%; width: 58px; height: 58px; box-shadow: 0 0 0 8px var(--accent-tint); }
+  .maqueta-play svg { width: 24px; height: 24px; }
+  .maqueta-cartel-t { font-size: 7px; }
+  .maqueta-num { font-size: 20px; }
+}
+
+
+/*
  * Más aire entre secciones. El espacio en blanco es lo que separa una página
  * que parece un catálogo de una que parece un producto: sin él, el ojo no
  * distingue dónde acaba una idea y empieza la siguiente.
@@ -477,6 +691,36 @@ button { font-family: inherit; }
   transition: background 0.25s, transform 0.25s, box-shadow 0.25s;
 }
 .feature-card:hover { background: var(--bg-elev-2); transform: translateY(-3px); box-shadow: var(--shadow); }
+
+/*
+ * Una tarjeta de la rejilla, distinta de las demás.
+ *
+ * Seis tarjetas iguales se leen en diagonal y no se queda ninguna. Sacando
+ * una del montón, el ojo para ahí — y conviene que pare justo en la que
+ * dice por qué esto no es un reproductor cualquiera: que las credenciales
+ * del proveedor no bajan al aparato.
+ */
+.feature-card.destacada {
+  border-color: var(--accent-tint-strong);
+  background: linear-gradient(160deg, var(--accent-tint-soft), var(--bg-elev) 62%);
+}
+.feature-card.destacada .feature-icon { background: var(--accent); color: #fff; }
+.feature-card-cab { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.feature-card-cab .feature-icon { margin-bottom: 0; }
+.feature-sello {
+  padding: 4px 10px; border-radius: var(--radius-pill);
+  background: var(--accent-tint); color: var(--accent-bright);
+  font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+}
+/* El enlace de cada tarjeta va abajo del todo y alineado con los demás,
+   aunque las descripciones midan distinto */
+.feature-card { display: flex; flex-direction: column; }
+.feature-card p { flex: 1 1 auto; }
+.feature-mas {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 16px;
+  color: var(--accent-bright); font-size: 14px; font-weight: 700;
+}
+.feature-mas:hover { text-decoration: underline; text-underline-offset: 3px; }
 .feature-icon {
   width: 46px; height: 46px; border-radius: 13px; margin-bottom: 20px;
   display: flex; align-items: center; justify-content: center;

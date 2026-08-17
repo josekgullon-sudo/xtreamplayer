@@ -5,7 +5,23 @@ import SiteFooter from "@/components/SiteFooter";
 import AdSlot from "@/components/AdSlot";
 import Icon from "@/components/Icon";
 import LogoAparato from "@/components/LogoAparato";
+import MaquetaProducto from "@/components/MaquetaProducto";
+import BarraAviso from "@/components/BarraAviso";
 import { SITE_URL } from "@/lib/site";
+
+/*
+ * Lo que se anuncia arriba del todo.
+ *
+ * Cuando cambie el texto hay que subirle la versión: quien cerró el aviso
+ * anterior tiene que ver el nuevo, y con una bandera suelta cerrar uno sería
+ * cerrarlos todos para siempre.
+ */
+const AVISO = {
+  version: "exe-1",
+  texto: "Ya está la aplicación para Windows.",
+  accion: "Descargar",
+  href: "/apps",
+};
 
 export const metadata: Metadata = {
   title: "Reproductor IPTV online gratis — Xtream Codes y listas M3U en tu navegador",
@@ -63,17 +79,32 @@ export default function HomePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <BarraAviso aviso={AVISO} />
       <SiteHeader />
       <main>
         <section className="hero">
           <div className="container">
             <h1>
-              Tu lista IPTV, reproducida <span className="grad">al instante</span> en el navegador
+              Tu lista IPTV, <span className="marca-texto">en todas tus pantallas</span>
             </h1>
             <p className="sub">
-              Pega tu URL M3U o tus credenciales Xtream Codes y empieza a ver TV en directo, películas y series.
-              Sin instalar nada, sin registro obligatorio y gratis.
+              Del bolsillo al salón. Pega tu URL M3U o tus credenciales Xtream Codes y empieza a ver
+              TV en directo, cine y series. Sin instalar nada y gratis.
             </p>
+
+            {/*
+              Y aquí, el producto.
+              Una web de un reproductor de vídeo en la que no se ve el
+              reproductor por ninguna parte obliga a creerse a base de texto
+              que la cosa es bonita. Enseñarla contesta sola a la pregunta
+              con la que entra cualquiera: «¿y esto cómo se ve?».
+            */}
+            <MaquetaProducto />
+            <p className="maqueta-nota">
+              Las carátulas de la imagen son inventadas y sirven de ejemplo. TOTALplayer es un
+              reproductor: no proporciona, aloja ni vende ningún canal, película ni lista.
+            </p>
+
             {/*
               Una sola llamada grande. Dos botones del mismo tamaño obligan a
               decidir antes de saber qué hay dentro; el segundo camino se
@@ -168,6 +199,11 @@ export default function HomePage() {
 
         <section className="section" id="caracteristicas">
           <div className="container">
+            {/* Una línea corta antes del titular, para decir lo que el
+                titular no puede sin alargarse */}
+            <p className="etiqueta-fila">
+              <span className="etiqueta-seccion">Sin buffering y sin sorpresas</span>
+            </p>
             <h2 className="section-title">Lo que hace falta, y funcionando</h2>
             <p className="section-sub">Sin listas de la compra: esto es lo que se usa todos los días.</p>
             <div className="features-grid">
@@ -191,10 +227,17 @@ export default function HomePage() {
                 <h3>EPG integrada</h3>
                 <p>Consulta qué están echando ahora y qué viene después en cada canal, directamente desde tu proveedor Xtream.</p>
               </div>
-              <div className="feature-card">
-                <div className="feature-icon"><Icon name="lock" size={22} /></div>
-                <h3>Privacidad primero</h3>
+              {/* La destacada. Seis tarjetas iguales se leen en diagonal y no
+                  se queda ninguna; conviene que el ojo pare justo en la que
+                  dice por qué esto no es un reproductor cualquiera */}
+              <div className="feature-card destacada">
+                <div className="feature-card-cab">
+                  <div className="feature-icon"><Icon name="lock" size={22} /></div>
+                  <span className="feature-sello">Privacidad</span>
+                </div>
+                <h3>Tus claves no salen de aquí</h3>
                 <p>Sin cuenta, tu lista se queda en tu navegador y no sale de ahí. Con proveedor, sus credenciales viven cifradas en el servidor y no llegan nunca a tu aparato: es lo que impide que se las lleve nadie.</p>
+                <Link href="/faq" className="feature-mas">Más información →</Link>
               </div>
               <div className="feature-card">
                 <div className="feature-icon"><Icon name="shield" size={22} /></div>
