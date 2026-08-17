@@ -74,37 +74,51 @@ const TECHO_INTENTO_MS = 40000;
  * Memoria por servidor: si un servidor ya rechazó la conexión directa una
  * vez, la rechazará siempre — es un filtro suyo, no mala suerte. Sin esta
  * memoria, cada zapping volvía a pagar el descubrimiento entero (hasta 8 s
- * mirando a un servidor mudo) antes de caer al proxy que sí funciona. Con
- * ella, solo el primer canal de la sesión paga ese peaje; los demás van
- * directos al camino bueno.
+ * mirando a un servidor mudo) antes de caer al proxy que sí funciona.
  *
- * Va en sessionStorage para sobrevivir a recargas de página, pero no se
- * guarda para siempre: el proveedor puede cambiar de configuración.
+ * Estaba en sessionStorage, y eso la dejaba inútil justo donde más falta
+ * hace. Una sesión de navegador dura lo que la pestaña; en la aplicación de
+ * Windows y en la de televisión, **cada arranque es una sesión nueva**. O
+ * sea que quien enciende la tele para ver un canal paga religiosamente sus
+ * cinco segundos de servidor mudo, todos los días, antes del primer canal.
+ * En localStorage la lección se aprende una vez.
+ *
+ * Con fecha, eso sí: el proveedor puede cambiar de configuración, y una
+ * lista negra para siempre acabaría mandando por el proxy tráfico que ya
+ * podría ir directo. A la semana se vuelve a probar.
  */
-const K_SIN_DIRECTO = "xp.sinDirecto.v1";
+const K_SIN_DIRECTO = "xp.sinDirecto.v2";
+const CADUCA_SIN_DIRECTO = 7 * 24 * 3600 * 1000;
 
-function leerSinDirecto(): Set<string> {
+function leerSinDirecto(): Record<string, number> {
   try {
-    return new Set(JSON.parse(sessionStorage.getItem(K_SIN_DIRECTO) || "[]"));
+    const crudo = JSON.parse(localStorage.getItem(K_SIN_DIRECTO) || "{}");
+    if (!crudo || typeof crudo !== "object" || Array.isArray(crudo)) return {};
+    const ahora = Date.now();
+    const vivos: Record<string, number> = {};
+    for (const [origen, cuando] of Object.entries(crudo as Record<string, number>)) {
+      if (typeof cuando === "number" && ahora - cuando < CADUCA_SIN_DIRECTO) vivos[origen] = cuando;
+    }
+    return vivos;
   } catch {
-    return new Set();
+    return {};
   }
 }
 
 function marcarSinDirecto(url: string) {
   try {
     const origen = new URL(url, window.location.href).origin;
-    const set = leerSinDirecto();
-    set.add(origen);
-    sessionStorage.setItem(K_SIN_DIRECTO, JSON.stringify([...set]));
+    const vivos = leerSinDirecto();
+    vivos[origen] = Date.now();
+    localStorage.setItem(K_SIN_DIRECTO, JSON.stringify(vivos));
   } catch {
-    /* URL rara: sin memoria, pero sin romper */
+    /* URL rara o almacenamiento bloqueado: sin memoria, pero sin romper */
   }
 }
 
 function origenSinDirecto(url: string): boolean {
   try {
-    return leerSinDirecto().has(new URL(url, window.location.href).origin);
+    return Boolean(leerSinDirecto()[new URL(url, window.location.href).origin]);
   } catch {
     return false;
   }
@@ -542,6 +556,33 @@ export default function VideoPlayer({
         } else if (Hls.isSupported()) {
           const hls = new Hls({
             maxBufferLength: 30,
+            /*
+             * Empezar a bajar el primer trozo sin esperar a tener el
+             * manifiesto entero masticado.
+             *
+             * Un canal de directo tarda en arrancar tres viajes seguidos:
+             * manifiesto, lista de trozos y primer trozo. Con esto, el
+             * último empieza mientras se procesa el anterior en vez de
+             * después, que es un viaje de ida y vuelta menos —y en un panel
+             * de IPTV, que no suele estar cerca, cada viaje se nota.
+             */
+            startFragPrefetch: true,
+            /*
+             * Y se arranca por la calidad más baja del canal, no por la que
+             * hls.js adivine.
+             *
+             * Al empezar no hay ninguna medida del ancho de banda, así que
+             * la elección es una conjetura; si sale alta, el primer trozo
+             * pesa varios megas y el canal se queda parado mientras baja
+             * —justo el «tarda y luego se queda pillado»—. Empezando por
+             * abajo, la imagen aparece enseguida y en unos segundos sube
+             * sola a la calidad que dé la conexión, que es como se comporta
+             * cualquier reproductor decente.
+             *
+             * Un canal con una sola calidad —la mayoría en IPTV— no se
+             * entera de esto.
+             */
+            startLevel: 0,
             /*
              * Los reintentos internos de hls.js sobran mientras quede otro
              * intento nuestro por probar: duplican la espera antes de dejar

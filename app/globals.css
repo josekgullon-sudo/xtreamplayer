@@ -2283,6 +2283,23 @@ select.input { appearance: none; cursor: pointer; }
 /* Y por si algún televisor se empeña en pintar los suyos igualmente */
 .tv-viendo video::-webkit-media-controls { display: none !important; }
 
+/*
+ * El «Conectando con…» de mientras, en tamaño de televisión.
+ *
+ * El rótulo es el mismo del reproductor web y ahí está bien: se lee a
+ * cuarenta centímetros. A tres metros no se lee, y como poner un canal
+ * puede llevar unos segundos —hay que pedirle su dirección al servidor y
+ * este al panel del proveedor—, lo que se veía era una pantalla negra
+ * larga. Una pantalla negra sin explicación es lo mismo que una avería.
+ */
+.tv-viendo .pa-video-overlay {
+  gap: 2.4vh;
+  background: radial-gradient(60% 60% at 50% 50%, rgba(255, 255, 255, 0.05), transparent 70%), #000;
+}
+.tv-viendo .pa-video-overlay p { font-size: 1.6vw; max-width: 62vw; color: rgba(255, 255, 255, 0.8); }
+.tv-viendo .pa-video-overlay h2 { font-size: 2.4vw; }
+.tv-viendo .pa-spinner { width: 4vw; height: 4vw; border-width: 0.35vw; }
+
 /* Lo que sí se enseña encima: qué estás viendo, arriba y sin estorbar */
 .tv-viendo-canal {
   position: absolute; top: 4vh; left: 4vw; right: 4vw;

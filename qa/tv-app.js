@@ -401,7 +401,41 @@ async function verCarpetas(tv) {
   await tv.locator(".tv-tile").first().hover();
   await tv.mouse.move(2, 2);
 
+  /* --- Poner un canal se ve al instante ---
+     La dirección de un canal no la tiene el aparato: se le pide al servidor
+     y este al panel del proveedor. Ese viaje se hacía ANTES de cambiar de
+     pantalla, así que pulsabas OK y no pasaba nada —ni rótulo ni ruleta—
+     hasta que el enlace llegaba. Con la lista todavía delante eso no parece
+     «cargando», parece que el mando no ha respondido.
+     Se simula un panel lento: el servidor tarda segundo y medio. */
+  await tv.route("**/api/tele/ver", async (route) => {
+    await new Promise((r) => setTimeout(r, 1500));
+    await route.continue();
+  });
+  await tv.keyboard.press("Enter");
+  await tv.waitForSelector(".tv-canal", { timeout: 20000 });
+  await tv.locator(".tv-canal").first().click();
+  const alPulsar = Date.now();
+  await tv.waitForSelector(".tv-viendo", { timeout: 6000 });
+  const tardanza = Date.now() - alPulsar;
+  check("La pantalla del canal aparece al pulsar, sin esperar al enlace",
+    tardanza < 900, `${tardanza} ms con el panel tardando 1500`);
+  check("Y mientras tanto dice con qué está conectando",
+    (await tv.locator(".tv-viendo .pa-video-overlay").innerText()).includes("Conectando"),
+    (await tv.locator(".tv-viendo .pa-video-overlay").innerText()).replace(/\n/g, " "));
+  /* Y si te sales antes de que llegue, el enlace que llega tarde no puede
+     volver a abrir el vídeo él solo */
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-canal", { timeout: 15000 });
+  await tv.waitForTimeout(2000);
+  check("Saliendo antes de tiempo, el vídeo no vuelve solo",
+    (await tv.locator(".tv-viendo").count()) === 0);
+  await tv.unroute("**/api/tele/ver");
+  await tv.mouse.move(2, 2);
+
   // --- Lo último visto, para volver con un solo OK ---
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
   await tv.keyboard.press("Enter");
   await tv.waitForSelector(".tv-canal", { timeout: 20000 });
   /* El nombre pelado, del rótulo de detrás del logotipo: el de debajo lleva

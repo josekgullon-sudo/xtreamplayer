@@ -681,6 +681,9 @@ export default function TvApp() {
       : { base: lista.url, username: lista.usuario, password: lista.password }
     : null;
 
+  /** Qué puesta en marcha es la buena. Ver `verEsto`. */
+  const zapeo = useRef(0);
+
   const reproducir = useCallback((source: PlaySource, epgId?: string) => {
     setViendo({ source, epgId });
     setPantalla("viendo");
@@ -707,7 +710,63 @@ export default function TvApp() {
     }
   }, []);
 
-  /** Entra en una carpeta: su contenido sustituye a la lista de carpetas */
+  /**
+   * Poner un canal es dos cosas, y hasta ahora se hacían en el orden malo.
+   *
+   * La dirección de un canal no la tiene el aparato: se le pide al servidor,
+   * que a su vez se la pide al panel del proveedor. Eso es un viaje de ida y
+   * vuelta —medio segundo con suerte, tres o cuatro con un panel lento— y
+   * hasta ahora ese viaje se hacía ANTES de cambiar de pantalla: pulsabas OK
+   * sobre un canal y no pasaba absolutamente nada, ni un rótulo ni una
+   * ruleta, hasta que el enlace llegaba. Con la lista todavía delante, lo que
+   * parece es que el mando no ha respondido, y lo normal es volver a pulsar.
+   *
+   * Ahora se entra primero —con el nombre del canal en pantalla y la ruleta
+   * girando— y el enlace se pide desde dentro. Tarda lo mismo, pero se ve lo
+   * que está pasando, y ese es justo el trozo de espera que se sentía como
+   * «no funciona» en vez de como «está cargando».
+   */
+  const verEsto = useCallback(
+    (
+      nombre: string,
+      kind: PlaySource["kind"],
+      pedir: () => Promise<Omit<PlaySource, "name" | "kind">>,
+      epgId?: string
+    ) => {
+      /*
+       * Cada puesta en marcha lleva número, y solo la última manda.
+       *
+       * Pedir el enlace tarda, y en ese rato caben dos cosas muy normales:
+       * salir con ATRÁS, o zapear al canal de al lado. Sin este número, el
+       * enlace del canal que ya no quieres llega después y se pone encima
+       * del que sí: sales del vídeo y el vídeo vuelve solo, o pones el 5 y
+       * acabas viendo el 4.
+       */
+      const mio = ++zapeo.current;
+      /* Sin dirección todavía: el reproductor sabe esperarla sin dar error
+         —ver `buildAttempts`— y mientras tanto enseña «Conectando con…» */
+      reproducir({ url: "", name: nombre, kind }, epgId);
+      pedir()
+        .then((donde) => {
+          if (mio !== zapeo.current) return;
+          const source: PlaySource = { ...donde, name: nombre, kind };
+          setViendo((antes) => (antes ? { ...antes, source } : antes));
+          /* Lo de «seguir viendo» se guarda con la dirección ya resuelta: sin
+             esto quedaría guardado el hueco vacío y el atajo no llevaría a
+             ningún sitio */
+          const ultimoCanal: UltimoCanal = { nombre, source };
+          setUltimo(ultimoCanal);
+          guardar(K_ULTIMO, ultimoCanal);
+        })
+        .catch((e) => {
+          if (mio !== zapeo.current) return;
+          setViendo(null);
+          setPantalla(ultimaLista.current);
+          setError(enCristiano(e, "No se pudo abrir"));
+        });
+    },
+    [reproducir]
+  );
   const entrarEnCarpeta = useCallback((nombre: string, contenido: Fila[]) => {
     setCarpetaAbierta(nombre);
     setFilas(contenido);
@@ -932,13 +991,11 @@ export default function TvApp() {
           const limpios = (Array.isArray(canales) ? canales : []).filter(
             (c) => typeof c.name === "string" && c.name.trim()
           );
-          const verCanal = (c: XtreamLiveStream) => async () =>
-            reproducir(
-              {
-                ...(await pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) })),
-                name: c.name,
-                kind: "hls",
-              },
+          const verCanal = (c: XtreamLiveStream) => () =>
+            verEsto(
+              c.name,
+              "hls",
+              () => pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) }),
               String(c.stream_id)
             );
           setFilas(
@@ -982,17 +1039,15 @@ export default function TvApp() {
           const limpias = (Array.isArray(pelis) ? pelis : []).filter(
             (v) => typeof v.name === "string" && v.name.trim()
           );
-          const verPeli = (v: XtreamVodStream) => async () =>
-            reproducir({
-              ...(await pedirEnlace({
+          const verPeli = (v: XtreamVodStream) => () =>
+            verEsto(v.name, "video", () =>
+              pedirEnlace({
                 ...creds,
                 clase: "movie",
                 id: String(v.stream_id),
                 ext: v.container_extension || "mp4",
-              })),
-              name: v.name,
-              kind: "video",
-            });
+              })
+            );
           setFilas(
             carpetasDe(cats, limpias, (v) => v.category_id, (v) => ({
               id: `vod-${v.stream_id}`,
@@ -1075,17 +1130,15 @@ export default function TvApp() {
             id: `ep-${ep.id}`,
             nombre: `T${temporada} · E${ep.episode_num} — ${ep.title || "Episodio"}`,
             logo: s.cover || "",
-            abrir: async () =>
-              reproducir({
-                ...(await pedirEnlace({
+            abrir: () =>
+              verEsto(`${s.name} — ${ep.title || ""}`, "video", () =>
+                pedirEnlace({
                   ...creds,
                   clase: "series",
                   id: ep.id,
                   ext: ep.container_extension || "mp4",
-                })),
-                name: `${s.name} — ${ep.title || ""}`,
-                kind: "video",
-              }),
+                })
+              ),
           });
         }
       }
@@ -1171,6 +1224,9 @@ export default function TvApp() {
    */
   function atras() {
     if (pantalla === "viendo") {
+      /* Y el enlace que venga de camino, que no vuelva a abrir el vídeo:
+         saliste, y llegar tarde no le da derecho a entrar */
+      zapeo.current++;
       setViendo(null);
       // Vuelve a la lista de la que se salió, no a la portada
       setPantalla(filas.length ? ultimaLista.current : "portada");
