@@ -31,6 +31,19 @@ async function verCarpetas(tv) {
   await tv.mouse.move(2, 2);
 }
 
+/*
+ * Del menú a los canales de la primera carpeta.
+ *
+ * El directo abre en la lista de carpetas —«Generalistas (12)»—, así que
+ * para llegar a un canal hay que entrar en una. Se repite en media prueba.
+ */
+async function abrirPrimeraCarpeta(tv) {
+  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 20000 });
+  await tv.locator(".tv-fila.tv-carpeta").first().click();
+  await tv.waitForSelector(".tv-fila:not(.tv-carpeta)", { timeout: 20000 });
+  await tv.mouse.move(2, 2);
+}
+
 (async () => {
   const RUN = Date.now().toString(36).slice(-5);
   const U = `tv${RUN}`;
@@ -103,38 +116,19 @@ async function verCarpetas(tv) {
   await tv.keyboard.press("ArrowUp");
   await tv.keyboard.press("Enter");
 
-  /* --- La portada del directo ---
-     El directo era una lista de nombres de carpeta: «Deportes (12)». Eso no
-     es una razón para quedarse. Ahora abre como cine y series, con un banner
-     del canal que más se pone y filas de tarjetas apaisadas —un canal tiene
-     logotipo, no cartel— que dicen qué están dando. */
-  await tv.waitForSelector(".tv-canal", { timeout: 25000 });
-  check("TV en directo abre en una portada, no en una lista de carpetas",
-    (await tv.locator(".tv-carrusel").count()) >= 1);
-  check("Con tarjetas apaisadas y no carátulas de película",
-    (await tv.locator(".tv-carrusel-tira.anchas .tv-canal").count()) >= 4);
-  check("Y un banner del canal, con lo que echan ahora",
-    (await tv.locator(".tv-banner-canal .tv-banner-t").innerText()).trim().length > 0,
-    (await tv.locator(".tv-banner-canal .tv-banner-t").innerText()).replace(/\n/g, " "));
-  const guiaEnBanner = await tv
-    .waitForFunction(
-      () => (document.querySelector(".tv-banner-prog")?.textContent || "").includes("El programa siguiente"),
-      { timeout: 20000 }
-    )
-    .then(() => true)
-    .catch(() => false);
-  check("El banner dice qué está en antena, no el bloque ya emitido", guiaEnBanner,
-    (await tv.locator(".tv-banner-prog").innerText().catch(() => "")).replace(/\n/g, " "));
-  check("Y las tarjetas también lo dicen, sin entrar",
-    (await tv.locator(".tv-canal-prog").allInnerTexts()).some((t) => t.trim().length > 0));
-  /* Sin haber puesto nunca un canal en este aparato no hay «Los que más
-     ves»: inventarla con cualquier orden sería mentir */
-  check("Sin historial no se inventa un «lo más visto»",
-    !(await tv.locator(".tv-carrusel-t").allInnerTexts()).some((t) => t.includes("Los que más ves")),
-    (await tv.locator(".tv-carrusel-t").allInnerTexts()).join(" | "));
+  /* --- El directo abre en la lista, no en una portada de carátulas ---
+     Tuvo su portada, con banner y tarjetas apaisadas, copiada de la de cine.
+     En cine funciona: una película se elige por el cartel. Un canal no tiene
+     cartel, tiene un logotipo cuadrado que estirado queda como una mancha,
+     así que la portada gastaba media pantalla en imágenes que no dicen nada
+     y dejaba ocho canales a la vista donde caben veinte. */
+  await tv.waitForSelector(".tv-fila", { timeout: 25000 });
+  check("TV en directo abre en la lista, sin portada de carátulas",
+    (await tv.locator(".tv-carrusel").count()) === 0);
+  check("Con las carpetas en filas, que es como se lee una guía",
+    (await tv.locator(".tv-fila.tv-carpeta").count()) >= 1);
   await tv.screenshot({ path: __dirname + "/93-tv-directo.png" });
 
-  await verCarpetas(tv);
   check("OK entra en TV en directo y lista lo que hay", (await tv.locator(".tv-fila").count()) >= 2);
   check("Empezando por carpetas, no por miles de canales", (await tv.locator(".tv-fila.tv-carpeta").count()) >= 1);
 
@@ -186,21 +180,19 @@ async function verCarpetas(tv) {
     JSON.stringify(carpetas) === JSON.stringify(ordenPanel),
     `${carpetas.join(" › ")}  (panel: ${ordenPanel.join(" › ")})`);
   check("Y ninguna carpeta vacía se cuela", !carpetas.includes("Sin carpeta"), carpetas.join(" | "));
-  /* ATRÁS deshace un paso cada vez, también aquí: de las carpetas se vuelve
-     a la portada del directo —de donde se entró— y de ahí al menú */
-  await tv.keyboard.press("Escape");
-  await tv.waitForSelector(".tv-banner-canal", { timeout: 15000 });
-  check("Y otra vez, a la portada del directo", true);
+  /* ATRÁS deshace un paso cada vez, y ahora los pasos del directo son dos y
+     no tres: de los canales a sus carpetas, y de las carpetas al menú. Sin
+     portada intermedia no hay nada entre medias que deshacer */
   await tv.keyboard.press("Escape");
   await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
-  check("Y otra vez, al menú", true);
+  check("Y de las carpetas, al menú, sin portada de por medio", true);
 
   /* --- El carril de secciones ---
      Pasar de las películas a las series eran dos ATRÁS y volver a recorrer
      la portada con las flechas. Ahora las secciones están siempre a la
      izquierda, como en cualquier aplicación de televisión. */
   await tv.locator(".tv-tile:has-text('TV en directo')").click();
-  await verCarpetas(tv);
+  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 25000 });
   check("Las listas traen el carril de secciones", (await tv.locator(".tv-carril-item").count()) === 5);
   check("Con la sección en la que estás marcada",
     (await tv.locator(".tv-carril-item.activo").innerText()).includes("Directo"));
@@ -230,7 +222,7 @@ async function verCarpetas(tv) {
 
   for (const [marca, codigo] of [["Samsung (Tizen)", 10009], ["LG (webOS)", 461]]) {
     await tv.locator(".tv-tile:has-text('TV en directo')").click();
-    await tv.waitForSelector(".tv-canal", { timeout: 20000 });
+    await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 20000 });
     await pulsaCodigo(codigo);
     const volvio = await tv
       .waitForSelector(".tv-tiles", { timeout: 8000 })
@@ -413,8 +405,8 @@ async function verCarpetas(tv) {
     await route.continue();
   });
   await tv.keyboard.press("Enter");
-  await tv.waitForSelector(".tv-canal", { timeout: 20000 });
-  await tv.locator(".tv-canal").first().click();
+  await abrirPrimeraCarpeta(tv);
+  await tv.locator(".tv-fila:not(.tv-carpeta)").first().click();
   const alPulsar = Date.now();
   await tv.waitForSelector(".tv-viendo", { timeout: 6000 });
   const tardanza = Date.now() - alPulsar;
@@ -423,10 +415,23 @@ async function verCarpetas(tv) {
   check("Y mientras tanto dice con qué está conectando",
     (await tv.locator(".tv-viendo .pa-video-overlay").innerText()).includes("Conectando"),
     (await tv.locator(".tv-viendo .pa-video-overlay").innerText()).replace(/\n/g, " "));
+  /* La guía del canal que acabas de poner, en el propio canal.
+     Se borraba en el momento de entrar —la caché se vaciaba al cambiar de
+     pantalla— y el rótulo decía «tu proveedor no manda la guía de este
+     canal» justo del canal cuya guía se estaba leyendo en la lista un
+     segundo antes. */
+  check("Puesto el canal, se ve su guía y no un «no hay guía»",
+    (await tv.locator(".tv-viendo-prog").innerText()).includes("El programa siguiente"),
+    (await tv.locator(".tv-viendo-canal").innerText()).replace(/\n/g, " "));
+  check("Con cuánto le queda y qué viene después",
+    (await tv.locator(".tv-viendo-queda").innerText()).includes("quedan") &&
+      (await tv.locator(".tv-viendo-luego").innerText()).includes("Después"),
+    (await tv.locator(".tv-viendo-canal").innerText()).replace(/\n/g, " "));
+  check("Y una barra que dice cuánto lleva", (await tv.locator(".tv-viendo-barra span").count()) === 1);
   /* Y si te sales antes de que llegue, el enlace que llega tarde no puede
      volver a abrir el vídeo él solo */
   await tv.keyboard.press("Escape");
-  await tv.waitForSelector(".tv-canal", { timeout: 15000 });
+  await tv.waitForSelector(".tv-fila:not(.tv-carpeta)", { timeout: 15000 });
   await tv.waitForTimeout(2000);
   check("Saliendo antes de tiempo, el vídeo no vuelve solo",
     (await tv.locator(".tv-viendo").count()) === 0);
@@ -434,14 +439,16 @@ async function verCarpetas(tv) {
   await tv.mouse.move(2, 2);
 
   // --- Lo último visto, para volver con un solo OK ---
+  /* Dos ATRÁS: de los canales a sus carpetas, y de las carpetas al menú */
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 15000 });
   await tv.keyboard.press("Escape");
   await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
   await tv.keyboard.press("Enter");
-  await tv.waitForSelector(".tv-canal", { timeout: 20000 });
-  /* El nombre pelado, del rótulo de detrás del logotipo: el de debajo lleva
-     delante el número del canal y «Seguir viendo» no lo lleva */
-  const canal = (await tv.locator(".tv-canal .tv-canal-ph").first().innerText()).trim();
-  await tv.locator(".tv-canal").first().click();
+  await abrirPrimeraCarpeta(tv);
+  /* El nombre de la fila, sin el número que va delante en su propia casilla */
+  const canal = (await tv.locator(".tv-fila:not(.tv-carpeta) .tv-fila-nombre").first().innerText()).trim();
+  await tv.locator(".tv-fila:not(.tv-carpeta)").first().click();
   /* El ratón, fuera antes de volver: al salir del vídeo, «Seguir viendo»
      aparece justo donde quedó el puntero del clic y se enfoca él solo —que
      con un ratón es lo correcto, pero aquí falsea lo que hace el mando— */
@@ -477,28 +484,10 @@ async function verCarpetas(tv) {
   check("Y solo del directo: una película no cuenta",
     Object.keys(rayas).every((k) => k.startsWith("live-")), Object.keys(rayas).join(" | "));
 
-  /* Sin los que el panel manda sin nombre: la aplicación los descarta y en
-     el ranking no puede salir un canal que no existe */
-  const canales = (await fetch("http://127.0.0.1:8090/player_api.php?username=demo&password=demo123&action=get_live_streams").then((x) => x.json()))
-    .filter((c) => typeof c.name === "string" && c.name.trim());
-  const tresMas = canales.slice(0, 3).map((c) => `live-${c.stream_id}`);
-  await tv.evaluate((ids) => {
-    const ya = JSON.parse(localStorage.getItem("xp.tvVistos.v1") || "{}");
-    ids.forEach((id, i) => { ya[id] = 9 - i; });
-    localStorage.setItem("xp.tvVistos.v1", JSON.stringify(ya));
-  }, tresMas);
-  await tv.goto(BASE + "/tv?app=1", { waitUntil: "networkidle" });
-  await tv.waitForSelector(".tv-tiles", { timeout: 25000 });
-  await tv.locator(".tv-tile:has-text('TV en directo')").click();
-  await tv.waitForSelector(".tv-canal", { timeout: 25000 });
-  const rotulosDirecto = (await tv.locator(".tv-carrusel-t").allInnerTexts()).map((s) => s.trim());
-  check("Con historial, la portada del directo abre con «Los que más ves»",
-    rotulosDirecto[0] === "Los que más ves", rotulosDirecto.join(" | "));
-  check("Y va numerada, como cualquier ranking",
-    (await tv.locator(".tv-carrusel").first().locator(".tv-poster-num").first().innerText()) === "1");
-  const primero = await tv.locator(".tv-carrusel").first().locator(".tv-canal-ph").first().innerText();
-  check("Empezando por el que más se pone",
-    primero.trim() === (canales[0].name || "").trim(), `${primero.trim()} (esperado ${canales[0].name})`);
+  /* La raya se sigue contando, aunque de momento no la lea nadie: la fila
+     «Los que más ves» vivía en la portada del directo, y esa portada ya no
+     existe. El contador se deja porque el dato es del aparato y tirarlo
+     sería empezar de cero el día que se ponga en la lista. */
   await tv.mouse.move(2, 2);
 
   // --- Encender sin red ---

@@ -2740,22 +2740,57 @@ select.input { appearance: none; cursor: pointer; }
 .tv-viendo .pa-video-overlay h2 { font-size: 2.4vw; }
 .tv-viendo .pa-spinner { width: 4vw; height: 4vw; border-width: 0.35vw; }
 
-/* Lo que sí se enseña encima: qué estás viendo, arriba y sin estorbar */
+/*
+ * Lo que sí se enseña encima: el canal y su guía, arriba y sin estorbar.
+ *
+ * Era una sola línea con el nombre y el título de lo que daban. Ahora lleva
+ * también cuánto le queda y qué viene después, que son las dos preguntas
+ * que se hacen de verdad viendo la tele —y para contestarlas había que
+ * salir del canal, buscarlo en la lista y volver a entrar.
+ *
+ * En columna y no en fila: cuatro datos seguidos a lo ancho de una tele son
+ * un renglón de metro y medio que hay que barrer con la cabeza. Y con el
+ * velo detrás, porque el texto va encima del vídeo y no se puede saber si
+ * debajo habrá un cielo blanco o un plano nocturno.
+ */
 .tv-viendo-canal {
-  position: absolute; top: 4vh; left: 4vw; right: 4vw;
-  display: flex; align-items: center; gap: 1.2vw;
+  position: absolute; top: 4vh; left: 4vw; max-width: 56vw;
+  display: flex; flex-direction: column; gap: 0.5vh;
+  padding: 1.6vh 2vw 1.8vh; border-radius: 1.2vw;
+  background: linear-gradient(120deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.34));
+  backdrop-filter: blur(0.6vw);
   pointer-events: none;
   transition: opacity 0.6s ease;
 }
 /* Se va solo a los cinco segundos, como el rótulo de cualquier televisor */
 .tv-viendo-canal.ido, .tv-viendo-pie.ido { opacity: 0; }
-.tv-viendo-canal .tv-punto { width: 0.7vw; height: 0.7vw; min-width: 8px; min-height: 8px; }
+.tv-viendo-fila { display: flex; align-items: center; gap: 1vw; }
+.tv-viendo-canal .tv-punto { width: 0.7vw; height: 0.7vw; min-width: 8px; min-height: 8px; flex: none; }
 .tv-viendo-nombre {
   font-size: 2vw; font-weight: 750; color: #fff;
   text-shadow: 0 0.3vh 1.2vh rgba(0, 0, 0, 0.9);
 }
 .tv-viendo-prog {
-  font-size: 1.3vw; color: rgba(255, 255, 255, 0.75);
+  display: flex; align-items: baseline; gap: 1vw; flex-wrap: wrap;
+  font-size: 1.3vw; color: rgba(255, 255, 255, 0.88);
+  text-shadow: 0 0.3vh 1.2vh rgba(0, 0, 0, 0.9);
+}
+.tv-viendo-queda { font-size: 1.1vw; font-weight: 600; color: rgba(255, 255, 255, 0.6); }
+.tv-viendo-singuia { color: rgba(255, 255, 255, 0.55); font-size: 1.2vw; }
+/* La barra dice de un vistazo si esto acaba de empezar o se está acabando,
+   que es la mitad de la decisión de quedarse o seguir buscando */
+.tv-viendo-barra {
+  display: block; height: 0.5vh; min-height: 4px; width: 26vw; max-width: 100%;
+  margin: 0.4vh 0 0.2vh; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22); overflow: hidden;
+}
+.tv-viendo-barra span {
+  display: block; height: 100%; border-radius: 999px;
+  background: var(--accent-bright);
+  transition: width 1s linear;
+}
+.tv-viendo-luego {
+  font-size: 1.15vw; color: rgba(255, 255, 255, 0.6);
   text-shadow: 0 0.3vh 1.2vh rgba(0, 0, 0, 0.9);
 }
 .tv-viendo-pie {

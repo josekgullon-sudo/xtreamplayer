@@ -13,8 +13,6 @@ import {
   Titulo,
   anioDe,
   armarPortada,
-  armarPortadaDirecto,
-  candidatosCanal,
   candidatosDestacado,
   conMeta,
   datosDe,
@@ -852,36 +850,6 @@ export default function TvApp() {
     []
   );
 
-  /**
-   * Lo mismo, para la portada de TV en directo.
-   *
-   * Va aparte porque no comparte casi nada con la de cine: aquí no hay notas
-   * ni años que ordenar, la primera fila sale de lo que ha puesto este
-   * aparato, y las tarjetas son apaisadas. Lo único común de verdad es el
-   * mecanismo —filas, foco y el mapa de acciones—, que es justo lo que se
-   * reutiliza.
-   */
-  const montarPortadaDirecto = useCallback(
-    (
-      cats: XtreamCategory[] | unknown,
-      canales: Titulo[],
-      abridores: (() => void | Promise<void>)[],
-      cuenta: Record<string, number>
-    ) => {
-      acciones.current = new Map(canales.map((t, i) => [t.id, abridores[i]]));
-      const categorias = (Array.isArray(cats) ? (cats as XtreamCategory[]) : []).map((c) => ({
-        id: String(c.category_id),
-        nombre: c.category_name || "Sin nombre",
-      }));
-      const nuevas = armarPortadaDirecto(canales, categorias, cuenta);
-      setFilasPortada(nuevas);
-      setCandidatos(candidatosCanal(nuevas, cuenta));
-      setFocoFila(-1);
-      setFocoCol(0);
-    },
-    []
-  );
-
   const abrirTitulo = useCallback((t: Titulo) => {
     acciones.current.get(t.id)?.();
   }, []);
@@ -1008,29 +976,26 @@ export default function TvApp() {
               abrir: verCanal(c),
             }))
           );
-          montarPortadaDirecto(
-            cats,
-            limpios.map((c) => ({
-              id: `live-${c.stream_id}`,
-              nombre: c.name,
-              imagen: c.stream_icon || "",
-              anio: "",
-              nota: "",
-              alta: 0,
-              sinopsis: "",
-              generos: "",
-              esSerie: false,
-              categoria: String(c.category_id ?? ""),
-              epgId: String(c.stream_id),
-              numero: Number(c.num) || 0,
-            })),
-            limpios.map(verCanal),
-            /* El contador vive en el aparato y se lee una vez al arrancar;
-               aquí se toma el valor de ese momento a propósito, para que la
-               portada no se reordene sola debajo del dedo al volver de ver
-               un canal */
-            leer<Record<string, number>>(K_VISTOS) || {}
-          );
+          /*
+           * El directo entra en la lista, no en una portada de carátulas.
+           *
+           * Tenía la suya, con banner y filas de tarjetas anchas, copiada de
+           * la de cine. Y en cine funciona: una película se elige por el
+           * cartel, que es una imagen distinta por título y hecha para
+           * venderla. Un canal no tiene cartel. Tiene un logotipo —cuadrado,
+           * con el fondo transparente y a menudo en mala calidad— que
+           * estirado a tamaño de tarjeta queda como una mancha, así que la
+           * portada gastaba media pantalla en imágenes que no dicen nada y
+           * dejaba ocho canales a la vista donde caben veinte.
+           *
+           * Lo que sirve para elegir canal es la lista: número, logotipo
+           * pequeño, nombre y qué están dando. Se lee de un vistazo, se
+           * recorre con el mando de arriba abajo sin pensar, y es la forma
+           * que tiene una guía de televisión desde que existen.
+           *
+           * Cine y series conservan su portada: ahí las carátulas sí son el
+           * argumento para quedarse.
+           */
         } else if (destino === "cine") {
           const [cats, pelis] = await Promise.all([
             xtreamApi<XtreamCategory[]>(creds, "get_vod_categories"),
@@ -1274,18 +1239,23 @@ export default function TvApp() {
    * cambiar de carpeta, que es cuando dejan de valer.
    */
   useEffect(() => {
+    /*
+     * Menos al ponerse a ver, que es cuando más falta hacen.
+     *
+     * Poner un canal cambia la pantalla a «viendo», y esto se vaciaba
+     * también ahí: la guía del canal que acabas de poner se borraba en el
+     * mismo momento de entrar, y el rótulo decía «tu proveedor no manda la
+     * guía de este canal» justo del canal cuya guía se estaba leyendo en la
+     * lista un segundo antes. Se limpia al cambiar de carpeta o de sección,
+     * que es cuando de verdad deja de valer.
+     */
+    if (pantalla === "viendo") return;
     setEpgAhora({});
     if (pantalla !== "directo" || !creds || lista?.tipo !== "xtream") return;
-    /*
-     * De dónde salen los canales que hay que consultar.
-     *
-     * Dentro de una carpeta, de la lista abierta. En la portada del directo,
-     * de las propias filas —empezando por «Los que más ves», que es la de
-     * arriba y la que se mira—. Sin esto la portada enseñaba tarjetas de
-     * canal sin decir qué echan, que es justo lo que había que arreglar.
-     */
-    const deLaPortada = filasPortada.flatMap((f) => f.items.map((t) => t.epgId));
-    const ids = (carpetaAbierta ? filas.map((f) => f.epgId) : deLaPortada)
+    /* Los canales que hay que consultar salen de la carpeta abierta: fuera
+       de ella lo que se ve son carpetas, que no tienen guía */
+    const ids = filas
+      .map((f) => f.epgId)
       .filter((id): id is string => Boolean(id))
       .slice(0, 40);
     if (!ids.length) return;
@@ -1352,7 +1322,7 @@ export default function TvApp() {
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, filasPortada, carpetaAbierta, lista]);
+  }, [pantalla, filas, carpetaAbierta, lista]);
 
   const ultimaLista = useRef<Pantalla>("directo");
   useEffect(() => {
@@ -1795,13 +1765,52 @@ export default function TvApp() {
        de título ni pestaña que lo diga, y a los dos minutos ya no te acuerdas
        de en qué canal entraste */
     const guiaDeEsto = viendo.epgId ? epgAhora[viendo.epgId] : undefined;
+    const avanceDeEsto = avanceDe(guiaDeEsto);
+    const quedaDeEsto = quedaDe(guiaDeEsto);
     return (
       <div className="tv-app tv-viendo">
         <VideoPlayer source={viendo.source} controles={false} />
+        {/*
+          La guía del canal que suena, no solo su nombre.
+
+          Antes esto era una línea: el nombre y, con suerte, el título de lo
+          que estaban dando. Sirve para saber dónde has entrado y para nada
+          más. Las dos preguntas que se hacen de verdad viendo la tele son
+          «¿cuánto le queda a esto?» y «¿qué ponen después?», y para
+          contestarlas había que salir del canal, buscarlo en la lista y
+          volver a entrar — cuatro pulsaciones de mando para un dato que
+          estaba pedido y guardado desde que se abrió la lista.
+
+          Es la misma guía que se ve al pasar por encima de un canal en la
+          lista, con la misma barra y el mismo «Después». Que la información
+          cambie de forma según desde dónde se mire obliga a aprenderla dos
+          veces.
+        */}
         <div className={`tv-viendo-canal ${osd ? "" : "ido"}`}>
-          <span className="tv-punto" aria-hidden="true" />
-          <span className="tv-viendo-nombre">{viendo.source.name}</span>
-          {guiaDeEsto?.ahora && <span className="tv-viendo-prog">{guiaDeEsto.ahora}</span>}
+          <p className="tv-viendo-fila">
+            <span className="tv-punto" aria-hidden="true" />
+            <span className="tv-viendo-nombre">{viendo.source.name}</span>
+          </p>
+          {guiaDeEsto?.ahora ? (
+            <>
+              <p className="tv-viendo-prog">
+                {guiaDeEsto.ahora}
+                {quedaDeEsto ? <span className="tv-viendo-queda">{quedaDeEsto}</span> : null}
+              </p>
+              {avanceDeEsto !== null && (
+                <span className="tv-viendo-barra" aria-hidden="true">
+                  <span style={{ width: `${avanceDeEsto}%` }} />
+                </span>
+              )}
+              {guiaDeEsto.luego && <p className="tv-viendo-luego">Después · {guiaDeEsto.luego}</p>}
+            </>
+          ) : (
+            /* Sin guía se dice, y se dice de quién depende: el reproductor no
+               la inventa, la manda el panel del proveedor */
+            <p className="tv-viendo-prog tv-viendo-singuia">
+              Tu proveedor no manda la guía de este canal
+            </p>
+          )}
         </div>
         <p className={`tv-viendo-pie ${osd ? "" : "ido"}`}>Pulsa ATRÁS para volver</p>
       </div>
