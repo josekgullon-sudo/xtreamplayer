@@ -199,7 +199,14 @@ button { font-family: inherit; }
      sombra corta que solo sugiere que hay un plano por encima */
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
-.btn-primary:hover:not(:disabled) { background: var(--accent-bright); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45); }
+/* Se levanta un pelo al pasar por encima: dos píxeles bastan para que el
+   botón conteste, y siguen sin ser el halo rojo de plantilla */
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-bright);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  transform: translateY(-2px);
+}
+.btn-primary:active:not(:disabled) { transform: translateY(0) scale(0.97); }
 
 .btn-ghost {
   background: var(--surface-quiet);
@@ -461,16 +468,118 @@ button { font-family: inherit; }
  * fondo. El marcador es un bloque de color con la letra encima: se ve
  * siempre y de un vistazo se sabe cuál es la palabra de la frase.
  */
-.marca-texto {
+/*
+ * La palabra que importa del titular.
+ *
+ * Antes era un bloque de color sólido con la letra dentro. Cumplía, pero
+ * era el recurso de otro: cambiarle el color a la idea de alguien no la
+ * convierte en tuya, y a tamaño grande un rectángulo rojo macizo pesa tanto
+ * que el resto de la frase desaparece —el titular deja de leerse como una
+ * frase y pasa a leerse como una etiqueta con palabras alrededor—.
+ *
+ * Esto hace lo mismo por otro camino y sale ganando en las dos cosas que
+ * importan. La letra se queda blanca, que es lo que mejor se lee sobre
+ * oscuro y a cualquier tamaño. Y lo que marca es un trazo por debajo, que
+ * además se puede dibujar: la palabra se subraya sola al entrar, y ese
+ * medio segundo de movimiento dirige la mirada mucho mejor que un bloque
+ * que ya estaba ahí cuando llegaste.
+ */
+.realce {
+  position: relative;
   display: inline-block;
-  /* Ceñido y de esquinas casi rectas: con el radio grande y mucho relleno
-     dejaba de leerse como un trazo de marcador y parecía un botón gigante */
-  padding: 0.02em 0.2em 0.08em;
-  border-radius: 0.06em;
-  background: var(--accent);
+  padding: 0 0.06em 0.1em;
   color: #fff;
-  /* Un grado y pico de giro: sin él parece un campo de formulario */
-  transform: rotate(-0.8deg);
+  /* El resplandor va detrás de la letra y no la toca: da cuerpo al color de
+     marca sin robarle contraste al texto */
+  isolation: isolate;
+}
+.realce::before {
+  content: "";
+  position: absolute; z-index: -1;
+  left: -0.14em; right: -0.14em; top: 0.06em; bottom: 0.02em;
+  border-radius: 0.5em;
+  background: radial-gradient(ellipse at center, var(--accent-halo), transparent 72%);
+  filter: blur(0.16em);
+}
+.realce::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 0.088em; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-bright) 55%, var(--accent-soft));
+  box-shadow: 0 0 1.4em var(--accent-glow);
+  transform-origin: left center;
+  animation: realce-traza 0.85s cubic-bezier(0.22, 0.8, 0.2, 1) 0.35s both;
+}
+@keyframes realce-traza {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* ---- Movimiento ---- */
+
+/*
+ * Un solo sistema de animación para toda la web.
+ *
+ * La alternativa —que cada bloque lleve la suya— acaba en seis duraciones y
+ * cuatro curvas distintas conviviendo en la misma página, y eso se nota
+ * aunque no se sepa decir por qué: la página parece hecha por cuatro
+ * personas. Aquí hay una curva, tres distancias y una duración.
+ *
+ * La curva sale disparada y frena al final. Es la que hace que algo parezca
+ * que «llega» en vez de que «se desliza»: un movimiento lineal, a la
+ * velocidad que sea, siempre parece de máquina.
+ */
+.aparece {
+  opacity: 0;
+  transition:
+    opacity 0.62s cubic-bezier(0.22, 0.8, 0.2, 1),
+    transform 0.62s cubic-bezier(0.22, 0.8, 0.2, 1);
+  will-change: opacity, transform;
+}
+.aparece.de-abajo { transform: translateY(26px); }
+.aparece.de-lado { transform: translateY(18px) scale(0.985); }
+.aparece.de-escala { transform: scale(0.94); }
+.aparece.dentro { opacity: 1; transform: none; }
+/* Terminada la entrada no hay nada que optimizar, y `will-change` de por
+   vida deja una capa de composición por bloque: en una portada larga, medio
+   centenar de capas que el navegador arrastra durante toda la visita */
+.aparece.dentro { will-change: auto; }
+
+/* Lo del primer golpe de vista no espera a nadie: ya está en pantalla */
+.entra-ya {
+  animation: entra-ya 0.7s cubic-bezier(0.22, 0.8, 0.2, 1) both;
+}
+@keyframes entra-ya {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: none; }
+}
+
+/*
+ * Y quien ha pedido que no se mueva nada, manda.
+ *
+ * `prefers-reduced-motion` no es una preferencia estética: hay gente a la
+ * que el movimiento en pantalla le provoca mareo de verdad. Se apaga todo,
+ * y sobre todo se deja el contenido VISIBLE: una animación desactivada a
+ * medias es lo que esconde media página para siempre.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .aparece,
+  .aparece.dentro {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .entra-ya,
+  .realce::after {
+    animation: none !important;
+  }
+  .realce::after { transform: none; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ---- La barra de novedades, arriba del todo ---- */
@@ -632,13 +741,51 @@ button { font-family: inherit; }
 
 /* El play, encima de todo */
 .maqueta-play {
-  position: absolute; left: calc(50% + 26px); top: 50%;
+  position: absolute; left: calc(50% + 37px); top: 44%;
   transform: translate(-50%, -50%);
   display: flex; align-items: center; justify-content: center;
   width: 84px; height: 84px; border-radius: 50%;
   background: var(--accent); color: #fff;
-  box-shadow: 0 0 0 12px var(--accent-tint), 0 18px 44px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
   padding-left: 5px; /* el triángulo pesa a la izquierda */
+}
+/*
+ * El pulso del play: un aro que sale y se desvanece.
+ *
+ * Va en un pseudoelemento y no en el propio botón porque lo que crece es el
+ * aro, no el círculo: animando el botón, el icono de dentro se estira con
+ * él y se ve como un globo. Y va lento —dos segundos y medio— porque esto
+ * no pide atención a gritos, solo dice que la maqueta está viva.
+ */
+.maqueta-play::after {
+  content: "";
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid var(--accent-bright);
+  animation: maqueta-pulso 2.6s cubic-bezier(0.22, 0.8, 0.2, 1) infinite;
+}
+@keyframes maqueta-pulso {
+  0% { transform: scale(1); opacity: 0.7; }
+  70% { transform: scale(1.55); opacity: 0; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+
+/*
+ * Y un brillo que recorre la pantalla de lado a lado, muy de vez en cuando.
+ *
+ * Es el reflejo de una pantalla encendida. Sin él, la maqueta es un dibujo
+ * plano; con él —y son ocho segundos entre pasada y pasada, no un
+ * parpadeo— se lee como un aparato que está funcionando.
+ */
+.maqueta-tele::after {
+  content: "";
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.07) 47%, transparent 56%);
+  transform: translateX(-100%);
+  animation: maqueta-brillo 8s ease-in-out 1.6s infinite;
+}
+@keyframes maqueta-brillo {
+  0% { transform: translateX(-100%); }
+  22%, 100% { transform: translateX(100%); }
 }
 
 /*
@@ -690,7 +837,33 @@ button { font-family: inherit; }
   padding: 32px 30px;
   transition: background 0.25s, transform 0.25s, box-shadow 0.25s;
 }
-.feature-card:hover { background: var(--bg-elev-2); transform: translateY(-3px); box-shadow: var(--shadow); }
+/*
+ * El hover de una tarjeta, con la misma curva que todo lo demás.
+ *
+ * Tenía la transición por defecto —lineal— mientras el resto de la página
+ * frena al final. Dos curvas distintas en la misma pantalla se notan aunque
+ * no se sepa decir por qué: una parece de otra web.
+ *
+ * Y el borde también se ilumina. Solo con el desplazamiento hacia arriba,
+ * en una rejilla de seis tarjetas oscuras casi no se ve cuál está debajo
+ * del puntero.
+ */
+.feature-card {
+  transition:
+    background 0.24s cubic-bezier(0.22, 0.8, 0.2, 1),
+    transform 0.24s cubic-bezier(0.22, 0.8, 0.2, 1),
+    border-color 0.24s ease,
+    box-shadow 0.24s ease;
+}
+.feature-card:hover {
+  background: var(--bg-elev-2);
+  transform: translateY(-4px);
+  border-color: var(--accent-tint-strong);
+  box-shadow: var(--shadow), 0 0 0 1px var(--accent-tint-soft);
+}
+/* El icono se enciende con la tarjeta: es lo que la remata */
+.feature-card .feature-icon { transition: background 0.24s ease, color 0.24s ease, transform 0.24s cubic-bezier(0.22, 0.8, 0.2, 1); }
+.feature-card:hover .feature-icon { background: var(--accent); color: #fff; transform: scale(1.06); }
 
 /*
  * Una tarjeta de la rejilla, distinta de las demás.
@@ -750,11 +923,34 @@ button { font-family: inherit; }
 .check { color: var(--success); font-weight: 700; }
 
 .faq-list { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
-.faq-item { background: var(--bg-elev); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 4px 26px; transition: background 0.2s; }
-.faq-item:hover { background: var(--bg-elev-2); }
+.faq-item {
+  background: var(--bg-elev); border: 1px solid var(--hairline);
+  border-radius: var(--radius); padding: 4px 26px;
+  transition: background 0.24s ease, border-color 0.24s ease;
+}
+.faq-item:hover { background: var(--bg-elev-2); border-color: var(--border); }
+/* Abierta, se marca con el color de la marca: en una columna de ocho, saber
+   cuál está desplegada de un vistazo ahorra volver a leerlas todas */
+.faq-item[open] { border-color: var(--accent-tint-strong); background: var(--bg-elev-2); }
 .faq-item summary { cursor: pointer; font-weight: 600; font-size: 16px; padding: 19px 0; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-.faq-item summary::after { content: "+"; font-size: 22px; color: var(--text-faint); transition: transform 0.2s; }
-.faq-item[open] summary::after { transform: rotate(45deg); }
+.faq-item summary::after {
+  content: "+"; font-size: 22px; color: var(--text-faint); flex: none;
+  transition: transform 0.28s cubic-bezier(0.22, 0.8, 0.2, 1), color 0.2s ease;
+}
+.faq-item[open] summary::after { transform: rotate(45deg); color: var(--accent-bright); }
+/*
+ * La respuesta entra deslizándose, no aparece de golpe.
+ *
+ * `<details>` es instantáneo de fábrica: el texto salta y empuja media
+ * página hacia abajo de un fotograma a otro, y hay que buscar con la vista
+ * dónde ha quedado lo que estabas leyendo. Con un cuarto de segundo, el ojo
+ * sigue el movimiento y no se pierde.
+ */
+.faq-item[open] p { animation: faq-abre 0.3s cubic-bezier(0.22, 0.8, 0.2, 1) both; }
+@keyframes faq-abre {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
 .faq-item p { color: var(--text-dim); padding-bottom: 18px; font-size: 14.5px; }
 
 .site-footer { border-top: 1px solid var(--hairline); padding: 56px 0 48px; margin-top: 40px; }
@@ -3680,7 +3876,23 @@ select.input { appearance: none; cursor: pointer; }
 /* Las dos filas, cada una centrada por su cuenta */
 .compat-marcas { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
 .compat-fila { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-.compat .marca { background: transparent; color: var(--text-dim); }
+/*
+ * En reposo, apagadas; al pasar por encima, se encienden.
+ *
+ * Una tira de doce píldoras a plena luz compite con la llamada principal
+ * que tiene justo encima. En gris se lee de un vistazo lo que hace falta
+ * —«sí, en lo mío también»— sin robarle el sitio, y quien se pare a mirar
+ * cuál es cuál las tiene enteras.
+ */
+.compat .marca {
+  background: transparent; color: var(--text-faint);
+  border-color: transparent;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, transform 0.2s cubic-bezier(0.22, 0.8, 0.2, 1);
+}
+.compat .marca:hover {
+  color: var(--text); background: var(--bg-elev);
+  border-color: var(--hairline); transform: translateY(-2px);
+}
 .compat-pie { text-align: center; font-size: 14px; }
 
 /* Los pasos de «cómo se instala»: una lista numerada que se lee de un vistazo */

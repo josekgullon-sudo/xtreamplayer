@@ -7,6 +7,7 @@ import Icon from "@/components/Icon";
 import LogoAparato from "@/components/LogoAparato";
 import MaquetaProducto from "@/components/MaquetaProducto";
 import BarraAviso from "@/components/BarraAviso";
+import Aparece from "@/components/Aparece";
 import { SITE_URL } from "@/lib/site";
 
 /*
@@ -82,12 +83,18 @@ export default function HomePage() {
       <BarraAviso aviso={AVISO} />
       <SiteHeader />
       <main>
+        {/*
+          El primer golpe de vista no espera a que nadie baje: entra solo, y
+          escalonado. El orden del retraso es el orden en que conviene leerlo
+          —titular, promesa, producto— y medio segundo de diferencia entre
+          uno y otro basta para que la mirada los recorra en ese orden.
+        */}
         <section className="hero">
           <div className="container">
-            <h1>
-              Tu lista IPTV, <span className="marca-texto">en todas tus pantallas</span>
+            <h1 className="entra-ya">
+              Tu lista IPTV, en <span className="realce">todas tus pantallas</span>
             </h1>
-            <p className="sub">
+            <p className="sub entra-ya" style={{ animationDelay: "0.12s" }}>
               Del bolsillo al salón. Pega tu URL M3U o tus credenciales Xtream Codes y empieza a ver
               TV en directo, cine y series. Sin instalar nada y gratis.
             </p>
@@ -99,8 +106,10 @@ export default function HomePage() {
               que la cosa es bonita. Enseñarla contesta sola a la pregunta
               con la que entra cualquiera: «¿y esto cómo se ve?».
             */}
-            <MaquetaProducto />
-            <p className="maqueta-nota">
+            <div className="entra-ya" style={{ animationDelay: "0.24s" }}>
+              <MaquetaProducto />
+            </div>
+            <p className="maqueta-nota entra-ya" style={{ animationDelay: "0.34s" }}>
               Las carátulas de la imagen son inventadas y sirven de ejemplo. TOTALplayer es un
               reproductor: no proporciona, aloja ni vende ningún canal, película ni lista.
             </p>
@@ -110,12 +119,12 @@ export default function HomePage() {
               decidir antes de saber qué hay dentro; el segundo camino se
               ofrece como enlace, para quien ya sabe que quiere cuenta.
             */}
-            <div className="hero-cta">
+            <div className="hero-cta entra-ya" style={{ animationDelay: "0.4s" }}>
               <Link href="/player" className="btn btn-primary btn-lg">
                 <><Icon name="play" size={18} /> Ver mi lista ahora</>
               </Link>
             </div>
-            <p className="hero-note">
+            <p className="hero-note entra-ya" style={{ animationDelay: "0.46s" }}>
               Gratis y sin instalar nada · <Link href="/registro">Crear cuenta</Link> para guardar tus listas ·{" "}
               <Link href="/proveedores">¿Eres proveedor?</Link>
             </p>
@@ -176,21 +185,21 @@ export default function HomePage() {
             <h2 className="section-title">Empieza a ver en 30 segundos</h2>
             <p className="section-sub">Tres pasos y estás dentro. Sin apps, sin configuraciones raras.</p>
             <div className="steps">
-              <div className="step">
+              <Aparece className="step" retraso={0}>
                 <div className="step-num">1</div>
                 <h3>Abre el reproductor</h3>
                 <p>Entra en el reproductor web desde cualquier dispositivo con navegador. No hay nada que instalar.</p>
-              </div>
-              <div className="step">
+              </Aparece>
+              <Aparece className="step" retraso={90}>
                 <div className="step-num">2</div>
                 <h3>Añade tu lista</h3>
                 <p>Pega la URL de tu lista M3U o introduce host, usuario y contraseña de tu cuenta Xtream Codes.</p>
-              </div>
-              <div className="step">
+              </Aparece>
+              <Aparece className="step" retraso={180}>
                 <div className="step-num">3</div>
                 <h3>Dale al play</h3>
                 <p>Navega por categorías, busca canales, marca favoritos y reproduce TV en directo, cine y series.</p>
-              </div>
+              </Aparece>
             </div>
           </div>
         </section>
@@ -207,30 +216,30 @@ export default function HomePage() {
             <h2 className="section-title">Lo que hace falta, y funcionando</h2>
             <p className="section-sub">Sin listas de la compra: esto es lo que se usa todos los días.</p>
             <div className="features-grid">
-              <div className="feature-card">
+              <Aparece className="feature-card" retraso={0}>
                 <div className="feature-icon"><Icon name="tv" size={22} /></div>
                 <h3>Xtream Codes completo</h3>
                 <p>TV en directo, películas y series con carátulas, categorías y ficha de cada título. También puedes pegar tu URL get.php y detectamos las credenciales solos.</p>
-              </div>
-              <div className="feature-card">
+              </Aparece>
+              <Aparece className="feature-card" retraso={70}>
                 <div className="feature-icon"><Icon name="list" size={22} /></div>
                 <h3>Listas M3U y M3U8</h3>
                 <p>Parser tolerante que entiende listas gigantes y mal formadas, con grupos, logos y EPG-ID. Si tu lista funciona en VLC, funciona aquí.</p>
-              </div>
-              <div className="feature-card">
+              </Aparece>
+              <Aparece className="feature-card" retraso={140}>
                 <div className="feature-icon"><Icon name="sparkle" size={22} /></div>
                 <h3>Zapping instantáneo</h3>
                 <p>Cambia de canal con las flechas del teclado, busca en milisegundos entre miles de canales y vuelve a lo último que viste con un clic.</p>
-              </div>
-              <div className="feature-card">
+              </Aparece>
+              <Aparece className="feature-card" retraso={210}>
                 <div className="feature-icon"><Icon name="clock" size={22} /></div>
                 <h3>EPG integrada</h3>
                 <p>Consulta qué están echando ahora y qué viene después en cada canal, directamente desde tu proveedor Xtream.</p>
-              </div>
+              </Aparece>
               {/* La destacada. Seis tarjetas iguales se leen en diagonal y no
                   se queda ninguna; conviene que el ojo pare justo en la que
                   dice por qué esto no es un reproductor cualquiera */}
-              <div className="feature-card destacada">
+              <Aparece className="feature-card destacada" retraso={280}>
                 <div className="feature-card-cab">
                   <div className="feature-icon"><Icon name="lock" size={22} /></div>
                   <span className="feature-sello">Privacidad</span>
@@ -238,12 +247,12 @@ export default function HomePage() {
                 <h3>Tus claves no salen de aquí</h3>
                 <p>Sin cuenta, tu lista se queda en tu navegador y no sale de ahí. Con proveedor, sus credenciales viven cifradas en el servidor y no llegan nunca a tu aparato: es lo que impide que se las lleve nadie.</p>
                 <Link href="/faq" className="feature-mas">Más información →</Link>
-              </div>
-              <div className="feature-card">
+              </Aparece>
+              <Aparece className="feature-card" retraso={350}>
                 <div className="feature-icon"><Icon name="shield" size={22} /></div>
                 <h3>Compatibilidad automática</h3>
                 <p>Si un stream falla por CORS o formato, lo reintentamos automáticamente con nuestro motor de compatibilidad. Menos pantallas negras, más tele.</p>
-              </div>
+              </Aparece>
             </div>
           </div>
         </section>
