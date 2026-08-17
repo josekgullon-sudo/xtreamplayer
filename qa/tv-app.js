@@ -371,17 +371,53 @@ async function abrirPrimeraCarpeta(tv) {
   await tv.keyboard.press("Escape");
   await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
 
-  // --- Series: lo mismo, y la carátula abre los episodios ---
+  /* --- Series: la carátula abre su ficha, no una lista de episodios ---
+     Una serie se abría en una columna con todas las temporadas seguidas
+     —«T1 · E1», «T1 · E2»… hasta la séptima— y una película se ponía a
+     reproducir en cuanto se pulsaba. En las dos faltaba lo mismo: de qué va
+     el título antes de ponerlo. */
   await tv.locator(".tv-tile:has-text('Series')").click();
   await tv.waitForSelector(".tv-carrusel", { timeout: 25000 });
   check("Las series también abren en portada", (await tv.locator(".tv-poster").count()) > 0);
   await tv.locator(".tv-carrusel .tv-poster").first().click();
-  await tv.waitForSelector(".tv-fila", { timeout: 20000 });
-  check("Y su carátula lleva directa a los episodios",
-    (await tv.locator(".tv-poster").count()) === 0,
-    (await tv.locator(".tv-fila-nombre").allInnerTexts()).slice(0, 2).join(" | "));
-  await tv.keyboard.press("Escape"); // de los episodios, a la portada de series
+  await tv.waitForSelector(".tv-ficha", { timeout: 20000 });
+  check("Y su carátula abre la ficha, no una lista de episodios",
+    (await tv.locator(".tv-ficha-t").innerText()).trim().length > 0,
+    (await tv.locator(".tv-ficha-t").innerText()).trim());
+  check("Con su sinopsis, para saber de qué va antes de ponerla",
+    (await tv.locator(".tv-ficha-sinopsis").innerText()).trim().length > 0,
+    (await tv.locator(".tv-ficha-sinopsis").innerText()).replace(/\n/g, " "));
+  check("Con el año, la nota y el género",
+    /\d{4}/.test(await tv.locator(".tv-ficha-datos").innerText()),
+    (await tv.locator(".tv-ficha-datos").innerText()).replace(/\n/g, " "));
+  check("Y su carátula, que es media ficha",
+    (await tv.locator(".tv-ficha-cartel").count()) === 1);
+  check("Con reparto y dirección, que el panel sí manda",
+    (await tv.locator(".tv-ficha-credito").count()) === 2,
+    (await tv.locator(".tv-ficha-credito").allInnerTexts()).join(" | ").replace(/\n/g, " "));
+  /* Las temporadas, en fila y no una detrás de otra: con siete temporadas,
+     llegar a la última costaba doscientas pulsaciones hacia abajo */
+  check("Las temporadas van en fila, cada una con lo suyo",
+    (await tv.locator(".tv-ficha-temporada").count()) >= 1,
+    (await tv.locator(".tv-ficha-temporada").allInnerTexts()).join(" | "));
+  const epsFicha = await tv.locator(".tv-ficha-ep-t").allInnerTexts();
+  check("Y debajo, los episodios de la temporada elegida", epsFicha.length >= 2, epsFicha.join(" | "));
+  /* El mando: del botón a las temporadas, y de ahí a los episodios */
+  await tv.mouse.move(2, 2);
+  check("El foco empieza en el botón de reproducir",
+    (await tv.locator(".tv-ficha-ver.foco").count()) === 1);
+  await tv.keyboard.press("ArrowDown");
+  check("▼ baja del botón a las temporadas",
+    (await tv.locator(".tv-ficha-temporada.foco").count()) === 1);
+  await tv.keyboard.press("ArrowDown");
+  check("Y otra vez, a los episodios",
+    (await tv.locator(".tv-ficha-ep.foco").count()) === 1);
+  await tv.keyboard.press("ArrowDown");
+  check("▼ dentro de los episodios baja de uno en uno",
+    (await tv.locator(".tv-ficha-ep").nth(1).getAttribute("class")).includes("foco"));
+  await tv.keyboard.press("Escape"); // de la ficha, a la portada de series
   await tv.waitForSelector(".tv-carrusel", { timeout: 15000 });
+  check("Y ATRÁS vuelve a la portada de la que se entró", true);
   await tv.keyboard.press("Escape"); // y de ahí, al menú
   await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
   check("Al volver a la portada, el foco queda en la sección de la que sales",

@@ -347,7 +347,10 @@ const server = http.createServer((req, res) => {
         ...portadaDePrueba(),
       ],
       get_series_categories: [{ category_id: "20", category_name: "Drama" }],
-      get_series: [{ series_id: 200, name: "Serie Demo", cover: "", category_id: "20", plot: "Una serie de prueba.", last_modified: String(Math.floor((Date.now() - 86400000) / 1000)) }],
+      /* Con carátula, nota, género y año: sin ellos, la ficha de una serie se
+         probaba siempre por su camino pobre —sin imagen y sin la línea de
+         datos— y no había forma de ver que el bueno funciona */
+      get_series: [{ series_id: 200, name: "Serie Demo", cover: "http://127.0.0.1:8090/caratula.png", category_id: "20", plot: "Una serie de prueba.", rating: "8", genre: "Comedia", releaseDate: "2024-03-01", last_modified: String(Math.floor((Date.now() - 86400000) / 1000)) }],
       get_vod_info: {
         info: {
           name: "Película Demo",

@@ -27,6 +27,7 @@ import {
   XtreamVodStream,
   XtreamSeries,
   XtreamSeriesInfo,
+  XtreamVodInfo,
   xtreamApi,
   decodeBase64Maybe,
 } from "@/lib/xtream";
@@ -51,7 +52,7 @@ import {
  * móvil, donde escribir es gratis.
  */
 
-type Pantalla = "portada" | "directo" | "cine" | "series" | "viendo" | "salir";
+type Pantalla = "portada" | "directo" | "cine" | "series" | "ficha" | "viendo" | "salir";
 
 interface Lista {
   tipo: "xtream" | "m3u";
@@ -311,6 +312,22 @@ export default function TvApp() {
   const [viendo, setViendo] = useState<{ source: PlaySource; epgId?: string } | null>(null);
   /** Serie abierta: sus episodios sustituyen a la lista mientras dure */
   const [serieAbierta, setSerieAbierta] = useState<string>("");
+  /*
+   * La ficha de un título: de qué va antes de ponerlo.
+   *
+   * Una serie se abría en una lista plana con todas las temporadas seguidas
+   * —«T1 · E1», «T1 · E2»… hasta la séptima—, y una película se ponía a
+   * reproducir directamente al pulsarla. En las dos faltaba lo mismo: la
+   * pregunta que se hace cualquiera delante de un título que no conoce, que
+   * es de qué va y si le apetece. El reproductor web sí lo enseñaba; la
+   * tele, que es donde se elige a tres metros y sin teclado, no.
+   */
+  const [ficha, setFicha] = useState<Ficha | null>(null);
+  /* Dónde está el foco dentro de la ficha. Son tres zonas y no una lista:
+     el botón de arriba, la fila de temporadas y la de episodios */
+  const [fichaZona, setFichaZona] = useState<"boton" | "temporadas" | "episodios">("boton");
+  const [fichaTemp, setFichaTemp] = useState(0);
+  const [fichaEp, setFichaEp] = useState(0);
   /** Carpeta abierta dentro de una sección (null = viendo las carpetas) */
   const [carpetaAbierta, setCarpetaAbierta] = useState<string>("");
   const [poniendoLista, setPoniendoLista] = useState(false);
@@ -1004,7 +1021,8 @@ export default function TvApp() {
           const limpias = (Array.isArray(pelis) ? pelis : []).filter(
             (v) => typeof v.name === "string" && v.name.trim()
           );
-          const verPeli = (v: XtreamVodStream) => () =>
+          /* Poner la película, cuando ya se ha decidido ponerla */
+          const ponerPeli = (v: XtreamVodStream) => () =>
             verEsto(v.name, "video", () =>
               pedirEnlace({
                 ...creds,
@@ -1013,6 +1031,60 @@ export default function TvApp() {
                 ext: v.container_extension || "mp4",
               })
             );
+          /*
+           * Y antes, su ficha.
+           *
+           * Pulsar una carátula arrancaba el vídeo directamente. Con una
+           * película que ya conoces está bien; con una que no —que son casi
+           * todas las de un catálogo de miles— es entrar a ciegas y salir a
+           * los veinte segundos, y en el camino se ha abierto una conexión
+           * contra el panel del proveedor para nada.
+           */
+          const verPeli = (v: XtreamVodStream) => async () => {
+            const suyo = mejor({
+              id: `vod-${v.stream_id}`,
+              nombre: v.name,
+              imagen: v.stream_icon || "",
+              anio: anioDe(v.year ?? v.releasedate),
+              nota: String(v.rating ?? ""),
+              alta: Number(v.added) || 0,
+              sinopsis: String(v.plot ?? ""),
+              generos: String(v.genre ?? ""),
+              esSerie: false,
+              categoria: String(v.category_id ?? ""),
+            });
+            abrirFicha({
+              nombre: v.name,
+              volverA: "cine",
+              cartel: imgSrc(suyo.imagen) || "",
+              fondo: suyo.fondo || "",
+              sinopsis: suyo.sinopsis || "",
+              datos: datosDe(suyo),
+              reparto: "",
+              direccion: "",
+              temporadas: [],
+              episodios: {},
+              reproducir: ponerPeli(v),
+            });
+            /* El detalle del panel —reparto, dirección y la sinopsis cuando
+               TMDB no la tiene— por debajo y sin bloquear la pantalla */
+            try {
+              const info = await xtreamApi<XtreamVodInfo>(creds, "get_vod_info", { vod_id: String(v.stream_id) });
+              setFicha((antes) =>
+                antes && antes.nombre === v.name
+                  ? {
+                      ...antes,
+                      sinopsis: antes.sinopsis || String(info.info?.plot ?? info.info?.description ?? ""),
+                      reparto: String(info.info?.cast ?? info.info?.actors ?? ""),
+                      direccion: String(info.info?.director ?? ""),
+                    }
+                  : antes
+              );
+            } catch {
+              /* Sin detalle no pasa nada: la ficha ya tiene lo que trae la
+                 lista y el botón de reproducir sigue donde estaba */
+            }
+          };
           setFilas(
             carpetasDe(cats, limpias, (v) => v.category_id, (v) => ({
               id: `vod-${v.stream_id}`,
@@ -1082,34 +1154,87 @@ export default function TvApp() {
     [lista, reproducir]
   );
 
+  /*
+   * Abrir la ficha: primero lo que ya se sabe, después lo que haya que pedir.
+   *
+   * La ficha se pinta con lo que trae la lista —cartel, título, y lo que
+   * TMDB ya haya dado— y por debajo se pide el detalle al panel. Al revés
+   * —esperar a tener todo y entonces cambiar de pantalla— se pulsa OK y no
+   * pasa nada durante un segundo largo, que es exactamente el problema que
+   * ya arreglamos al poner un canal.
+   */
+  const abrirFicha = useCallback((f: Ficha) => {
+    setFicha(f);
+    setFichaZona("boton");
+    setFichaTemp(0);
+    setFichaEp(0);
+    setPantalla("ficha");
+  }, []);
+
   async function abrirSerie(s: XtreamSeries) {
     if (!creds) return;
+    const suyo = mejor({
+      id: `serie-${s.series_id}`,
+      nombre: s.name,
+      imagen: s.cover || "",
+      anio: anioDe(s.releaseDate ?? s.release_date),
+      nota: String(s.rating ?? ""),
+      alta: 0,
+      sinopsis: String(s.plot ?? ""),
+      generos: String(s.genre ?? ""),
+      esSerie: true,
+      categoria: String(s.category_id ?? ""),
+    });
+    abrirFicha({
+      nombre: s.name,
+      volverA: "series",
+      cartel: imgSrc(suyo.imagen) || "",
+      fondo: suyo.fondo || "",
+      sinopsis: suyo.sinopsis || "",
+      datos: datosDe(suyo),
+      reparto: "",
+      direccion: "",
+      temporadas: [],
+      episodios: {},
+      reproducir: () => {},
+    });
     setCargando(true);
     try {
       const info = await xtreamApi<XtreamSeriesInfo>(creds, "get_series_info", { series_id: String(s.series_id) });
-      const temporadas = Object.entries(info.episodes || {});
-      const eps: Fila[] = [];
-      for (const [temporada, lista] of temporadas) {
-        for (const ep of lista || []) {
-          eps.push({
-            id: `ep-${ep.id}`,
-            nombre: `T${temporada} · E${ep.episode_num} — ${ep.title || "Episodio"}`,
-            logo: s.cover || "",
-            abrir: () =>
-              verEsto(`${s.name} — ${ep.title || ""}`, "video", () =>
-                pedirEnlace({
-                  ...creds,
-                  clase: "series",
-                  id: ep.id,
-                  ext: ep.container_extension || "mp4",
-                })
-              ),
-          });
-        }
+      const porTemporada: Record<string, Episodio[]> = {};
+      for (const [temporada, lista] of Object.entries(info.episodes || {})) {
+        porTemporada[temporada] = (lista || []).map((ep) => ({
+          id: `ep-${ep.id}`,
+          numero: String(ep.episode_num ?? ""),
+          titulo: ep.title || `Episodio ${ep.episode_num}`,
+          abrir: () =>
+            verEsto(`${s.name} — ${ep.title || ""}`, "video", () =>
+              pedirEnlace({
+                ...creds,
+                clase: "series",
+                id: ep.id,
+                ext: ep.container_extension || "mp4",
+              })
+            ),
+        }));
       }
-      setSerieAbierta(s.name);
-      setFilas(eps);
-      setFoco(0);
+      /* En orden de número y no como los mande el panel: hay paneles que
+         devuelven la 10 antes que la 2 porque ordenan por texto */
+      const temporadas = Object.keys(porTemporada).sort((a, b) => Number(a) - Number(b));
+      const primero = porTemporada[temporadas[0]]?.[0];
+      setFicha((antes) =>
+        antes && antes.nombre === s.name
+          ? {
+              ...antes,
+              sinopsis: antes.sinopsis || String(info.info?.plot ?? ""),
+              reparto: String(info.info?.cast ?? ""),
+              direccion: String(info.info?.director ?? ""),
+              temporadas,
+              episodios: porTemporada,
+              reproducir: primero ? primero.abrir : () => {},
+            }
+          : antes
+      );
     } catch {
       setError("No se pudieron cargar los episodios");
     } finally {
@@ -1193,8 +1318,18 @@ export default function TvApp() {
          saliste, y llegar tarde no le da derecho a entrar */
       zapeo.current++;
       setViendo(null);
-      // Vuelve a la lista de la que se salió, no a la portada
-      setPantalla(filas.length ? ultimaLista.current : "portada");
+      /* Vuelve a la ficha si se entró desde una ficha —que es como se ve el
+         episodio siguiente sin volver a buscar la serie— y si no, a la lista
+         de la que se salió */
+      setPantalla(ficha ? "ficha" : filas.length ? ultimaLista.current : "portada");
+      return;
+    }
+    /* De la ficha se vuelve a donde se entró —la portada de cine o la de
+       series—, no al menú: si no, ATRÁS se salta un paso */
+    if (pantalla === "ficha" && ficha) {
+      const vuelta = ficha.volverA;
+      setFicha(null);
+      setPantalla(vuelta);
       return;
     }
     if (serieAbierta) {
@@ -1437,6 +1572,52 @@ export default function TvApp() {
         return;
       }
       if (pantalla === "viendo") return;
+
+      /*
+       * La ficha se recorre por zonas y no como una columna: el botón de
+       * arriba, la fila de temporadas y la lista de episodios. Arriba y
+       * abajo saltan de zona; las flechas de lado cambian de temporada, que
+       * es lo único que va en horizontal.
+       */
+      if (pantalla === "ficha" && ficha) {
+        const temporadas = ficha.temporadas;
+        const eps = ficha.episodios[temporadas[fichaTemp]] || [];
+        const esSerie = temporadas.length > 0;
+        if (tecla === "Abajo") {
+          e.preventDefault();
+          if (fichaZona === "boton" && esSerie) setFichaZona("temporadas");
+          else if (fichaZona === "temporadas") { setFichaZona("episodios"); setFichaEp(0); }
+          else if (fichaZona === "episodios") setFichaEp((i) => Math.min(eps.length - 1, i + 1));
+          return;
+        }
+        if (tecla === "Arriba") {
+          e.preventDefault();
+          if (fichaZona === "episodios") {
+            /* Desde el primer episodio se sube a las temporadas; desde
+               cualquier otro solo se sube un episodio */
+            if (fichaEp === 0) setFichaZona("temporadas");
+            else setFichaEp((i) => Math.max(0, i - 1));
+          } else if (fichaZona === "temporadas") setFichaZona("boton");
+          return;
+        }
+        if (tecla === "Izquierda" || tecla === "Derecha") {
+          e.preventDefault();
+          if (fichaZona === "temporadas") {
+            const salto = tecla === "Derecha" ? 1 : -1;
+            const n = Math.max(0, Math.min(temporadas.length - 1, fichaTemp + salto));
+            setFichaTemp(n);
+            setFichaEp(0);
+          }
+          return;
+        }
+        if (tecla === "Ok") {
+          e.preventDefault();
+          if (fichaZona === "episodios") eps[fichaEp]?.abrir();
+          else ficha.reproducir();
+          return;
+        }
+        return;
+      }
 
       /* El carril: mientras el foco está en él, se mueve por sus iconos y
          nada de lo que hay a la derecha se entera */
@@ -1756,6 +1937,112 @@ export default function TvApp() {
             </p>
           )}
         </div>
+      </div>
+    );
+  }
+
+  /*
+   * La ficha: de qué va esto, antes de ponerlo.
+   *
+   * El fondo apaisado ocupa la pantalla entera y el texto va encima, sobre
+   * un velo que baja de la izquierda. Es la forma que tienen todas las
+   * aplicaciones de televisión de enseñar un título, y no por copiarse: a
+   * tres metros, una columna de datos sobre fondo liso obliga a leer, y una
+   * imagen grande con cuatro líneas encima se entiende de un vistazo.
+   *
+   * Cuando no hay fondo apaisado —que es lo normal en un panel IPTV, donde
+   * solo viene la carátula vertical— se usa la propia carátula difuminada
+   * detrás y entera a un lado. Estirar una imagen vertical a lo ancho de una
+   * tele da una mancha de píxeles, y eso se lee como que la aplicación está
+   * rota, no como que falta una imagen.
+   */
+  if (pantalla === "ficha" && ficha) {
+    const eps = ficha.episodios[ficha.temporadas[fichaTemp]] || [];
+    const esSerie = ficha.temporadas.length > 0;
+    return (
+      <div className="tv-app tv-ficha">
+        {ficha.fondo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="tv-ficha-fondo" src={ficha.fondo} alt="" onError={() => marcarRota(ficha.fondo)} />
+        ) : (
+          ficha.cartel && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="tv-ficha-mancha" src={ficha.cartel} alt="" aria-hidden="true" />
+          )
+        )}
+        <span className="tv-ficha-velo" aria-hidden="true" />
+
+        <div className="tv-ficha-cuerpo">
+          <div className="tv-ficha-arriba">
+            {ficha.cartel && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="tv-ficha-cartel" src={ficha.cartel} alt="" />
+            )}
+            <div className="tv-ficha-txt">
+              <h2 className="tv-ficha-t">{ficha.nombre}</h2>
+              {ficha.datos && <p className="tv-ficha-datos">{ficha.datos}</p>}
+              {ficha.sinopsis && <p className="tv-ficha-sinopsis">{ficha.sinopsis}</p>}
+              {ficha.reparto && (
+                <p className="tv-ficha-credito">
+                  <span>Reparto</span> {ficha.reparto}
+                </p>
+              )}
+              {ficha.direccion && (
+                <p className="tv-ficha-credito">
+                  <span>Dirección</span> {ficha.direccion}
+                </p>
+              )}
+              <button
+                className={`tv-ficha-ver ${fichaZona === "boton" ? "foco" : ""}`}
+                onMouseEnter={() => { conElMando.current = false; setFichaZona("boton"); }}
+                onClick={() => ficha.reproducir()}
+              >
+                <Icon name="play" size={26} />
+                {esSerie ? "Ver el primer episodio" : "Reproducir"}
+              </button>
+            </div>
+          </div>
+
+          {esSerie && (
+            <>
+              {/* Las temporadas, en fila. Una serie de siete temporadas en
+                  una lista plana son doscientos episodios seguidos, y para
+                  llegar a la última hay que bajar doscientas veces */}
+              <div className="tv-ficha-temporadas">
+                {ficha.temporadas.map((t, i) => (
+                  <button
+                    key={t}
+                    className={`tv-ficha-temporada ${i === fichaTemp ? "activa" : ""} ${
+                      fichaZona === "temporadas" && i === fichaTemp ? "foco" : ""
+                    }`}
+                    onMouseEnter={() => { conElMando.current = false; setFichaZona("temporadas"); setFichaTemp(i); setFichaEp(0); }}
+                    onClick={() => { setFichaTemp(i); setFichaEp(0); }}
+                  >
+                    Temporada {t}
+                  </button>
+                ))}
+              </div>
+
+              <div className="tv-ficha-episodios" ref={listaRef}>
+                {eps.map((ep, i) => (
+                  <button
+                    key={ep.id}
+                    data-i={i}
+                    className={`tv-ficha-ep ${fichaZona === "episodios" && i === fichaEp ? "foco" : ""}`}
+                    onMouseEnter={() => { conElMando.current = false; setFichaZona("episodios"); setFichaEp(i); }}
+                    onClick={ep.abrir}
+                  >
+                    <span className="tv-ficha-ep-n">{ep.numero}</span>
+                    <span className="tv-ficha-ep-t">{ep.titulo}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          {cargando && <p className="tv-cargando">Cargando…</p>}
+          {error && <p className="tv-activar-error">{error}</p>}
+        </div>
+        <p className="tv-ficha-pie">Pulsa ATRÁS para volver</p>
       </div>
     );
   }
@@ -2289,6 +2576,35 @@ const TITULOS: Record<string, string> = {
   cine: "Películas",
   series: "Series",
 };
+
+/**
+ * Lo que se enseña de un título antes de ponerlo.
+ *
+ * `episodios` viene vacío en una película: es lo único que separa una ficha
+ * de la otra, y no compensa tener dos pantallas casi iguales por eso.
+ */
+export interface Episodio {
+  id: string;
+  numero: string;
+  titulo: string;
+  abrir: () => void;
+}
+export interface Ficha {
+  nombre: string;
+  /** De dónde se entró, para que ATRÁS devuelva ahí y no a la portada */
+  volverA: Pantalla;
+  cartel: string;
+  fondo: string;
+  sinopsis: string;
+  /** Año · nota · géneros, ya montado */
+  datos: string;
+  reparto: string;
+  direccion: string;
+  temporadas: string[];
+  episodios: Record<string, Episodio[]>;
+  /** Poner la película, o el primer episodio de la serie */
+  reproducir: () => void;
+}
 
 const DESTINOS: { id: Pantalla; titulo: string; icono: IconName; pie: string }[] = [
   { id: "directo", titulo: "TV en directo", icono: "tv", pie: "Canales y qué echan ahora" },
