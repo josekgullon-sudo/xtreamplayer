@@ -31,6 +31,47 @@ public final class Imagenes {
     private static final java.util.Set<String> ROTAS =
             java.util.Collections.synchronizedSet(new java.util.HashSet<String>());
 
+    /**
+     * El hueco de verdad, que en el primer pase todavía no está medido.
+     *
+     * `getWidth()` vale 0 mientras la celda no se ha colocado, y en un
+     * RecyclerView eso es justo cuando se pide la imagen. Con el mínimo de
+     * antes, TODA imagen se bajaba a 320 px: bien para un logotipo de la
+     * lista, y una pena para el del canal que suena, que en una tele ocupa
+     * varias veces eso y se veía estirado. Los layouts de televisor dan el
+     * ancho en dp fijos, así que cuando la vista aún no está medida se mira
+     * ahí antes de rendirse al mínimo.
+     */
+    private static int anchoDe(ImageView donde) {
+        int medido = donde.getWidth();
+        if (medido > 0) return medido;
+        android.view.ViewGroup.LayoutParams lp = donde.getLayoutParams();
+        if (lp != null && lp.width > 0) return lp.width;
+        return 320;
+    }
+
+    /**
+     * Tamaños en escalones, para la clave de la memoria.
+     *
+     * La memoria estaba indexada solo por la dirección, y ahí estaba el
+     * verdadero motivo de que los logotipos se vieran pixelados: el primero
+     * que pedía un logotipo fijaba su tamaño para todos los demás. Como la
+     * lista de canales se pinta antes que el panel del canal que suena, el
+     * panel —que es cuatro veces más grande— heredaba el bitmap pequeño de
+     * la lista y lo estiraba.
+     *
+     * En escalones y no al píxel para no acabar guardando quince versiones
+     * del mismo logotipo en una tele que va justa de memoria.
+     */
+    private static int escalon(int ancho) {
+        if (ancho <= 160) return 160;
+        if (ancho <= 320) return 320;
+        if (ancho <= 640) return 640;
+        return 1024;
+    }
+
+    private static String clave(String url, int escalon) { return url + "@" + escalon; }
+
     private static final LruCache<String, Bitmap> CACHE =
             new LruCache<String, Bitmap>((int) (Runtime.getRuntime().maxMemory() / 8192)) {
                 @Override protected int sizeOf(String clave, Bitmap b) { return b.getByteCount() / 1024; }
@@ -64,7 +105,10 @@ public final class Imagenes {
             return;
         }
 
-        Bitmap ya = CACHE.get(url);
+        final int ancho = escalon(anchoDe(donde));
+        final String clave = clave(url, ancho);
+
+        Bitmap ya = CACHE.get(clave);
         if (ya != null) {
             donde.setTag(url);
             donde.setImageBitmap(ya);
@@ -73,7 +117,6 @@ public final class Imagenes {
 
         donde.setTag(url);
         donde.setImageResource(deReserva);
-        final int ancho = Math.max(donde.getWidth(), 320);
 
         Hilos.fueraLento(new Hilos.Trabajo<Bitmap>() {
             @Override public Bitmap hacer() {
@@ -96,7 +139,7 @@ public final class Imagenes {
         }, new Hilos.Luego<Bitmap>() {
             @Override public void listo(Bitmap b) {
                 if (b == null) return;
-                CACHE.put(url, b);
+                CACHE.put(clave, b);
                 // La fila puede haberse reciclado mientras la imagen viajaba
                 if (url.equals(donde.getTag())) donde.setImageBitmap(b);
             }
@@ -127,7 +170,8 @@ public final class Imagenes {
             quien.llega(null);
             return;
         }
-        Bitmap ya = CACHE.get(url);
+        final String clave = clave(url, escalon(anchoDestino));
+        Bitmap ya = CACHE.get(clave);
         if (ya != null) {
             quien.llega(ya);
             return;
@@ -140,7 +184,7 @@ public final class Imagenes {
             }
         }, new Hilos.Luego<Bitmap>() {
             @Override public void listo(Bitmap b) {
-                if (b != null) CACHE.put(url, b);
+                if (b != null) CACHE.put(clave, b);
                 quien.llega(b);
             }
             @Override public void falla(Exception e) {
@@ -164,6 +208,20 @@ public final class Imagenes {
 
             BitmapFactory.Options opciones = new BitmapFactory.Options();
             opciones.inSampleSize = escala;
+            /*
+             * Sin reescalar por densidad.
+             *
+             * Por defecto BitmapFactory da por hecho que los bytes vienen de
+             * la carpeta `drawable` y los reescala de la densidad del
+             * proyecto a la del aparato. Estos vienen de la red y no tienen
+             * densidad ninguna: ese reescalado de más es un remuestreo que
+             * no hacía falta, y en un logotipo con letras pequeñas se nota
+             * en los bordes.
+             */
+            opciones.inScaled = false;
+            /* Calidad por delante de memoria en el color: en un logotipo con
+               degradados, 565 saca bandas donde el original no las tiene */
+            opciones.inPreferredConfig = Bitmap.Config.ARGB_8888;
             return BitmapFactory.decodeByteArray(bytes, 0, bytes.length, opciones);
         } catch (Throwable e) {
             return null;
