@@ -378,8 +378,15 @@ const server = http.createServer((req, res) => {
         },
         episodes: {
           "1": [
-            { id: "300", episode_num: 1, title: "Piloto", container_extension: "webm", season: 1 },
-            { id: "301", episode_num: 2, title: "Segundo", container_extension: "webm", season: 1 },
+            /* Con fotograma, duración y sinopsis: sin ellos, la fila de
+               episodios se probaba siempre por su camino de reserva —el
+               número en grande— y no había forma de ver el bueno */
+            { id: "300", episode_num: 1, title: "Piloto", container_extension: "webm", season: 1,
+              info: { movie_image: "http://127.0.0.1:8090/caratula.png", duration: "00:48:00",
+                      plot: "Empieza todo, y nadie sabe todavía dónde se está metiendo." } },
+            { id: "301", episode_num: 2, title: "Segundo", container_extension: "webm", season: 1,
+              info: { movie_image: "http://127.0.0.1:8090/caratula.png", duration: "52",
+                      plot: "Las cosas se tuercen justo por donde no se esperaba." } },
           ],
         },
       },

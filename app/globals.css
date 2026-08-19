@@ -2891,60 +2891,74 @@ select.input { appearance: none; cursor: pointer; }
   min-width: 116%; min-height: 116%; object-fit: cover;
   filter: blur(3.2vw) saturate(1.3); opacity: 0.6;
 }
+/* El velo no es adorno: es lo que permite leer texto blanco encima de una
+   imagen que puede ser un cielo o un plano nocturno */
 .tv-ficha-velo {
   position: absolute; inset: 0;
   background:
-    linear-gradient(90deg, var(--bg) 14%, rgba(32, 31, 40, 0.82) 52%, rgba(32, 31, 40, 0.3) 100%),
-    linear-gradient(0deg, var(--bg) 4%, rgba(32, 31, 40, 0.5) 34%, rgba(32, 31, 40, 0) 70%);
+    linear-gradient(90deg, var(--bg) 12%, rgba(14, 14, 16, 0.86) 46%, rgba(14, 14, 16, 0.25) 100%),
+    linear-gradient(0deg, var(--bg) 6%, rgba(14, 14, 16, 0.6) 38%, rgba(14, 14, 16, 0) 72%);
 }
+/*
+ * Todo apoyado en el borde de abajo, y sin desbordar.
+ *
+ * Con el contenido creciendo libre, la fila de episodios se salía por
+ * debajo del televisor y sus títulos quedaban cortados a media palabra.
+ * `min-height: 0` es lo que permite que un hijo flexible se encoja en vez
+ * de empujar; sin él, un contenedor flex crece hasta donde haga falta y se
+ * lleva por delante el borde de la pantalla.
+ */
 .tv-ficha-cuerpo {
   position: relative; z-index: 1;
-  display: flex; flex-direction: column; gap: 2.4vh;
-  height: 100%; padding: 6vh 5vw 3vh;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  height: 100%; padding: 5vh 5vw 4vh; gap: 2.2vh;
+  overflow: hidden;
 }
-.tv-ficha-arriba { display: flex; gap: 2.4vw; align-items: flex-start; }
-.tv-ficha-cartel {
-  width: 15vw; flex: none; border-radius: 1vw;
-  box-shadow: 0 2vh 5vh rgba(0, 0, 0, 0.6);
-  aspect-ratio: 2 / 3; object-fit: cover;
-}
-.tv-ficha-txt { max-width: 52vw; display: flex; flex-direction: column; gap: 1.2vh; }
+.tv-ficha-cuerpo > * { min-height: 0; }
+/*
+ * El texto a la izquierda, y la imagen respirando a la derecha.
+ *
+ * Antes había un cartel vertical en su propia caja, al lado del texto: la
+ * misma imagen dos veces —de fondo y en pequeño— y menos ancho para la
+ * sinopsis. Con el fondo a sangre y el velo encima, la imagen es el
+ * escenario y el texto va sobre él, que es como enseña un título cualquier
+ * aplicación de televisión.
+ */
+.tv-ficha-txt { max-width: 46vw; display: flex; flex-direction: column; gap: 1.2vh; }
 .tv-ficha-t {
   font-size: 3.4vw; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em;
-  text-shadow: 0 0.4vh 2vh rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0.4vh 2vh rgba(0, 0, 0, 0.85);
 }
-.tv-ficha-datos { font-size: 1.3vw; font-weight: 650; color: var(--text-dim); }
+.tv-ficha-datos { font-size: 1.25vw; font-weight: 650; color: var(--text-dim); }
 .tv-ficha-sinopsis {
-  font-size: 1.4vw; line-height: 1.55; color: var(--text-dim);
-  /* Cuatro líneas y basta: una sinopsis de TMDB puede traer doce, y en una
-     tele eso se come la pantalla y no lo lee nadie */
-  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: 1.3vw; line-height: 1.55; color: var(--text-dim);
+  /* Tres líneas: una sinopsis de TMDB puede traer doce, y en una tele eso se
+     come la pantalla y no lo lee nadie */
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
-.tv-ficha-credito { font-size: 1.15vw; color: var(--text-faint); }
+.tv-ficha-credito { font-size: 1.1vw; color: var(--text-faint); }
 .tv-ficha-credito span { font-weight: 700; color: var(--text-dim); margin-right: 0.5vw; }
 .tv-ficha-ver {
-  align-self: flex-start; margin-top: 0.8vh;
+  align-self: flex-start; margin-top: 1vh;
   display: inline-flex; align-items: center; gap: 0.9vw;
   padding: 1.5vh 2.6vw; border: 0.25vh solid transparent; border-radius: 999px;
   background: var(--accent); color: #fff;
-  font-size: 1.5vw; font-weight: 700; cursor: pointer;
+  font-size: 1.45vw; font-weight: 700; cursor: pointer;
   transition: transform 0.16s cubic-bezier(0.22, 0.8, 0.2, 1), box-shadow 0.16s ease;
 }
 /* En una tele no hay puntero: el foco tiene que verse desde el sofá, y por
    eso es un aro entero y un salto de tamaño, no un sombreado */
 .tv-ficha-ver.foco {
   border-color: #fff; transform: scale(1.05);
-  box-shadow: 0 1.4vh 4vh rgba(0, 0, 0, 0.55);
+  box-shadow: 0 1.4vh 4vh rgba(0, 0, 0, 0.6);
 }
 
-/* Las temporadas, en fila: una serie de siete temporadas en lista plana son
-   doscientos episodios seguidos, y llegar a la última cuesta doscientas
-   pulsaciones hacia abajo */
+.tv-ficha-serie { display: flex; flex-direction: column; gap: 1.6vh; }
 .tv-ficha-temporadas { display: flex; gap: 0.9vw; flex-wrap: wrap; }
 .tv-ficha-temporada {
-  padding: 1vh 1.6vw; border-radius: 999px;
-  border: 0.2vh solid var(--hairline); background: var(--bg-elev);
-  color: var(--text-dim); font-size: 1.15vw; font-weight: 650; cursor: pointer;
+  padding: 0.9vh 1.5vw; border-radius: 999px;
+  border: 0.2vh solid var(--border); background: rgba(23, 23, 26, 0.8);
+  color: var(--text-dim); font-size: 1.1vw; font-weight: 650; cursor: pointer;
   transition: background 0.16s ease, color 0.16s ease, transform 0.16s cubic-bezier(0.22, 0.8, 0.2, 1);
 }
 .tv-ficha-temporada.activa { background: var(--bg-elev-2); color: var(--text); }
@@ -2952,33 +2966,66 @@ select.input { appearance: none; cursor: pointer; }
   border-color: #fff; color: #fff; background: var(--accent); transform: scale(1.06);
 }
 
+/*
+ * Los episodios, en fila y con su fotograma.
+ *
+ * Eran una columna de títulos, y de un título no se decide nada. Con la
+ * imagen, cuánto dura y una línea de qué pasa se elige de un vistazo. Y en
+ * horizontal porque una tele es ancha: así caben cuatro o cinco sin tapar la
+ * ficha que hay detrás.
+ */
+/*
+ * La fila llega hasta el borde y lleva su propio margen por dentro.
+ *
+ * Encerrada en el relleno del padre, el desplazamiento hacia el episodio
+ * enfocado cortaba el primero por la mitad: la fila se movía pero el hueco
+ * seguía empezando donde acababa el relleno. Con el margen negativo la fila
+ * ocupa el ancho entero, y `scroll-padding` le dice al navegador dónde tiene
+ * que dejar de empujar.
+ */
 .tv-ficha-episodios {
-  display: flex; flex-direction: column; gap: 0.8vh;
-  overflow-y: auto; flex: 1 1 auto; min-height: 0;
-  padding-right: 1vw;
+  display: flex; gap: 1.1vw; overflow-x: auto;
+  margin: 0 -5vw; padding: 0.4vh 5vw 1vh;
+  scroll-padding-inline: 5vw;
   scrollbar-width: none;
 }
 .tv-ficha-episodios::-webkit-scrollbar { display: none; }
 .tv-ficha-ep {
-  display: flex; align-items: center; gap: 1.4vw; text-align: left;
-  padding: 1.4vh 1.6vw; border-radius: 1vw;
-  border: 0.2vh solid transparent; background: rgba(46, 43, 57, 0.72);
-  color: var(--text); cursor: pointer;
-  transition: background 0.16s ease, transform 0.16s cubic-bezier(0.22, 0.8, 0.2, 1);
+  display: flex; flex-direction: column; gap: 0.5vh; flex: none;
+  width: 16.5vw; text-align: left; padding: 0; cursor: pointer;
+  background: none; border: none; color: var(--text);
+  transition: transform 0.16s cubic-bezier(0.22, 0.8, 0.2, 1);
 }
-.tv-ficha-ep.foco {
-  border-color: var(--accent-bright); background: var(--bg-elev-2);
-  transform: scale(1.01);
+.tv-ficha-ep.foco { transform: scale(1.04); }
+.tv-ficha-ep-foto {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+  border-radius: 0.7vw; border: 0.22vh solid transparent;
+  background: var(--bg-elev-2);
 }
-.tv-ficha-ep-n {
-  flex: none; min-width: 3vw; font-size: 1.5vw; font-weight: 800;
-  color: var(--text-faint); font-variant-numeric: tabular-nums;
+.tv-ficha-ep.foco .tv-ficha-ep-foto { border-color: var(--accent-bright); }
+.tv-ficha-ep-foto img { width: 100%; height: 100%; object-fit: cover; }
+/* Sin fotograma, el número en grande: un hueco gris parece un fallo de
+   carga, y esto se lee como una decisión */
+.tv-ficha-ep-n { font-size: 2.4vw; font-weight: 800; color: var(--text-faint); }
+.tv-ficha-ep-min {
+  position: absolute; right: 0.5vw; bottom: 0.7vh;
+  padding: 0.3vh 0.6vw; border-radius: 0.4vw;
+  background: rgba(0, 0, 0, 0.78); color: #fff;
+  font-size: 0.85vw; font-weight: 650;
 }
-.tv-ficha-ep.foco .tv-ficha-ep-n { color: var(--accent-bright); }
-.tv-ficha-ep-t { font-size: 1.3vw; font-weight: 600; }
+.tv-ficha-ep-cab { font-size: 0.95vw; font-weight: 700; color: var(--accent-bright); }
+.tv-ficha-ep-t { font-size: 1.15vw; font-weight: 650; }
+.tv-ficha-ep-p {
+  font-size: 0.95vw; color: var(--text-faint); line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* Arriba a la derecha y no abajo centrado: abajo se le echaba encima la
+   fila de episodios y se leían las dos cosas a la vez */
 .tv-ficha-pie {
-  position: absolute; left: 0; right: 0; bottom: 1.6vh; text-align: center;
-  font-size: 1.1vw; color: rgba(255, 255, 255, 0.45); z-index: 1;
+  position: absolute; top: 4vh; right: 5vw; z-index: 1;
+  font-size: 1.05vw; color: var(--text-faint);
 }
 
 /*

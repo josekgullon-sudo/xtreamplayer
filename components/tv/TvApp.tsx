@@ -1220,6 +1220,9 @@ export default function TvApp() {
           id: `ep-${ep.id}`,
           numero: String(ep.episode_num ?? ""),
           titulo: ep.title || `Episodio ${ep.episode_num}`,
+          imagen: imgSrc(ep.info?.movie_image || "") || "",
+          duracion: minutosDe(ep.info?.duration || ""),
+          sinopsis: String(ep.info?.plot ?? ""),
           abrir: () =>
             verEsto(`${s.name} — ${ep.title || ""}`, "video", () =>
               pedirEnlace({
@@ -1600,26 +1603,25 @@ export default function TvApp() {
           e.preventDefault();
           if (fichaZona === "boton" && esSerie) setFichaZona("temporadas");
           else if (fichaZona === "temporadas") { setFichaZona("episodios"); setFichaEp(0); }
-          else if (fichaZona === "episodios") setFichaEp((i) => Math.min(eps.length - 1, i + 1));
           return;
         }
         if (tecla === "Arriba") {
           e.preventDefault();
-          if (fichaZona === "episodios") {
-            /* Desde el primer episodio se sube a las temporadas; desde
-               cualquier otro solo se sube un episodio */
-            if (fichaEp === 0) setFichaZona("temporadas");
-            else setFichaEp((i) => Math.max(0, i - 1));
-          } else if (fichaZona === "temporadas") setFichaZona("boton");
+          /* Los episodios van en fila: arriba sale de la fila entera, no
+             sube de uno en uno como cuando eran una columna */
+          if (fichaZona === "episodios") setFichaZona("temporadas");
+          else if (fichaZona === "temporadas") setFichaZona("boton");
           return;
         }
         if (tecla === "Izquierda" || tecla === "Derecha") {
           e.preventDefault();
+          const salto = tecla === "Derecha" ? 1 : -1;
           if (fichaZona === "temporadas") {
-            const salto = tecla === "Derecha" ? 1 : -1;
             const n = Math.max(0, Math.min(temporadas.length - 1, fichaTemp + salto));
             setFichaTemp(n);
             setFichaEp(0);
+          } else if (fichaZona === "episodios") {
+            setFichaEp((i) => Math.max(0, Math.min(eps.length - 1, i + salto)));
           }
           return;
         }
@@ -1997,41 +1999,40 @@ export default function TvApp() {
         <span className="tv-ficha-velo" aria-hidden="true" />
 
         <div className="tv-ficha-cuerpo">
-          <div className="tv-ficha-arriba">
-            {ficha.cartel && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img className="tv-ficha-cartel" src={ficha.cartel} alt="" />
+          {/*
+            El texto a la izquierda, sobre el velo, y la imagen respirando a
+            la derecha. El cartel vertical que había aquí en su propia caja
+            competía con el fondo —dos veces la misma imagen, una grande y
+            otra pequeña— y comía el ancho que ahora usa la sinopsis.
+          */}
+          <div className="tv-ficha-txt">
+            <h2 className="tv-ficha-t">{ficha.nombre}</h2>
+            {ficha.datos && <p className="tv-ficha-datos">{ficha.datos}</p>}
+            {ficha.sinopsis && <p className="tv-ficha-sinopsis">{ficha.sinopsis}</p>}
+            {ficha.reparto && (
+              <p className="tv-ficha-credito">
+                <span>Reparto</span> {ficha.reparto}
+              </p>
             )}
-            <div className="tv-ficha-txt">
-              <h2 className="tv-ficha-t">{ficha.nombre}</h2>
-              {ficha.datos && <p className="tv-ficha-datos">{ficha.datos}</p>}
-              {ficha.sinopsis && <p className="tv-ficha-sinopsis">{ficha.sinopsis}</p>}
-              {ficha.reparto && (
-                <p className="tv-ficha-credito">
-                  <span>Reparto</span> {ficha.reparto}
-                </p>
-              )}
-              {ficha.direccion && (
-                <p className="tv-ficha-credito">
-                  <span>Dirección</span> {ficha.direccion}
-                </p>
-              )}
-              <button
-                className={`tv-ficha-ver ${fichaZona === "boton" ? "foco" : ""}`}
-                onMouseEnter={() => { conElMando.current = false; setFichaZona("boton"); }}
-                onClick={() => ficha.reproducir()}
-              >
-                <Icon name="play" size={26} />
-                {esSerie ? "Ver el primer episodio" : "Reproducir"}
-              </button>
-            </div>
+            {ficha.direccion && (
+              <p className="tv-ficha-credito">
+                <span>Dirección</span> {ficha.direccion}
+              </p>
+            )}
+            <button
+              className={`tv-ficha-ver ${fichaZona === "boton" ? "foco" : ""}`}
+              onMouseEnter={() => { conElMando.current = false; setFichaZona("boton"); }}
+              onClick={() => ficha.reproducir()}
+            >
+              <Icon name="play" size={26} />
+              {esSerie ? "Ver el primer episodio" : "Reproducir"}
+            </button>
           </div>
 
           {esSerie && (
-            <>
-              {/* Las temporadas, en fila. Una serie de siete temporadas en
-                  una lista plana son doscientos episodios seguidos, y para
-                  llegar a la última hay que bajar doscientas veces */}
+            <div className="tv-ficha-serie">
+              {/* Las temporadas, en fila. Con siete temporadas en una lista
+                  plana, llegar a la última costaba doscientas pulsaciones */}
               <div className="tv-ficha-temporadas">
                 {ficha.temporadas.map((t, i) => (
                   <button
@@ -2047,6 +2048,13 @@ export default function TvApp() {
                 ))}
               </div>
 
+              {/*
+                Los episodios se miran, no se leen.
+                Eran una columna de títulos —«1 Piloto», «2 Segundo»— y de un
+                título no se decide nada. Con su fotograma, cuánto dura y una
+                línea de qué pasa, se elige de un vistazo; y en fila, porque
+                una tele es ancha y así caben cinco sin tapar la ficha.
+              */}
               <div className="tv-ficha-episodios" ref={listaRef}>
                 {eps.map((ep, i) => (
                   <button
@@ -2056,12 +2064,26 @@ export default function TvApp() {
                     onMouseEnter={() => { conElMando.current = false; setFichaZona("episodios"); setFichaEp(i); }}
                     onClick={ep.abrir}
                   >
-                    <span className="tv-ficha-ep-n">{ep.numero}</span>
+                    <span className="tv-ficha-ep-foto">
+                      {ep.imagen ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={ep.imagen} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+                      ) : (
+                        /* Sin fotograma, el número en grande: un hueco gris
+                           parece un fallo, y esto se lee como una decisión */
+                        <span className="tv-ficha-ep-n">{ep.numero}</span>
+                      )}
+                      {ep.duracion && <span className="tv-ficha-ep-min">{ep.duracion}</span>}
+                    </span>
+                    <span className="tv-ficha-ep-cab">
+                      T{ficha.temporadas[fichaTemp]}: E{ep.numero}
+                    </span>
                     <span className="tv-ficha-ep-t">{ep.titulo}</span>
+                    {ep.sinopsis && <span className="tv-ficha-ep-p">{ep.sinopsis}</span>}
                   </button>
                 ))}
               </div>
-            </>
+            </div>
           )}
           {cargando && <p className="tv-cargando">Cargando…</p>}
           {error && <p className="tv-activar-error">{error}</p>}
@@ -2618,10 +2640,36 @@ const TITULOS: Record<string, string> = {
  * `episodios` viene vacío en una película: es lo único que separa una ficha
  * de la otra, y no compensa tener dos pantallas casi iguales por eso.
  */
+/**
+ * La duración de un episodio, en minutos y corta.
+ *
+ * Los paneles la mandan de tres formas: «52», «52 min» y «00:52:00». Sin
+ * normalizar, la fila de episodios enseña las tres a la vez y parece que
+ * cada una mide una cosa distinta. Y si no viene nada, no se pone nada: un
+ * «0 min» dice algo falso, y el hueco no dice nada, que es lo correcto.
+ */
+function minutosDe(bruto: string): string {
+  const t = String(bruto || "").trim();
+  if (!t) return "";
+  const reloj = t.match(/^(\d+):(\d{2}):(\d{2})$/);
+  if (reloj) {
+    const min = Number(reloj[1]) * 60 + Number(reloj[2]);
+    return min > 0 ? `${min} min` : "";
+  }
+  const n = parseInt(t, 10);
+  return Number.isFinite(n) && n > 0 ? `${n} min` : "";
+}
+
 export interface Episodio {
   id: string;
   numero: string;
   titulo: string;
+  /* Lo que hace que una fila de episodios se mire en vez de leerse. Xtream
+     los manda en `info.movie_image`; cuando no viene, la fila enseña el
+     número en grande y no un hueco */
+  imagen: string;
+  duracion: string;
+  sinopsis: string;
   abrir: () => void;
 }
 export interface Ficha {

@@ -390,8 +390,11 @@ async function abrirPrimeraCarpeta(tv) {
   check("Con el año, la nota y el género",
     /\d{4}/.test(await tv.locator(".tv-ficha-datos").innerText()),
     (await tv.locator(".tv-ficha-datos").innerText()).replace(/\n/g, " "));
-  check("Y su carátula, que es media ficha",
-    (await tv.locator(".tv-ficha-cartel").count()) === 1);
+  /* La imagen ya no es un cartel en su caja: es el fondo de la pantalla, con
+     el texto encima sobre el velo */
+  check("Con la imagen de fondo a sangre, no un cartel en una caja",
+    (await tv.locator(".tv-ficha-fondo, .tv-ficha-mancha").count()) === 1 &&
+      (await tv.locator(".tv-ficha-cartel").count()) === 0);
   check("Con reparto y dirección, que el panel sí manda",
     (await tv.locator(".tv-ficha-credito").count()) === 2,
     (await tv.locator(".tv-ficha-credito").allInnerTexts()).join(" | ").replace(/\n/g, " "));
@@ -402,9 +405,23 @@ async function abrirPrimeraCarpeta(tv) {
     (await tv.locator(".tv-ficha-temporada").allInnerTexts()).join(" | "));
   const epsFicha = await tv.locator(".tv-ficha-ep-t").allInnerTexts();
   check("Y debajo, los episodios de la temporada elegida", epsFicha.length >= 2, epsFicha.join(" | "));
+  /* Un episodio se elige por lo que se ve, no por su número: eran una
+     columna de títulos, y de un título no se decide nada */
+  check("Cada episodio con su fotograma", (await tv.locator(".tv-ficha-ep-foto img").count()) >= 2);
+  const duraciones = await tv.locator(".tv-ficha-ep-min").allInnerTexts();
+  check("Y con cuánto dura, en minutos y de las dos formas que lo mandan",
+    duraciones.length >= 2 && duraciones.every((d) => /^\d+ min$/.test(d.trim())),
+    duraciones.join(" | "));
+  check("Y una línea de qué pasa en él",
+    (await tv.locator(".tv-ficha-ep-p").allInnerTexts()).some((t) => t.trim().length > 10));
   /* El mando: del botón a las temporadas, y de ahí a los episodios */
+  /* El ratón deja el foco donde cayera el puntero al dibujarse la ficha
+     —con el mando eso no pasa—, así que la navegación se prueba con el
+     mando, que es como se usa esto de verdad */
   await tv.mouse.move(2, 2);
-  check("El foco empieza en el botón de reproducir",
+  await tv.keyboard.press("ArrowUp");
+  await tv.keyboard.press("ArrowUp");
+  check("Con el mando se sube hasta el botón de reproducir",
     (await tv.locator(".tv-ficha-ver.foco").count()) === 1);
   await tv.keyboard.press("ArrowDown");
   check("▼ baja del botón a las temporadas",
@@ -412,8 +429,9 @@ async function abrirPrimeraCarpeta(tv) {
   await tv.keyboard.press("ArrowDown");
   check("Y otra vez, a los episodios",
     (await tv.locator(".tv-ficha-ep.foco").count()) === 1);
-  await tv.keyboard.press("ArrowDown");
-  check("▼ dentro de los episodios baja de uno en uno",
+  /* En fila, así que el movimiento entre episodios es de lado */
+  await tv.keyboard.press("ArrowRight");
+  check("▶ dentro de los episodios pasa al siguiente",
     (await tv.locator(".tv-ficha-ep").nth(1).getAttribute("class")).includes("foco"));
   await tv.keyboard.press("Escape"); // de la ficha, a la portada de series
   await tv.waitForSelector(".tv-carrusel", { timeout: 15000 });
