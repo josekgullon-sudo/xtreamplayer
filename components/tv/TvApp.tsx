@@ -2016,8 +2016,27 @@ export default function TvApp() {
           <img className="tv-ficha-fondo" src={ficha.fondo} alt="" onError={() => marcarRota(ficha.fondo)} />
         ) : (
           ficha.cartel && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img className="tv-ficha-mancha" src={ficha.cartel} alt="" aria-hidden="true" />
+            <>
+              {/*
+                Sin fondo apaisado, el cartel hace las dos cosas.
+                Difuminado detrás pone el color, y entero a la derecha pone
+                la imagen. Con solo lo primero —que es como se quedó al
+                rehacer esta pantalla— la ficha era una mancha de color sin
+                forma y un texto en la esquina: parecía que no había cargado
+                nada. Y esto no es el caso raro, es el normal: un panel
+                Xtream manda carátulas verticales y el fondo apaisado solo
+                aparece cuando TMDB reconoce el título.
+              */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="tv-ficha-mancha" src={ficha.cartel} alt="" aria-hidden="true" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="tv-ficha-arte"
+                src={ficha.cartel}
+                alt=""
+                onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")}
+              />
+            </>
           )
         )}
         <span className="tv-ficha-velo" aria-hidden="true" />
@@ -2073,6 +2092,22 @@ export default function TvApp() {
             </p>
 
             {ficha.sinopsis && <p className="tv-ficha-sinopsis">{ficha.sinopsis}</p>}
+            {/*
+              Y aquí la acción, justo después de saber de qué va.
+              Estaba debajo de los créditos, o sea que para darle a
+              reproducir había que pasar la vista por el reparto entero. Lo
+              que se hace en esta pantalla es ponerlo; el reparto y la
+              dirección se leen si acaso, y por eso van al final.
+            */}
+            <button
+              className={`tv-ficha-ver ${fichaZona === "boton" ? "foco" : ""}`}
+              onMouseEnter={() => { conElMando.current = false; setFichaZona("boton"); }}
+              onClick={() => ficha.reproducir()}
+            >
+              <Icon name="play" size={26} />
+              {esSerie ? "Ver el primer episodio" : "Reproducir"}
+            </button>
+
             {ficha.direccion && (
               <p className="tv-ficha-credito">
                 <span>Dirección</span> <b>{ficha.direccion}</b>
@@ -2088,14 +2123,6 @@ export default function TvApp() {
                 <span>Género</span> <b>{ficha.genero}</b>
               </p>
             )}
-            <button
-              className={`tv-ficha-ver ${fichaZona === "boton" ? "foco" : ""}`}
-              onMouseEnter={() => { conElMando.current = false; setFichaZona("boton"); }}
-              onClick={() => ficha.reproducir()}
-            >
-              <Icon name="play" size={26} />
-              {esSerie ? "Ver el primer episodio" : "Reproducir"}
-            </button>
           </div>
 
           {esSerie && (

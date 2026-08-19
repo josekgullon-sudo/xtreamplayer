@@ -3043,11 +3043,30 @@ select.input { appearance: none; cursor: pointer; }
 }
 /* El velo no es adorno: es lo que permite leer texto blanco encima de una
    imagen que puede ser un cielo o un plano nocturno */
+/*
+ * El cartel entero, a la derecha y nítido.
+ *
+ * Es el caso normal, no el raro: un panel Xtream manda carátulas verticales
+ * y el fondo apaisado solo lo hay cuando TMDB reconoce el título. Con solo
+ * la mancha difuminada, la pantalla era un borrón de color con el texto en
+ * una esquina.
+ *
+ * Va pegado al borde derecho y sin recortar: una carátula vertical estirada
+ * a lo ancho de una tele es una mancha de píxeles, y eso se lee como que la
+ * aplicación está rota.
+ */
+.tv-ficha-arte {
+  position: absolute; right: 4vw; top: 50%; transform: translateY(-50%);
+  height: 76vh; width: auto; max-width: 34vw; object-fit: contain;
+  border-radius: 1vw;
+  box-shadow: 0 3vh 8vh rgba(0, 0, 0, 0.7);
+}
+
 .tv-ficha-velo {
   position: absolute; inset: 0;
   background:
-    linear-gradient(90deg, var(--bg) 12%, rgba(14, 14, 16, 0.86) 46%, rgba(14, 14, 16, 0.25) 100%),
-    linear-gradient(0deg, var(--bg) 6%, rgba(14, 14, 16, 0.6) 38%, rgba(14, 14, 16, 0) 72%);
+    linear-gradient(90deg, var(--bg) 12%, rgba(14, 14, 16, 0.82) 44%, rgba(14, 14, 16, 0) 72%),
+    linear-gradient(0deg, var(--bg) 4%, rgba(14, 14, 16, 0.55) 34%, rgba(14, 14, 16, 0) 70%);
 }
 /*
  * Todo apoyado en el borde de abajo, y sin desbordar.
@@ -3074,7 +3093,10 @@ select.input { appearance: none; cursor: pointer; }
  * escenario y el texto va sobre él, que es como enseña un título cualquier
  * aplicación de televisión.
  */
-.tv-ficha-txt { max-width: 46vw; display: flex; flex-direction: column; gap: 1.2vh; }
+/* Con la acción en medio, los bloques necesitan aire propio: sinopsis,
+   botón y créditos son tres cosas distintas y pegadas se leen como un
+   párrafo largo */
+.tv-ficha-txt { max-width: 46vw; display: flex; flex-direction: column; gap: 1.4vh; }
 .tv-ficha-t {
   font-size: 3.4vw; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em;
   text-shadow: 0 0.4vh 2vh rgba(0, 0, 0, 0.85);
@@ -3125,7 +3147,7 @@ select.input { appearance: none; cursor: pointer; }
 .tv-ficha-credito span { font-weight: 650; color: var(--text-faint); flex: none; min-width: 5.5vw; }
 .tv-ficha-credito b { font-weight: 650; color: var(--text-dim); }
 .tv-ficha-ver {
-  align-self: flex-start; margin-top: 1vh;
+  align-self: flex-start; margin: 1.2vh 0 0.8vh;
   display: inline-flex; align-items: center; gap: 0.9vw;
   padding: 1.5vh 2.6vw; border: 0.25vh solid transparent; border-radius: 999px;
   background: var(--accent); color: #fff;
