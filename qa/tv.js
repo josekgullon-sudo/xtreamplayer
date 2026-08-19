@@ -54,10 +54,21 @@ const FIRETV_UA =
     "Sin interruptor de «Modo TV» en la cabecera",
     (await desk.locator(".site-header button:has-text('Modo TV')").count()) === 0
   );
-  const menu = await desk.locator(".nav-links a").allInnerTexts();
+  /* Solo los de primer nivel: los del panel desplegable cuelgan de uno de
+     ellos, y contarlos aquí es contar dos veces el mismo camino */
+  const menu = await desk.locator(".nav-links > a, .nav-links > .nav-desplegable > a").allInnerTexts();
   const acciones = await desk.locator(".header-actions a").allInnerTexts();
   const todos = [...menu, ...acciones].map((t) => t.trim().toLowerCase());
   check("Sin entradas repetidas entre menú y botones", new Set(todos).size === todos.length, todos.join(" | "));
+  /* El desplegable de aplicaciones: cada entrada a un sitio distinto y de
+     verdad. Si las cuatro acabaran en la misma página sería un menú más
+     largo para llegar exactamente igual de lejos */
+  const destinos = await desk.locator(".nav-panel .nav-panel-item").evaluateAll((n) =>
+    n.map((a) => a.getAttribute("href"))
+  );
+  check("El desplegable de aplicaciones lleva a sitios distintos",
+    destinos.length >= 3 && new Set(destinos).size === destinos.length,
+    destinos.join(" | "));
   await desk.goto(BASE + "/tv", { waitUntil: "networkidle" });
   await desk.waitForSelector(".tv-app, .tv-activar", { timeout: 15000 });
   check("La aplicación de tele vive en /tv", true);

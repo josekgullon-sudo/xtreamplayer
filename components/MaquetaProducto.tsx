@@ -18,13 +18,22 @@
  * contenido que no damos.
  */
 
+/*
+ * Los carteles, en grises y de un solo tono cada uno.
+ *
+ * Eran seis degradados de seis colores distintos —rojo, azul, marrón,
+ * morado, verde—, y en una fila juntos parecían una caja de rotuladores.
+ * Con la escala de grises pasa lo contrario: se distinguen igual, porque lo
+ * que los separa es el salto de claridad, y lo único con color en toda la
+ * maqueta vuelve a ser el botón. Que es de lo que va esto.
+ */
 const CARTELES = [
-  { titulo: "Marea alta", tono: "linear-gradient(150deg, #6b2233, #2a1520)" },
-  { titulo: "Ciudad norte", tono: "linear-gradient(150deg, #24405c, #131f2e)" },
-  { titulo: "El último tren", tono: "linear-gradient(150deg, #5c3a1f, #241708)" },
-  { titulo: "Noche cerrada", tono: "linear-gradient(150deg, #3a2a5c, #170f2a)" },
-  { titulo: "Los que vuelven", tono: "linear-gradient(150deg, #1f5245, #0d2620)" },
-  { titulo: "Frontera", tono: "linear-gradient(150deg, #5c1f2c, #2a0d14)" },
+  { titulo: "Marea alta", tono: "#3a3a41" },
+  { titulo: "Ciudad norte", tono: "#26262b" },
+  { titulo: "El último tren", tono: "#45454d" },
+  { titulo: "Noche cerrada", tono: "#1c1c20" },
+  { titulo: "Los que vuelven", tono: "#33333a" },
+  { titulo: "Frontera", tono: "#2a2a2f" },
 ];
 
 const PESTANAS = ["Inicio", "Cine", "Series", "En directo", "Favoritos"];

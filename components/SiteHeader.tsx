@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import Icon from "./Icon";
+import Icon, { type IconName } from "./Icon";
 import AccountMenu from "./AccountMenu";
 
 export default function SiteHeader() {
@@ -38,6 +38,27 @@ export default function SiteHeader() {
    * proveedor»: solo un enlace pequeño perdido en el texto del héroe.
    */
   const [menuAbierto, setMenuAbierto] = useState(false);
+
+  /*
+   * La cabecera adelgaza al bajar.
+   *
+   * Arriba del todo puede permitirse aire: es lo primero que se ve y el
+   * logotipo tiene que respirar. Veinte líneas más abajo, esa misma franja
+   * son noventa píxeles de nada pegados al borde superior mientras se lee.
+   * Encogiéndola se recuperan para el contenido, y de paso el borde inferior
+   * dice que hay algo por encima.
+   *
+   * `passive: true` porque esto no cancela el desplazamiento: sin marcarlo,
+   * el navegador tiene que esperar a ver si lo cancelamos antes de mover la
+   * página, y eso se nota como tirones al pasar la rueda.
+   */
+  const [bajada, setBajada] = useState(false);
+  useEffect(() => {
+    const mirar = () => setBajada(window.scrollY > 24);
+    mirar();
+    window.addEventListener("scroll", mirar, { passive: true });
+    return () => window.removeEventListener("scroll", mirar);
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -101,7 +122,7 @@ export default function SiteHeader() {
   }
 
   return (
-    <header className="site-header">
+    <header className={`site-header ${bajada ? "bajada" : ""}`}>
       <div className="container">
         {/* El logotipo es el nombre. El cuadrado rojo con el triángulo dentro
             que había delante era, literalmente, el de YouTube */}
@@ -119,9 +140,37 @@ export default function SiteHeader() {
         ) : (
           <>
             <nav className="nav-links" aria-label="Navegación principal">
-              {ENLACES.map((e) => (
-                <Link key={e.href} href={e.href}>{e.texto}</Link>
-              ))}
+              {ENLACES.map((e) =>
+                e.sub ? (
+                  /*
+                   * Se abre al pasar por encima Y al entrar con el tabulador
+                   * —eso es `:focus-within` en el CSS—, así que también se
+                   * puede usar con el teclado. Un desplegable que solo
+                   * responde al ratón deja fuera a quien navega tabulando.
+                   */
+                  <span className="nav-desplegable" key={e.href}>
+                    <Link href={e.href} className="nav-desplegable-t">
+                      {e.texto}
+                      {/* La misma flecha del resto de la web, tumbada: un icono nuevo para
+                          esto sería un dibujo más que mantener */}
+                      <Icon name="chevronRight" size={14} />
+                    </Link>
+                    <span className="nav-panel">
+                      {e.sub.map((s2) => (
+                        <Link key={s2.href} href={s2.href} className="nav-panel-item">
+                          <span className="nav-panel-icono"><Icon name={s2.icono} size={18} /></span>
+                          <span>
+                            <b>{s2.texto}</b>
+                            <small>{s2.pie}</small>
+                          </span>
+                        </Link>
+                      ))}
+                    </span>
+                  </span>
+                ) : (
+                  <Link key={e.href} href={e.href}>{e.texto}</Link>
+                )
+              )}
             </nav>
             {/* El mismo menú, en móvil, detrás de un botón */}
             <button
@@ -175,9 +224,29 @@ export default function SiteHeader() {
 
 /* Un solo sitio donde están los enlaces: el menú de escritorio y el de móvil
    tienen que llevar a lo mismo, y con dos listas acaban no llevándolo */
-const ENLACES = [
+const ENLACES: {
+  href: string;
+  texto: string;
+  sub?: { href: string; texto: string; pie: string; icono: IconName }[];
+}[] = [
   { href: "/precios", texto: "Precios" },
-  { href: "/apps", texto: "Aplicaciones" },
+  {
+    href: "/apps",
+    texto: "Aplicaciones",
+    /*
+     * Cada entrada lleva a un sitio distinto y de verdad.
+     *
+     * Es la diferencia entre un desplegable que sirve y uno de adorno: si
+     * las cinco entradas acabaran en la misma página, sería un menú más
+     * largo para llegar exactamente igual de lejos.
+     */
+    sub: [
+      { href: "/apps/androidtv", texto: "Android TV y Fire TV", pie: "Aplicación propia, con su icono en la tele", icono: "tv" },
+      { href: "/apps/movil", texto: "Android, iPhone y iPad", pie: "En el móvil y en la tableta", icono: "device" },
+      { href: "/apps#navegador", texto: "Samsung, LG y otras teles", pie: "Desde el navegador del televisor", icono: "globe" },
+      { href: "/apps", texto: "Todos los aparatos", pie: "Cómo se pone en cada uno", icono: "list" },
+    ],
+  },
   { href: "/proveedores", texto: "Para proveedores" },
   { href: "/faq", texto: "Ayuda" },
 ];

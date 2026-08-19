@@ -122,6 +122,15 @@ const K_VISTOS = "xp.tvVistos.v1";
 
 interface SesionGuardada {
   marca: string;
+  /*
+   * El logotipo del proveedor, si lo tiene.
+   *
+   * Aquí no vale poner el nuestro por defecto: esto es marca blanca, y el
+   * cliente de un proveedor no ha oído hablar de TOTALplayer. Su logotipo
+   * encima del nombre de otro sería colarse en una casa ajena. Solo cuando
+   * la marca es la nuestra se usa nuestro icono.
+   */
+  logo: string;
   caduca: number;
   soporte: string;
   lista: Lista;
@@ -300,6 +309,7 @@ export default function TvApp() {
   const [codigo, setCodigo] = useState<string>("");
   const [avisoCodigo, setAvisoCodigo] = useState("");
   const [marca, setMarca] = useState("TOTALplayer");
+  const [logo, setLogo] = useState("");
   const [caduca, setCaduca] = useState(0);
   const [soporte, setSoporte] = useState("");
   const [lista, setLista] = useState<Lista | null>(null);
@@ -545,6 +555,7 @@ export default function TvApp() {
       const guardada = leer<SesionGuardada>(K_SESION);
       if (guardada) {
         setMarca(guardada.marca);
+        setLogo(guardada.logo || "");
         setCaduca(guardada.caduca);
         setSoporte(guardada.soporte);
         setLista(guardada.lista);
@@ -581,11 +592,12 @@ export default function TvApp() {
     const respuesta = d as unknown as {
       brand?: string;
       customer?: { expiresAt?: number };
-      branding?: { support?: string };
+      branding?: { support?: string; logo?: string };
       playlist: { type: "xtream" | "m3u"; url: string; username?: string; password?: string };
     };
     const nueva: SesionGuardada = {
       marca: respuesta.brand || "TOTALplayer",
+      logo: respuesta.branding?.logo || "",
       caduca: respuesta.customer?.expiresAt || 0,
       soporte: respuesta.branding?.support || "",
       lista: {
@@ -596,6 +608,7 @@ export default function TvApp() {
       },
     };
     setMarca(nueva.marca);
+    setLogo(nueva.logo);
     setCaduca(nueva.caduca);
     setSoporte(nueva.soporte);
     setLista(nueva.lista);
@@ -1857,7 +1870,18 @@ export default function TvApp() {
     return (
       <div className="tv-app tv-centro tv-lienzo">
         <div className="tv-activar">
-          <p className="tv-marca">{marca}</p>
+          <div className="tv-marca">
+            {/* El logotipo del proveedor si lo tiene; el nuestro solo cuando
+                la marca es la nuestra. Ver `SesionGuardada.logo` */}
+            {logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="tv-marca-logo" src={imgSrc(logo) || logo} alt="" />
+            ) : marca === "TOTALplayer" ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="tv-marca-logo" src="/icono-192.png" alt="" />
+            ) : null}
+            <span>{marca}</span>
+          </div>
 
           {/* Lo primero y en grande: qué tengo y hasta cuándo */}
           <div className={`tv-estado ${caducado ? "caducado" : ""}`}>
@@ -2108,7 +2132,18 @@ export default function TvApp() {
     return (
       <div className="tv-app tv-centro tv-lienzo">
         <div className="tv-portada">
-          <p className="tv-marca">{marca}</p>
+          <div className="tv-marca">
+            {/* El logotipo del proveedor si lo tiene; el nuestro solo cuando
+                la marca es la nuestra. Ver `SesionGuardada.logo` */}
+            {logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="tv-marca-logo" src={imgSrc(logo) || logo} alt="" />
+            ) : marca === "TOTALplayer" ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="tv-marca-logo" src="/icono-192.png" alt="" />
+            ) : null}
+            <span>{marca}</span>
+          </div>
           {sinRed && (
             <p className="tv-sinred" role="status">
               Sin conexión: estás viendo lo de la última vez. Se reintenta solo.

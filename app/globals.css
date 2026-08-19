@@ -42,31 +42,58 @@
    * sube lo justo para verse sin encender la pantalla entera; los bordes
    * acompañan, que son los que dibujan de verdad dónde acaba cada cosa.
    */
-  --bg: #201f28;
-  --bg-elev: #2e2b39;
-  --bg-elev-2: #3c3849;
-  --bg-hover: #4a4559;
-  --border: #565068;
-  --border-strong: #706888;
-  --text: #f7f5f9;
-  --text-dim: #bdb6c7;
-  --text-faint: #948ca1;
+  /*
+   * Grises neutros, no violetas.
+   *
+   * Los de antes iban todos hacia el morado —#201f28, #2e2b39, #565068—, y
+   * un gris teñido es lo que separa una interfaz que parece cara de una que
+   * parece una plantilla. El tinte se nota sobre todo en los bordes y en el
+   * texto apagado, que es donde el ojo busca la referencia de «gris».
+   *
+   * Y con más recorrido entre el fondo y el primer nivel: en una interfaz
+   * oscura, lo que dibuja una tarjeta no es su color, es la distancia con
+   * lo que tiene detrás.
+   */
+  --bg: #0e0e10;
+  --bg-elev: #17171a;
+  --bg-elev-2: #202024;
+  --bg-hover: #2a2a30;
+  --border: #2e2e35;
+  --border-strong: #454550;
+  --text: #f4f4f5;
+  --text-dim: #a1a1aa;
+  /* 5.2:1 sobre el fondo. Con #71717a se quedaba en 3.99 y no llegaba al
+     mínimo AA de 4.5: al oscurecer los fondos hay que aclarar los grises
+     apagados en la misma proporción, o el texto secundario deja de leerse */
+  --text-faint: #84848d;
 
-  /* Marca: rojo sobre negro */
+  /*
+   * El rojo, plano y racionado.
+   *
+   * Era la marca y además el relleno de medio sitio: degradados de rojo a
+   * rosa, halos rojos detrás de los titulares, resplandores bajo los
+   * botones. Un color que está en todas partes deja de señalar nada. Aquí
+   * es un color sólido que aparece donde hay que pulsar o donde hay que
+   * mirar, y el resto es gris.
+   *
+   * Los tintes se quedan —hacen falta para fondos de icono y bordes
+   * encendidos— pero más flojos, y los halos desaparecen.
+   */
   --accent: #e5192b;
-  --accent-bright: #ff4152;
-  --accent-glow: rgba(229, 25, 43, 0.35);
-  --accent-tint-soft: rgba(229, 25, 43, 0.10);
-  --accent-tint: rgba(229, 25, 43, 0.18);
-  --accent-tint-strong: rgba(229, 25, 43, 0.28);
-  --accent-halo: rgba(229, 25, 43, 0.20);
-  --accent-halo-deep: rgba(143, 15, 28, 0.14);
-  --bg-blur: rgba(32, 31, 40, 0.88);
-  --bg-fade: rgba(32, 31, 40, 0.96);
-  /* Paradas de degradado: cambiar estas tres reviste toda la marca */
-  --accent-deep: #8f0f1c;
-  --accent-soft: #ff8a95;
-  --accent-contrast: #ffb020;
+  --accent-bright: #f5253a;
+  --accent-glow: rgba(229, 25, 43, 0.22);
+  --accent-tint-soft: rgba(229, 25, 43, 0.07);
+  --accent-tint: rgba(229, 25, 43, 0.13);
+  --accent-tint-strong: rgba(229, 25, 43, 0.24);
+  /* A cero, y no borrados: los usan los fondos de varias pantallas y
+     quitarlos de golpe dejaría reglas rotas por medio sitio */
+  --accent-halo: rgba(229, 25, 43, 0);
+  --accent-halo-deep: rgba(229, 25, 43, 0);
+  --bg-blur: rgba(14, 14, 16, 0.86);
+  --bg-fade: rgba(14, 14, 16, 0.96);
+  --accent-deep: #b01323;
+  --accent-soft: #f5253a;
+  --accent-contrast: #e5a54b;
 
   /*
    * Los errores van en ámbar, no en rojo: con el rojo como color de marca,
@@ -286,11 +313,84 @@ button { font-family: inherit; }
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border-bottom: 1px solid var(--hairline);
+  /* Encoger es cambiar de alto, y eso mueve todo lo de debajo: sin la
+     transición, la página pega un salto en cuanto se toca la rueda */
+  transition: height 0.24s cubic-bezier(0.22, 0.8, 0.2, 1),
+    background 0.24s ease, box-shadow 0.24s ease;
+}
+/*
+ * Bajada, la cabecera adelgaza.
+ *
+ * Arriba del todo puede permitirse aire: es lo primero que se ve. Veinte
+ * líneas más abajo, esa misma franja son noventa píxeles pegados al borde
+ * mientras se lee, y en un portátil eso es la séptima parte de la pantalla.
+ * Con la sombra, además, se entiende que la página sigue por debajo en vez
+ * de parecer que el contenido nace ahí.
+ */
+.site-header.bajada {
+  height: calc(var(--header-h) - 14px);
+  background: var(--bg-fade);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
 }
 /* La cabecera va de borde a borde: el logotipo pegado a la izquierda de la
    pantalla y la entrada a la derecha, no encajonados en el ancho del
    contenido — en un monitor grande quedaban flotando hacia el centro. */
 .site-header .container { display: flex; align-items: center; gap: 30px; width: 100%; max-width: none; padding: 0 28px; }
+
+/* ---- El desplegable de Aplicaciones ---- */
+
+.nav-desplegable { position: relative; display: flex; }
+.nav-desplegable-t { display: inline-flex; align-items: center; gap: 5px; }
+/* La flecha del resto de la web, tumbada, y que gira al abrirse */
+.nav-desplegable-t svg {
+  transform: rotate(90deg);
+  transition: transform 0.22s cubic-bezier(0.22, 0.8, 0.2, 1);
+  opacity: 0.7;
+}
+.nav-desplegable:hover .nav-desplegable-t svg,
+.nav-desplegable:focus-within .nav-desplegable-t svg { transform: rotate(270deg); opacity: 1; }
+
+/*
+ * El panel se abre al pasar por encima Y al entrar con el tabulador.
+ *
+ * `:focus-within` es lo que lo hace usable con el teclado. Un desplegable
+ * que solo responde al ratón deja fuera a quien navega tabulando —y a
+ * cualquiera en una tele—, y encima esconde media navegación del sitio.
+ *
+ * Se oculta con `visibility` y no solo con la opacidad: a opacidad cero
+ * seguiría cazando los clics de lo que hay debajo.
+ */
+.nav-panel {
+  position: absolute; top: calc(100% + 6px); left: -12px;
+  display: grid; gap: 2px; width: 330px; padding: 10px;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  opacity: 0; visibility: hidden; transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.22, 0.8, 0.2, 1), visibility 0.2s;
+}
+.nav-desplegable:hover .nav-panel,
+.nav-desplegable:focus-within .nav-panel {
+  opacity: 1; visibility: visible; transform: none;
+}
+.nav-panel-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  transition: background 0.16s ease;
+}
+.nav-panel-item:hover { background: var(--bg-elev-2); text-decoration: none; }
+.nav-panel-icono {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  width: 34px; height: 34px; border-radius: 9px;
+  background: var(--accent-tint); color: var(--accent-bright);
+}
+.nav-panel-item b { display: block; font-size: 14.5px; font-weight: 650; color: var(--text); }
+.nav-panel-item small { display: block; font-size: 12.5px; color: var(--text-faint); margin-top: 2px; line-height: 1.4; }
+
+/* En una pantalla sin puntero no hay «pasar por encima»: ahí el menú de
+   móvil ya lista los enlaces, así que el desplegable sobra */
+@media (max-width: 900px) {
+  .nav-panel { display: none; }
+}
 /* 44 px de alto: el mínimo para que un dedo acierte sin apuntar */
 .logo {
   display: flex; align-items: center; gap: 10px; min-height: 44px;
@@ -418,13 +518,15 @@ button { font-family: inherit; }
    compatibilidad, dejaban 135 px de nada justo donde debía verse en qué
    aparatos funciona: la sexta parte del primer golpe de vista, en blanco, y
    la prueba social empujada fuera de la pantalla */
-.hero {
-  padding: 116px 0 56px;
-  text-align: center;
-  background:
-    radial-gradient(ellipse 60% 50% at 50% -10%, var(--accent-halo), transparent),
-    radial-gradient(ellipse 40% 35% at 80% 10%, var(--accent-halo-deep), transparent);
-}
+/*
+ * Sin la mancha roja de fondo.
+ *
+ * Había dos manchas radiales detrás del titular. Eran el recurso de fondo de
+ * cualquier plantilla de 2020, y encima competían con lo único que ahí tiene
+ * que llamar: el botón. Un fondo liso deja que el color de marca signifique
+ * algo cuando aparece.
+ */
+.hero { padding: 116px 0 56px; text-align: center; }
 .hero h1 {
   /* Sin esto el navegador parte por donde le cabe, y la primera línea acababa
      en un «al» rojo suelto con «instante» en la siguiente: el acento de color
@@ -443,12 +545,9 @@ button { font-family: inherit; }
  * gratuita. Con dos tonos del mismo rojo el titular sigue destacando pero
  * parece una decisión y no un adorno.
  */
-.hero h1 .grad {
-  background: linear-gradient(115deg, var(--accent-bright), var(--accent-soft));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
+/* Sin degradado en la letra: a tamaño grande pierde contraste, y en una
+   pantalla mal calibrada —que son casi todas— se lee lavado */
+.hero h1 .grad { color: var(--accent-bright); }
 .hero p.sub {
   font-size: clamp(17px, 2.1vw, 21px);
   line-height: 1.55;
@@ -493,20 +592,13 @@ button { font-family: inherit; }
      marca sin robarle contraste al texto */
   isolation: isolate;
 }
-.realce::before {
-  content: "";
-  position: absolute; z-index: -1;
-  left: -0.14em; right: -0.14em; top: 0.06em; bottom: 0.02em;
-  border-radius: 0.5em;
-  background: radial-gradient(ellipse at center, var(--accent-halo), transparent 72%);
-  filter: blur(0.16em);
-}
+/* El trazo, de un solo color y sin resplandor detrás: el degradado y el
+   halo eran dos adornos para decir lo que dice mejor una línea sólida */
 .realce::after {
   content: "";
   position: absolute; left: 0; right: 0; bottom: 0;
-  height: 0.088em; border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-bright) 55%, var(--accent-soft));
-  box-shadow: 0 0 1.4em var(--accent-glow);
+  height: 0.075em; border-radius: 999px;
+  background: var(--accent);
   transform-origin: left center;
   animation: realce-traza 0.85s cubic-bezier(0.22, 0.8, 0.2, 1) 0.35s both;
 }
@@ -654,7 +746,7 @@ button { font-family: inherit; }
 }
 .maqueta-avatar {
   width: 20px; height: 20px; border-radius: 50%; flex: none;
-  background: linear-gradient(140deg, var(--accent-bright), var(--accent-deep));
+  background: var(--accent);
 }
 .maqueta-pestana { font-size: 11px; font-weight: 600; color: var(--text-faint); }
 .maqueta-pestana.activa { color: var(--text); }
@@ -668,9 +760,11 @@ button { font-family: inherit; }
 /* El banner de la portada: la mancha, el velo y el texto encima */
 .maqueta-banner {
   position: relative; flex: 1 1 auto; min-height: 0;
+  /* El banner, gris. El velo de la izquierda se queda porque no es adorno:
+     es lo que permite leer el texto que va encima */
   background:
-    linear-gradient(90deg, var(--bg) 26%, rgba(32, 31, 40, 0.55) 62%, transparent 88%),
-    linear-gradient(120deg, #3a1b28, #6b2233 55%, #24405c);
+    linear-gradient(90deg, var(--bg) 26%, rgba(14, 14, 16, 0.55) 62%, transparent 88%),
+    #2a2a30;
   display: flex; align-items: center;
 }
 .maqueta-banner-txt {
@@ -875,7 +969,7 @@ button { font-family: inherit; }
  */
 .feature-card.destacada {
   border-color: var(--accent-tint-strong);
-  background: linear-gradient(160deg, var(--accent-tint-soft), var(--bg-elev) 62%);
+  background: var(--bg-elev-2);
 }
 .feature-card.destacada .feature-icon { background: var(--accent); color: #fff; }
 .feature-card-cab { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
@@ -2007,7 +2101,7 @@ select.input { appearance: none; cursor: pointer; }
  */
 .tv-app {
   position: fixed; inset: 0; z-index: 100;
-  background: #1a1921; color: #fff;
+  background: var(--bg); color: var(--text);
   display: flex; flex-direction: column;
   font-size: 1.35vw;
 }
@@ -2026,15 +2120,31 @@ select.input { appearance: none; cursor: pointer; }
  * Se pone con una clase y no con `:has()`: las teles Tizen y webOS que hay
  * en las casas son de hace cinco años y ahí `:has()` no existe.
  */
-.tv-lienzo {
-  background:
-    radial-gradient(1100px 620px at 12% -10%, rgba(229, 25, 43, 0.18), transparent 62%),
-    radial-gradient(900px 560px at 96% 104%, rgba(90, 120, 255, 0.11), transparent 60%),
-    #1a1921;
-}
+/*
+ * Fondo liso.
+ *
+ * Tenía dos manchas radiales encima —una roja arriba a la izquierda y otra
+ * azulada abajo a la derecha—, y en una tele grande se veían como dos
+ * sombras de color que no eran de nada. Peor todavía: el azul no está en la
+ * marca por ningún lado, así que la pantalla principal tenía un color que no
+ * era ni suyo ni del proveedor.
+ */
+.tv-lienzo { background: var(--bg); }
+/*
+ * La marca: el logotipo y el nombre, juntos y centrados.
+ *
+ * El nombre suelto en una esquina no se lee como una marca, se lee como una
+ * etiqueta. Y en una tele, donde no hay barra de título ni pestaña, es lo
+ * único que dice de quién es esto.
+ */
 .tv-marca {
+  display: flex; align-items: center; justify-content: center; gap: 0.9vw;
   font-size: 1.5vw; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--accent-bright); margin-bottom: 2vh;
+  color: var(--text); margin-bottom: 2vh;
+}
+.tv-marca-logo {
+  width: 2.6vw; height: 2.6vw; min-width: 30px; min-height: 30px;
+  border-radius: 0.6vw; object-fit: contain;
 }
 .tv-cargando { font-size: 1.8vw; color: rgba(255, 255, 255, 0.6); padding: 4vh 4vw; }
 
@@ -2061,8 +2171,17 @@ select.input { appearance: none; cursor: pointer; }
   width: 100%; max-width: 1500px; margin: 0 auto;
   padding: 0 6vw; text-align: left;
 }
+/*
+ * Arriba y abajo, centrados; los accesos, no.
+ *
+ * La marca y los datos del aparato son de la pantalla entera, así que van
+ * en su eje. Las tarjetas se quedan alineadas a la izquierda porque son una
+ * rejilla que se recorre con el mando, y una rejilla centrada hace que el
+ * foco salte de sitio al cambiar de fila.
+ */
 .tv-portada .tv-marca { font-size: 1.7vw; margin-bottom: 4vh; }
-.tv-portada .tv-pie { text-align: left; }
+.tv-portada .tv-pie { text-align: center; }
+.tv-portada .tv-pie:first-of-type { margin-top: 3vh; }
 
 /* La presentación de arranque, con la marca de quien vende el servicio */
 .tv-splash { display: flex; flex-direction: column; align-items: center; gap: 22px; }
