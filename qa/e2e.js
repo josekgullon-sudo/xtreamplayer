@@ -141,7 +141,10 @@ function check(name, ok, detail = "") {
   await page.locator(".pa-card", { hasText: "Serie Demo" }).click();
   await page.waitForSelector(".pa-episode", { timeout: 15000 });
   const eps = await page.locator(".pa-episode").allInnerTexts();
-  check("Detalle de serie con episodios", eps.length === 2 && eps[0].includes("Piloto"), eps.join(" | "));
+  /* Cuántos hay lo decide el catálogo, no la prueba: clavar el número la
+     rompía cada vez que el catálogo simulado crecía, sin que nada del
+     producto hubiera cambiado */
+  check("Detalle de serie con episodios", eps.length >= 2 && eps[0].includes("Piloto"), eps.join(" | "));
   await page.locator(".pa-episode").first().click();
   await page.waitForFunction(
     () => {

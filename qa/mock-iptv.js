@@ -350,7 +350,7 @@ const server = http.createServer((req, res) => {
       /* Con carátula, nota, género y año: sin ellos, la ficha de una serie se
          probaba siempre por su camino pobre —sin imagen y sin la línea de
          datos— y no había forma de ver que el bueno funciona */
-      get_series: [{ series_id: 200, name: "Serie Demo", cover: "http://127.0.0.1:8090/caratula.png", category_id: "20", plot: "Una serie de prueba.", rating: "8", genre: "Comedia", releaseDate: "2024-03-01", last_modified: String(Math.floor((Date.now() - 86400000) / 1000)) }],
+      get_series: [{ series_id: 200, name: "Serie Demo", cover: "http://127.0.0.1:8090/caratula.png", category_id: "20", plot: "Una serie de prueba con una sinopsis de las que manda un panel de verdad: varias frases seguidas, con nombres de personajes y vueltas de guion, que ocupan tres o cuatro renglones enteros y no caben en una línea.", rating: "8", genre: "Comedia", releaseDate: "2024-03-01", last_modified: String(Math.floor((Date.now() - 86400000) / 1000)) }],
       get_vod_info: {
         info: {
           name: "Película Demo",
@@ -387,6 +387,23 @@ const server = http.createServer((req, res) => {
             { id: "301", episode_num: 2, title: "Segundo", container_extension: "webm", season: 1,
               info: { movie_image: "http://127.0.0.1:8090/caratula.png", duration: "52",
                       plot: "Las cosas se tuercen justo por donde no se esperaba." } },
+            /* Seis episodios y textos largos: con dos episodios y una línea
+               de sinopsis cabía todo, y la ficha se probaba siempre en su
+               caso cómodo. Los catálogos de verdad traen títulos que repiten
+               el nombre de la serie entero y sinopsis de varios renglones, y
+               ahí es donde la pantalla se queda sin sitio */
+            { id: "302", episode_num: 3, title: "Serie Demo - S01E03 - Un título que repite el nombre entero", container_extension: "webm", season: 1,
+              info: { movie_image: "http://127.0.0.1:8090/caratula.png", duration: "44",
+                      plot: "Una sinopsis larga de las que manda un panel de verdad, con varias frases seguidas que no caben en dos renglones ni de lejos." } },
+            { id: "303", episode_num: 4, title: "Serie Demo - S01E04 - Otro título igual de largo", container_extension: "webm", season: 1,
+              info: { movie_image: "http://127.0.0.1:8090/caratula.png", duration: "44",
+                      plot: "Otra sinopsis de tres o cuatro frases, porque los proveedores copian la ficha entera del episodio." } },
+            { id: "304", episode_num: 5, title: "Serie Demo - S01E05 - Y uno más", container_extension: "webm", season: 1,
+              info: { movie_image: "http://127.0.0.1:8090/caratula.png", duration: "40",
+                      plot: "Y una más, para que la fila tenga que desplazarse de verdad." } },
+            { id: "305", episode_num: 6, title: "Serie Demo - S01E06 - El último", container_extension: "webm", season: 1,
+              info: { movie_image: "http://127.0.0.1:8090/caratula.png", duration: "41",
+                      plot: "La última, que cierra la temporada." } },
           ],
         },
       },

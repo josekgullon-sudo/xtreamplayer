@@ -2354,7 +2354,10 @@ select.input { appearance: none; cursor: pointer; }
      sueltas y no como un menú */
   display: flex; flex-direction: column; justify-content: center; gap: 0.2vh;
   padding: 2vh 0.8vw;
-  background: rgba(0, 0, 0, 0.28); border-right: 1px solid rgba(255, 255, 255, 0.07);
+  /* Del color del fondo: cerrado no es un panel, es una columna de iconos.
+     El velo y el filo lo dibujaban como una barra permanente que competía
+     con el contenido */
+  background: transparent; border-right: none;
   transition: background 0.18s ease;
 }
 .tv-carril.abierto {
@@ -2367,7 +2370,7 @@ select.input { appearance: none; cursor: pointer; }
   display: flex; flex-direction: column; align-items: center; gap: 0.7vh;
   padding: 1vh 0.2vw; border-radius: 1vw;
   background: none; border: 0.2vw solid transparent; cursor: pointer;
-  color: rgba(255, 255, 255, 0.55); font-size: 1.05vw; font-weight: 700;
+  color: rgba(255, 255, 255, 0.72); font-size: 1.05vw; font-weight: 700;
   transition: color 0.12s, background 0.12s, border-color 0.12s;
 }
 /*
@@ -2397,7 +2400,12 @@ select.input { appearance: none; cursor: pointer; }
 .tv-carril-icono {
   display: flex; align-items: center; justify-content: center;
   width: 3.4vw; height: 3.4vw; max-width: 66px; max-height: 66px;
-  border-radius: 0.9vw; background: rgba(255, 255, 255, 0.06);
+  border-radius: 0.9vw;
+  /* Sin pastilla de fondo: el cuadrado gris detrás de cada icono los dejaba
+     apagados y lavados, como si estuvieran deshabilitados. El icono se
+     dibuja solo; el fondo aparece cuando hay foco, que es cuando significa
+     algo */
+  background: transparent;
   transition: background 0.12s, color 0.12s;
 }
 /*
@@ -2410,11 +2418,12 @@ select.input { appearance: none; cursor: pointer; }
  * no gasta el color.
  */
 .tv-carril-item.activo { color: #fff; }
-.tv-carril-item.activo .tv-carril-icono { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.tv-carril-item.activo .tv-carril-icono { background: transparent; color: #fff; }
 .tv-carril-item.foco {
   border-color: rgba(255, 255, 255, 0.85); color: #fff;
   background: rgba(255, 255, 255, 0.10);
 }
+.tv-carril-item.foco .tv-carril-icono { background: rgba(255, 255, 255, 0.14); }
 
 /* ---- Listas: una columna, filas altas, foco imposible de perder ---- */
 
@@ -2813,8 +2822,22 @@ select.input { appearance: none; cursor: pointer; }
   margin-top: 0.6vh; border-radius: 999px;
   background: var(--accent);
 }
+/*
+ * Sitio para que la carátula enfocada crezca sin que la corten.
+ *
+ * La fila oculta el desbordamiento vertical —hace falta, o el navegador saca
+ * una barra de desplazamiento vertical por cada fila— y la carátula con el
+ * foco se agranda un 6%. Sin relleno arriba y abajo, ese 6% que sobresale se
+ * recortaba: al pasar por encima, la carátula aparecía cortada por el canto,
+ * y su sombra directamente no se veía.
+ *
+ * El margen negativo devuelve el hueco que añade el relleno, para que la
+ * separación entre filas siga siendo la que era.
+ */
 .tv-carrusel-tira {
-  display: flex; gap: 1.4vw; padding: 0 4vw 0.6vh;
+  display: flex; gap: 1.4vw;
+  padding: 1.8vh 4vw 2vh;
+  margin: -1.8vh 0 -1.4vh;
   overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
 }
 .tv-carrusel-tira::-webkit-scrollbar { display: none; }
@@ -3077,13 +3100,30 @@ select.input { appearance: none; cursor: pointer; }
  * de empujar; sin él, un contenedor flex crece hasta donde haga falta y se
  * lleva por delante el borde de la pantalla.
  */
+/*
+ * El bloque, centrado en su eje.
+ *
+ * Iba apoyado en el borde de abajo, así que en una película —que no tiene
+ * fila de episodios— quedaba todo el texto pegado al canto inferior y media
+ * pantalla vacía por encima. Centrado, el hueco se reparte y el conjunto se
+ * lee como un bloque y no como algo que se ha escurrido.
+ */
 .tv-ficha-cuerpo {
   position: relative; z-index: 1;
-  display: flex; flex-direction: column; justify-content: flex-end;
+  display: flex; flex-direction: column; justify-content: center;
   height: 100%; padding: 5vh 5vw 4vh; gap: 2.2vh;
   overflow: hidden;
 }
-.tv-ficha-cuerpo > * { min-height: 0; }
+/*
+ * Y nada de encoger el texto.
+ *
+ * Con `min-height: 0` los hijos podían comprimirse por debajo de su
+ * contenido, y en una serie con seis episodios eso es exactamente lo que
+ * pasaba: la sinopsis se recortaba a media línea y las descripciones de los
+ * episodios quedaban cortadas por el canto. Lo que se acorta es el número de
+ * líneas de la sinopsis, no la caja que las contiene.
+ */
+.tv-ficha-txt, .tv-ficha-serie { flex: none; }
 /*
  * El texto a la izquierda, y la imagen respirando a la derecha.
  *
