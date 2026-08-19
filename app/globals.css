@@ -2293,14 +2293,38 @@ select.input { appearance: none; cursor: pointer; }
  * recorrer la portada con las flechas. Ahora las secciones están siempre
  * ahí, a la izquierda, como en cualquier aplicación de televisión.
  */
-.tv-con-carril { flex-direction: row; }
+/* El carril sale del flujo y el hueco lo reserva el relleno: así, al
+   abrirse, crece por encima del contenido en vez de empujarlo */
+.tv-con-carril { flex-direction: row; position: relative; padding-left: 5.6vw; }
 .tv-cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
+/*
+ * Cerrado, solo iconos; abierto, con sus nombres.
+ *
+ * Abierto todo el rato se llevaba un trozo de ancho permanente para enseñar
+ * cinco palabras que uno se sabe de memoria a la segunda vez. Cerrado, ese
+ * ancho es del contenido —que es a lo que se ha venido— y los nombres
+ * aparecen justo cuando hacen falta: al entrar en el carril con ◀ o al
+ * pasarle el ratón. Un icono suelto es ambiguo la primera vez; a partir de
+ * ahí, el texto sobra.
+ *
+ * Y al abrirse FLOTA por encima en vez de empujar: si ensanchara de verdad,
+ * toda la lista de la derecha se correría de sitio cada vez que se roza el
+ * menú, y lo que estabas mirando se movería debajo del ojo.
+ */
 .tv-carril {
-  width: 9vw; flex-shrink: 0;
+  position: absolute; top: 0; bottom: 0; left: 0; z-index: 5;
+  width: 5.6vw;
   display: flex; flex-direction: column; gap: 0.6vh;
   padding: 3vh 0.8vw;
   background: rgba(0, 0, 0, 0.28); border-right: 1px solid rgba(255, 255, 255, 0.07);
+  transition: background 0.18s ease;
+}
+.tv-carril.abierto {
+  /* Crece por encima del contenido; el hueco de debajo no se mueve */
+  width: auto; min-width: 16vw;
+  background: var(--bg-elev);
+  box-shadow: 0.6vw 0 3vw rgba(0, 0, 0, 0.6);
 }
 .tv-carril-item {
   display: flex; flex-direction: column; align-items: center; gap: 0.7vh;
@@ -2309,6 +2333,22 @@ select.input { appearance: none; cursor: pointer; }
   color: rgba(255, 255, 255, 0.55); font-size: 1.05vw; font-weight: 700;
   transition: color 0.12s, background 0.12s, border-color 0.12s;
 }
+/*
+ * El nombre no se quita con `display`, se colapsa.
+ *
+ * Con `display: none` el texto no existe y no puede animarse: aparecería de
+ * golpe. Así el ancho va de cero a lo que ocupe y el carril se abre en vez
+ * de dar un salto — y de paso el lector de pantalla lo sigue leyendo.
+ */
+.tv-carril-txt {
+  max-width: 0; overflow: hidden; white-space: nowrap; opacity: 0;
+  transition: max-width 0.22s cubic-bezier(0.22, 0.8, 0.2, 1), opacity 0.18s ease;
+}
+.tv-carril.abierto .tv-carril-item {
+  flex-direction: row; justify-content: flex-start; gap: 0.9vw;
+  padding: 1.4vh 0.9vw;
+}
+.tv-carril.abierto .tv-carril-txt { max-width: 9vw; opacity: 1; }
 .tv-carril-icono {
   display: flex; align-items: center; justify-content: center;
   width: 4.2vw; height: 4.2vw; max-width: 82px; max-height: 82px;
@@ -2320,7 +2360,7 @@ select.input { appearance: none; cursor: pointer; }
 .tv-carril-item.activo { color: var(--accent-bright); }
 .tv-carril-item.activo .tv-carril-icono { background: var(--accent-tint-strong); color: var(--accent-bright); }
 .tv-carril-item.foco {
-  border-color: var(--accent); color: #fff;
+  border-color: rgba(255, 255, 255, 0.85); color: #fff;
   background: rgba(255, 255, 255, 0.10);
 }
 

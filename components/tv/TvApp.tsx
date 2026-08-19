@@ -2233,7 +2233,24 @@ export default function TvApp() {
     const ultima = filasALaVista.length;
     return (
       <div className="tv-app tv-con-carril">
-        <nav className="tv-carril" aria-label="Secciones">
+        {/*
+          El carril, cerrado: solo los iconos.
+
+          Abierto todo el rato se lleva un trozo de ancho para enseñar cinco
+          palabras que ya se saben de memoria a la segunda vez. Cerrado deja
+          ese ancho al contenido, y se abre solo cuando hace falta: al entrar
+          en él con ◀ o al posarse el ratón en uno de sus iconos. Un icono
+          suelto es ambiguo la primera vez; a partir de ahí, sobra el texto.
+
+          Lo de abrir se queda en los iconos y NO en el carril entero: con el
+          manejador en el carril, el puntero simplemente parado en la esquina
+          de la pantalla lo daba por abierto, y a partir de ahí las flechas
+          movían el menú en vez de la lista.
+        */}
+        <nav
+          className={`tv-carril ${focoCarril !== null ? "abierto" : ""}`}
+          aria-label="Secciones"
+        >
           {CARRIL.map((d, i) => (
             <button
               key={d.id}
@@ -2491,7 +2508,12 @@ export default function TvApp() {
     <div className="tv-app tv-con-carril">
       {/* El carril: cambiar de sección sin volver a la portada. Con el mando
           se entra con ◀ desde la primera columna y se sale con ▶ */}
-      <nav className="tv-carril" aria-label="Secciones">
+      {/* El mismo carril que en la portada: cerrado enseña solo los iconos y
+          se abre al entrar en él con ◀ o al pasarle el ratón. Ver el CSS */}
+      <nav
+        className={`tv-carril ${focoCarril !== null ? "abierto" : ""}`}
+        aria-label="Secciones"
+      >
         {CARRIL.map((d, i) => (
           <button
             key={d.id}
