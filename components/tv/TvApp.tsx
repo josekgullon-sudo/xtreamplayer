@@ -1073,6 +1073,12 @@ export default function TvApp() {
               fondo: suyo.fondo || "",
               sinopsis: suyo.sinopsis || "",
               datos: datosDe(suyo),
+              anio: suyo.anio || "",
+              duracion: "",
+              genero: suyo.generos || "",
+              nota: suyo.nota ? String(suyo.nota) : "",
+              votos: suyo.votos || 0,
+              categoria: nombreDeCategoria(cats, v.category_id),
               reparto: "",
               direccion: "",
               temporadas: [],
@@ -1088,6 +1094,9 @@ export default function TvApp() {
                   ? {
                       ...antes,
                       sinopsis: antes.sinopsis || String(info.info?.plot ?? info.info?.description ?? ""),
+                      duracion: minutosDe(info.info?.duration || String(info.info?.duration_secs ?? "")),
+                      genero: antes.genero || String(info.info?.genre ?? ""),
+                      nota: antes.nota || String(info.info?.rating ?? ""),
                       reparto: String(info.info?.cast ?? info.info?.actors ?? ""),
                       direccion: String(info.info?.director ?? ""),
                     }
@@ -1137,7 +1146,7 @@ export default function TvApp() {
               nombre: s.name,
               logo: s.cover || "",
               caratula: true,
-              abrir: () => abrirSerie(s),
+              abrir: () => abrirSerie(s, nombreDeCategoria(cats, s.category_id)),
             }))
           );
           montarPortada(
@@ -1154,7 +1163,7 @@ export default function TvApp() {
               esSerie: true,
               categoria: String(s.category_id ?? ""),
             })),
-            limpias.map((s) => () => abrirSerie(s))
+            limpias.map((s) => () => abrirSerie(s, nombreDeCategoria(cats, s.category_id)))
           );
         }
       } catch (e) {
@@ -1184,7 +1193,9 @@ export default function TvApp() {
     setPantalla("ficha");
   }, []);
 
-  async function abrirSerie(s: XtreamSeries) {
+  /* La carpeta llega como parámetro porque aquí no hay categorías: se
+     conocen en la carga de la sección, que es quien monta los abridores */
+  async function abrirSerie(s: XtreamSeries, carpeta = "") {
     if (!creds) return;
     const suyo = mejor({
       id: `serie-${s.series_id}`,
@@ -1205,6 +1216,12 @@ export default function TvApp() {
       fondo: suyo.fondo || "",
       sinopsis: suyo.sinopsis || "",
       datos: datosDe(suyo),
+      anio: suyo.anio || "",
+      duracion: "",
+      genero: suyo.generos || "",
+      nota: suyo.nota ? String(suyo.nota) : "",
+      votos: suyo.votos || 0,
+      categoria: carpeta,
       reparto: "",
       direccion: "",
       temporadas: [],
@@ -1243,6 +1260,13 @@ export default function TvApp() {
           ? {
               ...antes,
               sinopsis: antes.sinopsis || String(info.info?.plot ?? ""),
+              /* En una serie, la duración es la del episodio: decir «45 min»
+                 a secas de una serie de siete temporadas no significa nada */
+              duracion: info.info?.episode_run_time
+                ? `${minutosDe(String(info.info.episode_run_time))} por episodio`.replace(/^ por episodio$/, "")
+                : "",
+              genero: antes.genero || String(info.info?.genre ?? ""),
+              nota: antes.nota || String(info.info?.rating ?? ""),
               reparto: String(info.info?.cast ?? ""),
               direccion: String(info.info?.director ?? ""),
               temporadas,
@@ -2006,17 +2030,62 @@ export default function TvApp() {
             otra pequeña— y comía el ancho que ahora usa la sinopsis.
           */}
           <div className="tv-ficha-txt">
+            {/* De dónde vienes. Sin esto la ficha aparece flotando y no se
+                sabe si se llegó de una fila, de una carpeta o de una búsqueda */}
+            <p className="tv-ficha-camino">
+              {TITULOS[ficha.volverA]}
+              {ficha.categoria && (
+                <>
+                  <span className="tv-ficha-camino-sep">›</span>
+                  {ficha.categoria}
+                </>
+              )}
+            </p>
             <h2 className="tv-ficha-t">{ficha.nombre}</h2>
-            {ficha.datos && <p className="tv-ficha-datos">{ficha.datos}</p>}
+
+            {/*
+              La ficha técnica en cajas, y no en una línea con puntos.
+              Con «2026 · ★ 7.5 · Suspense, Drama» todo pesa igual y no se
+              distingue el año de la nota ni del género. Cada dato en su
+              caja se lee de un vistazo y, sobre todo, el que no venga
+              simplemente no está: nada de huecos ni de ceros inventados.
+            */}
+            <p className="tv-ficha-fila-datos">
+              {ficha.anio && <span className="tv-ficha-dato">{ficha.anio}</span>}
+              {esSerie && (
+                <span className="tv-ficha-dato">
+                  {ficha.temporadas.length} {ficha.temporadas.length === 1 ? "temporada" : "temporadas"}
+                </span>
+              )}
+              {ficha.duracion && <span className="tv-ficha-dato">{ficha.duracion}</span>}
+              {ficha.nota && (
+                <span className="tv-ficha-nota">
+                  <Icon name="star" size={18} />
+                  {ficha.nota}
+                  {/* Cuánta gente la ha votado. Un 9,4 con doce votos y un
+                      8,1 con doce mil no dicen lo mismo; sin el número, la
+                      nota sola invita a fiarse de cualquiera de los dos */}
+                  {ficha.votos > 0 && (
+                    <small>según {ficha.votos.toLocaleString("es-ES")} valoraciones</small>
+                  )}
+                </span>
+              )}
+            </p>
+
             {ficha.sinopsis && <p className="tv-ficha-sinopsis">{ficha.sinopsis}</p>}
-            {ficha.reparto && (
-              <p className="tv-ficha-credito">
-                <span>Reparto</span> {ficha.reparto}
-              </p>
-            )}
             {ficha.direccion && (
               <p className="tv-ficha-credito">
-                <span>Dirección</span> {ficha.direccion}
+                <span>Dirección</span> <b>{ficha.direccion}</b>
+              </p>
+            )}
+            {ficha.reparto && (
+              <p className="tv-ficha-credito">
+                <span>Reparto</span> <b>{ficha.reparto}</b>
+              </p>
+            )}
+            {ficha.genero && (
+              <p className="tv-ficha-credito">
+                <span>Género</span> <b>{ficha.genero}</b>
               </p>
             )}
             <button
@@ -2741,6 +2810,23 @@ export interface Episodio {
   sinopsis: string;
   abrir: () => void;
 }
+/**
+ * El nombre de la carpeta a la que pertenece un título.
+ *
+ * El panel manda el número de la categoría en cada título y los nombres
+ * aparte, así que hay que cruzarlos. Sirve para el camino de arriba de la
+ * ficha —«Series › Suspense»—, que es lo que dice de dónde has salido; sin
+ * él, la ficha aparece flotando y no se sabe si vino de una búsqueda, de una
+ * fila o de una carpeta.
+ */
+function nombreDeCategoria(cats: unknown, id: unknown): string {
+  if (!Array.isArray(cats)) return "";
+  const suya = (cats as XtreamCategory[]).find(
+    (c) => String(c.category_id) === String(id ?? "")
+  );
+  return suya?.category_name || "";
+}
+
 export interface Ficha {
   nombre: string;
   /** De dónde se entró, para que ATRÁS devuelva ahí y no a la portada */
@@ -2750,6 +2836,25 @@ export interface Ficha {
   sinopsis: string;
   /** Año · nota · géneros, ya montado */
   datos: string;
+  /*
+   * Y los mismos datos por separado, para poder enseñarlos como lo que son.
+   *
+   * En una línea sola —«2026 · ★ 7.5 · Suspense, Drama»— todo pesa igual y
+   * no se distingue el año de la nota ni del género. Sueltos, cada uno
+   * puede ir donde le toca: los de ficha técnica en su fila, la nota
+   * destacada, y los géneros junto al reparto y la dirección, que es
+   * información de la misma clase.
+   */
+  anio: string;
+  /** «118 min», ya normalizado. Vacío si el panel no lo manda */
+  duracion: string;
+  genero: string;
+  /** La nota, tal cual la manda el panel o TMDB. Vacía si no hay */
+  nota: string;
+  /** Cuánta gente la ha votado, si viene de TMDB. Cero si no se sabe */
+  votos: number;
+  /** La carpeta del panel de la que viene, para el camino de arriba */
+  categoria: string;
   reparto: string;
   direccion: string;
   temporadas: string[];

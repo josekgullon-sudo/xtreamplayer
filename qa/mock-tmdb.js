@@ -1,7 +1,8 @@
 // TMDB de mentira, para poder probar la portada sin salir a internet.
 //
 // Contesta a `/search/movie` y `/search/tv` como el de verdad —con
-// `results`, `backdrop_path`, `poster_path`, `overview`, `vote_average` y
+// `results`, `backdrop_path`, `poster_path`, `overview`, `vote_average`,
+// `vote_count` y
 // `genre_ids`— y sirve las imágenes en `/t/p/...`. Reconoce los títulos que
 // el mock IPTV manda en el catálogo y no reconoce el resto, que es justo lo
 // que pasa con un catálogo real: TMDB acierta mucho, no siempre.
@@ -26,6 +27,9 @@ function ficha(consulta, serie) {
       poster_path: `/cartel-${n}.png`,
       overview: `Sinopsis de TMDB para el estreno ${n}: la que el panel del proveedor no manda y es la que se lee en el banner.`,
       vote_average: 7.5,
+      // Y cuánta gente la ha votado: sin esto, la ficha se probaba siempre
+      // sin el «según N valoraciones» y no había forma de ver ese camino
+      vote_count: 12845,
       release_date: `${new Date().getFullYear()}-03-0${(n % 9) + 1}`,
       genre_ids: [53, 18],
     };
@@ -37,6 +41,7 @@ function ficha(consulta, serie) {
       poster_path: "/cartel-serie.png",
       overview: "Una serie que TMDB sí conoce, con su sinopsis en español.",
       vote_average: 8.4,
+      vote_count: 3120,
       first_air_date: "2025-09-01",
       genre_ids: [18, 10759],
     };

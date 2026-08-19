@@ -50,6 +50,8 @@ export interface Meta {
   cartel: string;
   sinopsis: string;
   nota: number;
+  /** Cuánta gente ha votado esa nota: un 9,4 con doce votos no es un 9,4 */
+  votos: number;
   generos: string;
   anio: string;
 }
@@ -90,6 +92,8 @@ interface Fila {
   cartel: string;
   sinopsis: string;
   nota: number;
+  /** Cuánta gente ha votado esa nota: un 9,4 con doce votos no es un 9,4 */
+  votos: number;
   generos: string;
   anio: string;
   pedido_en: number;
@@ -108,12 +112,13 @@ function guardadas(llaves: string[]): Map<string, Fila> {
 function guardar(f: Fila) {
   getDb()
     .prepare(
-      `INSERT INTO tmdb_cache (llave, tmdb_id, titulo, anio, fondo, cartel, sinopsis, nota, generos, pedido_en)
-       VALUES (@llave, @tmdb_id, @titulo, @anio, @fondo, @cartel, @sinopsis, @nota, @generos, @pedido_en)
+      `INSERT INTO tmdb_cache (llave, tmdb_id, titulo, anio, fondo, cartel, sinopsis, nota, votos, generos, pedido_en)
+       VALUES (@llave, @tmdb_id, @titulo, @anio, @fondo, @cartel, @sinopsis, @nota, @votos, @generos, @pedido_en)
        ON CONFLICT(llave) DO UPDATE SET
          tmdb_id = excluded.tmdb_id, titulo = excluded.titulo, anio = excluded.anio,
          fondo = excluded.fondo, cartel = excluded.cartel, sinopsis = excluded.sinopsis,
-         nota = excluded.nota, generos = excluded.generos, pedido_en = excluded.pedido_en`
+         nota = excluded.nota, votos = excluded.votos, generos = excluded.generos,
+         pedido_en = excluded.pedido_en`
     )
     .run({ ...f, titulo: "" });
 }
@@ -129,6 +134,7 @@ function deFila(f: Fila): Meta | null {
     cartel: f.cartel ? `${IMAGENES}/w342${f.cartel}` : "",
     sinopsis: f.sinopsis,
     nota: f.nota,
+    votos: f.votos,
     generos: f.generos,
     anio: f.anio,
   };
@@ -178,6 +184,7 @@ async function preguntar(nombre: string, anio: string, serie: boolean): Promise<
       poster_path?: string | null;
       overview?: string;
       vote_average?: number;
+      vote_count?: number;
       release_date?: string;
       first_air_date?: string;
       genre_ids?: number[];
@@ -195,6 +202,7 @@ async function preguntar(nombre: string, anio: string, serie: boolean): Promise<
     cartel: uno.poster_path || "",
     sinopsis: (uno.overview || "").trim(),
     nota: Number(uno.vote_average) || 0,
+    votos: Number(uno.vote_count) || 0,
     generos: generosDe(uno.genre_ids || []),
     anio: (uno.release_date || uno.first_air_date || "").slice(0, 4),
     pedido_en: Date.now(),
@@ -256,6 +264,7 @@ export async function metaDe(
                 cartel: "",
                 sinopsis: "",
                 nota: 0,
+                votos: 0,
                 generos: "",
                 anio: "",
                 pedido_en: Date.now(),

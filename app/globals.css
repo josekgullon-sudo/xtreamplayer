@@ -3079,6 +3079,39 @@ select.input { appearance: none; cursor: pointer; }
   font-size: 3.4vw; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em;
   text-shadow: 0 0.4vh 2vh rgba(0, 0, 0, 0.85);
 }
+/* De dónde vienes, arriba y en fino: es una referencia, no un titular */
+.tv-ficha-camino {
+  display: flex; align-items: center; gap: 0.5vw;
+  font-size: 1.05vw; font-weight: 650; color: var(--text-faint);
+  margin-bottom: 0.4vh;
+}
+.tv-ficha-camino-sep { color: var(--text-faint); opacity: 0.6; }
+
+/*
+ * La ficha técnica, cada dato en su caja.
+ *
+ * En una línea con puntos —«2026 · 7.5 · Suspense»— todo pesa igual y no se
+ * distingue el año de la nota ni del género. En cajas se lee de un vistazo,
+ * y el dato que el panel no manda simplemente no aparece: ni hueco ni cero
+ * inventado, que es peor que no decir nada.
+ */
+.tv-ficha-fila-datos { display: flex; align-items: center; gap: 0.7vw; flex-wrap: wrap; }
+.tv-ficha-dato {
+  padding: 0.5vh 0.9vw; border-radius: 0.4vw;
+  border: 0.12vw solid var(--border); background: rgba(23, 23, 26, 0.7);
+  font-size: 1.05vw; font-weight: 650; color: var(--text-dim);
+}
+/* La nota va suelta y con la estrella: es lo único de la fila que no es un
+   dato de catálogo sino un juicio, y se busca aparte */
+.tv-ficha-nota {
+  display: inline-flex; align-items: center; gap: 0.4vw;
+  font-size: 1.25vw; font-weight: 800; color: var(--text);
+}
+.tv-ficha-nota svg { color: var(--accent-bright); }
+.tv-ficha-nota small {
+  margin-left: 0.3vw; font-size: 0.95vw; font-weight: 600; color: var(--text-faint);
+}
+
 .tv-ficha-datos { font-size: 1.25vw; font-weight: 650; color: var(--text-dim); }
 .tv-ficha-sinopsis {
   font-size: 1.3vw; line-height: 1.55; color: var(--text-dim);
@@ -3086,8 +3119,11 @@ select.input { appearance: none; cursor: pointer; }
      come la pantalla y no lo lee nadie */
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
-.tv-ficha-credito { font-size: 1.1vw; color: var(--text-faint); }
-.tv-ficha-credito span { font-weight: 700; color: var(--text-dim); margin-right: 0.5vw; }
+/* La etiqueta apagada y el valor encendido: lo que se busca de un vistazo
+   es el nombre, no la palabra «Reparto» */
+.tv-ficha-credito { font-size: 1.1vw; color: var(--text-faint); display: flex; gap: 0.6vw; }
+.tv-ficha-credito span { font-weight: 650; color: var(--text-faint); flex: none; min-width: 5.5vw; }
+.tv-ficha-credito b { font-weight: 650; color: var(--text-dim); }
 .tv-ficha-ver {
   align-self: flex-start; margin-top: 1vh;
   display: inline-flex; align-items: center; gap: 0.9vw;

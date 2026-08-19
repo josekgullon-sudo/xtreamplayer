@@ -20,6 +20,14 @@ export interface Titulo {
   anio: string;
   /** La nota del panel, o vacía. Ojo: medio catálogo la trae puesta a 10. */
   nota: string;
+  /*
+   * Cuánta gente la ha votado, cuando viene de TMDB.
+   *
+   * Un 9,4 con doce votos y un 8,1 con doce mil no dicen lo mismo, y sin
+   * este número no hay forma de distinguirlos. El panel no lo manda nunca:
+   * o lo pone TMDB o no está.
+   */
+  votos?: number;
   /** Cuándo lo subió el proveedor, en segundos. 0 si no lo dice. */
   alta: number;
   sinopsis: string;
@@ -50,6 +58,8 @@ export interface MetaTitulo {
   cartel: string;
   sinopsis: string;
   nota: number;
+  /** Cuánta gente ha votado esa nota: un 9,4 con doce votos no es un 9,4 */
+  votos: number;
   generos: string;
   anio: string;
 }
@@ -81,6 +91,7 @@ export function conMeta(t: Titulo, m?: MetaTitulo): Titulo {
     sinopsis: m.sinopsis || t.sinopsis,
     generos: m.generos || t.generos,
     nota: m.nota > 0 ? String(Math.round(m.nota * 10) / 10) : t.nota,
+    votos: m.votos || 0,
     anio: t.anio || m.anio,
   };
 }

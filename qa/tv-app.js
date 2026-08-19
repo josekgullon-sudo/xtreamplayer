@@ -394,16 +394,30 @@ async function abrirPrimeraCarpeta(tv) {
   check("Con su sinopsis, para saber de qué va antes de ponerla",
     (await tv.locator(".tv-ficha-sinopsis").innerText()).trim().length > 0,
     (await tv.locator(".tv-ficha-sinopsis").innerText()).replace(/\n/g, " "));
-  check("Con el año, la nota y el género",
-    /\d{4}/.test(await tv.locator(".tv-ficha-datos").innerText()),
-    (await tv.locator(".tv-ficha-datos").innerText()).replace(/\n/g, " "));
+  /* La ficha técnica, cada dato en su caja. En una línea con puntos todo
+     pesa igual y no se distingue el año de la nota ni del género */
+  const cajas = await tv.locator(".tv-ficha-dato").allInnerTexts();
+  check("Con el año y las temporadas, cada dato en su caja",
+    cajas.some((t) => /\d{4}/.test(t)) && cajas.some((t) => /temporada/i.test(t)),
+    cajas.join(" | "));
+  check("Y la nota aparte, que no es un dato de catálogo sino un juicio",
+    (await tv.locator(".tv-ficha-nota").innerText()).trim().length > 0,
+    (await tv.locator(".tv-ficha-nota").innerText()).replace(/\n/g, " "));
+  /* De dónde vienes: sin esto la ficha aparece flotando y no se sabe si se
+     llegó de una fila, de una carpeta o de una búsqueda */
+  check("Y el camino de dónde vienes",
+    (await tv.locator(".tv-ficha-camino").innerText()).includes("Series"),
+    (await tv.locator(".tv-ficha-camino").innerText()).replace(/\n/g, " "));
+  check("Con el género en su línea, junto al reparto y la dirección",
+    (await tv.locator(".tv-ficha-credito").allInnerTexts()).some((t) => /Género/i.test(t)),
+    (await tv.locator(".tv-ficha-credito").allInnerTexts()).join(" | ").replace(/\n/g, " "));
   /* La imagen ya no es un cartel en su caja: es el fondo de la pantalla, con
      el texto encima sobre el velo */
   check("Con la imagen de fondo a sangre, no un cartel en una caja",
     (await tv.locator(".tv-ficha-fondo, .tv-ficha-mancha").count()) === 1 &&
       (await tv.locator(".tv-ficha-cartel").count()) === 0);
   check("Con reparto y dirección, que el panel sí manda",
-    (await tv.locator(".tv-ficha-credito").count()) === 2,
+    (await tv.locator(".tv-ficha-credito").count()) >= 2,
     (await tv.locator(".tv-ficha-credito").allInnerTexts()).join(" | ").replace(/\n/g, " "));
   /* Las temporadas, en fila y no una detrás de otra: con siete temporadas,
      llegar a la última costaba doscientas pulsaciones hacia abajo */
