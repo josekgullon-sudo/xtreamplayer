@@ -2792,9 +2792,26 @@ select.input { appearance: none; cursor: pointer; }
 
 /* Las filas. Se recorren de lado con las flechas y no se ve barra alguna */
 .tv-carrusel { padding: 2.4vh 0 0; }
+/*
+ * El rótulo de la fila, con su trazo debajo.
+ *
+ * Cinco rótulos del mismo tamaño y el mismo color, uno cada dos pantallas,
+ * se pierden entre las carátulas: al bajar deprisa no se distingue dónde
+ * acaba una fila y empieza la siguiente. Un trazo corto bajo cada uno los
+ * ancla y de paso marca el arranque de la fila.
+ *
+ * Corto y no de ancho completo: una raya de lado a lado sería un separador,
+ * y esto no separa nada — pertenece al rótulo.
+ */
 .tv-carrusel-t {
   font-size: 1.5vw; font-weight: 750; color: var(--text);
   padding: 0 0 1vh 4vw;
+}
+.tv-carrusel-t::after {
+  content: "";
+  display: block; width: 2.4vw; height: 0.28vh; min-height: 2px;
+  margin-top: 0.6vh; border-radius: 999px;
+  background: var(--accent);
 }
 .tv-carrusel-tira {
   display: flex; gap: 1.4vw; padding: 0 4vw 0.6vh;
