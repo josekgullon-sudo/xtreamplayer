@@ -2343,8 +2343,17 @@ select.input { appearance: none; cursor: pointer; }
   text-align: left; cursor: pointer;
   transition: background 0.1s, border-color 0.1s, color 0.1s;
 }
+/*
+ * El foco, en blanco.
+ *
+ * Estaba en rojo, y el rojo es el color de lo que se pulsa. Marcando además
+ * con él dónde está el cursor, las dos cosas dicen lo mismo y ninguna se
+ * distingue: en una lista de canales, el rojo del foco y el rojo del botón
+ * competían. En blanco se ve desde el sofá, no compite con nada, y deja el
+ * color de marca para el sitio donde de verdad significa algo.
+ */
 .tv-fila.foco {
-  background: rgba(255, 255, 255, 0.12); border-color: var(--accent); color: #fff;
+  background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.85); color: #fff;
 }
 .tv-fila-n {
   font-size: 1.1vw; font-weight: 700; color: rgba(255, 255, 255, 0.35);
@@ -2418,7 +2427,7 @@ select.input { appearance: none; cursor: pointer; }
 }
 .tv-poster.foco { color: #fff; transform: scale(1.06); }
 .tv-poster.foco .tv-poster-marco {
-  border-color: var(--accent);
+  border-color: rgba(255, 255, 255, 0.9);
   box-shadow: 0 1vh 3vh rgba(0, 0, 0, 0.6);
 }
 
@@ -2742,7 +2751,7 @@ select.input { appearance: none; cursor: pointer; }
 }
 .tv-canal.foco { color: #fff; transform: scale(1.05); }
 .tv-canal.foco .tv-canal-marco {
-  border-color: var(--accent);
+  border-color: rgba(255, 255, 255, 0.9);
   box-shadow: 0 1vh 3vh rgba(0, 0, 0, 0.6);
 }
 .tv-canal.foco .tv-canal-prog { color: var(--text-dim); }
@@ -2962,8 +2971,10 @@ select.input { appearance: none; cursor: pointer; }
   transition: background 0.16s ease, color 0.16s ease, transform 0.16s cubic-bezier(0.22, 0.8, 0.2, 1);
 }
 .tv-ficha-temporada.activa { background: var(--bg-elev-2); color: var(--text); }
+/* La temporada elegida se marca sola con su fondo; el foco solo necesita
+   decir dónde está el cursor, y para eso basta el aro */
 .tv-ficha-temporada.foco {
-  border-color: #fff; color: #fff; background: var(--accent); transform: scale(1.06);
+  border-color: #fff; color: #fff; background: var(--bg-hover); transform: scale(1.06);
 }
 
 /*
@@ -3003,7 +3014,7 @@ select.input { appearance: none; cursor: pointer; }
   border-radius: 0.7vw; border: 0.22vh solid transparent;
   background: var(--bg-elev-2);
 }
-.tv-ficha-ep.foco .tv-ficha-ep-foto { border-color: var(--accent-bright); }
+.tv-ficha-ep.foco .tv-ficha-ep-foto { border-color: rgba(255, 255, 255, 0.9); }
 .tv-ficha-ep-foto img { width: 100%; height: 100%; object-fit: cover; }
 /* Sin fotograma, el número en grande: un hueco gris parece un fallo de
    carga, y esto se lee como una decisión */
