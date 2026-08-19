@@ -2521,6 +2521,18 @@ export default function TvApp() {
         cuatro pulsaciones. Aquí se ve sin entrar: el logotipo grande, qué
         dan ahora, cuánto le queda y qué viene después.
       */}
+      {/*
+        En el directo, dos columnas: los canales a la izquierda y el detalle
+        a la derecha.
+
+        Estaban uno encima del otro —la ficha del canal ocupando el ancho
+        entero y la lista debajo—, y en una tele eso es tirar la mitad de la
+        pantalla: la ficha se llevaba un tercio del alto para enseñar cuatro
+        datos en una línea, y a la lista le quedaban seis canales visibles
+        donde caben quince. Una pantalla de televisor es ancha, no alta; lo
+        que sobra es a los lados.
+      */}
+      <div className={enDirecto ? "tv-directo-cols" : ""}>
       {enDirecto && canalMirado && (
         <section className="tv-ahora">
           <span className="tv-ahora-logo">
@@ -2622,6 +2634,7 @@ export default function TvApp() {
           ),
         )}
         {!cargando && !filas.length && !error && <p className="tv-cargando">Aquí no hay nada todavía.</p>}
+      </div>
       </div>
       </div>
     </div>

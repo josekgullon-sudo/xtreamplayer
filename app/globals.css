@@ -2536,20 +2536,52 @@ select.input { appearance: none; cursor: pointer; }
  * pulsaciones. Esto lo enseña sin entrar, y el dato ya se pedía: solo estaba
  * en una línea diminuta debajo del nombre.
  */
+/*
+ * El directo, en dos columnas.
+ *
+ * Los canales a la izquierda y el detalle del que tienes bajo el foco a la
+ * derecha. Antes iban uno encima del otro, y eso en una tele es tirar media
+ * pantalla: la ficha se llevaba un tercio del alto para enseñar cuatro datos
+ * en una línea, y a la lista le quedaban seis canales visibles donde caben
+ * quince. Una pantalla de televisor es ancha, no alta.
+ */
+.tv-directo-cols {
+  display: flex; gap: 2.5vw; flex: 1; min-height: 0;
+  padding: 0 4vw 3vh;
+}
+/*
+ * La lista, a la izquierda; el detalle, a la derecha.
+ *
+ * En el HTML el detalle va primero porque estaba escrito como una cabecera,
+ * de cuando iba encima. Reordenarlo con `order` en vez de mover el marcado
+ * deja intacta la navegación con el mando, que recorre la lista en el orden
+ * en que está escrita: cambiando el HTML habría que rehacerla entera para
+ * volver justo al mismo sitio.
+ *
+ * Y la lista se lleva el lado izquierdo porque es lo que se recorre: en
+ * castellano se lee de izquierda a derecha, así que el cursor tiene que
+ * empezar donde empieza la mirada.
+ */
+.tv-directo-cols .tv-lista { order: 1; flex: 0 0 46%; padding: 0; }
+.tv-directo-cols .tv-ahora { order: 2; flex: 1; }
+
 .tv-ahora {
-  display: flex; align-items: center; gap: 2vw; flex: none;
-  margin: 0 4vw 2vh; padding: 2vh 2vw;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1.6vh;
+  align-self: flex-start;
+  padding: 2.4vh 2vw;
   background: var(--bg-elev); border: 1px solid var(--filo);
   border-radius: 1vw;
 }
+/* En columna, el logotipo puede ser grande de verdad: es lo que identifica
+   el canal de un vistazo, y a tres metros un logotipo pequeño no es nada */
 .tv-ahora-logo {
-  flex: none; width: 10vw; height: 6vw;
+  flex: none; width: 100%; height: 11vh;
   display: flex; align-items: center; justify-content: center;
   background: rgba(255, 255, 255, 0.06); border-radius: 0.7vw;
   color: var(--text-faint); overflow: hidden;
 }
 .tv-ahora-logo img { max-width: 84%; max-height: 84%; object-fit: contain; }
-.tv-ahora-txt { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 0.9vh; }
+.tv-ahora-txt { min-width: 0; width: 100%; display: flex; flex-direction: column; gap: 0.9vh; }
 .tv-ahora-canal {
   font-size: 2vw; font-weight: 750; line-height: 1.1;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
