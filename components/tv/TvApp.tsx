@@ -2250,13 +2250,22 @@ export default function TvApp() {
         <nav
           className={`tv-carril ${focoCarril !== null ? "abierto" : ""}`}
           aria-label="Secciones"
+          /*
+           * Cerrar va aquí, en el carril, y no en cada icono.
+           *
+           * Estaba en el icono, así que al mover el ratón de «Directo» a
+           * «Series» el de salida cerraba el carril un instante antes de que
+           * el de entrada lo volviera a abrir: pasar de una sección a otra
+           * era un parpadeo. Del carril solo se sale una vez, al salir del
+           * carril, que es cuando de verdad hay que cerrarlo.
+           */
+          onMouseLeave={() => setFocoCarril(null)}
         >
           {CARRIL.map((d, i) => (
             <button
               key={d.id}
               className={`tv-carril-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
               onMouseEnter={() => { conElMando.current = false; setFocoCarril(i); }}
-              onMouseLeave={() => setFocoCarril(null)}
               onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
             >
               <span className="tv-carril-icono"><Icon name={d.icono} size={34} /></span>
@@ -2513,13 +2522,14 @@ export default function TvApp() {
       <nav
         className={`tv-carril ${focoCarril !== null ? "abierto" : ""}`}
         aria-label="Secciones"
+        /* Cerrar en el carril y no en cada icono: ver la portada */
+        onMouseLeave={() => setFocoCarril(null)}
       >
         {CARRIL.map((d, i) => (
           <button
             key={d.id}
             className={`tv-carril-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
             onMouseEnter={() => { conElMando.current = false; setFocoCarril(i); }}
-            onMouseLeave={() => setFocoCarril(null)}
             onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
           >
             <span className="tv-carril-icono"><Icon name={d.icono} size={34} /></span>
