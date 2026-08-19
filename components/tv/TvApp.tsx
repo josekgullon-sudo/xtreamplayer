@@ -2184,24 +2184,48 @@ export default function TvApp() {
               </span>
             </button>
           )}
+          {/*
+            Los tres sitios donde hay algo que ver, en fila y del mismo
+            tamaño. Estaban en una rejilla de dos por dos junto con «Salir»,
+            o sea que apagar la tele tenía el mismo peso visual que entrar en
+            el cine. No son la misma clase de cosa: tres son destinos y el
+            cuarto es una puerta de salida, y eso tiene que verse.
+          */}
           <div className="tv-tiles">
-            {DESTINOS.map((d, i) => (
+            {DESTINOS.filter((d) => d.id !== "salir").map((d, i) => (
               <button
                 key={d.id}
                 className={`tv-tile ${foco === i ? "foco" : ""}`}
                 onMouseEnter={() => { conElMando.current = false; setFoco(i); }}
                 onClick={() => elegirDestino(d.id)}
               >
-                <span className="tv-tile-icono"><Icon name={d.icono} size={44} /></span>
+                <span className="tv-tile-icono"><Icon name={d.icono} size={40} /></span>
                 <span className="tv-tile-txt">
                   {d.titulo}
-                  {/* Una línea que diga de qué va: cuatro nombres a secas
+                  {/* Una línea que diga de qué va: tres nombres a secas
                       obligan a entrar para saber qué hay detrás */}
                   <span className="tv-tile-sub">{d.pie}</span>
                 </span>
               </button>
             ))}
           </div>
+          {/* Aparte y en fino: sigue en el mismo recorrido del mando —es el
+              último— pero deja de competir con los destinos */}
+          {DESTINOS.filter((d) => d.id === "salir").map((d) => {
+            const i = DESTINOS.findIndex((x) => x.id === d.id);
+            return (
+              <button
+                key={d.id}
+                className={`tv-salir ${foco === i ? "foco" : ""}`}
+                onMouseEnter={() => { conElMando.current = false; setFoco(i); }}
+                onClick={() => elegirDestino(d.id)}
+              >
+                <Icon name={d.icono} size={20} />
+                {d.titulo}
+              </button>
+            );
+          })}
+
           <p className="tv-pie">
             {caduca ? `Tu acceso vence el ${new Date(caduca).toLocaleDateString("es-ES")}` : "Acceso sin fecha de fin"}
             {soporte ? ` · Soporte: ${soporte}` : ""}

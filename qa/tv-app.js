@@ -104,8 +104,15 @@ async function abrirPrimeraCarpeta(tv) {
   await tv.waitForSelector(".tv-tiles", { timeout: 25000 });
   check("Se puede entrar con usuario desde la propia tele", true);
 
+  /* Tres destinos, y «Salir» aparte: no son la misma clase de cosa. Con los
+     cuatro en la misma rejilla, apagar la tele pesaba lo mismo que entrar en
+     el cine */
   const tiles = await tv.locator(".tv-tile").allInnerTexts();
-  check("Portada con cuatro accesos y nada más", tiles.length === 4, tiles.join(" | ").replace(/\n/g, " "));
+  check("Portada con los tres sitios donde hay algo que ver", tiles.length === 3,
+    tiles.join(" | ").replace(/\n/g, " "));
+  check("Y «Salir» aparte, sin competir con ellos",
+    (await tv.locator(".tv-salir").count()) === 1 &&
+      (await tv.locator(".tv-tile:has-text('Salir')").count()) === 0);
   check("Con la marca del proveedor", (await tv.locator(".tv-marca").innerText()).toUpperCase().includes("TOTALFLIX"));
   check("Y la MAC a la vista", (await tv.locator(".tv-pie-mac").innerText()).includes(":"));
   check("Sin cabecera de la web ni menús", !(await tv.locator(".site-header").isVisible().catch(() => false)));

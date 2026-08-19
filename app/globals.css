@@ -2180,6 +2180,24 @@ select.input { appearance: none; cursor: pointer; }
  * foco salte de sitio al cambiar de fila.
  */
 .tv-portada .tv-marca { font-size: 1.7vw; margin-bottom: 4vh; }
+/*
+ * Salir, aparte y sin peso.
+ *
+ * Sigue en el mismo recorrido del mando —es el último—, pero ya no compite
+ * con los destinos: es lo único de la pantalla que no lleva a ver nada.
+ */
+.tv-salir {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.7vw; width: fit-content; margin: 0 auto;
+  padding: 1.1vh 1.6vw; border-radius: 999px;
+  background: none; border: 0.15vw solid transparent;
+  color: var(--text-faint); font-size: 1.15vw; font-weight: 650; cursor: pointer;
+  transition: color 0.14s, background 0.14s, border-color 0.14s;
+}
+.tv-salir.foco {
+  border-color: rgba(255, 255, 255, 0.85); color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
 .tv-portada .tv-pie { text-align: center; }
 .tv-portada .tv-pie:first-of-type { margin-top: 3vh; }
 
@@ -2246,32 +2264,41 @@ select.input { appearance: none; cursor: pointer; }
  * de la aplicación. Ocupan el ancho de la pantalla en vez de dejar medio
  * televisor en negro.
  */
+/*
+ * Los tres destinos, juntos y centrados.
+ *
+ * Estaban en una rejilla de dos por dos ocupando el ancho entero, con
+ * «Salir» de cuarto: apagar la tele pesaba lo mismo que entrar en el cine, y
+ * los cuatro bloques estirados de borde a borde dejaban tanto hueco entre
+ * ellos que no se leían como un grupo. Tres en fila, del tamaño justo y en
+ * el centro, se recorren de un vistazo.
+ */
 .tv-tiles {
-  display: grid; grid-template-columns: repeat(2, 1fr);
-  gap: 1.6vw; margin-bottom: 4vh; width: 100%;
+  display: flex; justify-content: center; flex-wrap: nowrap;
+  gap: 1vw; margin-bottom: 3vh;
 }
 .tv-tile {
-  display: flex; flex-direction: row; align-items: center; gap: 1.6vw;
-  padding: 2.6vh 2vw; text-align: left;
+  display: flex; flex-direction: row; align-items: center; gap: 0.9vw;
+  padding: 1.9vh 1.4vw; text-align: left;
   background: var(--bg-elev);
-  border: 0.2vw solid var(--filo); border-radius: 1.2vw;
-  color: var(--text); font-size: 1.7vw; font-weight: 750;
+  border: 0.15vw solid var(--filo); border-radius: 1vw;
+  color: var(--text); font-size: 1.4vw; font-weight: 750;
   cursor: pointer; transition: transform 0.12s, background 0.12s, border-color 0.12s, color 0.12s;
 }
 .tv-tile.foco {
   background: var(--bg-elev-2);
-  border-color: var(--accent-bright);
+  border-color: rgba(255, 255, 255, 0.9);
   color: #fff; transform: scale(1.03);
   box-shadow: 0 1.4vh 4vh rgba(0, 0, 0, 0.5);
 }
 .tv-tile-icono {
   flex: none; display: flex; align-items: center; justify-content: center;
-  width: 5.4vw; height: 5.4vw; border-radius: 1vw;
+  width: 4.4vw; height: 4.4vw; border-radius: 0.9vw;
   background: var(--accent-tint); color: var(--accent-bright);
 }
 .tv-tile-txt { display: flex; flex-direction: column; gap: 0.4vh; min-width: 0; }
 .tv-tile-sub {
-  font-size: 1.1vw; font-weight: 500; color: var(--text-faint);
+  font-size: 0.95vw; font-weight: 500; color: var(--text-faint);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .tv-tile.foco .tv-tile-icono { background: var(--accent); color: #fff; }
@@ -2293,9 +2320,16 @@ select.input { appearance: none; cursor: pointer; }
  * recorrer la portada con las flechas. Ahora las secciones están siempre
  * ahí, a la izquierda, como en cualquier aplicación de televisión.
  */
-/* El carril sale del flujo y el hueco lo reserva el relleno: así, al
-   abrirse, crece por encima del contenido en vez de empujarlo */
-.tv-con-carril { flex-direction: row; position: relative; padding-left: 5.6vw; }
+/*
+ * El carril sale del flujo y el hueco lo reserva el relleno: así, al
+ * abrirse, crece por encima del contenido en vez de empujarlo.
+ *
+ * Sin `position` propia a propósito: `.tv-app` ya es `fixed`, que sirve de
+ * ancla igual de bien. Poniéndole `relative` aquí se pisaba aquel `fixed`,
+ * la pantalla dejaba de ocupar el alto completo y el carril se quedaba de la
+ * altura del contenido — con los iconos centrados sobre media pantalla.
+ */
+.tv-con-carril { flex-direction: row; padding-left: 5.6vw; }
 .tv-cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
 /*
@@ -2315,8 +2349,11 @@ select.input { appearance: none; cursor: pointer; }
 .tv-carril {
   position: absolute; top: 0; bottom: 0; left: 0; z-index: 5;
   width: 5.6vw;
-  display: flex; flex-direction: column; gap: 0.6vh;
-  padding: 3vh 0.8vw;
+  /* Agrupados y centrados en vertical, no repartidos por toda la altura:
+     cinco iconos desperdigados de arriba abajo se leen como cinco cosas
+     sueltas y no como un menú */
+  display: flex; flex-direction: column; justify-content: center; gap: 0.2vh;
+  padding: 2vh 0.8vw;
   background: rgba(0, 0, 0, 0.28); border-right: 1px solid rgba(255, 255, 255, 0.07);
   transition: background 0.18s ease;
 }
@@ -2328,7 +2365,7 @@ select.input { appearance: none; cursor: pointer; }
 }
 .tv-carril-item {
   display: flex; flex-direction: column; align-items: center; gap: 0.7vh;
-  padding: 1.4vh 0.2vw; border-radius: 1vw;
+  padding: 1vh 0.2vw; border-radius: 1vw;
   background: none; border: 0.2vw solid transparent; cursor: pointer;
   color: rgba(255, 255, 255, 0.55); font-size: 1.05vw; font-weight: 700;
   transition: color 0.12s, background 0.12s, border-color 0.12s;
@@ -2340,25 +2377,40 @@ select.input { appearance: none; cursor: pointer; }
  * golpe. Así el ancho va de cero a lo que ocupe y el carril se abre en vez
  * de dar un salto — y de paso el lector de pantalla lo sigue leyendo.
  */
+/*
+ * Cerrado no ocupa NADA, ni de ancho ni de alto.
+ *
+ * Colapsando solo el ancho, el hueco de la línea de texto seguía ahí y
+ * separaba los iconos casi el doble de lo que miden: parecían cinco cosas
+ * sueltas repartidas por el lateral en vez de un menú.
+ */
 .tv-carril-txt {
-  max-width: 0; overflow: hidden; white-space: nowrap; opacity: 0;
-  transition: max-width 0.22s cubic-bezier(0.22, 0.8, 0.2, 1), opacity 0.18s ease;
+  max-width: 0; height: 0; overflow: hidden; white-space: nowrap; opacity: 0;
+  transition: max-width 0.22s cubic-bezier(0.22, 0.8, 0.2, 1),
+    height 0.22s cubic-bezier(0.22, 0.8, 0.2, 1), opacity 0.18s ease;
 }
 .tv-carril.abierto .tv-carril-item {
   flex-direction: row; justify-content: flex-start; gap: 0.9vw;
   padding: 1.4vh 0.9vw;
 }
-.tv-carril.abierto .tv-carril-txt { max-width: 9vw; opacity: 1; }
+.tv-carril.abierto .tv-carril-txt { max-width: 9vw; height: auto; opacity: 1; }
 .tv-carril-icono {
   display: flex; align-items: center; justify-content: center;
-  width: 4.2vw; height: 4.2vw; max-width: 82px; max-height: 82px;
-  border-radius: 1.1vw; background: rgba(255, 255, 255, 0.06);
+  width: 3.4vw; height: 3.4vw; max-width: 66px; max-height: 66px;
+  border-radius: 0.9vw; background: rgba(255, 255, 255, 0.06);
   transition: background 0.12s, color 0.12s;
 }
-/* La sección en la que estás, en rojo; la que tiene el foco del mando,
-   además con el marco: son dos cosas distintas y hay que verlas a la vez */
-.tv-carril-item.activo { color: var(--accent-bright); }
-.tv-carril-item.activo .tv-carril-icono { background: var(--accent-tint-strong); color: var(--accent-bright); }
+/*
+ * La sección en la que estás se marca por brillo, no por color.
+ *
+ * Iba en rojo, y el rojo ya dice «esto se pulsa». Además, teñir
+ * permanentemente un icono del menú hace que el color de marca esté siempre
+ * en pantalla sin señalar nada. Aquí el activo es simplemente el único que
+ * está a plena luz —los demás van al 55%—, que se distingue igual de bien y
+ * no gasta el color.
+ */
+.tv-carril-item.activo { color: #fff; }
+.tv-carril-item.activo .tv-carril-icono { background: rgba(255, 255, 255, 0.14); color: #fff; }
 .tv-carril-item.foco {
   border-color: rgba(255, 255, 255, 0.85); color: #fff;
   background: rgba(255, 255, 255, 0.10);
