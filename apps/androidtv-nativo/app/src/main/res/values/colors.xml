@@ -36,6 +36,19 @@
     <color name="marca_tinte">#1FE5192B</color>
     <color name="marca_tinte_fuerte">#2BE5192B</color>
 
+    <!--
+      El foco, en blanco.
+
+      Estaba en rojo, que es el color de lo que se pulsa. Marcando además con
+      él dónde está el cursor, las dos cosas dicen lo mismo y ninguna se
+      distingue: en una lista de canales competían el rojo del foco y el rojo
+      del botón. En blanco se ve igual de bien desde el sofá y deja el color
+      de marca para donde de verdad significa algo. Es el mismo cambio que en
+      el web, para que las dos se manejen igual.
+    -->
+    <color name="foco">#F2FFFFFF</color>
+    <color name="foco_relleno">#1FFFFFFF</color>
+
     <!-- El negro del logotipo. No es el fondo de la aplicación: el icono y el
          estante de la tele van sobre negro de verdad, y ahí un gris se nota -->
     <color name="negro_marca">#0A0A0B</color>
