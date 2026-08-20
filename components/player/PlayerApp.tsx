@@ -3,6 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Icon, { IconName } from "@/components/Icon";
+import {
+  type Descarga,
+  encargarDescarga,
+  leerDescargas,
+  quitarDescarga,
+  sePuedeDescargar,
+  tamanoLegible,
+} from "@/components/tv/descargas";
 import VideoPlayer, { PlaySource } from "./VideoPlayer";
 import AddPlaylistModal from "./AddPlaylistModal";
 import ProfileGate from "./ProfileGate";
@@ -43,7 +51,7 @@ import {
   decodeBase64Maybe,
 } from "@/lib/xtream";
 
-type Tab = "live" | "guia" | "vod" | "series" | "favs";
+type Tab = "live" | "guia" | "vod" | "series" | "favs" | "bajadas";
 
 interface NowPlaying {
   source: PlaySource;
@@ -183,6 +191,25 @@ export default function PlayerApp() {
   const [verListas, setVerListas] = useState(false);
 
   const [tab, setTab] = useState<Tab>("live");
+  /*
+   * Descargas, donde el envoltorio sepa hacerlas.
+   *
+   * En el navegador esto no existe —lo que hay ahí es almacenamiento del
+   * sitio, que se borra solo cuando hace falta espacio— y por eso no se
+   * enseña nada: ni pestaña, ni botón. En el APK de Android sí, y es la
+   * misma pantalla. Ver components/tv/descargas.ts.
+   *
+   * Se pregunta en un efecto y no al pintar porque la respuesta la da
+   * `window`, que en el servidor no existe.
+   */
+  const [conDescargas, setConDescargas] = useState(false);
+  const [descargas, setDescargas] = useState<Descarga[]>([]);
+  /** El identificador de lo que se está resolviendo, mientras se resuelve */
+  const [preparando, setPreparando] = useState("");
+  useEffect(() => {
+    setConDescargas(sePuedeDescargar());
+    setDescargas(leerDescargas());
+  }, []);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -1100,6 +1127,53 @@ export default function PlayerApp() {
    * abajo y arriba no, y durante un mes en el escritorio no había forma de
    * llegar a la parrilla.
    */
+  /* Mientras baje algo, se vuelve a preguntar: el envoltorio no avisa —son
+     cuatro envoltorios distintos y cada uno tendría que saber cómo llamar a
+     la web—, así que se le pregunta cada segundo y medio. Con nada bajando y
+     sin mirar la pantalla de descargas, no se pregunta. */
+  const bajandoAlgo = descargas.some((d) => d.estado === "bajando");
+  const enBajadas = tab === "bajadas";
+  useEffect(() => {
+    if (!conDescargas) return;
+    if (!bajandoAlgo && !enBajadas) return;
+    const t = setInterval(() => setDescargas(leerDescargas()), 1500);
+    return () => clearInterval(t);
+  }, [conDescargas, bajandoAlgo, enBajadas]);
+  useEffect(() => {
+    if (enBajadas) setDescargas(leerDescargas());
+  }, [enBajadas]);
+
+  /**
+   * Guardar algo en el aparato: se resuelve la dirección y se le pasa al
+   * envoltorio, que es quien tiene disco. El mismo botón pone y quita.
+   */
+  async function bajarloAqui(
+    id: string,
+    nombre: string,
+    cartel: string,
+    resolver: () => Promise<string>
+  ) {
+    if (descargas.some((d) => d.id === id)) {
+      quitarDescarga(id);
+      setDescargas(leerDescargas());
+      return;
+    }
+    /* «Preparando…» en cuanto se pulsa: resolver la dirección contra el panel
+       del proveedor tarda, y un botón que no hace nada se pulsa otra vez */
+    setPreparando(id);
+    try {
+      const url = await resolver();
+      if (url) {
+        encargarDescarga({ id, nombre, cartel, url });
+        setDescargas(leerDescargas());
+      }
+    } catch (e) {
+      setLoadError(enCristiano(e, "No se ha podido empezar la descarga"));
+    } finally {
+      setPreparando("");
+    }
+  }
+
   const destinos: { id: Tab; icono: IconName; texto: string }[] = [
     { id: "live", icono: "tv", texto: isXtream ? "Directo" : "Canales" },
     ...(isXtream
@@ -1110,6 +1184,9 @@ export default function PlayerApp() {
         ] as const)
       : []),
     { id: "favs", icono: "star", texto: "Favoritos" },
+    /* Solo donde se puede guardar de verdad: en un navegador este acceso no
+       existe, y no se dice «tu dispositivo no es compatible» */
+    ...(conDescargas ? ([{ id: "bajadas", icono: "bajar", texto: "Descargas" }] as const) : []),
   ];
   const showSidebar = tab === "live" || tab === "favs" || !isXtream;
   /** Cine/series sin nada elegido: catálogo a pantalla completa, sin vídeo */
@@ -1838,6 +1915,76 @@ export default function PlayerApp() {
           </div>
         </section>
       </div>
+    ) : active && tab === "bajadas" ? (
+      /*
+        Lo que hay guardado en el aparato.
+
+        Una fila por cosa, con su carátula, en qué va y cuánto ocupa: lo que
+        se pregunta aquí es «¿ya la tengo?» y «¿cuánto me está comiendo el
+        disco?». Verla y quitarla van juntas porque son las dos únicas cosas
+        que se hacen en esta pantalla; esconder la segunda en un menú de
+        ajustes es lo que hace que un disco se llene y no se vacíe nunca.
+      */
+      <div className="pa-bajadas">
+        <h2 className="pa-bajadas-t">Descargas</h2>
+        {!descargas.length ? (
+          <p className="pa-empty">
+            Todavía no has guardado nada. En la ficha de una película o de un episodio tienes el
+            botón de descargar.
+          </p>
+        ) : (
+          descargas.map((d) => (
+            <div className="pa-bajada" key={d.id}>
+              <span className="pa-bajada-cartel">
+                {imgSrc(d.cartel) ? (
+                  <img src={imgSrc(d.cartel)} alt="" />
+                ) : (
+                  <Icon name="film" size={22} />
+                )}
+              </span>
+              <button
+                className="pa-bajada-txt"
+                disabled={d.estado !== "lista"}
+                onClick={() =>
+                  d.url &&
+                  setCurrent({
+                    source: { url: d.url, name: d.nombre, kind: "video" },
+                    logo: d.cartel,
+                    playlistId: active.id,
+                    kind: "vod",
+                  })
+                }
+              >
+                <span className="pa-bajada-nombre">{d.nombre}</span>
+                {d.estado === "bajando" ? (
+                  <>
+                    <span className="pa-bajada-estado">Bajando · {d.parte}%</span>
+                    <span className="pa-bajada-barra" aria-hidden="true">
+                      <i style={{ width: `${d.parte}%` }} />
+                    </span>
+                  </>
+                ) : d.estado === "fallo" ? (
+                  /* Un fallo se dice y se deja a la vista con su papelera al
+                     lado: media descarga ocupando disco sin que nadie sepa
+                     que está ahí es peor que el fallo */
+                  <span className="pa-bajada-estado pa-bajada-fallo">No se ha podido terminar</span>
+                ) : (
+                  <span className="pa-bajada-estado">
+                    En este aparato{tamanoLegible(d.bytes) ? ` · ${tamanoLegible(d.bytes)}` : ""}
+                  </span>
+                )}
+              </button>
+              <button
+                className="pa-bajada-quitar"
+                aria-label={`Quitar ${d.nombre} del aparato`}
+                onClick={() => { quitarDescarga(d.id); setDescargas(leerDescargas()); }}
+              >
+                <Icon name="papelera" size={18} />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
     ) : active && (tab === "live" || tab === "favs") ? (
       <div className={`pa-live ${current ? "con-video" : ""} ${verCanales ? "con-canales" : ""}`}>
         <aside className="pa-live-cats" aria-label="Categorías">
@@ -2341,16 +2488,54 @@ export default function PlayerApp() {
                   <FichaCredito etiqueta="Dirección" valor={vodDetail.info.info?.director} />
                 </>
               )}
-              <button
-                className="btn btn-primary"
-                style={{ marginTop: 18 }}
-                onClick={() => playVod(active, {
-                  ...vodDetail.vod,
-                  container_extension: vodDetail.info?.movie_data?.container_extension || vodDetail.vod.container_extension,
-                })}
-              >
-                <Icon name="play" size={16} /> Reproducir
-              </button>
+              <div className="ficha-acciones">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => playVod(active, {
+                    ...vodDetail.vod,
+                    container_extension: vodDetail.info?.movie_data?.container_extension || vodDetail.vod.container_extension,
+                  })}
+                >
+                  <Icon name="play" size={16} /> Reproducir
+                </button>
+                {/* Y guardarla, donde se pueda. En el navegador este botón no
+                    existe: lo que hay ahí es almacenamiento del sitio, que se
+                    borra solo cuando hace falta espacio */}
+                {conDescargas && (() => {
+                  const id = `vod-${vodDetail.vod.stream_id}`;
+                  const ya = descargas.find((d) => d.id === id);
+                  const ext =
+                    vodDetail.info?.movie_data?.container_extension ||
+                    vodDetail.vod.container_extension ||
+                    "mp4";
+                  return (
+                    <button
+                      className="btn btn-ghost"
+                      onClick={() =>
+                        bajarloAqui(id, vodDetail.vod.name, vodDetail.vod.stream_icon || "", async () =>
+                          (
+                            await pedirEnlace({
+                              ...credsOf(active),
+                              clase: "movie",
+                              id: String(vodDetail.vod.stream_id),
+                              ext,
+                            })
+                          ).url
+                        )
+                      }
+                    >
+                      <Icon name={ya?.estado === "lista" ? "papelera" : "bajar"} size={16} />
+                      {preparando === id
+                        ? "Preparando…"
+                        : ya?.estado === "lista"
+                          ? "Quitar del aparato"
+                          : ya?.estado === "bajando"
+                            ? `Bajando ${ya.parte}%`
+                            : "Descargar"}
+                    </button>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         </div>
@@ -2393,20 +2578,71 @@ export default function PlayerApp() {
             ))}
           </div>
 
+          {/*
+            Cada episodio, con lo que se hace con él al lado.
+            Ponerlo es lo normal y ocupa la fila entera; guardarlo en el
+            aparato va en un botón pequeño a su derecha, y solo donde se
+            puede guardar. De una serie se baja el episodio que quieras y no
+            la serie entera: cuarenta ficheros y varios gigas no es una
+            decisión que se tome sin querer, pulsando un botón.
+          */}
           <div className="ficha-episodios">
-            {(seriesDetail.info.episodes?.[seriesDetail.season] || []).map((ep) => (
-              <button
-                key={ep.id}
-                className="pa-episode"
-                onClick={() =>
-                  playEpisode(active, seriesDetail.series, ep.id, ep.title || `Episodio ${ep.episode_num}`, ep.container_extension)
-                }
-              >
-                <span className="ep-num">{ep.episode_num}</span>
-                <span className="ep-t">{ep.title || `Episodio ${ep.episode_num}`}</span>
-                <Icon name="play" size={15} />
-              </button>
-            ))}
+            {(seriesDetail.info.episodes?.[seriesDetail.season] || []).map((ep) => {
+              const id = `ep-${ep.id}`;
+              const ya = descargas.find((d) => d.id === id);
+              const titulo = ep.title || `Episodio ${ep.episode_num}`;
+              return (
+                <div className="pa-episode-fila" key={ep.id}>
+                  <button
+                    className="pa-episode"
+                    onClick={() =>
+                      playEpisode(active, seriesDetail.series, ep.id, titulo, ep.container_extension)
+                    }
+                  >
+                    <span className="ep-num">{ep.episode_num}</span>
+                    <span className="ep-t">{titulo}</span>
+                    <Icon name="play" size={15} />
+                  </button>
+                  {conDescargas && (
+                    <button
+                      className={`pa-episode-bajar ${ya ? "puesto" : ""}`}
+                      title={
+                        ya?.estado === "lista"
+                          ? "Quitar del aparato"
+                          : ya?.estado === "bajando"
+                            ? `Bajando ${ya.parte}%`
+                            : "Descargar"
+                      }
+                      aria-label={`Descargar ${titulo}`}
+                      onClick={() =>
+                        bajarloAqui(
+                          id,
+                          `${seriesDetail.series.name} · T${seriesDetail.season}E${ep.episode_num}`,
+                          seriesDetail.series.cover || "",
+                          async () =>
+                            (
+                              await pedirEnlace({
+                                ...credsOf(active),
+                                clase: "series",
+                                id: ep.id,
+                                ext: ep.container_extension || "mp4",
+                              })
+                            ).url
+                        )
+                      }
+                    >
+                      {preparando === id ? (
+                        <span className="pa-episode-parte">…</span>
+                      ) : ya?.estado === "bajando" ? (
+                        <span className="pa-episode-parte">{ya.parte}%</span>
+                      ) : (
+                        <Icon name={ya?.estado === "lista" ? "papelera" : "bajar"} size={15} />
+                      )}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

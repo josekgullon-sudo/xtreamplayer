@@ -14,6 +14,10 @@ android {
         versionName "1.0"
     }
 
+    /* El mismo puente de descargas que la aplicación de televisión. Ver el
+       comentario en apps/androidtv/app/build.gradle */
+    sourceSets { main { java.srcDirs += ['../../comun/java'] } }
+
     buildTypes {
         release {
             minifyEnabled false

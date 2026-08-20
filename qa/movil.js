@@ -124,12 +124,22 @@ async function abrirCanales(p) {
   check("Con tamaño de dedo", altoChip >= 36, `${altoChip}px`);
   const todas = await p.locator(".pa-card").count();
   await p.locator(".pa-chip").last().click();
-  await p.waitForTimeout(600);
+  /* Se espera a que el filtro esté puesto, no un cuarto de segundo.
+     Con un tiempo fijo, en una máquina lenta el filtro seguía sin aplicarse
+     —o sin quitarse—, y lo que fallaba no era esta comprobación sino la de
+     tres líneas más abajo, que busca una película que en ese momento no
+     estaba en pantalla y se quedaba treinta segundos esperándola. */
+  await p.waitForSelector(".pa-chip.activo", { timeout: 15000 });
   const filtradas = await p.locator(".pa-card").count();
   check("Y el chip filtra de verdad", filtradas >= 1 && filtradas <= todas, `${todas} → ${filtradas}`);
   check("Quedando marcado el elegido", (await p.locator(".pa-chip.activo").count()) === 1);
   await p.locator(".pa-chip:has-text('Todo')").first().click();
-  await p.waitForTimeout(400);
+  // Y a que vuelva el catálogo entero, por lo mismo
+  await p.waitForFunction(
+    (cuantas) => document.querySelectorAll(".pa-card").length >= cuantas,
+    todas,
+    { timeout: 20000 }
+  );
 
   /* La ficha de una película se apilaba bien en el móvil, pero sus botones
      seguían con las medidas del escritorio: el aspa 36px y «Reproducir»

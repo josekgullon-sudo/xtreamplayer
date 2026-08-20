@@ -131,8 +131,12 @@ for suite in "${PEDIDAS[@]}"; do
   else
     FALLAN+=("$suite")
     echo "❌ FALLA"
-    # Solo las líneas que fallan: el resto es ruido cuando buscas qué se rompió
-    echo "$salida" | grep -E "^❌|^FATAL|^PAGEERROR" | sed 's/^/      /' | head -12
+    # Solo las líneas que fallan: el resto es ruido cuando buscas qué se rompió.
+    # Y con ellas, las dos del registro de Playwright que dicen QUÉ estaba
+    # esperando y en qué línea: sin eso, un «Timeout 30000ms exceeded» obliga
+    # a adivinar entre los cuarenta clics de una suite, que es exactamente lo
+    # que pasó con `movil` fallando solo en el CI.
+    echo "$salida" | grep -E "^❌|^FATAL|^PAGEERROR|waiting for|\.js:[0-9]+" | sed 's/^ *//; s/^/      /' | head -16
   fi
 done
 

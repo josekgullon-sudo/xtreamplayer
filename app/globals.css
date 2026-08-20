@@ -4234,6 +4234,89 @@ select.input { appearance: none; cursor: pointer; }
 }
 .ficha-episodios .ep-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ficha-episodios .pa-episode svg { color: var(--text-faint); flex-shrink: 0; }
+/*
+ * Cada episodio, con lo que se hace con él al lado.
+ *
+ * Ponerlo ocupa la fila entera porque es lo normal; guardarlo en el aparato
+ * va en un botón pequeño a su derecha. Estuvo un rato como una segunda lista
+ * de episodios debajo, y eso son dos listas iguales de cuarenta filas para
+ * dos acciones sobre lo mismo.
+ */
+.pa-episode-fila { display: flex; align-items: stretch; gap: 8px; }
+.pa-episode-fila .pa-episode { flex: 1; min-width: 0; }
+.pa-episode-bajar {
+  flex: none; width: 46px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--bg-elev); color: var(--text-dim); cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+.pa-episode-bajar:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text); }
+/* Ya guardado, el botón se apaga en vez de encenderse: lo que queda por
+   hacer es quitarlo, y eso no es una acción que haya que invitar a pulsar */
+.pa-episode-bajar.puesto { color: var(--text-faint); }
+.pa-episode-parte { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Reproducir y guardar, en la misma línea y sin que la ficha se estire */
+.ficha-acciones { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+
+/*
+ * ---- Lo que está guardado en el aparato ----
+ *
+ * Una fila por cosa: carátula pequeña, nombre, en qué va, y la papelera al
+ * final. No es una rejilla de carátulas como el catálogo porque aquí no se
+ * elige qué ver de entre mil: se mira una lista corta de cosas que ya has
+ * elegido tú, y de cada una importa el estado —bajando, lista, fallida— más
+ * que la imagen.
+ */
+.pa-bajadas { padding: 20px 22px 90px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.pa-bajadas-t { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
+.pa-bajada {
+  display: flex; align-items: stretch; gap: 12px;
+  background: var(--bg-elev); border: 1px solid var(--hairline);
+  border-radius: var(--radius); padding: 10px 12px;
+}
+.pa-bajada-cartel {
+  flex: none; width: 76px; aspect-ratio: 16 / 10;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; overflow: hidden;
+  background: var(--surface-quiet); color: var(--text-faint);
+}
+.pa-bajada-cartel img { width: 100%; height: 100%; object-fit: cover; }
+.pa-bajada-txt {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 5px;
+  background: none; border: none; padding: 0;
+  color: var(--text); text-align: left; cursor: pointer;
+}
+/* Lo que todavía no está entero no se puede poner, y el cursor lo dice
+   antes de que nadie lo intente */
+.pa-bajada-txt:disabled { cursor: default; }
+.pa-bajada-nombre {
+  font-size: 15px; font-weight: 650;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pa-bajada-estado { font-size: 13px; color: var(--text-faint); }
+/* El único sitio de esta pantalla donde el rojo significa algo: media
+   descarga ocupando disco sin que nadie sepa que está ahí */
+.pa-bajada-fallo { color: var(--accent-bright); font-weight: 650; }
+.pa-bajada-barra {
+  display: block; width: 100%; max-width: 320px;
+  height: 4px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16); overflow: hidden;
+}
+.pa-bajada-barra i {
+  display: block; height: 100%; background: var(--accent);
+  border-radius: 999px; transition: width 0.4s linear;
+}
+.pa-bajada-quitar {
+  flex: none; width: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; border: 1px solid transparent;
+  background: var(--surface-quiet); color: var(--text-dim); cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+.pa-bajada-quitar:hover { background: var(--bg-hover); border-color: var(--border); color: var(--text); }
 
 @media (max-width: 900px) {
   .pa-cat-layout { grid-template-columns: 1fr; height: calc(100vh - var(--header-h) - var(--tira)); }

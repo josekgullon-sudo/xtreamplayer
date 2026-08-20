@@ -19,6 +19,8 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+
+import app.totalplayer.comun.Descargas;
 import android.widget.FrameLayout;
 
 /**
@@ -78,6 +80,22 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
         }
+
+        /*
+         * Descargar para ver sin conexión, que una web no puede hacer sola.
+         *
+         * La página pregunta si hay alguien capaz de guardar ficheros y, si lo
+         * hay, enseña el botón de descargar y su sección; en el navegador del
+         * teléfono ese acceso no existe, porque allí lo único que hay es
+         * almacenamiento del sitio y el sistema lo borra cuando le hace falta
+         * espacio. Ver apps/comun/java/.../Descargas.java y
+         * components/tv/descargas.ts.
+         *
+         * Solo lo alcanza la propia aplicación: lo que no es de nuestro
+         * dominio se abre en el navegador del teléfono, no aquí dentro —ver
+         * `shouldOverrideUrlLoading` justo debajo—.
+         */
+        web.addJavascriptInterface(new Descargas(this), "TPDescargas");
 
         web.setWebViewClient(new WebViewClient() {
             @Override

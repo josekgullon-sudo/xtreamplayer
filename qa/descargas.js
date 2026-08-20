@@ -182,6 +182,54 @@ const ENVOLTORIO = () => {
     await tv.locator(".tv-bajada-nombre").innerText());
 
   await tv.screenshot({ path: __dirname + "/94-tv-descargas.png" });
+  await ctx.close();
+
+  /* --- Y lo mismo en el reproductor, que es lo que va dentro del APK ---
+     La pantalla es otra —un teléfono no es un televisor— pero el puente es
+     el mismo, y por eso vale la misma prueba: si el contrato se rompiera por
+     un lado, se rompería por los dos. */
+  const movil = await b.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  await movil.addInitScript(ENVOLTORIO);
+  const m = await movil.newPage();
+  m.on("pageerror", (e) => console.log("PAGEERROR:", String(e).slice(0, 200)));
+  await m.goto(BASE + "/player", { waitUntil: "networkidle" });
+  await m.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
+  await m.waitForSelector(".modal");
+  await m.fill("#pl-name", "Bajadas");
+  await m.fill("#pl-host", "127.0.0.1:8090");
+  await m.fill("#pl-user", "demo");
+  await m.fill("#pl-pass", "demo123");
+  await m.click(".modal button[type=submit]");
+  await m.waitForSelector(".section-gate", { timeout: 20000 });
+  await m.locator(".section-card:has-text('Películas')").click();
+  await m.waitForSelector(".pa-card", { timeout: 25000 });
+  check("En el reproductor, «Descargas» también está en la barra de abajo",
+    (await m.locator(".pa-bottomnav-item:has-text('Descargas')").count()) === 1,
+    (await m.locator(".pa-bottomnav-item").allInnerTexts()).join(" | ").replace(/\n/g, " "));
+
+  await m.locator(".pa-card", { hasText: "Película Demo" }).first().click();
+  await m.waitForSelector(".ficha", { timeout: 20000 });
+  check("Y la ficha de una película ofrece guardarla",
+    (await m.locator(".ficha-acciones button:has-text('Descargar')").count()) === 1);
+  await m.locator(".ficha-acciones button:has-text('Descargar')").click();
+  await m.locator(".ficha-cerrar").click();
+  await m.locator(".pa-bottomnav-item:has-text('Descargas')").click();
+  await m.waitForSelector(".pa-bajada", { timeout: 20000 });
+  await m.waitForFunction(
+    () => /En este aparato/.test(document.querySelector(".pa-bajada-estado")?.innerText || ""),
+    { timeout: 20000 }
+  );
+  check("La pantalla de descargas del reproductor cuenta lo que hay",
+    (await m.locator(".pa-bajada-estado").innerText()).includes("En este aparato"),
+    await m.locator(".pa-bajada-estado").innerText());
+  await m.locator(".pa-bajada-quitar").click();
+  await m.waitForFunction(() => document.querySelectorAll(".pa-bajada").length === 0, { timeout: 10000 });
+  check("Y quitarlo lo quita", true);
+  await m.screenshot({ path: __dirname + "/94-movil-descargas.png" });
 
   await b.close();
   const fallan = results.filter((x) => !x).length;
