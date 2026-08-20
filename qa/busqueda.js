@@ -92,8 +92,22 @@ async function verRejilla(p) {
     check("(el mock no sirve logo.png: passthrough verificado igualmente)", true);
   }
 
-  // Un vale tocado no vale: el sello de GCM lo caza
-  const tocado = (vale || "aa.bb.cc").slice(0, -2) + "zz";
+  /*
+   * Un vale tocado no vale: el sello de GCM lo caza.
+   *
+   * Se toca por el medio, y a un carácter distinto del que hubiera. Cambiar
+   * los dos últimos «a zz» dejaba el vale intacto de vez en cuando: en
+   * base64 los últimos bits de la cola son relleno y no se leen, así que
+   * había combinaciones —una de cada doscientas cincuenta y seis— en las
+   * que el vale «manipulado» era byte por byte el original, pasaba la
+   * comprobación y esta prueba fallaba sin que nada estuviera roto. Una
+   * prueba que falla a suertes es peor que no tenerla: enseña a no mirarla.
+   */
+  const partes = (vale || "aa.bb.cc").split(".");
+  const cuerpo = partes[2];
+  const medio = Math.floor(cuerpo.length / 2);
+  partes[2] = cuerpo.slice(0, medio) + (cuerpo[medio] === "A" ? "B" : "A") + cuerpo.slice(medio + 1);
+  const tocado = partes.join(".");
   const malo = await fetch(`${BASE}/api/img?v=${encodeURIComponent(tocado)}`);
   check("Un vale manipulado se rechaza", malo.status === 403, `HTTP ${malo.status}`);
 

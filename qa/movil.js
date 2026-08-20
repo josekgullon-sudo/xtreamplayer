@@ -28,6 +28,18 @@ async function abrirCanales(p) {
     );
   }, { timeout: 25000 });
   if (await p.locator(".pa-live-chan").first().isVisible().catch(() => false)) return;
+  /* Y a que la lista deje de crecer antes de pulsar nada.
+     La columna se va rellenando mientras llegan los datos —lo último visto
+     se mete por arriba y las carpetas por abajo—, así que el botón se
+     desplaza mientras se intenta hacer clic sobre él. Playwright espera a
+     que lo que va a pulsar esté quieto, y si no se queda quieto agota los
+     treinta segundos y falla sin que nada esté roto. */
+  await p.waitForFunction(() => {
+    const cuantos = document.querySelectorAll(".pa-live-cat").length;
+    const antes = window.__qaCat;
+    window.__qaCat = cuantos;
+    return cuantos > 0 && antes === cuantos;
+  }, { timeout: 25000, polling: 400 });
   await p.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();
   await p.waitForSelector(".pa-live-chan", { timeout: 20000 });
 }
