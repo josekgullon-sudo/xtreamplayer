@@ -1,0 +1,27 @@
+# Los comandos propios del programa, permitidos también desde la web.
+#
+# Sin esto, la página que carga el programa —que es remota: vive en
+# totalplayer.app y no dentro del ejecutable— podía llamarlos y se encontraba
+# con «Command tp_bajar not allowed by ACL». Es decir: el botón de descargar
+# aparecía, se pulsaba, el encargo salía… y el programa lo rechazaba en la
+# puerta sin que nadie se enterara.
+#
+# Tauri 2 no da por hecho que una página remota pueda hablar con el programa,
+# y hace bien: una web cualquiera dentro de una ventana no debería poder tocar
+# el disco de nadie. Lo que hace falta es decir cuáles sí, que son estos cinco
+# y ninguno más. La lista de direcciones que pueden usarlos está en
+# `capabilities/default.json`.
+[[permission]]
+identifier = "permitir-puente"
+description = """
+Los cinco comandos del programa: guardar la dirección del servidor, entrar y \
+salir de pantalla completa, y las tres del puente de descargas. Nada de \
+ficheros, procesos ni portapapeles: eso no se pide y no se da.
+"""
+commands.allow = [
+  "guardar_direccion",
+  "alternar_pantalla_completa",
+  "tp_bajar",
+  "tp_quitar",
+  "tp_descargas",
+]

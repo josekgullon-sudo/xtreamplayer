@@ -537,7 +537,45 @@ button { font-family: inherit; }
  * que llamar: el botón. Un fondo liso deja que el color de marca signifique
  * algo cuando aparece.
  */
-.hero { padding: 116px 0 56px; text-align: center; }
+/*
+ * El héroe, sobre el mosaico de carteles.
+ *
+ * Era negro liso: la primera pantalla de un producto de cine y la más callada
+ * de todas. Con el mosaico detrás se sabe de qué va esto antes de leer el
+ * titular.
+ *
+ * Muy apagado, y con dos degradados que lo apagan más donde importa: por
+ * arriba, para que la barra de navegación no se apoye en un collage; por
+ * abajo, para que muera en negro justo donde empieza la maqueta del
+ * reproductor y no compita con ella. Encima va el titular, que es lo único
+ * que tiene que leerse aquí.
+ *
+ * Si el fichero no está, queda el fondo de siempre y no se rompe nada: es una
+ * imagen de adorno. Ver `public/LEEME-fondo.txt`.
+ */
+.hero {
+  position: relative;
+  padding: 116px 0 56px;
+  text-align: center;
+  isolation: isolate;
+}
+.hero::before {
+  content: "";
+  position: absolute; inset: -80px 0 0; z-index: -1;
+  background-image: url("/fondo-carteles.jpg");
+  background-size: cover;
+  background-position: center top;
+  opacity: 0.16;
+  /* Se desvanece por los cuatro lados: un rectángulo con canto se lee como una
+     imagen puesta encima, y esto tiene que leerse como el fondo que es */
+  -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 30%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(ellipse 90% 75% at 50% 30%, #000 30%, transparent 100%);
+}
+.hero::after {
+  content: "";
+  position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, var(--bg) 0%, rgba(10, 10, 12, 0.55) 30%, rgba(10, 10, 12, 0.8) 70%, var(--bg) 100%);
+}
 .hero h1 {
   /* Sin esto el navegador parte por donde le cabe, y la primera línea acababa
      en un «al» rojo suelto con «instante» en la siguiente: el acento de color

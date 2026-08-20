@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Lo mínimo: la pantalla de emergencia necesita poder guardar la dirección, la página necesita poder salir de pantalla completa con F11, y el puente de descargas necesita hablar con el programa. Ni ficheros, ni procesos, ni portapapeles. Las direcciones remotas van con comodín de subdominio además del comodín pelado: «https://*» no siempre casa con un dominio a secas, y sin casar el puente no se abre y las descargas se quedan encargadas sin que nadie las recoja.",
+  "description": "Lo mínimo, y dicho por su nombre: guardar la dirección del servidor, entrar y salir de pantalla completa, y el puente de descargas. Ni ficheros, ni procesos, ni portapapeles. La página vive en el dominio del proveedor y no dentro del ejecutable, así que es «remota» para Tauri: sin nombrar los comandos uno a uno, los rechaza en la puerta con un «not allowed by ACL» que no llega a ninguna pantalla. Ver `permissions/puente.toml`.",
   "windows": [
     "arranque",
     "tele"
@@ -16,6 +16,7 @@
     ]
   },
   "permissions": [
-    "core:default"
+    "core:default",
+    "permitir-puente"
   ]
 }
