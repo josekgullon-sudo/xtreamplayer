@@ -530,6 +530,15 @@ export default function TvApp() {
    * ratón lo vuelve a encender donde estaba.
    */
   const [ratonFuera, setRatonFuera] = useState(false);
+  /**
+   * Si la barra de secciones enseña los nombres o solo los iconos.
+   *
+   * Con el mando basta `focoCarril`: estar dentro de la barra ya es motivo
+   * para abrirla. Con el ratón hace falta esto aparte, porque el puntero
+   * puede estar sobre la barra sin estar sobre ningún icono —entre dos, o
+   * sobre la marca— y ahí también tiene que estar abierta.
+   */
+  const [navAbierta, setNavAbierta] = useState(false);
   /** Pinta el aro solo si además el puntero sigue dentro. */
   const foc = (activo: boolean) => (activo && !ratonFuera ? "foco" : "");
   const conElRaton = () => {
@@ -1016,13 +1025,27 @@ export default function TvApp() {
   );
 
   /**
-   * Qué hacer al pulsar OK sobre cada título de la portada.
+   * Qué hacer al pulsar OK sobre cada título de una portada.
    *
    * La portada trabaja con `Titulo`, que es un dato pelado a propósito —para
    * poder ordenarlo y compararlo sin arrastrar media aplicación detrás—, así
    * que las acciones se guardan aparte y se buscan por identificador.
+   *
+   * Y van en DOS libretas, no en una.
+   *
+   * Estaban en una sola, y entrar en Cine la reescribía entera: al volver al
+   * inicio, las tarjetas de «En directo ahora» y «Series destacadas» ya no
+   * tenían acción y pulsarlas no hacía absolutamente nada. Las de películas
+   * sí, porque el identificador es el mismo y las acababa de escribir cine.
+   * Un fallo redondo: la pantalla se veía bien y no respondía.
+   *
+   * La del inicio se escribe una vez y no la toca nadie; la de la sección se
+   * rehace en cada carga, que es lo que tiene que hacer. Al pulsar se mira
+   * primero la de la sección —si estás dentro de una, manda ella— y si no
+   * está, la del inicio.
    */
   const acciones = useRef(new Map<string, () => void | Promise<void>>());
+  const accionesInicio = useRef(new Map<string, () => void | Promise<void>>());
 
   const montarPortada = useCallback(
     (
@@ -1055,8 +1078,21 @@ export default function TvApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pantalla, creds, lista]);
 
+  /*
+   * Y al cambiar de pantalla, la barra se cierra.
+   *
+   * Se abre con el ratón encima y se cierra al salir de ella, pero al irse
+   * al inicio —que no la lleva— el `<nav>` se desmonta con el puntero dentro
+   * y ese «salir» no llega a ocurrir nunca. Resultado: quedaba marcada como
+   * abierta para siempre, y al volver a entrar en cualquier sección aparecía
+   * desplegada con el ratón en la otra punta de la pantalla.
+   */
+  useEffect(() => {
+    setNavAbierta(false);
+  }, [pantalla]);
+
   const abrirTitulo = useCallback((t: Titulo) => {
-    acciones.current.get(t.id)?.();
+    (acciones.current.get(t.id) || accionesInicio.current.get(t.id))?.();
   }, []);
 
   /*
@@ -1455,8 +1491,24 @@ export default function TvApp() {
 
     const conNota = (a: Titulo, b: Titulo) => Number(b.nota || 0) - Number(a.nota || 0);
 
+    /*
+     * Sin carátula no entra en el escaparate.
+     *
+     * Aquí no se enseña «el catálogo», se enseñan catorce de entre miles: hay
+     * candidatos de sobra y un hueco gris con el nombre escrito dentro no
+     * vende nada. En la lista de una carpeta sería otra cosa —ahí están los
+     * títulos que hay, y esconder la mitad porque el proveedor no les puso
+     * imagen es quitarle catálogo al cliente—, pero un escaparate se elige.
+     *
+     * Y era justo lo que pasaba: la fila se ordena por nota, medio catálogo
+     * trae la nota puesta a 10 a mano, y las que se colaban arriba eran las
+     * peor cuidadas. «Películas destacadas» salía entera sin una sola imagen.
+     */
+    const conCaratula = (x: { cover?: string; stream_icon?: string }) =>
+      Boolean((x.cover || x.stream_icon || "").trim());
+
     const seriesDestacadas = (Array.isArray(series) ? series : [])
-      .filter((x) => typeof x.name === "string" && x.name.trim())
+      .filter((x) => typeof x.name === "string" && x.name.trim() && conCaratula(x))
       .map((x) => {
         nuevas.set(`serie-${x.series_id}`, () => abrirSerie(x));
         return {
@@ -1477,7 +1529,7 @@ export default function TvApp() {
     if (seriesDestacadas.length) filas.push({ titulo: "Series destacadas", items: seriesDestacadas });
 
     const pelisDestacadas = (Array.isArray(pelis) ? pelis : [])
-      .filter((x) => typeof x.name === "string" && x.name.trim())
+      .filter((x) => typeof x.name === "string" && x.name.trim() && conCaratula(x))
       .map((x) => {
         nuevas.set(`vod-${x.stream_id}`, () => abrirPelicula(x));
         return {
@@ -1497,9 +1549,9 @@ export default function TvApp() {
       .slice(0, 14);
     if (pelisDestacadas.length) filas.push({ titulo: "Películas destacadas", items: pelisDestacadas });
 
-    /* Se añaden a las que ya hubiera, no se reemplazan: la ficha que se abra
-       desde aquí y la que se abra desde la sección son la misma */
-    for (const [id, que] of nuevas) acciones.current.set(id, que);
+    /* En su propia libreta: la de la sección se rehace cada vez que se entra
+       en una, y hasta ahora se llevaba estas por delante */
+    accionesInicio.current = nuevas;
     setFilasInicio(filas);
     setCargando(false);
   }, [creds, lista]);
@@ -3173,15 +3225,27 @@ export default function TvApp() {
                     >
                       <span className="tv-tarjeta-marco">
                         {/*
-                          Apaisada siempre, con lo que haya.
+                          Apaisada siempre, y de verdad.
 
                           Un panel Xtream manda carátulas verticales y
                           logotipos cuadrados; el apaisado solo existe cuando
-                          TMDB reconoce el título. Cuando lo hay va entero;
-                          cuando no, la propia imagen difuminada de fondo pone
-                          el color y la de verdad va centrada encima. Estirar
-                          una vertical a 16:9 da una mancha de píxeles, y eso
-                          se lee como que la aplicación está rota.
+                          TMDB reconoce el título, y no reconoce todos.
+
+                          Con fondo de TMDB, el fondo. Sin él y siendo una
+                          película o una serie, la carátula RECORTADA a lo
+                          ancho —no encogida en medio de un rectángulo, que
+                          es lo que hacía y dejaba un cartel pequeño flotando
+                          con dos franjas borrosas a los lados—. Se recorta
+                          por el centro y algo por encima, que es donde está
+                          la cara y no el título impreso al pie.
+
+                          Recortar no es estirar: estirada una vertical a
+                          16:9 queda como una mancha de píxeles; recortada se
+                          ve como cualquier escaparate de televisión.
+
+                          Un canal es el único caso que sigue yendo centrado:
+                          su imagen es un logotipo, y un logotipo recortado
+                          deja media letra.
                         */}
                         {t.fondo ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -3191,7 +3255,13 @@ export default function TvApp() {
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img className="tv-tarjeta-mancha" src={imgSrc(t.imagen)} alt="" aria-hidden="true" />
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img className="tv-tarjeta-centro" src={imgSrc(t.imagen)} alt="" loading="lazy" onError={() => marcarRota(t.imagen)} />
+                            <img
+                              className={t.epgId ? "tv-tarjeta-centro" : "tv-tarjeta-recorte"}
+                              src={imgSrc(t.imagen)}
+                              alt=""
+                              loading="lazy"
+                              onError={() => marcarRota(t.imagen)}
+                            />
                           </>
                         ) : (
                           <span className="tv-tarjeta-ph">{t.nombre}</span>
@@ -3252,12 +3322,19 @@ export default function TvApp() {
   const iSalir = carril.length - 1;
   const barraNav = (
     <nav
-      className="tv-nav"
+      className={`tv-nav ${navAbierta || focoCarril !== null ? "abierta" : ""}`}
       aria-label="Secciones"
-      /* Salir del menú con el ratón apaga su foco, no el de cada botón: de
-         botón a botón el de salida se adelantaba al de entrada y la barra
-         parpadeaba al recorrerla */
-      onMouseLeave={() => setFocoCarril(null)}
+      /*
+       * Abrir y cerrar van los dos en la barra, no en cada icono.
+       *
+       * Puestos en los iconos, al mover el ratón de «Directo» a «Series» el
+       * de salida cerraba la barra un instante antes de que el de entrada la
+       * volviera a abrir: pasar de una sección a otra era un parpadeo. Y de
+       * paso, así el puntero puede estar entre dos iconos o sobre la marca
+       * sin que la barra se cierre en la mano.
+       */
+      onMouseEnter={() => setNavAbierta(true)}
+      onMouseLeave={() => { setNavAbierta(false); setFocoCarril(null); }}
     >
       <div className="tv-nav-marca">
         {logo ? (
@@ -3269,7 +3346,19 @@ export default function TvApp() {
         ) : null}
         <span>{marca}</span>
       </div>
-      <div className="tv-nav-items">
+      {/*
+        Y soltar el foco va aquí, en el grupo de iconos, no en cada icono ni
+        en la barra entera.
+
+        En cada icono, pasar de «Directo» a «Series» lo apagaba un instante
+        antes de que el de al lado lo encendiera: un parpadeo por cada icono
+        que cruzabas. Y solo en la barra no bastaba: al mover el ratón de un
+        icono a la marca —que también es barra— el foco se quedaba pegado al
+        icono, y a partir de ahí las flechas movían el menú en vez de la
+        lista, con el mando aparentemente roto. Saliendo del grupo se suelta;
+        moviéndose dentro de él, no.
+      */}
+      <div className="tv-nav-items" onMouseLeave={() => setFocoCarril(null)}>
         {navItems.map((d, i) => (
           <button
             key={d.id}
@@ -3277,8 +3366,8 @@ export default function TvApp() {
             onMouseEnter={() => { conElRaton(); setFocoCarril(i); }}
             onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
           >
-            <Icon name={d.icono} size={22} />
-            <span>{d.titulo}</span>
+            <span className="tv-nav-icono"><Icon name={d.icono} size={26} /></span>
+            <span className="tv-nav-txt">{d.titulo}</span>
           </button>
         ))}
       </div>
@@ -3287,10 +3376,11 @@ export default function TvApp() {
       <button
         className={`tv-nav-salir ${focoCarril === iSalir ? "foco" : ""}`}
         onMouseEnter={() => { conElRaton(); setFocoCarril(iSalir); }}
+        onMouseLeave={() => setFocoCarril(null)}
         onClick={() => { setFocoCarril(null); elegirDestino("salir"); }}
       >
-        <Icon name="power" size={20} />
-        <span>Salir</span>
+        <span className="tv-nav-icono"><Icon name="power" size={24} /></span>
+        <span className="tv-nav-txt">Salir</span>
       </button>
     </nav>
   );

@@ -127,6 +127,45 @@ async function esperarCanales(tv) {
   check("Y la MAC a la vista", (await tv.locator(".tv-pie-mac").innerText()).includes(":"));
   check("Sin cabecera de la web ni menús", !(await tv.locator(".site-header").isVisible().catch(() => false)));
 
+  /* --- El inicio enseña títulos, no un menú ---
+     Era un lanzador: tres tarjetas con el nombre de cada sección y ni un
+     solo título a la vista. Encender la tele y encontrarse un menú es tener
+     que elegir antes de haber visto nada. */
+  await tv.waitForSelector(".tv-tarjeta", { timeout: 25000 });
+  const filasInicio = (await tv.locator(".tv-carrusel-t").allInnerTexts()).map((t) => t.split("\n")[0].trim());
+  check("El inicio abre con filas de lo que hay, no con un menú",
+    filasInicio.length >= 2, filasInicio.join(" | "));
+
+  /* Y con imagen las de cine y series: ahí se elige de entre miles, sobran
+     candidatos, y un hueco gris con el nombre escrito dentro no vende nada.
+     Se colaba: la fila se ordena por nota, medio catálogo trae la nota
+     puesta a 10 a mano, y «Películas destacadas» salía entera sin una sola
+     carátula.
+
+     Los canales no se filtran, y es a propósito: ahí no hay escaparate que
+     elegir, está lo que se emite. Un canal sin logotipo se conoce por su
+     número y su nombre, y esconderlo sería quitarle canales al cliente */
+  const sinImagen = await tv.evaluate(() =>
+    [...document.querySelectorAll(".tv-cuerpo-portada .tv-carrusel")]
+      .filter((f) => !/directo/i.test(f.querySelector(".tv-carrusel-t")?.textContent || ""))
+      .flatMap((f) => [...f.querySelectorAll(".tv-tarjeta")])
+      .filter((c) => !c.querySelector("img"))
+      .map((c) => c.querySelector(".tv-tarjeta-t")?.textContent || "?")
+  );
+  check("Y las de cine y series traen todas su carátula",
+    sinImagen.length === 0, sinImagen.join(" | ") || "todas con imagen");
+
+  /* Apaisadas de verdad, no un cartel vertical encogido en medio: la
+     carátula se recorta a lo ancho, que es lo que hace que una fila se lea
+     como un escaparate y no como una hilera de sellos */
+  const apaisadas = await tv.evaluate(() => {
+    const c = document.querySelector(".tv-cuerpo-portada .tv-tarjeta-marco");
+    if (!c) return null;
+    const r = c.getBoundingClientRect();
+    return Math.round((r.width / r.height) * 100) / 100;
+  });
+  check("Y son apaisadas, no carteles verticales", apaisadas !== null && apaisadas > 1.5, `${apaisadas}:1`);
+
   // --- El mando ---
   await tv.keyboard.press("ArrowRight");
   check("Las flechas mueven el foco", (await tv.locator(".tv-pestana.foco").innerText()).includes("Películas"));
@@ -242,6 +281,39 @@ async function esperarCanales(tv) {
   await tv.waitForSelector(".tv-pestanas", { timeout: 15000 });
   check("Y de ahí, al inicio, sin pantallas de por medio", true);
 
+  /* --- Volver al inicio y que sus botones sigan funcionando ---
+     No funcionaban. Las acciones de cada tarjeta —qué hacer al pulsarla—
+     vivían en una sola libreta, y entrar en Cine la reescribía entera: al
+     volver al inicio, «En directo ahora» y «Series destacadas» ya no tenían
+     acción y pulsarlas no hacía absolutamente nada. Las de películas sí,
+     porque el identificador es el mismo y las acababa de escribir cine. Un
+     fallo redondo, de los que se ven bien y no responden. */
+  await tv.locator(".tv-pestana:has-text('Películas')").click();
+  await tv.waitForSelector(".tv-carrusel", { timeout: 25000 });
+  await tv.mouse.move(2, 2);
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-pestanas", { timeout: 20000 });
+  await tv.waitForSelector(".tv-tarjeta", { timeout: 20000 });
+  for (const [i, cual] of [[0, "En directo ahora"], [1, "Series destacadas"]]) {
+    const antes = await tv.evaluate(() => document.querySelector(".tv-app").className);
+    await tv.locator(".tv-carrusel").nth(i).locator(".tv-tarjeta").first().click();
+    const abrio = await tv
+      .waitForFunction((q) => document.querySelector(".tv-app").className !== q, antes, { timeout: 15000 })
+      .then(() => true)
+      .catch(() => false);
+    check(`Tras pasar por una sección, «${cual}» sigue abriendo`, abrio,
+      await tv.evaluate(() => document.querySelector(".tv-app").className));
+    /* De vuelta al inicio, que según lo que se haya abierto son uno o dos
+       ATRÁS —del vídeo se sale a la lista de la que se entró— */
+    for (let i = 0; i < 4 && !(await tv.locator(".tv-pestanas").count()); i++) {
+      await tv.keyboard.press("Escape");
+      await tv.waitForTimeout(900);
+    }
+    await tv.waitForSelector(".tv-pestanas", { timeout: 20000 });
+    await tv.waitForSelector(".tv-tarjeta", { timeout: 20000 });
+    await tv.mouse.move(2, 2);
+  }
+
   /* --- La barra de secciones ---
      Pasar de las películas a las series eran dos ATRÁS y volver a recorrer
      el inicio con las flechas. Ahora las secciones están siempre arriba,
@@ -256,9 +328,36 @@ async function esperarCanales(tv) {
     (await tv.locator(".tv-nav-item").allInnerTexts()).join(" | "));
   check("Con la sección en la que estás marcada",
     (await tv.locator(".tv-nav-item.activo").innerText()).includes("Directo"));
+  /* Cerrada enseña solo los iconos. Abierta todo el rato se lleva un trozo
+     de pantalla para cinco palabras que uno se sabe de memoria a la segunda
+     vez; el sitio es del contenido, que es a lo que se ha venido */
+  const anchoNombre = () =>
+    tv.evaluate(() => document.querySelector(".tv-nav-txt")?.getBoundingClientRect().width || 0);
+  /* El ratón, sobre la lista de canales: en cualquier sitio menos la barra */
+  await tv.locator(".tv-dir-canal").first().hover();
+  await tv.waitForTimeout(500);
+  check("La barra de secciones, cerrada: solo los iconos",
+    !(await tv.locator(".tv-nav.abierta").count()) && (await anchoNombre()) < 1,
+    `${Math.round(await anchoNombre())} px de nombre`);
+
+  /* Y se abre al posar el ratón en ella, no en cada icono: puesto en los
+     iconos, cruzar de «Directo» a «Series» la cerraba un instante antes de
+     volver a abrirla y la barra parpadeaba */
+  await tv.locator(".tv-nav-marca").hover();
+  await tv.waitForTimeout(500);
+  check("Y se abre con el ratón encima, aunque no sea sobre un icono",
+    (await tv.locator(".tv-nav.abierta").count()) === 1 && (await anchoNombre()) > 10,
+    `${Math.round(await anchoNombre())} px de nombre`);
+  /* Y de vuelta a la lista, que es desde donde se sube con el mando */
+  await tv.locator(".tv-dir-canal").first().hover();
+  await tv.mouse.move(2, 700);
+  await tv.waitForTimeout(400);
+
   await tv.keyboard.press("ArrowUp");
   check("▲ desde la primera fila sube a la barra",
     (await tv.locator(".tv-nav-item.foco").innerText()).replace(/\n/g, " ").includes("Directo"));
+  check("Y subir con el mando también la abre",
+    (await tv.locator(".tv-nav.abierta").count()) === 1);
   await tv.keyboard.press("ArrowRight");
   await tv.keyboard.press("Enter");
   await tv.waitForSelector(".tv-carrusel", { timeout: 25000 });
