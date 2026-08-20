@@ -10,8 +10,8 @@ android {
         // siguen en las casas
         minSdk 21
         targetSdk 34
-        versionCode 22
-        versionName "2.2"
+        versionCode 23
+        versionName "2.3"
     }
 
     /* El mismo motor de descargas que las otras dos aplicaciones de Android.

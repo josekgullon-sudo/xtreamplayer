@@ -55,6 +55,7 @@ public class InicioActivity extends Activity {
         preparar(R.id.tarjetaSeries, R.drawable.ic_series, "Series", Catalogo.SERIES);
         prepararBajadas();
         cargarFilas();
+        ponerVersion();
 
         findViewById(R.id.botonBuscar).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
@@ -222,6 +223,29 @@ public class InicioActivity extends Activity {
             Traspaso.ficha = it;
             startActivity(new Intent(this, FichaActivity.class));
         }
+    }
+
+    /**
+     * La versión instalada, abajo y en pequeño.
+     *
+     * Esta aplicación no se actualiza sola —es un APK que hay que reinstalar,
+     * al revés que la web— así que sin el número en pantalla no hay forma de
+     * saber si lo que se está mirando es lo último o lo de hace un mes. Sale
+     * de `versionName`, que lo pone la propia compilación: no hay dos sitios
+     * que puedan decir cosas distintas.
+     */
+    private void ponerVersion() {
+        TextView donde = findViewById(R.id.version);
+        if (donde == null) return;
+        String cual = "";
+        try {
+            cual = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception niIdea) {
+            /* Si el sistema no sabe decir su propia versión, mejor callarse
+               que enseñar un hueco con la palabra «null» dentro */
+        }
+        if (cual == null || cual.isEmpty()) { donde.setVisibility(View.GONE); return; }
+        donde.setText("Versión " + cual);
     }
 
     /** Deja «derecha» en uno y «izquierda» en el otro, en los dos sentidos. */

@@ -131,6 +131,25 @@
                 android:clipToPadding="false"
                 android:layout_marginTop="18dp" />
 
+            <!--
+              La versión, a la vista y en voz baja.
+            
+              Esta aplicación no se actualiza sola: es un APK que hay que
+              reinstalar, al revés que la web. Sin el número en pantalla no hay
+              forma de saber si lo que se mira es lo último o lo del mes pasado
+              —ni para quien la usa ni para quien la arregla—, que es justo el
+              rato que se pierde discutiendo una foto.
+            -->
+            <TextView
+                android:id="@+id/version"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textColor="@color/tenue"
+                android:textSize="12sp"
+                android:alpha="0.7"
+                android:paddingBottom="6dp" />
+
             <TextView
                 android:id="@+id/aviso"
                 android:layout_width="match_parent"
