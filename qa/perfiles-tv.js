@@ -53,7 +53,7 @@ async function entrar(ctx, U) {
   const uno = await call("/api/provider/customers", { method: "POST", body: JSON.stringify({ username: solo, password: "clave1234", domainId: dom.body.domain.id, playlistUsername: "demo", playlistPassword: "demo123", maxDevices: 5 }) }, prov);
   const varios = await call("/api/provider/customers", { method: "POST", body: JSON.stringify({ username: casa, password: "clave1234", domainId: dom.body.domain.id, playlistUsername: "demo", playlistPassword: "demo123", maxDevices: 5 }) }, prov);
   const idVarios = varios.body.customer?.id;
-  await call(`/api/provider/customers/${idVarios}`, { method: "PATCH", body: JSON.stringify({ maxProfiles: 4 }) }, prov);
+  await call(`/api/provider/customers/${idVarios}`, { method: "PATCH", body: JSON.stringify({ maxProfiles: 6 }) }, prov);
   check("El proveedor decide cuántos perfiles tiene cada cliente", Boolean(idVarios), `cliente ${idVarios}`);
 
   const b = await chromium.launch({ ...ejecutable });
@@ -121,6 +121,26 @@ async function entrar(ctx, U) {
   await tv.locator(".tv-nav-perfil").click();
   await tv.waitForSelector(".tv-perfiles", { timeout: 15000 });
   check("Y desde ahí se cambia sin apagar la tele", true);
+
+  /* --- Y crear uno nuevo, desde la propia tele ---
+     Solo se podía desde el reproductor web, así que quien entra por la
+     televisión —el caso normal en el salón— veía su perfil y ahí se acababa:
+     no había manera de añadir a nadie. */
+  const cuantosHabia = await tv.locator(".tv-perfil:not(.tv-perfil-nuevo)").count();
+  check("La pantalla ofrece crear uno nuevo",
+    (await tv.locator(".tv-perfil-nuevo").count()) === 1);
+  await tv.locator(".tv-perfil-nuevo").click();
+  await tv.waitForSelector(".tv-perfil-form input", { timeout: 10000 });
+  await tv.fill(".tv-perfil-form input", "Abuela");
+  await tv.locator(".tv-perfil-form .tv-boton:has-text('Crear')").click();
+  await tv.waitForFunction(
+    (n) => document.querySelectorAll(".tv-perfil:not(.tv-perfil-nuevo)").length > n,
+    cuantosHabia,
+    { timeout: 15000 }
+  );
+  check("Y al crearlo aparece con los demás",
+    (await tv.locator(".tv-perfil-nombre").allInnerTexts()).some((t) => t.trim() === "Abuela"),
+    (await tv.locator(".tv-perfil-nombre").allInnerTexts()).join(" | "));
 
   /* Y el servidor se entera de quién ve: es quien guarda lo que va viendo
      cada uno, y sin decírselo la próxima vez se abriría con lo del otro */

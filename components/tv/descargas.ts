@@ -185,12 +185,9 @@ export function encargarDescarga(e: Encargo): string {
   } catch (nada) {
     return String((nada as Error)?.message || nada) || "El programa no ha aceptado la descarga";
   }
-  /* Y lo que diga el propio envoltorio, si sabe decirlo */
-  try {
-    return p.fallo?.() || "";
-  } catch {
-    return "";
-  }
+  /* Lo que conteste el envoltorio se pregunta más tarde, con
+     `falloDelEnvoltorio`: aquí todavía no ha tenido tiempo ni de intentarlo */
+  return "";
 }
 
 export function quitarDescarga(id: string): void {
@@ -200,6 +197,25 @@ export function quitarDescarga(id: string): void {
     p.quitar(id);
   } catch {
     /* Igual: lo que manda es lo que conteste `lista()` la próxima vez */
+  }
+}
+
+/**
+ * Lo que se le haya roto al envoltorio, si sabe decirlo.
+ *
+ * Se pregunta APARTE de encargar, y ese es el motivo de que exista: `bajar`
+ * arranca algo que tarda, así que preguntar por el fallo en la línea de
+ * después siempre llegaba demasiado pronto y siempre contestaba «nada». Hay
+ * que volver a preguntar un rato más tarde, que es lo que hace el reloj de
+ * después de encargar.
+ */
+export function falloDelEnvoltorio(): string {
+  const p = puente();
+  if (!p) return "";
+  try {
+    return p.fallo?.() || "";
+  } catch {
+    return "";
   }
 }
 

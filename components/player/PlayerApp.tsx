@@ -7,6 +7,7 @@ import {
   type Descarga,
   comoVa,
   encargarDescarga,
+  falloDelEnvoltorio,
   leerDescargas,
   quitarDescarga,
   sePuedeDescargar,
@@ -1160,7 +1161,17 @@ export default function PlayerApp() {
   const [reciénEncargado, setReciénEncargado] = useState(0);
   useEffect(() => {
     if (!reciénEncargado) return;
-    const t = setInterval(() => setDescargas(leerDescargas()), 1000);
+    const t = setInterval(() => {
+      setDescargas(leerDescargas());
+      /* Y de paso se le pregunta qué se le ha roto: si el encargo no llegó a
+         empezar no habrá fila ninguna que mirar, y sin esto la pantalla se
+         quedaba como si no hubieras pulsado */
+      const roto = falloDelEnvoltorio();
+      if (roto) {
+        setLoadError(roto);
+        setReciénEncargado(0);
+      }
+    }, 1000);
     const fin = setTimeout(() => setReciénEncargado(0), 15000);
     return () => { clearInterval(t); clearTimeout(fin); };
   }, [reciénEncargado]);

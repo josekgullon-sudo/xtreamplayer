@@ -2242,7 +2242,39 @@ select.input { appearance: none; cursor: pointer; }
   width: 2.6vw; height: 2.6vw; min-width: 30px; min-height: 30px;
   border-radius: 0.6vw; object-fit: contain;
 }
-.tv-cargando { font-size: 1.8vw; color: rgba(255, 255, 255, 0.6); padding: 4vh 4vw; }
+/*
+ * El «cargando», igual en todas las pantallas.
+ *
+ * Era un párrafo de texto grande en la esquina de arriba a la izquierda:
+ * distinto en cada sitio, y con la misma pinta que un mensaje de error o que
+ * un «aquí no hay nada». Ahora es un aro girando centrado en el hueco, que
+ * dice «espera» sin escribirlo y se ve desde el sofá.
+ */
+.tv-cargando {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2vh; padding: 8vh 4vw; width: 100%;
+  font-size: 1.4vw; color: var(--text-faint);
+}
+.tv-cargando-aro {
+  width: 3.6vw; height: 3.6vw; max-width: 68px; max-height: 68px;
+  border-radius: 50%;
+  border: 0.35vw solid rgba(255, 255, 255, 0.14);
+  border-top-color: var(--accent);
+  animation: tv-gira 0.9s linear infinite;
+}
+@keyframes tv-gira { to { transform: rotate(360deg); } }
+/* Con el movimiento apagado en el sistema, el aro se queda quieto: lo que
+   dice que algo está pasando pasa a ser el color, no el giro */
+@media (prefers-reduced-motion: reduce) {
+  .tv-cargando-aro { animation: none; border-top-color: var(--accent); }
+}
+
+/* «Aquí no hay nada» no es una espera, es una respuesta: con la pinta del
+   cargando parecía que la pantalla seguía trabajando para siempre */
+.tv-vacio {
+  font-size: 1.4vw; color: var(--text-faint);
+  padding: 6vh 4vw; max-width: 46vw; line-height: 1.5;
+}
 
 /* ---- Activación con código ---- */
 
@@ -2584,6 +2616,26 @@ select.input { appearance: none; cursor: pointer; }
 .tv-perfil.foco { color: #fff; transform: scale(1.06); }
 .tv-perfil.foco .tv-perfil-cara { border-color: #fff; }
 .tv-perfiles-pista { font-size: 1.1vw; color: var(--text-faint); }
+
+/* El de crear: la misma forma que los demás, en contorno. Es una cosa más de
+   las que hay aquí, no un ajuste escondido en otro sitio */
+.tv-perfil-nuevo .tv-perfil-cara {
+  background: transparent !important;
+  border: 0.3vw dashed var(--border-strong);
+  color: var(--text-faint);
+}
+.tv-perfil-nuevo.foco .tv-perfil-cara { border-style: solid; border-color: #fff; color: #fff; }
+
+.tv-perfil-form { display: flex; align-items: center; gap: 1vw; flex-wrap: wrap; justify-content: center; }
+/* Dentro del formulario los botones no llevan el margen de arriba que tienen
+   sueltos en medio de una pantalla: aquí van en línea con el campo */
+.tv-perfil-form .tv-boton { margin-top: 0; padding: 1.3vh 2vw; font-size: 1.3vw; }
+.tv-perfil-form input {
+  padding: 1.4vh 1.4vw; border-radius: 0.7vw;
+  background: var(--bg-elev); border: 0.2vh solid var(--border-strong);
+  color: var(--text); font-size: 1.3vw; font-family: inherit; min-width: 18vw;
+}
+.tv-perfil-form input:focus { outline: none; border-color: #fff; }
 
 /* Y en la barra de arriba, para cambiarlo sin apagar la tele */
 .tv-nav-perfil {

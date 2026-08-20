@@ -6,6 +6,7 @@ import {
   type Descarga,
   comoVa,
   encargarDescarga,
+  falloDelEnvoltorio,
   envoltorioSinPuente,
   leerDescargas,
   quitarDescarga,
@@ -386,6 +387,8 @@ export default function TvApp() {
   const [perfiles, setPerfiles] = useState<Perfil[]>([]);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [perfilesPedidos, setPerfilesPedidos] = useState(false);
+  /** Si el plan del cliente deja crear más perfiles de los que ya tiene */
+  const [cabenMas, setCabenMas] = useState(false);
   const [filas, setFilas] = useState<Fila[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
@@ -564,7 +567,17 @@ export default function TvApp() {
   const [reciénEncargado, setReciénEncargado] = useState(0);
   useEffect(() => {
     if (!reciénEncargado) return;
-    const t = setInterval(() => setDescargas(leerDescargas()), 1000);
+    const t = setInterval(() => {
+      setDescargas(leerDescargas());
+      /* Y de paso se le pregunta qué se le ha roto: si el encargo no llegó a
+         empezar no habrá fila ninguna que mirar, y sin esto la pantalla se
+         quedaba como si no hubieras pulsado */
+      const roto = falloDelEnvoltorio();
+      if (roto) {
+        setError(roto);
+        setReciénEncargado(0);
+      }
+    }, 1000);
     const fin = setTimeout(() => setReciénEncargado(0), 15000);
     return () => { clearInterval(t); clearTimeout(fin); };
   }, [reciénEncargado]);
@@ -2163,6 +2176,43 @@ export default function TvApp() {
   const dirEnPortada =
     pantalla === "directo" && canales.length > 0 && (vista === "portada" || Boolean(carpetaAbierta));
 
+  /**
+   * Crear un perfil desde la tele.
+   *
+   * Solo estaba en el reproductor web, así que quien entra por la televisión
+   * —que es el caso normal en el salón— no tenía manera de añadir a nadie:
+   * veía un perfil, el suyo, y ahí se acababa. El nombre se pide con el
+   * teclado del aparato, que es lo que hay: escribir con el mando es
+   * incómodo, pero se hace una vez y la alternativa es no poder hacerlo.
+   */
+  const [creandoPerfil, setCreandoPerfil] = useState(false);
+  const [nombreNuevo, setNombreNuevo] = useState("");
+  async function crearPerfil(e?: React.FormEvent) {
+    e?.preventDefault();
+    const nombre = nombreNuevo.trim();
+    if (!nombre) return;
+    try {
+      const r = await fetch("/api/profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nombre }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setError(d.error || "No se ha podido crear el perfil");
+        return;
+      }
+      const otra = await fetch("/api/profiles", { cache: "no-store" }).then((x) => x.json());
+      setPerfiles(Array.isArray(otra.profiles) ? otra.profiles : []);
+      setCabenMas(Boolean(otra.canAddMore));
+      setCreandoPerfil(false);
+      setNombreNuevo("");
+      setError("");
+    } catch (x) {
+      setError(enCristiano(x, "No se ha podido crear el perfil"));
+    }
+  }
+
   const elegirPerfil = useCallback(async (p: Perfil) => {
     setPerfil(p);
     setPantalla("portada");
@@ -2570,16 +2620,20 @@ export default function TvApp() {
          hay ATRÁS que valga —no hay a dónde volver— y por eso tampoco se
          enseña ninguna salida */
       if (pantalla === "perfiles") {
+        /* Mientras se escribe el nombre manda el teclado, no el mando */
+        if (creandoPerfil) return;
+        const cuantos = perfiles.length + (cabenMas ? 1 : 0);
         if (tecla === "Izquierda" || tecla === "Derecha") {
           e.preventDefault();
           setFoco((f) => {
             const n = f + (tecla === "Derecha" ? 1 : -1);
-            return (n + perfiles.length) % perfiles.length;
+            return (n + cuantos) % cuantos;
           });
           return;
         }
         if (tecla === "Ok") {
           e.preventDefault();
+          if (foco === perfiles.length && cabenMas) { setCreandoPerfil(true); return; }
           const suyo = perfiles[foco];
           if (suyo) void elegirPerfil(suyo);
           return;
@@ -2933,7 +2987,7 @@ export default function TvApp() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol, dirEnPortada, zonaDir, canalesVista, filaGuia, filaDestacados, canalMirado, filasInicioALaVista, perfiles, elegirPerfil]);
+  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol, dirEnPortada, zonaDir, canalesVista, filaGuia, filaDestacados, canalMirado, filasInicioALaVista, perfiles, elegirPerfil, cabenMas, creandoPerfil]);
 
   // La fila con el foco siempre a la vista, sin que el usuario persiga nada
   useEffect(() => {
@@ -2977,14 +3031,30 @@ export default function TvApp() {
       try {
         const r = await fetch("/api/profiles", { cache: "no-store" });
         if (!r.ok) return;
-        const d = (await r.json()) as { profiles?: Perfil[]; activeId?: number | null };
+        const d = (await r.json()) as {
+          profiles?: Perfil[];
+          activeId?: number | null;
+          canAddMore?: boolean;
+        };
         const suyos = Array.isArray(d.profiles) ? d.profiles : [];
         setPerfiles(suyos);
-        if (suyos.length > 1) {
+        setCabenMas(Boolean(d.canAddMore));
+        if (suyos.length) setPerfil(suyos.find((p) => p.id === d.activeId) || suyos[0]);
+        /*
+         * Se pregunta si hay más de uno, o si todavía cabe otro.
+         *
+         * Lo segundo hacía falta: el tope viene puesto a uno de fábrica, así
+         * que a casi nadie le salía nunca esta pantalla —ni la forma de crear
+         * el segundo perfil, que solo está aquí—. Con hueco para más, se
+         * enseña aunque de momento haya uno: es donde se crean.
+         *
+         * Con el tope en uno de verdad no aparece, y es lo correcto:
+         * preguntar «¿quién eres?» cuando solo puede haber uno es un paso de
+         * más para no elegir nada.
+         */
+        if (suyos.length > 1 || (d.canAddMore && suyos.length >= 1)) {
           setPantalla("perfiles");
           setFoco(Math.max(0, suyos.findIndex((p) => p.id === d.activeId)));
-        } else if (suyos.length === 1) {
-          setPerfil(suyos[0]);
         }
       } catch {
         /* Sin perfiles se ve la tele igual: no es una puerta, es una comodidad */
@@ -3003,7 +3073,7 @@ export default function TvApp() {
         <div className="tv-splash">
           <span className="tv-splash-marca">{marca}</span>
           <span className="tv-splash-barra" aria-hidden="true" />
-          <p className="tv-cargando">Encendiendo…</p>
+          <Cargando texto="Encendiendo…" />
         </div>
       </div>
     );
@@ -3419,7 +3489,7 @@ export default function TvApp() {
               </div>
             </div>
           )}
-          {cargando && <p className="tv-cargando">Cargando…</p>}
+          {cargando && <Cargando />}
           {error && <p className="tv-activar-error">{error}</p>}
         </div>
         <p className="tv-ficha-pie">Pulsa ATRÁS para volver</p>
@@ -3520,7 +3590,47 @@ export default function TvApp() {
                 {p.kids && <span className="tv-perfil-nota">Infantil</span>}
               </button>
             ))}
+            {/* Y uno más, si el plan del cliente deja. Va al final de la fila
+                y con la misma forma que los demás: es una cosa más de las que
+                hay aquí, no un ajuste escondido en otro sitio */}
+            {cabenMas && (
+              <button
+                className={`tv-perfil tv-perfil-nuevo ${foc(foco === perfiles.length)}`}
+                data-foco={foco === perfiles.length ? "1" : undefined}
+                onMouseEnter={() => { conElRaton(); setFoco(perfiles.length); }}
+                onClick={() => setCreandoPerfil(true)}
+              >
+                <span className="tv-perfil-cara">
+                  <Icon name="plus" size={44} />
+                </span>
+                <span className="tv-perfil-nombre">Nuevo perfil</span>
+              </button>
+            )}
           </div>
+
+          {creandoPerfil && (
+            <form className="tv-perfil-form" onSubmit={crearPerfil}>
+              <input
+                name="perfil"
+                autoFocus
+                value={nombreNuevo}
+                onChange={(ev) => setNombreNuevo(ev.target.value)}
+                placeholder="¿Cómo se llama?"
+                maxLength={24}
+                aria-label="Nombre del perfil"
+              />
+              <button className="tv-boton" type="submit">Crear</button>
+              <button
+                className="tv-boton tv-boton-suave"
+                type="button"
+                onClick={() => { setCreandoPerfil(false); setNombreNuevo(""); }}
+              >
+                Cancelar
+              </button>
+            </form>
+          )}
+          {error && <p className="tv-activar-error">{error}</p>}
+
           <p className="tv-perfiles-pista">
             Puedes cambiar de perfil cuando quieras, desde la barra de arriba.
           </p>
@@ -3697,9 +3807,9 @@ export default function TvApp() {
               </div>
             </section>
           ))}
-          {cargando && !filasInicioALaVista.length && <p className="tv-cargando">Cargando…</p>}
+          {cargando && !filasInicioALaVista.length && <Cargando />}
           {!cargando && !filasInicioALaVista.length && (
-            <p className="tv-cargando">
+            <p className="tv-vacio">
               Elige arriba qué quieres ver.
             </p>
           )}
@@ -3843,7 +3953,7 @@ export default function TvApp() {
         {barraNav}
 
         <div className="tv-cuerpo tv-cuerpo-portada" ref={listaRef}>
-          {cargando && <p className="tv-cargando">Cargando…</p>}
+          {cargando && <Cargando />}
           {error && <p className="tv-activar-error">{error}</p>}
 
           {destacado && (
@@ -3987,7 +4097,7 @@ export default function TvApp() {
           ))}
 
           {!cargando && !filasConLista.length && !error && (
-            <p className="tv-cargando">Tu proveedor no ha enviado nada en esta sección.</p>
+            <p className="tv-vacio">Tu proveedor no ha enviado nada en esta sección.</p>
           )}
 
           <button
@@ -4361,7 +4471,7 @@ export default function TvApp() {
         <span className="tv-cabecera-pista">▲ para las secciones · ATRÁS para volver</span>
       </header>
 
-      {cargando && <p className="tv-cargando">Cargando…</p>}
+      {cargando && <Cargando />}
       {error && <p className="tv-activar-error">{error}</p>}
       {/*
         Lo que hay guardado en el aparato.
@@ -4376,7 +4486,7 @@ export default function TvApp() {
       {enDescargas ? (
         <div className="tv-bajadas" onMouseLeave={ratonSeVa}>
           {!descargas.length && (
-            <p className="tv-cargando">
+            <p className="tv-vacio">
               Todavía no has guardado nada. En la ficha de una película o de un episodio
               tienes el botón de descargar.
             </p>
@@ -4511,7 +4621,7 @@ export default function TvApp() {
             </button>
           ),
         )}
-        {!cargando && !filas.length && !error && <p className="tv-cargando">Aquí no hay nada todavía.</p>}
+        {!cargando && !filas.length && !error && <p className="tv-vacio">Aquí no hay nada todavía.</p>}
       </div>
       </>
       )}
@@ -4669,6 +4779,27 @@ export interface Ficha {
    * se baja es un episodio, y cada uno trae el suyo.
    */
   enlace?: () => Promise<string>;
+}
+
+/**
+ * El mismo «cargando» en todas las pantallas.
+ *
+ * Era un párrafo de texto grande pegado a la esquina de arriba a la
+ * izquierda, distinto en cada sitio y difícil de distinguir de un mensaje de
+ * error. Un aro girando centrado en el hueco dice lo mismo sin escribirlo, se
+ * lee desde el sofá y no se confunde con contenido.
+ *
+ * Y los mensajes de «aquí no hay nada» dejan de usar este estilo: no son una
+ * espera, son una respuesta, y con la misma pinta parecía que la pantalla
+ * seguía cargando para siempre.
+ */
+function Cargando({ texto = "Cargando…" }: { texto?: string }) {
+  return (
+    <div className="tv-cargando" role="status">
+      <span className="tv-cargando-aro" aria-hidden="true" />
+      <span>{texto}</span>
+    </div>
+  );
 }
 
 /** Un color por perfil, en el orden en que están. El mismo que el reproductor. */

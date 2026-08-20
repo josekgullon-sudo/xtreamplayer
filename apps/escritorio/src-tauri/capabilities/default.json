@@ -1,10 +1,21 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Lo mínimo: la pantalla de emergencia necesita poder guardar la dirección, y la página necesita poder salir de pantalla completa con F11. Ni ficheros, ni procesos, ni portapapeles.",
-  "windows": ["arranque", "tele"],
+  "description": "Lo mínimo: la pantalla de emergencia necesita poder guardar la dirección, la página necesita poder salir de pantalla completa con F11, y el puente de descargas necesita hablar con el programa. Ni ficheros, ni procesos, ni portapapeles. Las direcciones remotas van con comodín de subdominio además del comodín pelado: «https://*» no siempre casa con un dominio a secas, y sin casar el puente no se abre y las descargas se quedan encargadas sin que nadie las recoja.",
+  "windows": [
+    "arranque",
+    "tele"
+  ],
   "remote": {
-    "urls": ["https://*", "http://localhost:*", "http://127.0.0.1:*"]
+    "urls": [
+      "https://*",
+      "https://*.*",
+      "https://*.*.*",
+      "http://localhost:*",
+      "http://127.0.0.1:*"
+    ]
   },
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default"
+  ]
 }
