@@ -533,6 +533,29 @@ export default function TvApp() {
     })
     .filter((f) => f.items.length >= (f.escaparate ? 4 : 1));
 
+  /*
+   * Y «Mi lista», la primera de todas cuando hay algo dentro.
+   *
+   * Va montada aquí y no en `armarPortada` porque lo guardado son
+   * identificadores: los títulos con su carátula y su forma de abrirse están
+   * en el catálogo que ya se ha cargado, y cruzarlos es esto. Guardar el
+   * título entero habría dejado dos versiones de lo mismo, y la copia se
+   * queda vieja en cuanto el proveedor le cambia la imagen.
+   *
+   * Primera porque es lo único de la portada que has elegido tú: el resto
+   * son filas que decide el catálogo. Y sin filtrar por carátula —al revés
+   * que los escaparates—: lo has guardado tú, así que sale aunque el
+   * proveedor no le haya puesto imagen.
+   */
+  const guardados = (() => {
+    if (!miLista.length || !filasPortada.length) return null;
+    const porId = new Map<string, Titulo>();
+    for (const f of filasPortada) for (const t of f.items) if (!porId.has(t.id)) porId.set(t.id, t);
+    const items = miLista.map((id) => porId.get(id)).filter((t): t is Titulo => Boolean(t)).map(mejor);
+    return items.length ? { titulo: "Mi lista", items } : null;
+  })();
+  const filasConLista: FilaPortada[] = guardados ? [guardados, ...filasALaVista] : filasALaVista;
+
   useEffect(() => {
     setUltimo(leer<UltimoCanal>(K_ULTIMO));
     setVistos(leer<Record<string, number>>(K_VISTOS) || {});
@@ -1812,9 +1835,9 @@ export default function TvApp() {
        * lo expliquen.
        */
       if (enPortada) {
-        const ultima = filasALaVista.length; // la de «ver todas las carpetas»
+        const ultima = filasConLista.length; // la de «ver todas las carpetas»
         const primera = destacado ? -1 : 0;
-        const anchoDe = (fi: number) => filasALaVista[fi]?.items.length ?? 1;
+        const anchoDe = (fi: number) => filasConLista[fi]?.items.length ?? 1;
 
         if (tecla === "Arriba" || tecla === "Abajo") {
           e.preventDefault();
@@ -1845,7 +1868,7 @@ export default function TvApp() {
           if (focoFila === -1 && destacado) abrirTitulo(destacado);
           else if (focoFila === ultima) verCarpetas();
           else {
-            const t = filasALaVista[focoFila]?.items[focoCol];
+            const t = filasConLista[focoFila]?.items[focoCol];
             if (t) abrirTitulo(t);
           }
           return;
@@ -1913,7 +1936,7 @@ export default function TvApp() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasALaVista, destacado, focoFila, focoCol]);
+  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol]);
 
   // La fila con el foco siempre a la vista, sin que el usuario persiga nada
   useEffect(() => {
@@ -1934,7 +1957,7 @@ export default function TvApp() {
     listaRef.current
       ?.querySelector<HTMLElement>('[data-foco="1"]')
       ?.scrollIntoView({ block: "center", inline: "center" });
-  }, [enPortada, focoFila, focoCol, filasALaVista.length]);
+  }, [enPortada, focoFila, focoCol, filasConLista.length]);
 
   /* Sin banner —ningún título del catálogo trae carátula que cargue— la
      fila −1 no existe y el foco se quedaría en un sitio que no se ve */
@@ -2493,7 +2516,7 @@ export default function TvApp() {
    * poder leer el texto y fundirla con el fondo.
    */
   if (enPortada) {
-    const ultima = filasALaVista.length;
+    const ultima = filasConLista.length;
     return (
       <div className="tv-app tv-con-carril">
         {/*
@@ -2656,7 +2679,7 @@ export default function TvApp() {
             </section>
           )}
 
-          {filasALaVista.map((f, fi) => (
+          {filasConLista.map((f, fi) => (
             <section className="tv-carrusel" key={`${f.titulo}-${fi}`}>
               <h3 className="tv-carrusel-t">{f.titulo}</h3>
               <div
@@ -2750,7 +2773,7 @@ export default function TvApp() {
             </section>
           ))}
 
-          {!cargando && !filasALaVista.length && !error && (
+          {!cargando && !filasConLista.length && !error && (
             <p className="tv-cargando">Tu proveedor no ha enviado nada en esta sección.</p>
           )}
 

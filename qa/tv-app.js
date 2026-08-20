@@ -460,9 +460,44 @@ async function abrirPrimeraCarpeta(tv) {
   await tv.keyboard.press("ArrowRight");
   check("▶ dentro de los episodios pasa al siguiente",
     (await tv.locator(".tv-ficha-ep").nth(1).getAttribute("class")).includes("foco"));
+  /* --- Mi lista ---
+     Guardar para luego es lo que se hace con la mitad de lo que se ve en un
+     catálogo de miles: se entra, no es el momento, y sin sitio donde
+     apuntarlo hay que volver a buscarlo por el nombre. */
+  await tv.keyboard.press("ArrowUp");
+  await tv.keyboard.press("ArrowUp"); // de los episodios al botón de reproducir
+  await tv.keyboard.press("ArrowRight"); // y de ahí a «Mi lista», que va al lado
+  check("El mando llega al botón de guardar, al lado del de reproducir",
+    (await tv.locator(".tv-ficha-guardar.foco").count()) === 1);
+  await tv.keyboard.press("Enter");
+  check("Y guardarlo se dice en el propio botón",
+    (await tv.locator(".tv-ficha-guardar").innerText()).trim() === "En mi lista",
+    (await tv.locator(".tv-ficha-guardar").innerText()).replace(/\n/g, " "));
+
   await tv.keyboard.press("Escape"); // de la ficha, a la portada de series
   await tv.waitForSelector(".tv-carrusel", { timeout: 15000 });
   check("Y ATRÁS vuelve a la portada de la que se entró", true);
+  /* Y lo guardado sale arriba del todo: es la única fila de la portada que
+     has elegido tú, el resto las decide el catálogo */
+  const rotulosGuardados = await tv.locator(".tv-carrusel-t").allInnerTexts();
+  check("Lo guardado abre la portada, en su propia fila",
+    rotulosGuardados[0]?.trim() === "Mi lista", rotulosGuardados.slice(0, 3).join(" | "));
+  check("Con el título que se guardó dentro",
+    (await tv.locator(".tv-carrusel").first().locator(".tv-poster-nombre").first().innerText()).includes("Serie Demo"),
+    await tv.locator(".tv-carrusel").first().locator(".tv-poster-nombre").first().innerText());
+  /* Y se quita desde el mismo sitio: si guardar es un botón y quitar es ir a
+     ajustes, la lista se llena y no se vacía nunca */
+  await tv.locator(".tv-carrusel").first().locator(".tv-poster").first().click();
+  await tv.waitForSelector(".tv-ficha-guardar", { timeout: 15000 });
+  await tv.locator(".tv-ficha-guardar").click();
+  check("Y se quita desde el mismo botón",
+    (await tv.locator(".tv-ficha-guardar").innerText()).trim() === "Mi lista",
+    (await tv.locator(".tv-ficha-guardar").innerText()).replace(/\n/g, " "));
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-carrusel", { timeout: 15000 });
+  check("Y la fila desaparece al quedarse vacía",
+    (await tv.locator(".tv-carrusel-t").first().innerText()).trim() !== "Mi lista",
+    (await tv.locator(".tv-carrusel-t").first().innerText()));
   await tv.keyboard.press("Escape"); // y de ahí, al menú
   await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
   check("Al volver a la portada, el foco queda en la sección de la que sales",
