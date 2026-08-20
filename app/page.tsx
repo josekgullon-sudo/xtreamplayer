@@ -18,9 +18,11 @@ import { SITE_URL } from "@/lib/site";
  * cerrarlos todos para siempre.
  */
 const AVISO = {
-  version: "exe-1",
-  texto: "Ya está la aplicación para Windows.",
-  accion: "Descargar",
+  /* La versión cambia con el texto: quien cerró el aviso anterior vuelve a
+     ver este, que es de lo que se trata */
+  version: "descargas-1",
+  texto: "Nuevo: guarda películas y episodios en el aparato y míralos sin conexión.",
+  accion: "En qué aparatos",
   href: "/apps",
 };
 

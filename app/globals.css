@@ -676,25 +676,35 @@ button { font-family: inherit; }
 
 /* ---- La barra de novedades, arriba del todo ---- */
 
+/*
+ * En gris, con el enlace en color.
+ *
+ * Era una franja roja de lado a lado, y en una portada que por lo demás es
+ * gris y negra resultaba que lo más llamativo de la página era un aviso que
+ * se puede cerrar. Un aviso tiene que verse, no gritar: en gris se lee
+ * igual, y el color se lo queda lo único que hay que pulsar.
+ */
 .barra-aviso {
   position: relative;
   display: flex; align-items: center; justify-content: center; gap: 12px;
-  padding: 10px 46px;
-  background: var(--accent); color: #fff;
+  padding: 11px 46px;
+  background: var(--bg-elev); color: var(--text-dim);
+  border-bottom: 1px solid var(--hairline);
   font-size: 14.5px; font-weight: 600; text-align: center;
 }
 .barra-aviso a {
-  color: #fff; text-decoration: underline; text-underline-offset: 3px;
+  color: var(--accent-bright); text-decoration: underline; text-underline-offset: 3px;
   font-weight: 700;
 }
+.barra-aviso a:hover { color: var(--text); }
 .barra-aviso-x {
   position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
   display: flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 50%;
-  background: none; border: none; color: #fff; cursor: pointer;
-  opacity: 0.75; transition: opacity 0.15s, background 0.15s;
+  background: none; border: none; color: var(--text-faint); cursor: pointer;
+  opacity: 0.85; transition: opacity 0.15s, background 0.15s, color 0.15s;
 }
-.barra-aviso-x:hover { opacity: 1; background: rgba(0, 0, 0, 0.18); }
+.barra-aviso-x:hover { opacity: 1; color: var(--text); background: var(--surface-quiet); }
 
 /* ---- La etiqueta que va encima del título de una sección ---- */
 
