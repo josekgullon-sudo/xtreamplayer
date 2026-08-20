@@ -228,6 +228,51 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/navBajadas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp"
+            android:paddingStart="15dp"
+            android:paddingEnd="10dp"
+            android:background="@drawable/carril_item"
+            android:focusable="true"
+            android:clickable="true">
+
+            <ImageView
+                android:id="@+id/navBajadasIcono"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_bajar"
+                android:tint="@color/apagado"
+                android:contentDescription="@null" />
+
+            <!-- La raya: dice en qué sección ESTÁS. Nada que ver con el foco,
+                 que lo pinta el marco del botón -->
+            <View
+                android:id="@+id/navBajadasPastilla"
+                android:layout_width="3dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/carril_icono" />
+
+            <TextView
+                android:id="@+id/navBajadasTexto"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Descargas"
+                android:textColor="@color/apagado"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:visibility="invisible"
+                android:layout_marginStart="12dp" />
+        </LinearLayout>
+        <LinearLayout
             android:id="@+id/navBuscar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

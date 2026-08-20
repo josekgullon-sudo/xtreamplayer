@@ -168,6 +168,24 @@
                     android:focusable="true"
                     android:clickable="true"
                     android:contentDescription="Favorito" />
+                <!--
+                     Guardarlo en el aparato, al lado de reproducirlo y de marcarlo.
+                     Nace escondido: solo aparece cuando la ficha es de algo que se puede
+                     bajar —una película o un episodio— y hay hueco donde guardarlo.
+                -->
+                <ImageView
+                    android:id="@+id/botonBajar"
+                    android:layout_width="54dp"
+                    android:layout_height="54dp"
+                    android:layout_marginStart="10dp"
+                    android:padding="15dp"
+                    android:background="@drawable/circulo_accion"
+                    android:src="@drawable/ic_bajar"
+                    android:tint="@color/apagado"
+                    android:visibility="gone"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Descargar" />
 
                 <FrameLayout
                     android:id="@+id/bloqueNota"

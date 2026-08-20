@@ -25,11 +25,12 @@ public final class Navegacion {
 
     /** Los cinco destinos del carril, en el orden en que se recorren. */
     private static final int[] DESTINOS = {
-        R.id.navInicio, R.id.navDirecto, R.id.navCine, R.id.navSeries, R.id.navBuscar
+        R.id.navInicio, R.id.navDirecto, R.id.navCine, R.id.navSeries,
+        R.id.navBajadas, R.id.navBuscar
     };
     private static final int[] ETIQUETAS = {
         R.id.navInicioTexto, R.id.navDirectoTexto, R.id.navCineTexto,
-        R.id.navSeriesTexto, R.id.navBuscarTexto
+        R.id.navSeriesTexto, R.id.navBajadasTexto, R.id.navBuscarTexto
     };
 
     /**
@@ -49,6 +50,8 @@ public final class Navegacion {
         pinta(donde, R.id.navSeries, R.id.navSeriesPastilla, R.id.navSeriesIcono, R.id.navSeriesTexto,
                 Catalogo.SERIES.equals(seccionActual));
         pinta(donde, R.id.navInicio, R.id.navInicioPastilla, R.id.navInicioIcono, R.id.navInicioTexto, false);
+        pinta(donde, R.id.navBajadas, R.id.navBajadasPastilla, R.id.navBajadasIcono, R.id.navBajadasTexto,
+                donde instanceof DescargasActivity);
         pinta(donde, R.id.navBuscar, R.id.navBuscarPastilla, R.id.navBuscarIcono, R.id.navBuscarTexto, false);
 
         alPulsar(donde, R.id.navInicio, new Runnable() {
@@ -59,6 +62,14 @@ public final class Navegacion {
                 i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 donde.startActivity(i);
                 donde.finish();
+            }
+        });
+        /* Lo guardado en el aparato. No pide nada a nadie, así que esta
+           pantalla funciona con la tele sin red — que es para lo que existe */
+        alPulsar(donde, R.id.navBajadas, new Runnable() {
+            @Override public void run() {
+                if (donde instanceof DescargasActivity) return;
+                donde.startActivity(new Intent(donde, DescargasActivity.class));
             }
         });
         alPulsar(donde, R.id.navBuscar, new Runnable() {
@@ -149,7 +160,7 @@ public final class Navegacion {
                 : Catalogo.SERIES.equals(seccionActual) ? R.id.navSeries
                 : R.id.navDirecto;
         carpetas.setNextFocusLeftId(actual);
-        for (int id : new int[]{R.id.navInicio, R.id.navDirecto, R.id.navCine, R.id.navSeries, R.id.navBuscar}) {
+        for (int id : DESTINOS) {
             View v = donde.findViewById(id);
             if (v != null) v.setNextFocusRightId(R.id.listaCarpetas);
         }

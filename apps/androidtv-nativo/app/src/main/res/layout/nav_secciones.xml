@@ -168,6 +168,43 @@
             android:layout_marginTop="2dp" />
     </LinearLayout>
     <LinearLayout
+        android:id="@+id/navBajadas"
+        android:layout_width="0dp"
+        android:layout_height="54dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/carril_item"
+        android:focusable="true"
+        android:clickable="true">
+
+        <FrameLayout
+            android:id="@+id/navBajadasPastilla"
+            android:layout_width="52dp"
+            android:layout_height="28dp"
+            android:background="@drawable/carril_icono">
+
+            <ImageView
+                android:id="@+id/navBajadasIcono"
+                android:layout_width="19dp"
+                android:layout_height="19dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_bajar"
+                android:tint="@color/apagado"
+                android:contentDescription="@null" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/navBajadasTexto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Bajadas"
+            android:textColor="@color/apagado"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+    <LinearLayout
         android:id="@+id/navBuscar"
         android:layout_width="0dp"
         android:layout_height="54dp"

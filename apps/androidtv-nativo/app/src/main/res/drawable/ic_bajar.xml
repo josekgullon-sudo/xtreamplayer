@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bajar al aparato: la flecha hacia abajo y el suelo donde cae. El mismo
+     dibujo que el icono «bajar» del web, para que las dos se lean igual -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFF" android:pathData="M13,3h-2v9.17l-3.59,-3.58L6,10l6,6 6,-6 -1.41,-1.41L13,12.17z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M4,19h16v2H4z" />
+</vector>

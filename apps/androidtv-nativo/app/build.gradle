@@ -14,6 +14,12 @@ android {
         versionName "2.2"
     }
 
+    /* El mismo motor de descargas que las otras dos aplicaciones de Android.
+       Se comparte el fichero en vez de copiarlo: descargar una película es
+       exactamente lo mismo en las tres, y tres copias se separan al primer
+       arreglo. Ver apps/comun/java/.../Descargas.java */
+    sourceSets { main { java.srcDirs += ['../../comun/java'] } }
+
     buildTypes {
         release {
             minifyEnabled false

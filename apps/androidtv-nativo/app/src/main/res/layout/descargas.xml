@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lo que está guardado en el aparato.
+
+  Una fila por cosa: carátula pequeña, nombre, en qué va y cuánto ocupa, y
+  la papelera al final. No es una pared de carátulas como el cine, porque
+  aquí no se elige qué ver de entre mil: se mira una lista corta de cosas que
+  ya has elegido tú, y de cada una importa el estado —bajando, lista,
+  fallida— más que la imagen.
+
+  Se repinta sola mientras algo baje: sin eso, la única forma de saber en qué
+  va sería salir y volver a entrar.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fondo">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="34dp"
+        android:paddingBottom="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Descargas"
+            android:textColor="@color/texto"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/vacio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/tenue"
+            android:textSize="17sp"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginTop="26dp"
+            android:visibility="gone" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scrollbars="none"
+            android:clipToPadding="false"
+            android:layout_marginTop="20dp">
+
+            <LinearLayout
+                android:id="@+id/filas"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+    </LinearLayout>
+
+    <!-- En un teléfono el carril es la cápsula de abajo -->
+    <include
+        android:id="@+id/carril"
+        layout="@layout/nav_secciones"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="12dp" />
+</FrameLayout>

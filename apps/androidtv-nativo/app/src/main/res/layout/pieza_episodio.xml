@@ -53,4 +53,26 @@
             android:layout_marginTop="3dp"
             android:visibility="gone" />
     </LinearLayout>
+
+    <!--
+      Guardarlo en el aparato, en la propia fila del episodio.
+
+      De una serie se baja el episodio que quieras y no la serie entera:
+      cuarenta ficheros y varios gigas no es una decisión que se tome sin
+      querer pulsando un botón. Nace escondido y solo aparece donde se puede
+      guardar —en un televisor con la aplicación nativa, sí—.
+    -->
+    <ImageView
+        android:id="@+id/bajar"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_marginStart="10dp"
+        android:padding="14dp"
+        android:background="@drawable/circulo_accion"
+        android:src="@drawable/ic_bajar"
+        android:tint="@color/apagado"
+        android:visibility="gone"
+        android:focusable="true"
+        android:clickable="true"
+        android:contentDescription="Descargar este episodio" />
 </LinearLayout>

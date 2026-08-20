@@ -147,6 +147,91 @@ public class Descargas {
         return fuera.toString();
     }
 
+    /* ---------- Y lo mismo, para quien lo use desde Java ---------- */
+
+    /*
+     * La aplicación nativa de televisión no es una web: no hay puente ni
+     * JavaScript, hay un reproductor que abre un fichero. Pero descargar es
+     * exactamente lo mismo —la misma cola, el mismo `.medias`, el mismo
+     * cuaderno—, así que se usa esta misma clase por la puerta de al lado.
+     *
+     * Lo que cambia es cómo se pregunta y cómo se ve: en Java se pasan y se
+     * devuelven objetos, y el fichero se abre por su ruta y no por el
+     * servidor local, que ahí no hace ninguna falta.
+     */
+
+    /** Una descarga, para quien la mira desde Java. */
+    public static class Cosa {
+        public String id = "";
+        public String nombre = "";
+        public String cartel = "";
+        public String estado = "";
+        public int parte;
+        public long bytes;
+        /** Dónde está el fichero, si ya está entero. Vacío si no. */
+        public String ruta = "";
+    }
+
+    /** Encarga una descarga sin tener que montar el JSON a mano. */
+    public void pedir(String id, String nombre, String cartel, String url) {
+        try {
+            JSONObject e = new JSONObject();
+            e.put("id", id);
+            e.put("nombre", nombre);
+            e.put("cartel", cartel);
+            e.put("url", url);
+            bajar(e.toString());
+        } catch (Exception fallo) {
+            Log.w(TAG, "no se ha podido encargar " + id, fallo);
+        }
+    }
+
+    /** Lo que hay guardado, de más reciente a más antiguo. */
+    public java.util.List<Cosa> cosas() {
+        java.util.List<Cosa> fuera = new java.util.ArrayList<>();
+        JSONArray dentro = leer();
+        for (int i = 0; i < dentro.length(); i++) {
+            JSONObject f = dentro.optJSONObject(i);
+            if (f == null) continue;
+            Cosa c = new Cosa();
+            c.id = f.optString("id");
+            c.nombre = f.optString("nombre");
+            c.cartel = f.optString("cartel");
+            c.estado = f.optString("estado");
+            c.parte = f.optInt("parte");
+            c.bytes = f.optLong("bytes");
+            c.ruta = "lista".equals(c.estado) ? rutaLocal(c.id) : "";
+            fuera.add(c);
+        }
+        return fuera;
+    }
+
+    /** Cómo está una cosa concreta, o `null` si no está. */
+    public Cosa comoVa(String id) {
+        for (Cosa c : cosas()) if (c.id.equals(id)) return c;
+        return null;
+    }
+
+    /**
+     * Dónde está el fichero, ya en el aparato.
+     *
+     * Para el reproductor nativo esto es todo lo que hace falta: abre la
+     * ruta y ya. El servidor local de aquí al lado solo existe porque un
+     * WebView no puede abrir un `file://` desde una página en https.
+     */
+    public String rutaLocal(String id) {
+        File f = fichero(id);
+        return f.exists() ? f.getAbsolutePath() : "";
+    }
+
+    /** «1,4 GB». Vacío si todavía no se sabe cuánto ocupa. */
+    public static String tamano(long bytes) {
+        if (bytes <= 0) return "";
+        if (bytes < 1024L * 1024) return Math.round(bytes / 1024f) + " KB";
+        if (bytes < 1024L * 1024 * 1024) return Math.round(bytes / (1024f * 1024)) + " MB";
+        return String.format(java.util.Locale.getDefault(), "%.1f GB", bytes / (1024f * 1024 * 1024));
+    }
+
     /* ---------- Lo de dentro ---------- */
 
     /**

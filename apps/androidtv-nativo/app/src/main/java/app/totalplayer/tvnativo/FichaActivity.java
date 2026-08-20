@@ -10,6 +10,9 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import app.totalplayer.comun.Descargas;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -31,6 +34,15 @@ public class FichaActivity extends Activity {
     private Button botonVer;
     private LinearLayout bloqueSerie, temporadas, episodios;
     private ProgressBar girando;
+    private ImageView botonBajar;
+    /*
+     * Guardar en el aparato.
+     *
+     * El mismo motor que usan las otras dos aplicaciones de Android —está en
+     * apps/comun—, solo que aquí no hace falta puente ni servidor local: el
+     * reproductor es nativo y abre el fichero por su ruta.
+     */
+    private Descargas guardadas;
 
     private final Map<Integer, List<Catalogo.Episodio>> porTemporada = new LinkedHashMap<>();
 
@@ -52,6 +64,8 @@ public class FichaActivity extends Activity {
         temporadas = findViewById(R.id.temporadas);
         episodios = findViewById(R.id.episodios);
         girando = findViewById(R.id.girando);
+        botonBajar = findViewById(R.id.botonBajar);
+        guardadas = new Descargas(this);
 
         titulo.setText(ficha.nombre);
         /* `datos` se queda para lo que de verdad hace falta contar —un error
@@ -212,6 +226,8 @@ public class FichaActivity extends Activity {
             }
         });
         botonVer.requestFocus();
+        prepararBajada("vod-" + ficha.id, ficha.nombre, ficha.imagen,
+                Enlaces.PELICULA, ficha.id, ficha.extension, ficha.url);
 
         // La sinopsis y la carátula grande llegan en otra petición; la
         // película se puede ver mientras tanto
@@ -344,8 +360,68 @@ public class FichaActivity extends Activity {
             fila.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { ver(ep); }
             });
+            pintarBoton(fila.findViewById(R.id.bajar), "ep-" + ep.id,
+                    ficha.nombre + " · " + ep.titulo,
+                    ep.imagen.isEmpty() ? ficha.imagen : ep.imagen,
+                    Enlaces.EPISODIO, ep.id, ep.extension, ep.url);
             episodios.addView(fila);
         }
+    }
+
+    /** El botón de la cabecera, para una película. */
+    private void prepararBajada(String id, String nombre, String cartel,
+                                String clase, String cual, String ext, String yaLaTengo) {
+        pintarBoton(botonBajar, id, nombre, cartel, clase, cual, ext, yaLaTengo);
+    }
+
+    /**
+     * Un botón de descargar, con sus tres caras.
+     *
+     * Sin nada guardado, la flecha. Bajando, la flecha apagada —el porcentaje
+     * está en la pantalla de Descargas, y meterlo aquí obligaría a repintar
+     * la ficha cada segundo—. Ya guardado, la papelera: poner y quitar son la
+     * misma decisión y se toman desde el mismo sitio, que es lo que evita que
+     * un disco se llene y no se vacíe nunca.
+     */
+    private void pintarBoton(final ImageView boton, final String id, final String nombre,
+                             final String cartel, final String clase, final String cual,
+                             final String ext, final String yaLaTengo) {
+        if (boton == null) return;
+        boton.setVisibility(View.VISIBLE);
+        final Descargas.Cosa como = guardadas.comoVa(id);
+        boton.setImageResource(como != null && "lista".equals(como.estado)
+                ? R.drawable.ic_papelera : R.drawable.ic_bajar);
+        boton.setContentDescription(como != null && "lista".equals(como.estado)
+                ? "Quitar del aparato" : "Descargar");
+        boton.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                if (como != null) {
+                    guardadas.quitar(id);
+                    Toast.makeText(FichaActivity.this, "Quitado del aparato", Toast.LENGTH_SHORT).show();
+                    pintarBoton(boton, id, nombre, cartel, clase, cual, ext, yaLaTengo);
+                    return;
+                }
+                /* La dirección se pide al pulsar y fuera del hilo de la
+                   pantalla: es una petición al panel del proveedor y en una
+                   tele con wifi flojo son segundos, no milisegundos */
+                Toast.makeText(FichaActivity.this, "Preparando la descarga…", Toast.LENGTH_SHORT).show();
+                Hilos.fuera(new Hilos.Trabajo<String>() {
+                    @Override public String hacer() throws Exception {
+                        return Enlaces.paraVer(clase, cual, ext, yaLaTengo);
+                    }
+                }, new Hilos.Luego<String>() {
+                    @Override public void listo(String url) {
+                        guardadas.pedir(id, nombre, cartel, url);
+                        Toast.makeText(FichaActivity.this,
+                                "Descargando. Lo tienes en Descargas", Toast.LENGTH_LONG).show();
+                        pintarBoton(boton, id, nombre, cartel, clase, cual, ext, yaLaTengo);
+                    }
+                    @Override public void falla(Exception e) {
+                        Toast.makeText(FichaActivity.this, Hilos.enCristiano(e), Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        });
     }
 
     private void ver(Catalogo.Episodio ep) {
