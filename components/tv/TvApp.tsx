@@ -5,6 +5,7 @@ import Icon, { IconName } from "@/components/Icon";
 import {
   type Descarga,
   encargarDescarga,
+  envoltorioSinPuente,
   leerDescargas,
   quitarDescarga,
   sePuedeDescargar,
@@ -25,6 +26,7 @@ import {
   conMeta,
   datosDe,
   llaveTmdb,
+  sinRepetir,
 } from "@/lib/portada";
 import {
   Fuente,
@@ -400,6 +402,14 @@ export default function TvApp() {
    */
   const [canales, setCanales] = useState<Fila[]>([]);
   /**
+   * Las carpetas del directo, guardadas aparte.
+   *
+   * `filas` se las lleva por delante en cuanto se abre una —pasa a contener
+   * sus canales—, y la fila de carpetas de la derecha tiene que seguir ahí
+   * para poder saltar de una a otra sin volver al índice.
+   */
+  const [carpetasDirecto, setCarpetasDirecto] = useState<Fila[]>([]);
+  /**
    * En qué mitad de la pantalla del directo está el foco.
    *
    * Va aparte del número de foco por lo mismo que la barra de secciones: son
@@ -474,6 +484,8 @@ export default function TvApp() {
    * accesos en vez de cuatro es más barato que eso.
    */
   const [conDescargas, setConDescargas] = useState(false);
+  /** Programa nativo, pero de antes de que existieran las descargas */
+  const [programaViejo, setProgramaViejo] = useState(false);
   /** El identificador de lo que se está resolviendo, mientras se resuelve */
   const [preparando, setPreparando] = useState("");
   /** En la pantalla de descargas: 0 es verla, 1 es quitarla del aparato */
@@ -481,6 +493,7 @@ export default function TvApp() {
   const [descargas, setDescargas] = useState<Descarga[]>([]);
   useEffect(() => {
     setConDescargas(sePuedeDescargar());
+    setProgramaViejo(envoltorioSinPuente());
     setDescargas(leerDescargas());
   }, []);
   /*
@@ -629,6 +642,27 @@ export default function TvApp() {
       const items = f.items.map(mejor);
       return f.escaparate
         ? { ...f, items: items.filter((t) => !rotas[t.imagen]).slice(0, 10) }
+        : { ...f, items };
+    })
+    .filter((f) => f.items.length >= (f.escaparate ? 4 : 1));
+
+  /*
+   * Las filas del inicio, ya limpias.
+   *
+   * Mismo criterio que en la portada de cine: en un escaparate, el título
+   * cuya carátula no llega a cargar se cae de la fila. El proveedor dice que
+   * tiene imagen y luego su servidor devuelve un 404, y lo que quedaba en
+   * pantalla era el icono de imagen rota del navegador repetido cuatro veces
+   * seguidas — que se lee como que la aplicación está estropeada.
+   *
+   * Los canales no: ahí no hay escaparate que elegir, está lo que se emite.
+   * Un canal sin logotipo se conoce por su número y su nombre.
+   */
+  const filasInicioALaVista: FilaPortada[] = filasInicio
+    .map((f) => {
+      const items = f.items.map(mejor);
+      return f.escaparate
+        ? { ...f, items: items.filter((t) => !rotas[t.imagen]).slice(0, 12) }
         : { ...f, items };
     })
     .filter((f) => f.items.length >= (f.escaparate ? 4 : 1));
@@ -1178,8 +1212,7 @@ export default function TvApp() {
               abrir: () => reproducir({ url: c.url, name: c.name || "", kind: "auto" }),
             }))
           );
-          setFilas(
-            [...porGrupo.entries()].map(([grupo, suyos]) => ({
+          const carpetasM3u = [...porGrupo.entries()].map(([grupo, suyos]) => ({
               id: `grupo-${grupo}`,
               nombre: `${grupo}  (${suyos.length})`,
               logo: "",
@@ -1195,8 +1228,9 @@ export default function TvApp() {
                     abrir: () => reproducir({ url: c.url, name: c.name || "", kind: "auto" }),
                   }))
                 ),
-            }))
-          );
+          }));
+          setFilas(carpetasM3u);
+          setCarpetasDirecto(carpetasM3u);
           return;
         }
         if (!creds) return;
@@ -1223,9 +1257,11 @@ export default function TvApp() {
             numero: Number(c.num) || 0,
             abrir: verCanal(c),
           });
-          setFilas(carpetasDe(cats, limpios, (c) => c.category_id, aFila));
+          const carpetas = carpetasDe(cats, limpios, (c) => c.category_id, aFila);
+          setFilas(carpetas);
+          setCarpetasDirecto(carpetas);
           /* Y en plano, sin agrupar: es de donde salen la lista de la
-             izquierda y las dos filas de la derecha */
+             izquierda y las filas de la derecha */
           setCanales(limpios.map(aFila));
           /*
            * El directo entra en la lista, no en una portada de carátulas.
@@ -1489,23 +1525,33 @@ export default function TvApp() {
       });
     if (enDirecto.length) filas.push({ titulo: "En directo ahora", items: enDirecto, anchas: true });
 
-    const conNota = (a: Titulo, b: Titulo) => Number(b.nota || 0) - Number(a.nota || 0);
-
     /*
      * Sin carátula no entra en el escaparate.
      *
-     * Aquí no se enseña «el catálogo», se enseñan catorce de entre miles: hay
+     * Aquí no se enseña «el catálogo», se enseñan doce de entre miles: hay
      * candidatos de sobra y un hueco gris con el nombre escrito dentro no
      * vende nada. En la lista de una carpeta sería otra cosa —ahí están los
      * títulos que hay, y esconder la mitad porque el proveedor no les puso
      * imagen es quitarle catálogo al cliente—, pero un escaparate se elige.
-     *
-     * Y era justo lo que pasaba: la fila se ordena por nota, medio catálogo
-     * trae la nota puesta a 10 a mano, y las que se colaban arriba eran las
-     * peor cuidadas. «Películas destacadas» salía entera sin una sola imagen.
      */
     const conCaratula = (x: { cover?: string; stream_icon?: string }) =>
       Boolean((x.cover || x.stream_icon || "").trim());
+
+    /*
+     * Y se ordena por año, de lo más nuevo a lo más viejo.
+     *
+     * Iba por nota, que era lo que había, y lo que había estaba mal: medio
+     * catálogo trae la nota puesta a 10 a mano por el proveedor, así que
+     * ordenar por ella no ordena nada —salían quince empatados a 10— y lo
+     * que se colaba arriba era lo peor cuidado: títulos repetidos tres
+     * veces, carteles que no cargan y una película de 1928 encabezando
+     * «destacadas». La fecha, en cambio, es un dato de verdad.
+     *
+     * De desempate, cuándo lo dio de alta el proveedor: dos películas del
+     * mismo año se ordenan por la que acaba de llegar.
+     */
+    const porNuevo = (a: Titulo, b: Titulo) =>
+      Number(b.anio || 0) - Number(a.anio || 0) || b.alta - a.alta;
 
     const seriesDestacadas = (Array.isArray(series) ? series : [])
       .filter((x) => typeof x.name === "string" && x.name.trim() && conCaratula(x))
@@ -1524,9 +1570,12 @@ export default function TvApp() {
           categoria: String(x.category_id ?? ""),
         } as Titulo;
       })
-      .sort(conNota)
-      .slice(0, 14);
-    if (seriesDestacadas.length) filas.push({ titulo: "Series destacadas", items: seriesDestacadas });
+      .sort(porNuevo);
+    /* Sin repetir: un panel trae «7:07» tres veces —en HD, en 4K y suelta— y
+       la fila enseñaba las tres seguidas como si fueran tres series */
+    const seriesLimpias = sinRepetir(seriesDestacadas).slice(0, 30);
+    if (seriesLimpias.length)
+      filas.push({ titulo: "Series destacadas", items: seriesLimpias, escaparate: true });
 
     const pelisDestacadas = (Array.isArray(pelis) ? pelis : [])
       .filter((x) => typeof x.name === "string" && x.name.trim() && conCaratula(x))
@@ -1545,9 +1594,10 @@ export default function TvApp() {
           categoria: String(x.category_id ?? ""),
         } as Titulo;
       })
-      .sort(conNota)
-      .slice(0, 14);
-    if (pelisDestacadas.length) filas.push({ titulo: "Películas destacadas", items: pelisDestacadas });
+      .sort(porNuevo);
+    const pelisLimpias = sinRepetir(pelisDestacadas).slice(0, 30);
+    if (pelisLimpias.length)
+      filas.push({ titulo: "Películas destacadas", items: pelisLimpias, escaparate: true });
 
     /* En su propia libreta: la de la sección se rehace cada vez que se entra
        en una, y hasta ahora se llevaba estas por delante */
@@ -1769,6 +1819,18 @@ export default function TvApp() {
    * resto del catálogo dejaría de existir. No vuelve a pedir nada —las
    * carpetas se armaron en la misma carga que la portada—.
    */
+  /* «Todos»: quita el filtro de carpeta sin salir de la pantalla del directo
+     ni volver a pedirle nada al panel — los canales en plano ya están */
+  function quitarCarpeta() {
+    setCarpetaAbierta("");
+    setVista("portada");
+    /* Y `filas` vuelve a ser el índice de carpetas, que es lo que era antes
+       de entrar en una: si no, «Ver todos los canales» enseñaba los canales
+       de la carpeta que se acababa de quitar en vez del índice */
+    if (carpetasDirecto.length) setFilas(carpetasDirecto);
+    setFoco(0);
+  }
+
   function verCarpetas() {
     setVista("carpetas");
     setFoco(0);
@@ -1979,17 +2041,34 @@ export default function TvApp() {
    * aparato —una raya en la pared por cada vez, ver `K_VISTOS`—, y en un
    * aparato recién estrenado, los primeros que manda el panel.
    */
-  const filaEnVivo = useMemo(() => {
-    const conGuia = canales.filter((c) => c.epgId && epgAhora[c.epgId]?.ahora);
-    return {
-      titulo: "En vivo ahora",
-      chips: false,
-      items: (conGuia.length ? conGuia : canales).slice(0, 14),
-    };
-  }, [canales, epgAhora]);
+  /*
+   * La primera fila de la derecha son las carpetas, y es lo que hacía falta.
+   *
+   * Estuvo «En vivo ahora», una fila de tarjetas con el canal y su programa,
+   * y sobraba: eso mismo lo dice ya la lista de la izquierda, canal por
+   * canal y sin gastar media pantalla. Lo que no había manera de hacer era
+   * lo único que de verdad se hace aquí a menudo —cambiar de carpeta—, que
+   * costaba ir al índice completo, elegir y volver.
+   *
+   * Ahora se cambia de carpeta sin salir de la pantalla: se pulsa y la lista
+   * de la izquierda se filtra. «Todos» quita el filtro.
+   */
+  const filaCarpetas = useMemo(() => {
+    const items: Fila[] = [
+      {
+        id: "carpeta-todos",
+        nombre: "Todos",
+        logo: "",
+        carpeta: true,
+        abrir: () => {},
+      },
+      ...carpetasDirecto,
+    ];
+    return { titulo: "Carpetas", chips: true, carpetas: true, items };
+  }, [carpetasDirecto]);
   const filaDestacados = useMemo(() => {
     const puestos = [...canales].sort((a, b) => (vistos[b.id] || 0) - (vistos[a.id] || 0));
-    return { titulo: "Canales destacados", chips: true, items: puestos.slice(0, 14) };
+    return { titulo: "Canales destacados", chips: true, carpetas: false, items: puestos.slice(0, 14) };
   }, [canales, vistos]);
   /*
    * Y cuándo se enseña esta pantalla en vez del índice de categorías.
@@ -2379,7 +2458,7 @@ export default function TvApp() {
        * otra, y no hay que aprenderse nada nuevo.
        */
       if (dirEnPortada) {
-        const dirFilas = [filaEnVivo, filaDestacados].filter((f) => f.items.length);
+        const dirFilas = [filaCarpetas, filaDestacados].filter((f) => f.items.length > 1);
         /* La última posición de la columna es «ver todos los canales»: está
            debajo de la lista, así que se llega bajando */
         const ultimoIzq = canalesVista.length;
@@ -2459,7 +2538,13 @@ export default function TvApp() {
             const f = dirFilas[focoFila];
             if (!f) return;
             if (focoCol >= f.items.length) verCarpetas();
-            else f.items[focoCol]?.abrir();
+            else {
+              f.items[focoCol]?.abrir();
+              /* Al elegir carpeta, el foco baja a los canales: es lo que se
+                 va a hacer justo después, y dejarlo arriba obliga a un ◀ y
+                 un ▲ para volver a la lista que se acaba de pedir */
+              if (f.carpetas) { setZonaDir("canales"); setFoco(0); }
+            }
           }
           return;
         }
@@ -2545,10 +2630,10 @@ export default function TvApp() {
        */
       if (pantalla === "portada") {
         const accesos = destinos.filter((d) => d.id !== "salir");
-        const ultimaFila = filasInicio.length - 1;
+        const ultimaFila = filasInicioALaVista.length - 1;
         const primeraFila = ultimo ? -2 : -1;
         const anchoDeFila = (f: number) =>
-          f === -1 ? accesos.length + 1 : f === -2 ? 1 : filasInicio[f]?.items.length ?? 1;
+          f === -1 ? accesos.length + 1 : f === -2 ? 1 : filasInicioALaVista[f]?.items.length ?? 1;
 
         if (tecla === "Arriba" || tecla === "Abajo") {
           e.preventDefault();
@@ -2556,7 +2641,9 @@ export default function TvApp() {
           /* La −2 va DEBAJO de la −1 en pantalla, así que bajar de los accesos
              lleva a «seguir viendo» y no al revés: el orden de los números no
              es el orden de la pantalla y aquí manda la pantalla */
-          const orden = ultimo ? [-1, -2, ...filasInicio.map((_, i) => i)] : [-1, ...filasInicio.map((_, i) => i)];
+          const orden = ultimo
+            ? [-1, -2, ...filasInicioALaVista.map((_, i) => i)]
+            : [-1, ...filasInicioALaVista.map((_, i) => i)];
           const donde = Math.max(0, Math.min(orden.length - 1, orden.indexOf(focoFila) + salto));
           const nueva = orden[donde] ?? -1;
           setFocoFila(nueva);
@@ -2575,7 +2662,7 @@ export default function TvApp() {
           else if (focoFila === -1) {
             elegirDestino(focoCol >= accesos.length ? "salir" : accesos[focoCol]?.id);
           } else {
-            const t = filasInicio[focoFila]?.items[focoCol];
+            const t = filasInicioALaVista[focoFila]?.items[focoCol];
             if (t) abrirTitulo(t);
           }
           return;
@@ -2623,7 +2710,7 @@ export default function TvApp() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol, dirEnPortada, zonaDir, canalesVista, filaEnVivo, filaDestacados, canalMirado]);
+  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol, dirEnPortada, zonaDir, canalesVista, filaCarpetas, filaDestacados, canalMirado, filasInicioALaVista]);
 
   // La fila con el foco siempre a la vista, sin que el usuario persiga nada
   useEffect(() => {
@@ -2966,6 +3053,20 @@ export default function TvApp() {
                 hace falta espacio, y prometer «lo tienes guardado» para que
                 desaparezca solo es peor que no ofrecerlo.
               */}
+              {/*
+                Y si el programa es de antes de que esto existiera, se dice.
+
+                Callarse aquí es indistinguible de «esto no se puede hacer», y
+                no es eso: es que el puente va compilado dentro del programa y
+                esa versión no lo trae. Quien lo lea sabe qué hacer; sin esto,
+                lo único que se veía era una ficha sin botón.
+              */}
+              {programaViejo && bajable && (
+                <span className="tv-ficha-viejo">
+                  <Icon name="bajar" size={20} />
+                  Para descargar, actualiza el programa desde tu web
+                </span>
+              )}
               {conDescargas && bajable && (
                 <button
                   className={`tv-ficha-guardar ${foc(fichaZona === "bajar")} ${
@@ -3206,7 +3307,7 @@ export default function TvApp() {
         )}
 
         <div className="tv-cuerpo-portada" ref={listaRef}>
-          {filasInicio.map((f, fi) => (
+          {filasInicioALaVista.map((f, fi) => (
             <section className="tv-carrusel" key={f.titulo}>
               <h3 className="tv-carrusel-t">{f.titulo}</h3>
               <div className="tv-carrusel-tira anchas" onMouseLeave={ratonSeVa}>
@@ -3252,8 +3353,20 @@ export default function TvApp() {
                           <img className="tv-tarjeta-ancha" src={t.fondo} alt="" loading="lazy" onError={() => marcarRota(t.fondo || "")} />
                         ) : imgSrc(t.imagen) ? (
                           <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img className="tv-tarjeta-mancha" src={imgSrc(t.imagen)} alt="" aria-hidden="true" />
+                            {/*
+                              La mancha desenfocada, solo detrás de un
+                              logotipo centrado, que es donde queda hueco que
+                              rellenar. Detrás de una carátula recortada no se
+                              ve —la imagen tapa el marco entero— y costaba
+                              cara: un desenfoque de cuarenta píxeles se
+                              vuelve a calcular en cada fotograma mientras la
+                              tarjeta crece, catorce veces por fila, y eso es
+                              lo que hacía que el efecto fuera a tirones.
+                            */}
+                            {t.epgId && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img className="tv-tarjeta-mancha" src={imgSrc(t.imagen)} alt="" aria-hidden="true" />
+                            )}
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               className={t.epgId ? "tv-tarjeta-centro" : "tv-tarjeta-recorte"}
@@ -3285,8 +3398,8 @@ export default function TvApp() {
               </div>
             </section>
           ))}
-          {cargando && !filasInicio.length && <p className="tv-cargando">Cargando…</p>}
-          {!cargando && !filasInicio.length && (
+          {cargando && !filasInicioALaVista.length && <p className="tv-cargando">Cargando…</p>}
+          {!cargando && !filasInicioALaVista.length && (
             <p className="tv-cargando">
               Elige arriba qué quieres ver.
             </p>
@@ -3590,7 +3703,7 @@ export default function TvApp() {
    * único que de verdad decide si te quedas en un canal: qué echan ahora.
    */
   if (dirEnPortada) {
-    const dirFilas = [filaEnVivo, filaDestacados].filter((f) => f.items.length);
+    const dirFilas = [filaCarpetas, filaDestacados].filter((f) => f.items.length > 1);
     return (
       <div className="tv-app tv-con-nav">
         {barraNav}
@@ -3762,25 +3875,52 @@ export default function TvApp() {
                        apaisada con un logotipo dentro es mucho hueco para
                        decir «Antena 3» */
                     if (f.chips) {
+                      /* El nombre de la carpeta lleva detrás cuántos canales
+                         tiene —«Deportes  (12)»—, y en una pastilla el número
+                         se lee mejor aparte que pegado al nombre */
+                      const parte = /^(.*?)\s*\((\d+)\)\s*$/.exec(c.nombre);
+                      const nombre = f.carpetas && parte ? parte[1] : c.nombre;
+                      const cuantos = f.carpetas && parte ? parte[2] : "";
+                      const esLaAbierta = f.carpetas
+                        ? c.id === "carpeta-todos"
+                          ? !carpetaAbierta
+                          : nombre === carpetaAbierta
+                        : false;
                       return (
                         <button
                           key={c.id}
-                          className={`tv-chip-canal ${foc(puesto)}`}
+                          className={`tv-chip-canal ${f.carpetas ? "tv-chip-carpeta" : ""} ${esLaAbierta ? "activa" : ""} ${foc(puesto)}`}
                           data-fila={fi}
                           data-col={ci}
                           data-foco={puesto ? "1" : undefined}
                           onMouseEnter={() => { conElRaton(); setZonaDir("derecha"); setFocoFila(fi); setFocoCol(ci); }}
-                          onClick={c.abrir}
+                          onClick={() => {
+                            if (f.carpetas && c.id === "carpeta-todos") quitarCarpeta();
+                            else c.abrir();
+                            if (f.carpetas) { setZonaDir("canales"); setFoco(0); }
+                          }}
                         >
-                          <span className="tv-chip-logo">
-                            {imgSrc(c.logo) && !rotas[c.logo] ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={imgSrc(c.logo)} alt="" loading="lazy" onError={() => marcarRota(c.logo)} />
-                            ) : (
-                              <b>{c.numero || ci + 1}</b>
-                            )}
-                          </span>
-                          <span className="tv-chip-nombre">{c.nombre}</span>
+                          {f.carpetas ? (
+                            <>
+                              <span className="tv-chip-icono">
+                                <Icon name={c.icono || "list"} size={22} />
+                              </span>
+                              <span className="tv-chip-nombre">{nombre}</span>
+                              {cuantos && <span className="tv-chip-cuenta">{cuantos}</span>}
+                            </>
+                          ) : (
+                            <>
+                              <span className="tv-chip-logo">
+                                {imgSrc(c.logo) && !rotas[c.logo] ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={imgSrc(c.logo)} alt="" loading="lazy" onError={() => marcarRota(c.logo)} />
+                                ) : (
+                                  <b>{c.numero || ci + 1}</b>
+                                )}
+                              </span>
+                              <span className="tv-chip-nombre">{c.nombre}</span>
+                            </>
+                          )}
                         </button>
                       );
                     }

@@ -75,6 +75,26 @@ export function puente(): Puente | null {
   return p;
 }
 
+/**
+ * Si esto es una aplicación nativa que debería poder guardar y no puede.
+ *
+ * Un navegador no puede y punto: ahí no se enseña nada, que es lo correcto.
+ * Pero el programa de Windows sí puede, y si alguien tiene instalada una
+ * versión anterior a que existieran las descargas, el puente no viene dentro
+ * y la aplicación se quedaba callada: ni botón, ni sección, ni una palabra.
+ * Desde fuera es indistinguible de «esto no lo hace», y no es eso: es «este
+ * programa es viejo».
+ *
+ * Tauri deja siempre sus tripas en `window`, así que se puede distinguir un
+ * caso del otro y decir el que toca.
+ */
+export function envoltorioSinPuente(): boolean {
+  if (typeof window === "undefined") return false;
+  if (puente()) return false;
+  const w = window as unknown as Record<string, unknown>;
+  return Boolean(w.__TAURI_INTERNALS__ || w.__TAURI__);
+}
+
 /** Si esta aplicación puede guardar cosas para verlas sin conexión. */
 export function sePuedeDescargar(): boolean {
   return puente() !== null;

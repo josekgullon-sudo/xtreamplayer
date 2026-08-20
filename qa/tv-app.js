@@ -166,7 +166,12 @@ async function esperarCanales(tv) {
   });
   check("Y son apaisadas, no carteles verticales", apaisadas !== null && apaisadas > 1.5, `${apaisadas}:1`);
 
-  // --- El mando ---
+  /* --- El mando ---
+     El foco se pone a mano en la primera pestaña y el puntero se aparta: en
+     un navegador los dos comparten foco, y con la pantalla montándose lo que
+     quede debajo del ratón quieto se lo lleva él solo. En una tele no pasa */
+  await tv.locator(".tv-pestana").first().hover();
+  await tv.mouse.move(2, 2);
   await tv.keyboard.press("ArrowRight");
   check("Las flechas mueven el foco", (await tv.locator(".tv-pestana.foco").innerText()).includes("Películas"));
   await tv.keyboard.press("ArrowLeft");
@@ -237,10 +242,31 @@ async function esperarCanales(tv) {
      de televisión y no una lista de nombres */
   const filasDir = (await tv.locator(".tv-dir-main .tv-carrusel-t").allInnerTexts())
     .map((t) => t.split("\n")[0].trim());
-  check("Con «En vivo ahora» y «Canales destacados» a la derecha",
+  check("Con «Carpetas» y «Canales destacados» a la derecha",
     filasDir.length === 2, filasDir.join(" | "));
-  check("Y las tarjetas del directo llevan su «EN VIVO»",
-    (await tv.locator(".tv-dir-main .tv-vivo").count()) >= 1);
+
+  /* --- Cambiar de carpeta sin salir de la pantalla ---
+     Era lo único que se hace aquí a menudo y lo único que no se podía hacer:
+     costaba ir al índice completo, elegir y volver. */
+  const cuantos = () => tv.locator(".tv-dir-canal").count();
+  const todos = await cuantos();
+  check("La primera fila de la derecha son las carpetas",
+    (await tv.locator(".tv-chip-carpeta").count()) >= 2,
+    (await tv.locator(".tv-chip-carpeta").allInnerTexts()).join(" | ").replace(/\n/g, " "));
+  check("Con «Todos» marcada mientras no hay filtro",
+    (await tv.locator(".tv-chip-carpeta.activa").innerText()).includes("Todos"));
+  await tv.locator(".tv-chip-carpeta").nth(1).click();
+  await tv.waitForFunction((n) => document.querySelectorAll(".tv-dir-canal").length < n, todos, { timeout: 15000 });
+  check("Pulsar una carpeta filtra la lista, sin cambiar de pantalla",
+    (await tv.locator(".tv-directo").count()) === 1 && (await cuantos()) < todos,
+    `${await cuantos()} de ${todos} canales`);
+  check("Y la cabecera de la lista dice en cuál estás",
+    (await tv.locator(".tv-dir-cab h2").innerText()).trim() !== "Canales",
+    (await tv.locator(".tv-dir-cab h2").innerText()).trim());
+  /* Y «Todos» lo quita, que si no hay que salir para volver a verlo todo */
+  await tv.locator(".tv-chip-carpeta").first().click();
+  await tv.waitForFunction((n) => document.querySelectorAll(".tv-dir-canal").length === n, todos, { timeout: 15000 });
+  check("Y «Todos» quita el filtro", (await cuantos()) === todos);
 
   /* --- El índice completo sigue estando, en su puerta ---
      La lista de la izquierda enseña lo que hay; un proveedor trae cuarenta

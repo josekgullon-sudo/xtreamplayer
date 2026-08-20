@@ -2404,13 +2404,27 @@ select.input { appearance: none; cursor: pointer; }
   background: none; border: none; padding: 0;
   color: rgba(255, 255, 255, 0.72); font-size: 1.15vw; font-weight: 650;
   text-align: left; cursor: pointer;
-  transition: color 0.12s, transform 0.14s cubic-bezier(0.22, 0.8, 0.2, 1);
+  /*
+   * Solo se anima `transform`, y con capa propia.
+   *
+   * Iba a tirones, y no era el navegador: la tarjeta crecía un 4% y el
+   * navegador volvía a dibujar todo lo de dentro en cada fotograma —incluido
+   * un desenfoque de cuarenta píxeles que llevaban detrás, catorce veces por
+   * fila—. Con `will-change` la tarjeta se pinta una vez en su propia capa y
+   * lo que se mueve después es esa capa, que es lo que la tarjeta gráfica
+   * sabe hacer sin despeinarse. El desenfoque se ha ido a donde hacía falta:
+   * ver el marcado.
+   */
+  will-change: transform;
+  transition: color 0.12s, transform 0.16s cubic-bezier(0.22, 0.8, 0.2, 1);
 }
 .tv-tarjeta-marco {
   position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
   border-radius: 0.7vw; background: var(--bg-elev-2);
   border: 0.2vw solid transparent;
-  transition: border-color 0.12s, box-shadow 0.12s;
+  /* La sombra no se anima: cambiar `box-shadow` obliga a redibujar el
+     contorno entero en cada fotograma, y sumado al crecimiento se notaba */
+  transition: border-color 0.12s;
 }
 .tv-tarjeta-ancha { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 /* La mancha de color: la propia imagen, muy ampliada y desenfocada */
@@ -2464,11 +2478,18 @@ select.input { appearance: none; cursor: pointer; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .tv-tarjeta.foco { color: #fff; transform: scale(1.04); }
-.tv-tarjeta.foco .tv-tarjeta-marco {
-  border-color: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1vh 3vh rgba(0, 0, 0, 0.6);
-}
+.tv-tarjeta.foco .tv-tarjeta-marco { border-color: rgba(255, 255, 255, 0.9); }
 .tv-tarjeta.foco .tv-tarjeta-sub { color: var(--text-dim); }
+
+/* El aviso de programa desactualizado, al lado de los botones de la ficha:
+   no es un botón —no hay nada que pulsar— pero ocupa su sitio y se lee */
+.tv-ficha-viejo {
+  display: inline-flex; align-items: center; gap: 0.6vw;
+  padding: 1.1vh 1.4vw; border-radius: 0.6vw;
+  background: rgba(255, 255, 255, 0.06);
+  border: 0.16vw dashed var(--border-strong);
+  color: var(--text-faint); font-size: 1.05vw; font-weight: 700;
+}
 
 /*
  * ---- La barra de desplazamiento, dentro de la tele ----
@@ -3065,7 +3086,10 @@ select.input { appearance: none; cursor: pointer; }
   padding: 0 0 0.8vh; font-size: 1.35vw;
 }
 .tv-dir-main .tv-carrusel-t::after { display: none; }
-.tv-dir-main .tv-carrusel-tira { padding: 1.8vh 0 2vh; }
+/* Con relleno a los lados y margen negativo que lo devuelve: sin él, la
+   primera tarjeta al agrandarse con el foco se salía por la izquierda y el
+   canto de la tira se la cortaba en seco */
+.tv-dir-main .tv-carrusel-tira { padding: 1.8vh 1vw 2vh; margin: -1.8vh -1vw -1.4vh; }
 .tv-dir-main .tv-carrusel-tira.anchas .tv-tarjeta { flex: 0 0 15vw; width: 15vw; }
 
 /* «Ver todos» al final del rótulo de cada fila: la fila enseña catorce, y
@@ -3103,6 +3127,35 @@ select.input { appearance: none; cursor: pointer; }
   max-width: 10vw; overflow: hidden; text-overflow: ellipsis;
 }
 .tv-chip-canal.foco { background: rgba(229, 9, 20, 0.12); border-color: var(--accent); }
+
+/*
+ * Las carpetas, en pastilla y en la primera fila de la derecha.
+ *
+ * Es lo único que se hace aquí a menudo y era lo único que no se podía
+ * hacer: cambiar de carpeta costaba ir al índice completo, elegir y volver.
+ * Aquí se pulsa y la lista de la izquierda se filtra, sin salir de la
+ * pantalla ni volver a pedirle nada al panel.
+ */
+.tv-chip-carpeta { padding: 0.9vh 1.1vw; }
+.tv-chip-icono {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  color: var(--text-faint);
+}
+.tv-chip-cuenta {
+  flex: none; padding: 0.1vh 0.5vw; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.85vw; font-weight: 700; color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+/* La carpeta puesta se marca por brillo, no por color: el rojo es del foco,
+   y con las dos cosas en rojo no se sabe cuál es cuál */
+.tv-chip-canal.activa {
+  background: var(--bg-elev-2); color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.tv-chip-canal.activa .tv-chip-icono { color: #fff; }
+.tv-chip-canal.activa .tv-chip-cuenta { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.tv-chip-canal.foco .tv-chip-icono { color: #fff; }
 
 /* La tarjeta de un canal enseña el programa, así que el logotipo va centrado
    sobre su propia mancha en vez de estirado: ver `.tv-tarjeta` */
