@@ -57,7 +57,7 @@
         android:gravity="end"
         android:layout_marginTop="18dp">
 
-        <Button
+        <TextView
             android:id="@+id/botonCancelar"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
@@ -68,7 +68,7 @@
             android:textAllCaps="false"
             android:background="@drawable/pastilla" />
 
-        <Button
+        <TextView
             android:id="@+id/botonCrear"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
@@ -79,6 +79,9 @@
             android:textSize="15sp"
             android:textStyle="bold"
             android:textAllCaps="false"
-            android:background="@drawable/boton" />
+            android:background="@drawable/boton" 
+                            android:gravity="center"
+                            android:focusable="true"
+                            android:clickable="true" />
     </LinearLayout>
 </LinearLayout>

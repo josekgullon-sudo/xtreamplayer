@@ -6,7 +6,6 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -296,7 +295,7 @@ public class PortadaActivity extends Activity {
             @Override public void run() { scroll.scrollTo(0, 0); }
         });
 
-        Button ver = findViewById(R.id.heroeVer);
+        TextView ver = findViewById(R.id.heroeVer);
         ver.setText(destacado.esSerie ? "Ver la serie" : "Reproducir");
         ver.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { abrir(destacado); }

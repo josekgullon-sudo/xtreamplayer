@@ -144,7 +144,7 @@
                 android:gravity="center_vertical"
                 android:layout_marginTop="18dp">
 
-                <Button
+                <TextView
                     android:id="@+id/botonVer"
                     android:layout_width="0dp"
                     android:layout_weight="1"
@@ -154,7 +154,10 @@
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textAllCaps="false"
-                    android:background="@drawable/boton" />
+                    android:background="@drawable/boton" 
+                            android:gravity="center"
+                            android:focusable="true"
+                            android:clickable="true" />
 
                 <ImageView
                     android:id="@+id/botonFavorito"

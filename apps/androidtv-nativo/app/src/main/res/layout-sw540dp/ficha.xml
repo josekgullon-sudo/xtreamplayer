@@ -240,7 +240,18 @@
                         android:gravity="center_vertical"
                         android:layout_marginTop="24dp">
 
-                        <Button
+                        <!--
+                             Un TextView y no un Button, y no es capricho.
+
+                             Un Button hereda el estilo del tema, y el tema de
+                             un televisor no siempre es el que uno cree: en Fire
+                             OS el fabricante pone el suyo y ese estilo pisa el
+                             fondo, así que la pastilla roja salía blanca con la
+                             letra oscura justo al enfocarla. Un TextView no
+                             tiene estilo que heredar: lo que se pinta es lo que
+                             pone aquí, en cualquier aparato.
+                        -->
+                        <TextView
                             android:id="@+id/botonVer"
                             android:layout_width="wrap_content"
                             android:layout_height="62dp"
@@ -250,7 +261,10 @@
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:textAllCaps="false"
-                            android:background="@drawable/boton" />
+                            android:background="@drawable/boton" 
+                            android:gravity="center"
+                            android:focusable="true"
+                            android:clickable="true" />
 
                         <ImageView
                             android:id="@+id/botonFavorito"

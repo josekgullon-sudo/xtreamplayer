@@ -96,7 +96,7 @@
                 android:importantForAutofill="no"
                 android:layout_marginBottom="18dp" />
 
-            <Button
+            <TextView
                 android:id="@+id/botonEntrar"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
@@ -105,9 +105,12 @@
                 android:textSize="17sp"
                 android:textStyle="bold"
                 android:textAllCaps="false"
-                android:background="@drawable/boton" />
+                android:background="@drawable/boton" 
+                            android:gravity="center"
+                            android:focusable="true"
+                            android:clickable="true" />
 
-            <Button
+            <TextView
                 android:id="@+id/botonPropia"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"

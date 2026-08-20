@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -31,7 +30,7 @@ public class FichaActivity extends Activity {
     private Catalogo.Item ficha;
     private TextView titulo, datos, sinopsis;
     private ImageView cartel;
-    private Button botonVer;
+    private TextView botonVer;
     private LinearLayout bloqueSerie, temporadas, episodios;
     private ProgressBar girando;
     private ImageView botonBajar;
@@ -251,7 +250,13 @@ public class FichaActivity extends Activity {
 
     private void prepararSerie() {
         botonVer.setText("Ver el primer episodio");
+        /* Apagado hasta que lleguen los episodios. Es un TextView y no un
+           Button —ver el layout—, así que el apagado hay que pintarlo: un
+           Button lo hacía el sistema, y con él venía el estilo del fabricante
+           pisando el fondo rojo y dejando la pastilla blanca en algunos
+           televisores */
         botonVer.setEnabled(false);
+        botonVer.setAlpha(0.5f);
         bloqueSerie.setVisibility(View.VISIBLE);
         girando.setVisibility(View.VISIBLE);
 
@@ -286,6 +291,7 @@ public class FichaActivity extends Activity {
                         ? "Ver T" + primero.temporada + " · E" + primero.numero
                         : "Ver el primer episodio");
                 botonVer.setEnabled(true);
+                botonVer.setAlpha(1f);
                 botonVer.setOnClickListener(new View.OnClickListener() {
                     @Override public void onClick(View v) { ver(primero); }
                 });

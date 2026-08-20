@@ -111,7 +111,7 @@
                 android:importantForAutofill="no"
                 android:layout_marginBottom="22dp" />
 
-            <Button
+            <TextView
                 android:id="@+id/botonEntrar"
                 android:layout_width="640dp"
                 android:layout_height="68dp"
@@ -120,11 +120,14 @@
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:textAllCaps="false"
-                android:background="@drawable/boton" />
+                android:background="@drawable/boton" 
+                            android:gravity="center"
+                            android:focusable="true"
+                            android:clickable="true" />
 
             <!-- La otra puerta, para quien trae su propia lista. Discreta a
                  propósito: el cliente de un proveedor no debe ni planteárselo -->
-            <Button
+            <TextView
                 android:id="@+id/botonPropia"
                 android:layout_width="640dp"
                 android:layout_height="54dp"

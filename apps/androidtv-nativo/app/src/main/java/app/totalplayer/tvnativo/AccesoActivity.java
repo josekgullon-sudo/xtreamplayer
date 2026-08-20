@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -51,7 +50,7 @@ public class AccesoActivity extends Activity {
             }
         });
 
-        final Button entrar = findViewById(R.id.botonEntrar);
+        final TextView entrar = findViewById(R.id.botonEntrar);
         entrar.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { intentar(); }
         });
