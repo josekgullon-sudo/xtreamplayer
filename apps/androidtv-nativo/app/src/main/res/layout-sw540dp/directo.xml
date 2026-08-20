@@ -28,41 +28,10 @@
     android:paddingTop="64dp">
 
 
-    <!-- Carpetas -->
-    <LinearLayout
-        android:id="@+id/columnaCarpetas"
-        android:layout_width="256dp"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:background="@color/superficie"
-        android:paddingTop="26dp"
-        android:paddingBottom="16dp">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="TV EN DIRECTO"
-            android:textColor="@color/tenue"
-            android:textSize="13sp"
-            android:letterSpacing="0.14"
-            android:paddingStart="24dp"
-            android:paddingEnd="24dp"
-            android:paddingBottom="14dp" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/listaCarpetas"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:clipToPadding="false" />
-    </LinearLayout>
-
     <!-- Canales -->
     <LinearLayout
         android:id="@+id/columnaCanales"
-        android:layout_width="286dp"
+        android:layout_width="320dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:background="@color/columna"
@@ -296,6 +265,42 @@
             android:textColor="@color/tenue"
             android:textSize="14sp"
             android:visibility="gone" />
+
+        <!--
+          Y las carpetas, en fila y al final.
+
+          Estuvieron en una columna propia a la izquierda, 256 puntos de los
+          960 de una tele para enseñar una lista de nombres. Esos 256 salían
+          del vídeo, que es lo que se ha venido a ver. En fila ocupan el alto
+          de una pastilla, se recorren de lado con el mando y dejan la
+          pantalla entera para el canal. Es lo mismo que hace la versión de
+          ordenador y por el mismo motivo.
+        -->
+        <LinearLayout
+            android:id="@+id/columnaCarpetas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:clipToPadding="false"
+            android:clipChildren="false">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="CARPETAS"
+                android:textColor="@color/tenue"
+                android:textSize="13sp"
+                android:letterSpacing="0.14"
+                android:layout_marginTop="16dp"
+                android:paddingBottom="8dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/listaCarpetas"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:clipChildren="false" />
+        </LinearLayout>
     </LinearLayout>
   </LinearLayout>
 

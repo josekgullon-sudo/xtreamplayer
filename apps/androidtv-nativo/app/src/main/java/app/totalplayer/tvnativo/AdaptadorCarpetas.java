@@ -90,7 +90,14 @@ public class AdaptadorCarpetas extends RecyclerView.Adapter<AdaptadorCarpetas.Ce
         /* Cuántos hay dentro, cuando el panel lo dice. No siempre lo dice:
            entonces se calla en vez de poner un cero que no es verdad */
         if (c.cuantos > 0) {
-            celda.cuantos.setText(c.cuantos + (c.cuantos == 1 ? " canal" : " canales"));
+            /* En la tele la carpeta es una pastilla en fila y el número va en
+               su contador al lado: ahí «12 canales» estira la pastilla al
+               doble para decir lo mismo que «12». En el teléfono es una fila
+               de lado a lado y sí cabe la palabra */
+            boolean enTele = celda.itemView.getResources().getBoolean(R.bool.carril_en_columna);
+            celda.cuantos.setText(enTele
+                    ? String.valueOf(c.cuantos)
+                    : c.cuantos + (c.cuantos == 1 ? " canal" : " canales"));
             celda.cuantos.setVisibility(View.VISIBLE);
         } else {
             celda.cuantos.setVisibility(View.GONE);

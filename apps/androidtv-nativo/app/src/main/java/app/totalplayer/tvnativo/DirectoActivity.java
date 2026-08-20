@@ -107,7 +107,11 @@ public class DirectoActivity extends Activity {
             @Override public void run() { medirCaja(); }
         });
 
-        listaCarpetas.setLayoutManager(new LinearLayoutManager(this));
+        /* Las carpetas van en fila en la tele y en columna en el teléfono: en
+           la tele son una tira de pastillas debajo del vídeo —ver el layout—
+           y en el teléfono, la lista por la que se entra */
+        listaCarpetas.setLayoutManager(new LinearLayoutManager(this,
+                enMovil ? LinearLayoutManager.VERTICAL : LinearLayoutManager.HORIZONTAL, false));
         listaCanales.setLayoutManager(new LinearLayoutManager(this));
         listaCarpetas.setItemAnimator(null);
         listaCanales.setItemAnimator(null);
@@ -239,7 +243,11 @@ public class DirectoActivity extends Activity {
                 carpetas.poner(conFavoritos);
                 pista.setText("Elige un canal de la lista");
                 abrirCarpeta(0);
-                if (!enMovil) listaCarpetas.requestFocus();
+                /* El foco arranca en los canales, no en las carpetas: se
+                   entra a ver la tele, y la carpeta es un filtro que se pone
+                   encima. Antes las carpetas eran la columna por la que había
+                   que pasar; ahora están al otro lado de la pantalla */
+                if (!enMovil) listaCanales.requestFocus();
             }
             @Override public void falla(Exception e) {
                 girando.setVisibility(View.GONE);
@@ -519,10 +527,12 @@ public class DirectoActivity extends Activity {
         if (c != null) c.setVisibility(si ? View.VISIBLE : View.GONE);
         View fila = findViewById(R.id.filaDirecto);
         if (fila != null) {
+            /* El hueco es del menú, y el menú se ha ido de la columna
+               izquierda a la barra de arriba: lo que hay que reservar es alto
+               y no ancho. Sin esto, a pantalla completa se iba la barra pero
+               su hueco seguía a la izquierda, y el vídeo salía descentrado */
             int hueco = si ? (int) (64 * getResources().getDisplayMetrics().density) : 0;
-            /* Relativo y no izquierda/derecha: el hueco es del carril, y el
-               carril va al principio de la línea, no siempre a la izquierda */
-            fila.setPaddingRelative(enMovil ? 0 : hueco, fila.getPaddingTop(),
+            fila.setPaddingRelative(fila.getPaddingStart(), enMovil ? fila.getPaddingTop() : hueco,
                     fila.getPaddingEnd(), fila.getPaddingBottom());
         }
     }
@@ -719,8 +729,12 @@ public class DirectoActivity extends Activity {
             irAlPaso(paso - 1);
             return;
         }
-        if (listaCanales.hasFocus()) {
-            listaCarpetas.requestFocus();
+        /* Desde las carpetas, ATRÁS vuelve a los canales, que es de donde se
+           vino; desde los canales, sale de la sección. Con las carpetas en
+           una tira al otro lado, hacerlo al revés dejaba ATRÁS llevando a un
+           sitio que no está en el camino de ida */
+        if (!enMovil && listaCarpetas.hasFocus()) {
+            listaCanales.requestFocus();
             return;
         }
         super.onBackPressed();

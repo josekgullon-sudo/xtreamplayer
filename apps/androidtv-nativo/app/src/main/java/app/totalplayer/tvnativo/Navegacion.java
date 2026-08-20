@@ -158,18 +158,29 @@ public final class Navegacion {
      * de donde se sale con ▶ sin haber tocado nada.
      */
     private static void caminos(Activity donde, String seccionActual) {
-        View carpetas = donde.findViewById(R.id.listaCarpetas);
-        if (carpetas == null) return;
+        /*
+         * A qué se baja desde la barra: a lo primero que hay debajo de ella.
+         *
+         * En el directo eso son los canales —las carpetas se han ido a una
+         * tira debajo del vídeo, al otro lado de la pantalla— y en cine y
+         * series sigue siendo la lista de carpetas. Se pregunta por la de
+         * canales primero y se cae a la otra: así una pantalla no necesita
+         * saber en cuál de las dos está.
+         */
+        View abajo = donde.findViewById(R.id.listaCanales);
+        if (abajo == null) abajo = donde.findViewById(R.id.listaCarpetas);
+        if (abajo == null) return;
         int actual = Catalogo.PELIS.equals(seccionActual) ? R.id.navCine
                 : Catalogo.SERIES.equals(seccionActual) ? R.id.navSeries
                 : R.id.navDirecto;
         /* Con la barra arriba se entra con ▲ y se sale con ▼. Cuando era una
            columna era ◀ y ▶; el gesto cambia con el sitio, que es lo que
            espera cualquiera */
-        carpetas.setNextFocusUpId(actual);
+        abajo.setNextFocusUpId(actual);
+        int aDonde = abajo.getId();
         for (int id : DESTINOS) {
             View v = donde.findViewById(id);
-            if (v != null) v.setNextFocusDownId(R.id.listaCarpetas);
+            if (v != null) v.setNextFocusDownId(aDonde);
         }
     }
 
