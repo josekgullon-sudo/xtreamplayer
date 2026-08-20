@@ -300,6 +300,38 @@ async function esperarCanales(tv) {
   check("Y el foco se queda en la carpeta de la que sales, no en la primera",
     (await tv.locator(".tv-dir-canal.foco").count()) === 1);
 
+  /* --- Las dos filas siguen a la carpeta que tienes debajo del foco ---
+     Salían de todo el catálogo, así que con «Cine» señalado en la columna,
+     abajo aparecían canales de otra carpeta: dos mitades de la misma pantalla
+     hablando de cosas distintas. */
+  const rotuloDestacados = async () =>
+    (await tv.locator(".tv-dir-main .tv-carrusel-t").allInnerTexts())
+      .map((t) => t.split("\n")[0].trim())
+      .find((t) => /^Destacados/i.test(t)) || "";
+  const nombreCarpeta = async (i) =>
+    (await tv.locator(".tv-dir-canal.es-carpeta .tv-dir-nombre").nth(i).innerText()).trim();
+  await tv.locator(".tv-dir-canal.es-carpeta").first().hover();
+  await tv.waitForTimeout(700);
+  const primera = await nombreCarpeta(0);
+  check("Con el foco en una carpeta, los destacados son los suyos",
+    (await rotuloDestacados()).includes(primera), `${await rotuloDestacados()} · foco en ${primera}`);
+  /* Y al pasar a la de al lado, cambian: recorrer carpetas cuenta de qué va
+     cada una sin entrar en ninguna */
+  await tv.locator(".tv-dir-canal.es-carpeta").nth(1).hover();
+  const segunda = await nombreCarpeta(1);
+  const cambio = await tv
+    .waitForFunction(
+      (n) => [...document.querySelectorAll(".tv-dir-main .tv-carrusel-t")]
+        .some((h) => h.textContent.includes(n)),
+      segunda,
+      { timeout: 10000 }
+    )
+    .then(() => true)
+    .catch(() => false);
+  check("Y al pasar a la de al lado, cambian con ella", cambio,
+    `${primera} › ${segunda}: ${await rotuloDestacados()}`);
+  await tv.mouse.move(2, 2);
+
   /* --- Y los destacados, de la carpeta en la que estés ---
      Puesto en «Deportes», lo que se quiere de un vistazo son los suyos y no
      los de todo el catálogo. */

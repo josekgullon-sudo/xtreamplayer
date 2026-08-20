@@ -140,7 +140,7 @@ export default function HomePage() {
         */}
         <section className="compat">
           <div className="container">
-            <p className="compat-t">Se ve en</p>
+            <p className="compat-t">Compatible con</p>
             {/* Dos filas escritas a mano —teles arriba, lo demás abajo— en vez
                 de una sola que el navegador parte por donde le cabe: así las
                 dos quedan centradas y de paso se lee agrupado */}
@@ -155,8 +155,14 @@ export default function HomePage() {
                 <span className="marca">
                   <LogoAparato nombre="fuego" size={18} /> Fire TV
                 </span>
-                <span className="marca marca-nombre">Samsung</span>
-                <span className="marca marca-nombre">LG</span>
+                {/* Samsung y LG no tienen símbolo: su logotipo es su nombre,
+                    y cada uno con su forma —el óvalo y el círculo— */}
+                <span className="marca marca-nombre">
+                  <span className="marca-samsung">Samsung</span>
+                </span>
+                <span className="marca marca-nombre">
+                  <span className="marca-lg">LG</span>
+                </span>
               </div>
               <div className="compat-fila">
                 <span className="marca">

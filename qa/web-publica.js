@@ -143,9 +143,22 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   /* La portada tiene que contestar «¿y en lo mío?» sin hacer bajar: quien no
      ve su aparato en la lista se va */
   const enPortada = (await p.locator(".compat .marca").allInnerTexts()).map((t) => t.trim()).join(" | ");
-  check("La portada enseña en qué aparatos se ve",
-    ["Android TV", "Fire TV", "Samsung", "LG", "iPhone", "Windows", "Mac", "Linux"].every((m) => enPortada.includes(m)),
-    enPortada);
+  /* Sin mirar mayúsculas: «SAMSUNG» va en versalitas porque su logotipo es
+     justamente eso, la palabra, y lo que importa aquí es que la marca esté */
+  const hayMarcas = ["Android TV", "Fire TV", "Samsung", "LG", "iPhone", "Windows", "Mac", "Linux"]
+    .every((m) => enPortada.toLowerCase().includes(m.toLowerCase()));
+  check("La portada enseña en qué aparatos se ve", hayMarcas, enPortada);
+  /* Y cada una con algo delante: un icono, o su nombre en la forma que la
+     distingue. Una lista de diez palabras sueltas no se lee de un vistazo,
+     que es lo único que esta tira tiene que conseguir */
+  const conDistintivo = await p.evaluate(() =>
+    [...document.querySelectorAll(".compat .marca")].filter(
+      (m) => m.querySelector("svg, .marca-samsung, .marca-lg")
+    ).length
+  );
+  check("Y cada una con su distintivo delante, no solo el nombre",
+    conDistintivo === (await p.locator(".compat .marca").count()),
+    `${conDistintivo} de ${await p.locator(".compat .marca").count()}`);
   check("Y desde ahí se llega a la página de cada aparato",
     (await p.locator(".compat-pie a[href='/apps']").count()) === 1);
 

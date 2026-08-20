@@ -2354,7 +2354,28 @@ export default function TvApp() {
    * pantalla en repetir una navegación es gastarla en nada.
    */
   const VENTANA_GUIA = 90 * 60 * 1000;
-  const canalesDeLaVista = carpetaAbierta ? filas : canales;
+  /*
+   * De qué canales hablan las dos filas de la derecha.
+   *
+   * De los de la carpeta en la que estés —y, si todavía no has entrado en
+   * ninguna, de los de la que tengas debajo del foco. Salían de todo el
+   * catálogo, así que con «M+ CINE» señalado en la columna, abajo aparecían
+   * programas de Antena 3: dos mitades de la misma pantalla hablando de cosas
+   * distintas. Ahora recorrer carpetas cuenta de qué va cada una: qué echan y
+   * cuáles son sus canales, sin entrar.
+   */
+  const canalesDeLaVista = carpetaAbierta
+    ? filas
+    : enCarpetas
+      ? canalesVista[foco]?.hijos || []
+      : canales;
+  /* Y de cuál, para poder decirlo en el rótulo: el nombre de la carpeta lleva
+     detrás cuántos canales tiene, y ahí sobra */
+  const nombreDeLaVista = carpetaAbierta
+    ? carpetaAbierta
+    : enCarpetas
+      ? (canalesVista[foco]?.nombre || "").replace(/\s*\(\d+\)\s*$/, "").trim()
+      : "";
   const filaGuia = useMemo(() => {
     const cuando = ahoraMismo;
     const items = canalesDeLaVista
@@ -2376,14 +2397,14 @@ export default function TvApp() {
   const filaDestacados = useMemo(() => {
     const puestos = [...canalesDeLaVista].sort((a, b) => (vistos[b.id] || 0) - (vistos[a.id] || 0));
     return {
-      titulo: carpetaAbierta ? `Destacados de ${carpetaAbierta}` : "Canales destacados",
+      titulo: nombreDeLaVista ? `Destacados de ${nombreDeLaVista}` : "Canales destacados",
       chips: true,
       carpetas: false,
       guia: false,
       items: puestos.slice(0, 14),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canalesDeLaVista, vistos, carpetaAbierta]);
+  }, [canalesDeLaVista, vistos, nombreDeLaVista]);
   /*
    * La parrilla del canal que está bajo el foco.
    *
