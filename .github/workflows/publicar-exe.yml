@@ -26,6 +26,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Un comando que el programa expone y el ACL no deja llamar compila igual
+      # de verde: el fallo sale en el aparato de alguien, con un mensaje que no
+      # llega a ninguna pantalla. Se mira antes de gastar veinte minutos
+      - name: Que ningún comando se quede fuera del ACL
+        run: python3 qa/comandos-permitidos.py
+
       - uses: dtolnay/rust-toolchain@stable
 
       # Compilar Tauri desde cero son unos veinte minutos; con la caché, dos
