@@ -105,6 +105,20 @@ const ck = (sc, n) => {
      títulos y el orden lo pone el panel, no esta prueba */
   await p2.locator(".pa-card:has-text('Película Demo')").first().click();
   await p2.waitForSelector(".ficha button:has-text('Reproducir')", { timeout: 15000 });
+  /*
+   * Y se espera al detalle, que llega en otra petición.
+   *
+   * La ficha se pinta con lo que ya trae el catálogo —nombre y carátula— y
+   * el botón de reproducir sale con ella; la sinopsis, el reparto y los
+   * chips los trae `get_vod_info` después. Leyendo el texto en el instante
+   * en que aparece el botón se pilla el «Cargando la ficha…», que es
+   * exactamente lo que fallaba en el CI y no aquí: en una máquina rápida esa
+   * segunda petición llega antes de que dé tiempo a mirar.
+   */
+  await p2.waitForFunction(
+    () => /Ana Actriz/.test(document.querySelector(".ficha")?.innerText || ""),
+    { timeout: 20000 }
+  );
   const fichaTxt = await p2.locator(".ficha").innerText();
   check("La película abre su ficha con sinopsis y reparto", fichaTxt.includes("thriller de prueba") && fichaTxt.includes("Ana Actriz"), "");
   check("Con género, año y nota como chips", (await p2.locator(".ficha-chip").count()) >= 3, (await p2.locator(".ficha-chip").allInnerTexts()).join(" | "));
