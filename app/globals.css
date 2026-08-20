@@ -216,7 +216,18 @@ button { font-family: inherit; }
   white-space: nowrap;
 }
 .btn:active:not(:disabled) { transform: scale(0.97); }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+/*
+ * Desactivado es gris, no rojo pálido.
+ *
+ * Bajándole solo la opacidad, un botón rojo desactivado se queda de un rojo
+ * lavado que no se lee como «todavía no», se lee como «esto está roto». En
+ * gris se entiende a la primera que le falta algo antes.
+ */
+.btn:disabled {
+  opacity: 1; cursor: not-allowed;
+  background: var(--surface-quiet); color: var(--text-faint);
+  border-color: transparent; box-shadow: none; transform: none;
+}
 
 .btn-primary {
   background: var(--accent);
@@ -1541,13 +1552,22 @@ select.input { appearance: none; cursor: pointer; }
   text-decoration: none !important;
 }
 .panel-nav-item:hover { background: var(--bg-hover); color: var(--text); }
-.panel-nav-item.active { background: var(--accent-tint); color: var(--accent-bright); }
+/*
+ * La sección abierta, en blanco sobre gris.
+ *
+ * Iba en rojo con fondo rojo, igual que en el carril del reproductor y en el
+ * menú de la tele, y por lo mismo se cambia: el rojo es el color de lo que se
+ * pulsa, y usándolo además para decir dónde estás las dos señales se
+ * confunden. En un menú de diez entradas, la activa en rojo era lo único que
+ * se veía del menú.
+ */
+.panel-nav-item.active { background: var(--bg-hover); color: var(--text); }
 .panel-nav-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
 .panel-nav-count {
   margin-left: auto; background: var(--bg-elev-2); color: var(--text-faint);
   border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 700;
 }
-.panel-nav-item.active .panel-nav-count { background: var(--accent-tint-strong); color: var(--accent-bright); }
+.panel-nav-item.active .panel-nav-count { background: var(--bg-elev-2); color: var(--text-dim); }
 /* Entregar el acceso al cliente con el mensaje ya escrito */
 .entrega { margin-top: 14px; }
 .entrega-previa {
@@ -1784,12 +1804,13 @@ select.input { appearance: none; cursor: pointer; }
   display: flex; align-items: center; gap: 8px;
 }
 .panel-tab:hover { color: var(--text); }
-.panel-tab.active { color: var(--accent-bright); border-bottom-color: var(--accent); }
+/* La pestaña abierta se marca con su raya, que ya es señal de sobra */
+.panel-tab.active { color: var(--text); border-bottom-color: var(--text); }
 .panel-tab-count {
   background: var(--bg-elev-2); color: var(--text-faint); border-radius: 999px;
   padding: 1px 8px; font-size: 12px; font-weight: 700;
 }
-.panel-tab.active .panel-tab-count { background: var(--accent-tint); color: var(--accent-bright); }
+.panel-tab.active .panel-tab-count { background: var(--bg-hover); color: var(--text-dim); }
 
 .domain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
 .domain-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
@@ -4402,7 +4423,9 @@ select.input { appearance: none; cursor: pointer; }
 .paso-n {
   width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
-  background: var(--accent-tint); color: var(--accent-bright);
+  /* En gris: los tres pasos son tres, no tres avisos. Lo que hay que pulsar
+     en cada uno ya lleva el color */
+  background: var(--surface-quiet); color: var(--text-dim);
   font-size: 13.5px; font-weight: 800;
 }
 .primeros-pasos li.hecho .paso-n { background: var(--success-tint); color: var(--success); }
