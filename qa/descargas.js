@@ -82,13 +82,13 @@ const ENVOLTORIO = () => {
   await w.fill("input[name=usuario]", U);
   await w.fill("input[name=password]", "clave1234");
   await w.locator(".tv-boton:has-text('Entrar')").first().click();
-  await w.waitForSelector(".tv-tiles", { timeout: 25000 });
+  await w.waitForSelector(".tv-pestanas", { timeout: 25000 });
   /* Y no se dice «tu dispositivo no es compatible», que es una forma cara de
      no hacer nada: si no se puede, no se enseña */
   check("Sin envoltorio no hay acceso a descargas en la portada",
-    (await w.locator(".tv-tile:has-text('Descargas')").count()) === 0,
-    (await w.locator(".tv-tile").allInnerTexts()).join(" | ").replace(/\n/g, " "));
-  await w.locator(".tv-tile:has-text('Películas')").click();
+    (await w.locator(".tv-pestana:has-text('Descargas')").count()) === 0,
+    (await w.locator(".tv-pestana").allInnerTexts()).join(" | ").replace(/\n/g, " "));
+  await w.locator(".tv-pestana:has-text('Películas')").click();
   await w.waitForSelector(".tv-poster", { timeout: 25000 });
   await w.locator(".tv-poster").first().click();
   await w.waitForSelector(".tv-ficha-ver", { timeout: 20000 });
@@ -107,22 +107,22 @@ const ENVOLTORIO = () => {
   await tv.fill("input[name=usuario]", U);
   await tv.fill("input[name=password]", "clave1234");
   await tv.locator(".tv-boton:has-text('Entrar')").first().click();
-  await tv.waitForSelector(".tv-tiles", { timeout: 25000 });
+  await tv.waitForSelector(".tv-pestanas", { timeout: 25000 });
   check("Con envoltorio, «Descargas» sí está en la portada",
-    (await tv.locator(".tv-tile:has-text('Descargas')").count()) === 1,
-    (await tv.locator(".tv-tile").allInnerTexts()).join(" | ").replace(/\n/g, " "));
+    (await tv.locator(".tv-pestana:has-text('Descargas')").count()) === 1,
+    (await tv.locator(".tv-pestana").allInnerTexts()).join(" | ").replace(/\n/g, " "));
   /* Y los cuatro caben en la fila. Con las medidas de tres se salían por los
      lados, y justo en los aparatos donde se puede descargar —una Fire TV y el
      programa de Windows— que son los únicos donde sale el cuarto */
   const anchoTiles = await tv.evaluate(() => {
-    const t = document.querySelector(".tv-tiles");
+    const t = document.querySelector(".tv-pestanas");
     return { pide: t.scrollWidth, cabe: t.clientWidth };
   });
   check("Y los cuatro accesos caben en la fila, sin salirse",
     anchoTiles.pide <= anchoTiles.cabe, `${anchoTiles.pide} en ${anchoTiles.cabe} px`);
 
   // La película, y su botón
-  await tv.locator(".tv-tile:has-text('Películas')").click();
+  await tv.locator(".tv-pestana:has-text('Películas')").click();
   await tv.waitForSelector(".tv-poster", { timeout: 25000 });
   await tv.locator(".tv-poster").first().click();
   await tv.waitForSelector(".tv-ficha-ver", { timeout: 20000 });
@@ -144,8 +144,8 @@ const ENVOLTORIO = () => {
   // La pantalla de descargas, desde el carril. La ficha ocupa la pantalla
   // entera y no lleva carril: se sale con ATRÁS, como en el mando
   await tv.keyboard.press("Escape");
-  await tv.waitForSelector(".tv-carril-item", { timeout: 20000 });
-  await tv.locator(".tv-carril-item:has-text('Descargas')").click();
+  await tv.waitForSelector(".tv-nav-item", { timeout: 20000 });
+  await tv.locator(".tv-nav-item:has-text('Descargas')").click();
   await tv.waitForSelector(".tv-bajadas", { timeout: 20000 });
   check("La pantalla de descargas enseña lo que hay",
     (await tv.locator(".tv-bajada").count()) === 1);
@@ -175,7 +175,7 @@ const ENVOLTORIO = () => {
     (await tv.locator(".tv-bajadas").innerText()).replace(/\n/g, " ").slice(0, 90));
 
   // Un episodio de una serie: lo que se guarda es el episodio, no la serie
-  await tv.locator(".tv-carril-item:has-text('Series')").click();
+  await tv.locator(".tv-nav-item:has-text('Series')").click();
   await tv.waitForSelector(".tv-poster", { timeout: 25000 });
   await tv.locator(".tv-poster").first().click();
   await tv.waitForSelector(".tv-ficha-ep", { timeout: 20000 });
@@ -183,8 +183,8 @@ const ENVOLTORIO = () => {
     (await tv.locator(".tv-ficha-guardar:has-text('Descargar episodio')").count()) === 1);
   await tv.locator(".tv-ficha-guardar:has-text('Descargar episodio')").click();
   await tv.keyboard.press("Escape");
-  await tv.waitForSelector(".tv-carril-item", { timeout: 20000 });
-  await tv.locator(".tv-carril-item:has-text('Descargas')").click();
+  await tv.waitForSelector(".tv-nav-item", { timeout: 20000 });
+  await tv.locator(".tv-nav-item:has-text('Descargas')").click();
   await tv.waitForSelector(".tv-bajada", { timeout: 20000 });
   check("Y lo guardado es un episodio, con su número",
     /·\s*\d/.test(await tv.locator(".tv-bajada-nombre").innerText()),

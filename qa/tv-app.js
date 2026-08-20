@@ -37,10 +37,20 @@ async function verCarpetas(tv) {
  * El directo abre en la lista de carpetas —«Generalistas (12)»—, así que
  * para llegar a un canal hay que entrar en una. Se repite en media prueba.
  */
-async function abrirPrimeraCarpeta(tv) {
-  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 20000 });
-  await tv.locator(".tv-fila.tv-carpeta").first().click();
-  await tv.waitForSelector(".tv-fila:not(.tv-carpeta)", { timeout: 20000 });
+/* El directo ya no entra por un índice de categorías: al abrirlo, los
+   canales están delante. Y el puntero, a una esquina muerta, que en un
+   navegador comparte foco con el mando */
+async function esperarCanales(tv) {
+  await tv.waitForSelector(".tv-dir-canal", { timeout: 20000 });
+  /* Y con su guía puesta: la lista sale antes que las guías —son una
+     petición por canal contra el panel— y sin esperarlas se pone un canal
+     cuya guía todavía no ha llegado, que es una carrera y no una prueba */
+  await tv
+    .waitForFunction(
+      () => (document.querySelector(".tv-dir-prog")?.textContent || "").trim().length > 0,
+      { timeout: 20000 }
+    )
+    .catch(() => {});
   await tv.mouse.move(2, 2);
 }
 
@@ -101,81 +111,106 @@ async function abrirPrimeraCarpeta(tv) {
   await tv.fill("input[name=usuario]", U);
   await tv.fill("input[name=password]", "clave1234");
   await tv.locator(".tv-boton:has-text('Entrar')").first().click();
-  await tv.waitForSelector(".tv-tiles", { timeout: 25000 });
+  await tv.waitForSelector(".tv-pestanas", { timeout: 25000 });
   check("Se puede entrar con usuario desde la propia tele", true);
 
-  /* Tres destinos, y «Salir» aparte: no son la misma clase de cosa. Con los
-     cuatro en la misma rejilla, apagar la tele pesaba lo mismo que entrar en
-     el cine */
-  const tiles = await tv.locator(".tv-tile").allInnerTexts();
+  /* Tres destinos en la fila de pestañas, y «Salir» arriba en la cabecera:
+     no son la misma clase de cosa. Con los cuatro juntos, apagar la tele
+     pesaba lo mismo que entrar en el cine */
+  const tiles = await tv.locator(".tv-pestana").allInnerTexts();
   check("Portada con los tres sitios donde hay algo que ver", tiles.length === 3,
     tiles.join(" | ").replace(/\n/g, " "));
   check("Y «Salir» aparte, sin competir con ellos",
-    (await tv.locator(".tv-salir").count()) === 1 &&
-      (await tv.locator(".tv-tile:has-text('Salir')").count()) === 0);
+    (await tv.locator(".tv-inicio-salir").count()) === 1 &&
+      (await tv.locator(".tv-pestana:has-text('Salir')").count()) === 0);
   check("Con la marca del proveedor", (await tv.locator(".tv-marca").innerText()).toUpperCase().includes("TOTALFLIX"));
   check("Y la MAC a la vista", (await tv.locator(".tv-pie-mac").innerText()).includes(":"));
   check("Sin cabecera de la web ni menús", !(await tv.locator(".site-header").isVisible().catch(() => false)));
 
   // --- El mando ---
-  await tv.keyboard.press("ArrowDown");
-  check("Las flechas mueven el foco", (await tv.locator(".tv-tile.foco").innerText()).includes("Películas"));
-  await tv.keyboard.press("ArrowUp");
+  await tv.keyboard.press("ArrowRight");
+  check("Las flechas mueven el foco", (await tv.locator(".tv-pestana.foco").innerText()).includes("Películas"));
+  await tv.keyboard.press("ArrowLeft");
   await tv.keyboard.press("Enter");
 
-  /* --- El directo abre en la lista, no en una portada de carátulas ---
-     Tuvo su portada, con banner y tarjetas apaisadas, copiada de la de cine.
-     En cine funciona: una película se elige por el cartel. Un canal no tiene
-     cartel, tiene un logotipo cuadrado que estirado queda como una mancha,
-     así que la portada gastaba media pantalla en imágenes que no dicen nada
-     y dejaba ocho canales a la vista donde caben veinte. */
-  await tv.waitForSelector(".tv-fila", { timeout: 25000 });
-  check("TV en directo abre en la lista, sin portada de carátulas",
-    (await tv.locator(".tv-carrusel").count()) === 0);
-  check("Con las carpetas en filas, que es como se lee una guía",
-    (await tv.locator(".tv-fila.tv-carpeta").count()) >= 1);
+  /* --- El directo abre con los canales delante ---
+     Abrió en una portada de carátulas copiada de la de cine, y después en un
+     índice de categorías. Las dos hacían lo mismo mal: enseñar cualquier
+     cosa menos canales. Un canal no tiene cartel —tiene un logotipo cuadrado
+     que estirado queda como una mancha— y una lista de categorías obliga a
+     administrar antes de dejar ver. Ahora la pantalla es una: los canales a
+     la izquierda y lo que dan a la derecha. */
+  await tv.waitForSelector(".tv-dir-canal", { timeout: 25000 });
+  check("TV en directo abre con los canales a la vista",
+    (await tv.locator(".tv-dir-canal").count()) >= 2,
+    `${await tv.locator(".tv-dir-canal").count()} canales`);
+  check("Sin un índice de categorías por delante",
+    (await tv.locator(".tv-fila.tv-carpeta").count()) === 0);
+  check("Cada canal con su distintivo, que en una tele el número importa",
+    (await tv.locator(".tv-dir-marca").first().innerText()).trim().length > 0 ||
+      (await tv.locator(".tv-dir-marca img").count()) > 0);
   await tv.screenshot({ path: __dirname + "/93-tv-directo.png" });
 
-  check("OK entra en TV en directo y lista lo que hay", (await tv.locator(".tv-fila").count()) >= 2);
-  check("Empezando por carpetas, no por miles de canales", (await tv.locator(".tv-fila.tv-carpeta").count()) >= 1);
-
-  await tv.keyboard.press("Enter");
-  await tv.waitForFunction(() => document.querySelectorAll(".tv-fila:not(.tv-carpeta)").length > 0, { timeout: 20000 });
-  check("Al abrir una carpeta salen sus canales", (await tv.locator(".tv-fila:not(.tv-carpeta)").count()) >= 1);
-  check("Numerados, que en una tele el número importa", /001/.test(await tv.locator(".tv-fila").first().innerText()));
   /* --- La cabecera viva del directo ---
      Una lista de nombres de canal no dice nada: con el mando, asomarse a uno
      y volver cuesta cuatro pulsaciones. */
-  await tv.waitForSelector(".tv-ahora", { timeout: 20000 });
-  check("El directo enseña el canal enfocado en grande",
-    (await tv.locator(".tv-ahora-canal").innerText()).trim().length > 0,
-    (await tv.locator(".tv-ahora-canal").innerText()).replace(/\n/g, " "));
+  await tv.waitForSelector(".tv-dir-hero", { timeout: 20000 });
+  check("El canal enfocado se enseña en grande, con lo que echan",
+    (await tv.locator(".tv-dir-hero-t").innerText()).trim().length > 0,
+    (await tv.locator(".tv-dir-hero-t").innerText()).replace(/\n/g, " "));
   /* El programa que está EN ANTENA, no el primero que mande el panel: el
      catálogo simulado empieza la guía en el bloque de la hora anterior, que
      es exactamente lo que hacen la mitad de los paneles de verdad */
   const conGuia = await tv
     .waitForFunction(
-      () => (document.querySelector(".tv-ahora-prog")?.textContent || "").includes("El programa siguiente"),
+      () => (document.querySelector(".tv-dir-hero-t")?.textContent || "").includes("El programa siguiente"),
       { timeout: 20000 }
     )
     .then(() => true)
     .catch(() => false);
   check("Con lo que echan ahora, sin entrar a probar", conGuia,
-    (await tv.locator(".tv-ahora-prog").innerText()).replace(/\n/g, " "));
+    (await tv.locator(".tv-dir-hero-t").innerText()).replace(/\n/g, " "));
   check("Y no con el bloque que ya ha terminado",
-    !(await tv.locator(".tv-ahora-prog").innerText()).includes("Telediario"),
-    (await tv.locator(".tv-ahora-prog").innerText()).replace(/\n/g, " "));
-  check("Y una barra que dice cuánto lleva", (await tv.locator(".tv-ahora-barra span").count()) === 1);
-  check("Y lo que viene después", (await tv.locator(".tv-ahora-luego").innerText()).includes("Después"),
-    (await tv.locator(".tv-ahora-luego").innerText()).replace(/\n/g, " "));
+    !(await tv.locator(".tv-dir-hero-t").innerText()).includes("Telediario"),
+    (await tv.locator(".tv-dir-hero-t").innerText()).replace(/\n/g, " "));
+  check("Y una barra que dice cuánto lleva", (await tv.locator(".tv-dir-hero-barra i").count()) === 1);
+  check("Y lo que viene después, con su hora",
+    (await tv.locator(".tv-dir-luego").innerText()).toUpperCase().includes("A CONTINUACIÓN"),
+    (await tv.locator(".tv-dir-luego").innerText()).replace(/\n/g, " "));
+  /* El puntero, a una esquina muerta, y el foco puesto a mano en el primer
+     canal: en un navegador el ratón y el mando comparten el mismo foco, y
+     con la pantalla todavía montándose lo que hay debajo del puntero quieto
+     se lleva el foco él solo. En una tele no pasa —no hay puntero—, pero
+     aquí falseaba la prueba del mando */
+  await tv.locator(".tv-dir-canal").first().hover();
+  await tv.mouse.move(2, 2);
+  const canal1 = await tv.locator(".tv-dir-chip").innerText();
   await tv.keyboard.press("ArrowDown");
-  await tv.waitForTimeout(300);
-  check("La cabecera sigue al foco: al bajar, cambia de canal",
-    (await tv.locator(".tv-ahora-canal").innerText()).trim().length > 0);
+  await tv.waitForFunction(
+    (antes) => (document.querySelector(".tv-dir-chip")?.textContent || "") !== antes,
+    canal1,
+    { timeout: 10000 }
+  );
+  check("La cabecera sigue al foco: al bajar, cambia de canal", true,
+    `${canal1.replace(/\n/g, " ")} › ${(await tv.locator(".tv-dir-chip").innerText()).replace(/\n/g, " ")}`);
 
-  await tv.keyboard.press("Escape");
-  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 15000 });
-  check("ATRÁS vuelve a las carpetas", true);
+  /* Y las dos filas de la derecha, que es lo que hace de esto una pantalla
+     de televisión y no una lista de nombres */
+  const filasDir = (await tv.locator(".tv-dir-main .tv-carrusel-t").allInnerTexts())
+    .map((t) => t.split("\n")[0].trim());
+  check("Con «En vivo ahora» y «Canales destacados» a la derecha",
+    filasDir.length === 2, filasDir.join(" | "));
+  check("Y las tarjetas del directo llevan su «EN VIVO»",
+    (await tv.locator(".tv-dir-main .tv-vivo").count()) >= 1);
+
+  /* --- El índice completo sigue estando, en su puerta ---
+     La lista de la izquierda enseña lo que hay; un proveedor trae cuarenta
+     categorías y miles de canales, y sin esta puerta el resto del catálogo
+     dejaría de existir. */
+  await tv.locator(".tv-dir-todos").click();
+  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 20000 });
+  check("«Ver todos los canales» lleva al índice de categorías",
+    (await tv.locator(".tv-fila.tv-carpeta").count()) >= 1);
 
   /* El orden manda: las carpetas del directo salían como fueran llegando los
      canales, no como las tiene el proveedor en su panel */
@@ -187,36 +222,54 @@ async function abrirPrimeraCarpeta(tv) {
     JSON.stringify(carpetas) === JSON.stringify(ordenPanel),
     `${carpetas.join(" › ")}  (panel: ${ordenPanel.join(" › ")})`);
   check("Y ninguna carpeta vacía se cuela", !carpetas.includes("Sin carpeta"), carpetas.join(" | "));
-  /* ATRÁS deshace un paso cada vez, y ahora los pasos del directo son dos y
-     no tres: de los canales a sus carpetas, y de las carpetas al menú. Sin
-     portada intermedia no hay nada entre medias que deshacer */
-  await tv.keyboard.press("Escape");
-  await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
-  check("Y de las carpetas, al menú, sin portada de por medio", true);
 
-  /* --- El carril de secciones ---
+  /* Y al abrir una, sus canales vuelven a la pantalla del directo: la
+     categoría es un filtro que se pone encima, no otra pantalla */
+  await tv.locator(".tv-fila.tv-carpeta").first().click();
+  await tv.waitForSelector(".tv-dir-canal", { timeout: 20000 });
+  check("Abrir una categoría filtra la lista, sin cambiar de pantalla",
+    (await tv.locator(".tv-dir-cab h2").innerText()).trim() !== "Canales",
+    (await tv.locator(".tv-dir-cab h2").innerText()).trim());
+  /* Y ATRÁS deshace un paso cada vez, en el orden en que se entró: del
+     filtro al índice, del índice al directo, y del directo al inicio */
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 15000 });
+  check("ATRÁS quita el filtro y devuelve al índice del que se entró", true);
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-dir-canal", { timeout: 15000 });
+  check("Y del índice, otra vez a los canales", true);
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-pestanas", { timeout: 15000 });
+  check("Y de ahí, al inicio, sin pantallas de por medio", true);
+
+  /* --- La barra de secciones ---
      Pasar de las películas a las series eran dos ATRÁS y volver a recorrer
-     la portada con las flechas. Ahora las secciones están siempre a la
-     izquierda, como en cualquier aplicación de televisión. */
-  await tv.locator(".tv-tile:has-text('TV en directo')").click();
-  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 25000 });
-  check("Las listas traen el carril de secciones", (await tv.locator(".tv-carril-item").count()) === 5);
+     el inicio con las flechas. Ahora las secciones están siempre arriba,
+     como en cualquier aplicación de televisión. Estuvieron en un carril a la
+     izquierda que había que abrir con ◀; se comía ancho por donde empieza a
+     leerse la pantalla y obligaba a un gesto que no se parecía a nada. */
+  await tv.locator(".tv-pestana:has-text('TV en directo')").click();
+  await tv.waitForSelector(".tv-dir-canal", { timeout: 25000 });
+  check("Las secciones están siempre arriba, todas",
+    (await tv.locator(".tv-nav-item").count()) === 4 &&
+      (await tv.locator(".tv-nav-salir").count()) === 1,
+    (await tv.locator(".tv-nav-item").allInnerTexts()).join(" | "));
   check("Con la sección en la que estás marcada",
-    (await tv.locator(".tv-carril-item.activo").innerText()).includes("Directo"));
-  await tv.keyboard.press("ArrowLeft");
-  check("◀ desde la primera columna entra en el carril",
-    (await tv.locator(".tv-carril-item.foco").innerText()).replace(/\n/g, " ").includes("Directo"));
-  await tv.keyboard.press("ArrowDown");
+    (await tv.locator(".tv-nav-item.activo").innerText()).includes("Directo"));
+  await tv.keyboard.press("ArrowUp");
+  check("▲ desde la primera fila sube a la barra",
+    (await tv.locator(".tv-nav-item.foco").innerText()).replace(/\n/g, " ").includes("Directo"));
+  await tv.keyboard.press("ArrowRight");
   await tv.keyboard.press("Enter");
   await tv.waitForSelector(".tv-carrusel", { timeout: 25000 });
-  check("Y un OK salta a Cine sin pasar por la portada", true);
-  await tv.keyboard.press("ArrowLeft");
+  check("Y un OK salta a Cine sin pasar por el inicio", true);
+  await tv.keyboard.press("ArrowUp");
   await tv.keyboard.press("Escape");
-  check("ATRÁS dentro del carril solo sale del carril, no de la sección",
-    (await tv.locator(".tv-carril-item.foco").count()) === 0 && (await tv.locator(".tv-carrusel").count()) > 0);
-  await tv.screenshot({ path: __dirname + "/92-tv-carril.png" });
+  check("ATRÁS dentro de la barra solo sale de la barra, no de la sección",
+    (await tv.locator(".tv-nav-item.foco").count()) === 0 && (await tv.locator(".tv-carrusel").count()) > 0);
+  await tv.screenshot({ path: __dirname + "/92-tv-nav.png" });
   await tv.keyboard.press("Escape");
-  await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
+  await tv.waitForSelector(".tv-pestanas", { timeout: 15000 });
 
   /* --- El mando de cada fabricante ---
      Un televisor no manda «Escape»: Samsung manda el código 10009 y LG el
@@ -228,11 +281,11 @@ async function abrirPrimeraCarpeta(tv) {
     }, codigo);
 
   for (const [marca, codigo] of [["Samsung (Tizen)", 10009], ["LG (webOS)", 461]]) {
-    await tv.locator(".tv-tile:has-text('TV en directo')").click();
-    await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 20000 });
+    await tv.locator(".tv-pestana:has-text('TV en directo')").click();
+    await tv.waitForSelector(".tv-dir-canal", { timeout: 20000 });
     await pulsaCodigo(codigo);
     const volvio = await tv
-      .waitForSelector(".tv-tiles", { timeout: 8000 })
+      .waitForSelector(".tv-pestanas", { timeout: 8000 })
       .then(() => true)
       .catch(() => false);
     check(`El ATRÁS del mando de ${marca} vuelve atrás`, volvio, `código ${codigo}`);
@@ -241,7 +294,7 @@ async function abrirPrimeraCarpeta(tv) {
   /* --- Cine y series abren en una portada, no en una lista de carpetas ---
      Entrar en «Películas» y encontrarse cuarenta nombres de carpeta obliga a
      saber en cuál buscar antes de poder mirar nada. */
-  await tv.locator(".tv-tile:has-text('Películas')").click();
+  await tv.locator(".tv-pestana:has-text('Películas')").click();
   await tv.waitForSelector(".tv-carrusel", { timeout: 25000 });
 
   const rotulos = (await tv.locator(".tv-carrusel-t").allInnerTexts()).map((s) => s.trim());
@@ -328,9 +381,15 @@ async function abrirPrimeraCarpeta(tv) {
   check("Y ▼ cambia de fila sin perder la columna", (await enFoco()) === "1:1", await enFoco());
 
   await tv.keyboard.press("ArrowLeft");
-  check("◀ en la columna 0 no sale al carril todavía", (await tv.locator(".tv-carril-item.foco").count()) === 0);
-  await tv.keyboard.press("ArrowLeft");
-  check("Pero pegado al borde, sí", (await tv.locator(".tv-carril-item.foco").count()) === 1);
+  check("◀ vuelve a la carátula anterior, sin salirse de la fila",
+    (await tv.locator(".tv-nav-item.foco").count()) === 0);
+  /* Y a la barra de secciones se sube con ▲, que es donde está: subiendo
+     fila a fila hasta el banner y una más */
+  await tv.keyboard.press("ArrowUp");
+  await tv.keyboard.press("ArrowUp");
+  await tv.keyboard.press("ArrowUp");
+  check("▲ desde lo más alto de la portada sube a la barra",
+    (await tv.locator(".tv-nav-item.foco").count()) === 1);
   await tv.keyboard.press("Escape");
 
   // --- Y las carpetas siguen ahí, al final ---
@@ -382,14 +441,14 @@ async function abrirPrimeraCarpeta(tv) {
   await tv.waitForSelector(".tv-carrusel", { timeout: 15000 });
   check("Y ATRÁS deshace un paso cada vez: carpeta, carpetas, portada", true);
   await tv.keyboard.press("Escape");
-  await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
+  await tv.waitForSelector(".tv-pestanas", { timeout: 15000 });
 
   /* --- Series: la carátula abre su ficha, no una lista de episodios ---
      Una serie se abría en una columna con todas las temporadas seguidas
      —«T1 · E1», «T1 · E2»… hasta la séptima— y una película se ponía a
      reproducir en cuanto se pulsaba. En las dos faltaba lo mismo: de qué va
      el título antes de ponerlo. */
-  await tv.locator(".tv-tile:has-text('Series')").click();
+  await tv.locator(".tv-pestana:has-text('Series')").click();
   await tv.waitForSelector(".tv-carrusel", { timeout: 25000 });
   check("Las series también abren en portada", (await tv.locator(".tv-poster").count()) > 0);
   await tv.locator(".tv-carrusel .tv-poster").first().click();
@@ -498,15 +557,19 @@ async function abrirPrimeraCarpeta(tv) {
   check("Y la fila desaparece al quedarse vacía",
     (await tv.locator(".tv-carrusel-t").first().innerText()).trim() !== "Mi lista",
     (await tv.locator(".tv-carrusel-t").first().innerText()));
+  /* El puntero, a una esquina muerta, antes de salir: al pintarse el inicio,
+     lo que quede debajo del ratón quieto se lleva el foco él solo y la
+     pestaña deja de estar encendida. En una tele no hay puntero */
+  await tv.mouse.move(2, 2);
   await tv.keyboard.press("Escape"); // y de ahí, al menú
-  await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
+  await tv.waitForSelector(".tv-pestanas", { timeout: 15000 });
   check("Al volver a la portada, el foco queda en la sección de la que sales",
-    (await tv.locator(".tv-tile.foco").innerText()).includes("Series"),
-    (await tv.locator(".tv-tile.foco").innerText()).replace(/\n/g, " "));
+    (await tv.locator(".tv-pestana.foco").innerText()).includes("Series"),
+    (await tv.locator(".tv-pestana.foco").innerText()).replace(/\n/g, " "));
   /* Se deja arriba del todo para lo que viene, y el ratón fuera: al volver
      del vídeo, «Seguir viendo» aparece encima de los accesos y se cuela
      justo debajo del puntero, que entonces mueve el foco él solo */
-  await tv.locator(".tv-tile").first().hover();
+  await tv.locator(".tv-pestana").first().hover();
   await tv.mouse.move(2, 2);
 
   /* --- Poner un canal se ve al instante ---
@@ -521,8 +584,8 @@ async function abrirPrimeraCarpeta(tv) {
     await route.continue();
   });
   await tv.keyboard.press("Enter");
-  await abrirPrimeraCarpeta(tv);
-  await tv.locator(".tv-fila:not(.tv-carpeta)").first().click();
+  await esperarCanales(tv);
+  await tv.locator(".tv-dir-canal").first().click();
   const alPulsar = Date.now();
   await tv.waitForSelector(".tv-viendo", { timeout: 6000 });
   const tardanza = Date.now() - alPulsar;
@@ -547,7 +610,7 @@ async function abrirPrimeraCarpeta(tv) {
   /* Y si te sales antes de que llegue, el enlace que llega tarde no puede
      volver a abrir el vídeo él solo */
   await tv.keyboard.press("Escape");
-  await tv.waitForSelector(".tv-fila:not(.tv-carpeta)", { timeout: 15000 });
+  await tv.waitForSelector(".tv-dir-canal", { timeout: 15000 });
   await tv.waitForTimeout(2000);
   check("Saliendo antes de tiempo, el vídeo no vuelve solo",
     (await tv.locator(".tv-viendo").count()) === 0);
@@ -555,16 +618,14 @@ async function abrirPrimeraCarpeta(tv) {
   await tv.mouse.move(2, 2);
 
   // --- Lo último visto, para volver con un solo OK ---
-  /* Dos ATRÁS: de los canales a sus carpetas, y de las carpetas al menú */
+  /* Un solo ATRÁS: de los canales al inicio, sin índice de por medio */
   await tv.keyboard.press("Escape");
-  await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 15000 });
-  await tv.keyboard.press("Escape");
-  await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
+  await tv.waitForSelector(".tv-pestanas", { timeout: 15000 });
   await tv.keyboard.press("Enter");
-  await abrirPrimeraCarpeta(tv);
-  /* El nombre de la fila, sin el número que va delante en su propia casilla */
-  const canal = (await tv.locator(".tv-fila:not(.tv-carpeta) .tv-fila-nombre").first().innerText()).trim();
-  await tv.locator(".tv-fila:not(.tv-carpeta)").first().click();
+  await esperarCanales(tv);
+  /* El nombre del canal, sin el número que va delante en su propia casilla */
+  const canal = (await tv.locator(".tv-dir-canal .tv-dir-nombre").first().innerText()).trim();
+  await tv.locator(".tv-dir-canal").first().click();
   /* El ratón, fuera antes de volver: al salir del vídeo, «Seguir viendo»
      aparece justo donde quedó el puntero del clic y se enfoca él solo —que
      con un ratón es lo correcto, pero aquí falsea lo que hace el mando— */
@@ -573,7 +634,7 @@ async function abrirPrimeraCarpeta(tv) {
   await tv.keyboard.press("Escape");
   await tv.keyboard.press("Escape");
   await tv.keyboard.press("Escape");
-  await tv.waitForSelector(".tv-tiles", { timeout: 15000 });
+  await tv.waitForSelector(".tv-pestanas", { timeout: 15000 });
   check("Tras ver algo, la portada ofrece seguir viéndolo",
     await tv.locator(".tv-seguir").isVisible(), (await tv.locator(".tv-seguir").innerText()).replace(/\n/g, " "));
   check("Con el nombre de lo que se estaba viendo", (await tv.locator(".tv-seguir").innerText()).includes(canal), canal);
@@ -582,8 +643,8 @@ async function abrirPrimeraCarpeta(tv) {
      está «Seguir viendo», y desde ahí mueve el foco él solo */
   await tv.mouse.move(2, 2);
 
-  // Y el mando llega hasta ahí: está por encima de los cuatro accesos
-  await tv.keyboard.press("ArrowUp");
+  // Y el mando llega hasta ahí: está por debajo de las pestañas
+  await tv.keyboard.press("ArrowDown");
   check("El mando llega a «Seguir viendo»", (await tv.locator(".tv-seguir.foco").count()) === 1);
   await tv.keyboard.press("Enter");
   await tv.waitForSelector(".tv-viendo", { timeout: 20000 });
@@ -612,7 +673,7 @@ async function abrirPrimeraCarpeta(tv) {
      Antes salía la pantalla de activación a alguien activado hace meses. */
   await sinRed.route("**/api/customer/me", (route) => route.abort());
   await sinRed.goto(BASE + "/tv?app=1", { waitUntil: "domcontentloaded" });
-  await sinRed.waitForSelector(".tv-tiles", { timeout: 25000 });
+  await sinRed.waitForSelector(".tv-pestanas", { timeout: 25000 });
   check("Sin red, entra igual con lo de la última vez", true);
   check("Y lo dice, en vez de disimular", await sinRed.locator(".tv-sinred").isVisible());
   check("Con su marca, no la genérica", (await sinRed.locator(".tv-marca").innerText()).toUpperCase().includes("TOTALFLIX"));

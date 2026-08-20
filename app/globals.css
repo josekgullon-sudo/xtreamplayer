@@ -2288,9 +2288,9 @@ select.input { appearance: none; cursor: pointer; }
 .tv-seguir {
   display: flex; align-items: center; gap: 2vw; width: 100%;
   margin: 0 0 3vh; padding: 3vh 2.4vw;
-  /* Color entero y no un degradado tintado de rojo: en la portada compiten
-     este botón y los tres destinos, y si el botón se tiñe deja de leerse
-     como una tarjeta más y empieza a leerse como un aviso */
+  /* Color entero y no un degradado tintado de rojo: en el inicio compiten
+     este botón y las pestañas de sección, y si el botón se tiñe deja de
+     leerse como una cosa más y empieza a leerse como un aviso */
   background: var(--bg-elev);
   border: 0.2vw solid var(--border); border-radius: 1.4vw;
   color: var(--text); text-align: left; cursor: pointer;
@@ -2315,72 +2315,6 @@ select.input { appearance: none; cursor: pointer; }
   background: var(--danger-tint); border: 1px solid var(--danger-border); border-radius: 14px;
   color: var(--danger); font-size: 19px;
 }
-/*
- * Los cuatro accesos, en tarjetas anchas y no en cuadrados sueltos.
- *
- * Eran cuatro cuadrados grises flotando en medio de un televisor vacío: la
- * primera pantalla de la aplicación y la más sosa de todas. Ahora son
- * tarjetas apaisadas con el icono en su cuadro de color, el nombre y una
- * línea que dice de qué va cada una, alineadas a la izquierda como el resto
- * de la aplicación. Ocupan el ancho de la pantalla en vez de dejar medio
- * televisor en negro.
- */
-/*
- * Los tres destinos, juntos y centrados.
- *
- * Estaban en una rejilla de dos por dos ocupando el ancho entero, con
- * «Salir» de cuarto: apagar la tele pesaba lo mismo que entrar en el cine, y
- * los cuatro bloques estirados de borde a borde dejaban tanto hueco entre
- * ellos que no se leían como un grupo. Tres en fila, del tamaño justo y en
- * el centro, se recorren de un vistazo.
- */
-.tv-tiles {
-  display: flex; justify-content: center; flex-wrap: nowrap;
-  gap: 1vw; margin-bottom: 3vh; max-width: 100%;
-}
-/*
- * Y con descargas, cuatro en la misma fila.
- *
- * Donde se puede guardar sin conexión —Fire TV y el programa de Windows— hay
- * un acceso más, y con las medidas de tres se salían del ancho del bloque.
- * Se aprieta un poco en vez de partirlos en dos filas: el mando los recorre
- * como una lista, y una rejilla de dos por dos con ▲▼ que se mueven de lado
- * no la entiende nadie.
- */
-.tv-tiles.cuatro { gap: 0.8vw; }
-.tv-tiles.cuatro .tv-tile { padding: 1.7vh 0.8vw; gap: 0.65vw; font-size: 1.2vw; }
-.tv-tiles.cuatro .tv-tile-icono { width: 3.7vw; height: 3.7vw; border-radius: 0.8vw; }
-.tv-tiles.cuatro .tv-tile-sub { font-size: 0.86vw; }
-.tv-tile {
-  display: flex; flex-direction: row; align-items: center; gap: 0.9vw;
-  padding: 1.9vh 1.4vw; text-align: left;
-  background: var(--bg-elev);
-  border: 0.15vw solid var(--border); border-radius: 1vw;
-  color: var(--text); font-size: 1.4vw; font-weight: 750;
-  cursor: pointer; transition: transform 0.12s, background 0.12s, border-color 0.12s, color 0.12s;
-}
-.tv-tile.foco {
-  background: var(--bg-elev-2);
-  border-color: rgba(255, 255, 255, 0.9);
-  color: #fff; transform: scale(1.03);
-  box-shadow: 0 1.4vh 4vh rgba(0, 0, 0, 0.5);
-}
-.tv-tile-icono {
-  flex: none; display: flex; align-items: center; justify-content: center;
-  width: 4.4vw; height: 4.4vw; border-radius: 0.9vw;
-  /* Gris, no rojo. Tres destinos con su cuadro rojo eran tres manchas de
-     color en la primera pantalla, compitiendo entre ellas y con el botón de
-     seguir viendo: el rojo se guarda para lo que hay que mirar, y en la
-     portada eso es dónde está el foco */
-  background: rgba(255, 255, 255, 0.07); color: var(--text-dim);
-}
-.tv-tile-txt { display: flex; flex-direction: column; gap: 0.4vh; min-width: 0; }
-.tv-tile-sub {
-  font-size: 0.95vw; font-weight: 500; color: var(--text-faint);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.tv-tile.foco .tv-tile-icono { background: rgba(255, 255, 255, 0.16); color: #fff; }
-
 .tv-pie { font-size: 1.15vw; color: var(--text-faint); }
 
 /* Cómo se cierra la aplicación de Windows, que sin marco no es evidente */
@@ -2391,117 +2325,204 @@ select.input { appearance: none; cursor: pointer; }
 }
 .tv-salida b { color: var(--text); }
 
-/* ---- El carril de secciones, dentro de las listas ---- */
+/*
+ * ---- La portada de inicio ----
+ *
+ * Marca arriba a la izquierda, los accesos a las secciones en el centro, y
+ * debajo lo que hay: una fila en directo, una de series y una de películas.
+ * Era un lanzador con tres tarjetas y ni un título a la vista; encender la
+ * tele y encontrarse un menú es tener que elegir antes de haber visto nada.
+ */
+.tv-inicio {
+  display: flex; flex-direction: column;
+  padding: 2.6vh 0 0; overflow: hidden;
+}
+.tv-inicio-cab {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4vw 2.4vh; flex: none;
+}
+.tv-inicio .tv-marca { margin: 0; }
+/* Salir es una puerta, no un destino: arriba a la derecha y en fino, para
+   que no compita con los accesos del centro */
+.tv-inicio-salir {
+  display: inline-flex; align-items: center; gap: 0.6vw;
+  padding: 1vh 1.6vw; border-radius: 999px;
+  border: 0.2vw solid transparent; background: rgba(255, 255, 255, 0.05);
+  color: var(--text-dim); font-size: 1.15vw; font-weight: 650; cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+}
+.tv-inicio-salir.foco {
+  border-color: rgba(255, 255, 255, 0.85); background: rgba(255, 255, 255, 0.12); color: #fff;
+}
+
+/*
+ * Los tres accesos, en botones grandes y centrados.
+ *
+ * Como en el boceto: el icono y el nombre, y el que está abierto con su aro.
+ * A tres metros lo que se reconoce es el dibujo; el nombre está para quitar
+ * la duda entre cine y series, que son dos rectángulos con algo dentro.
+ */
+.tv-pestanas {
+  display: flex; justify-content: center; flex-wrap: nowrap;
+  gap: 1.2vw; padding: 0 4vw 2.2vh; flex: none;
+}
+.tv-pestana {
+  display: inline-flex; align-items: center; gap: 0.8vw;
+  padding: 1.5vh 2.4vw; border-radius: 1vw;
+  background: var(--bg-elev); border: 0.22vw solid var(--border);
+  color: var(--text-dim); font-size: 1.5vw; font-weight: 700; cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s, transform 0.14s;
+}
+.tv-pestana svg { color: var(--text-faint); transition: color 0.14s; }
+/* El aro en rojo y no en blanco: aquí el foco no compite con nada más, y es
+   lo que dice el boceto */
+.tv-pestana.foco {
+  border-color: var(--accent); background: var(--bg-elev-2);
+  color: #fff; transform: scale(1.02);
+}
+.tv-pestana.foco svg { color: var(--accent-bright); }
+
+.tv-inicio .tv-seguir { margin: 0 4vw 2vh; width: auto; }
+/* El contenido se desplaza y el pie se queda fijo abajo: sin esto, la
+   última fila quedaba escondida detrás del pie */
+.tv-inicio .tv-cuerpo-portada { flex: 1; min-height: 0; padding-bottom: 2vh; }
+.tv-inicio .tv-pie { padding: 1.4vh 4vw 2vh; text-align: center; flex: none; }
+
+/*
+ * La tarjeta apaisada: la misma forma para un canal, una serie y una película.
+ *
+ * El boceto las enseña todas iguales y con imagen apaisada. La realidad es
+ * que un panel Xtream manda carátulas verticales y logotipos cuadrados, y el
+ * apaisado solo existe cuando TMDB reconoce el título. Así que la caja es
+ * siempre 16:9 y lo que cambia es cómo se rellena: con el fondo apaisado si
+ * lo hay, y si no con la propia imagen difuminada detrás y entera encima.
+ * Estirar una vertical a 16:9 da una mancha de píxeles, y eso se lee como que
+ * la aplicación está rota.
+ */
+.tv-tarjeta {
+  display: flex; flex-direction: column; gap: 0.7vh; flex: 0 0 16.5vw; width: 16.5vw;
+  background: none; border: none; padding: 0;
+  color: rgba(255, 255, 255, 0.72); font-size: 1.15vw; font-weight: 650;
+  text-align: left; cursor: pointer;
+  transition: color 0.12s, transform 0.14s cubic-bezier(0.22, 0.8, 0.2, 1);
+}
+.tv-tarjeta-marco {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+  border-radius: 0.7vw; background: var(--bg-elev-2);
+  border: 0.2vw solid transparent;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.tv-tarjeta-ancha { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* La mancha de color: la propia imagen, muy ampliada y desenfocada */
+.tv-tarjeta-mancha {
+  position: absolute; inset: -20%; width: 140%; height: 140%;
+  object-fit: cover; filter: blur(2.4vw) saturate(1.25); opacity: 0.55;
+}
+.tv-tarjeta-centro {
+  position: absolute; inset: 0; margin: auto;
+  max-width: 62%; max-height: 82%; width: auto; height: auto; object-fit: contain;
+}
+.tv-tarjeta-ph {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0.8vw; text-align: center; line-height: 1.35;
+  font-size: 1.05vw; font-weight: 700; color: rgba(255, 255, 255, 0.5);
+}
+/* «EN VIVO» solo donde lo hay: un canal se está emitiendo, una película no */
+.tv-vivo {
+  position: absolute; top: 0.7vh; left: 0.6vw;
+  display: flex; align-items: center; gap: 0.35vw;
+  padding: 0.35vh 0.7vw; border-radius: 0.35vw;
+  background: var(--accent); color: #fff;
+  font-size: 0.8vw; font-weight: 800; letter-spacing: 0.06em;
+}
+.tv-vivo .tv-punto { background: #fff; }
+/* La misma pastilla, pero suelta en el texto de la cabecera del directo:
+   ahí no hay carátula sobre la que ponerla */
+.tv-vivo-suelto { position: static; font-size: 0.95vw; padding: 0.5vh 0.9vw; }
+.tv-tarjeta-t {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tv-tarjeta-sub {
+  font-size: 0.95vw; font-weight: 600; color: var(--text-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tv-tarjeta.foco { color: #fff; transform: scale(1.04); }
+.tv-tarjeta.foco .tv-tarjeta-marco {
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1vh 3vh rgba(0, 0, 0, 0.6);
+}
+.tv-tarjeta.foco .tv-tarjeta-sub { color: var(--text-dim); }
+
+/* ---- La barra de secciones, arriba ---- */
 
 /*
  * Antes, pasar de las películas a las series eran dos ATRÁS y volver a
- * recorrer la portada con las flechas. Ahora las secciones están siempre
- * ahí, a la izquierda, como en cualquier aplicación de televisión.
- */
-/*
- * El carril sale del flujo y el hueco lo reserva el relleno: así, al
- * abrirse, crece por encima del contenido en vez de empujarlo.
+ * recorrer la portada con las flechas. Ahora las secciones están siempre a
+ * la vista.
  *
- * Sin `position` propia a propósito: `.tv-app` ya es `fixed`, que sirve de
- * ancla igual de bien. Poniéndole `relative` aquí se pisaba aquel `fixed`,
- * la pantalla dejaba de ocupar el alto completo y el carril se quedaba de la
- * altura del contenido — con los iconos centrados sobre media pantalla.
+ * Estuvieron en un carril de iconos pegado al borde izquierdo, que se abría
+ * al rozarlo. Funcionaba, pero se comía ancho justo por donde empieza a
+ * leerse la pantalla, escondía los nombres detrás de un gesto, y obligaba a
+ * aprenderse un movimiento propio —◀ para entrar en el menú— que no se
+ * parecía a nada del resto de la aplicación. Arriba y en horizontal se lee
+ * de una pasada, no tapa nada y se entra con ▲ desde la primera fila, que es
+ * hacia donde está.
  */
-.tv-con-carril { flex-direction: row; padding-left: 5.6vw; }
+.tv-con-nav { flex-direction: column; }
 .tv-cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
-/*
- * Cerrado, solo iconos; abierto, con sus nombres.
- *
- * Abierto todo el rato se llevaba un trozo de ancho permanente para enseñar
- * cinco palabras que uno se sabe de memoria a la segunda vez. Cerrado, ese
- * ancho es del contenido —que es a lo que se ha venido— y los nombres
- * aparecen justo cuando hacen falta: al entrar en el carril con ◀ o al
- * pasarle el ratón. Un icono suelto es ambiguo la primera vez; a partir de
- * ahí, el texto sobra.
- *
- * Y al abrirse FLOTA por encima en vez de empujar: si ensanchara de verdad,
- * toda la lista de la derecha se correría de sitio cada vez que se roza el
- * menú, y lo que estabas mirando se movería debajo del ojo.
- */
-.tv-carril {
-  position: absolute; top: 0; bottom: 0; left: 0; z-index: 5;
-  width: 5.6vw;
-  /* Agrupados y centrados en vertical, no repartidos por toda la altura:
-     cinco iconos desperdigados de arriba abajo se leen como cinco cosas
-     sueltas y no como un menú */
-  display: flex; flex-direction: column; justify-content: center; gap: 0.2vh;
-  padding: 2vh 0.8vw;
-  /* Del color del fondo: cerrado no es un panel, es una columna de iconos.
-     El velo y el filo lo dibujaban como una barra permanente que competía
-     con el contenido */
-  background: transparent; border-right: none;
-  transition: background 0.18s ease;
+.tv-nav {
+  flex: none;
+  display: flex; align-items: center; gap: 2vw;
+  padding: 2.2vh 4vw 1.6vh;
+  border-bottom: 0.1vw solid var(--border);
 }
-.tv-carril.abierto {
-  /* Crece por encima del contenido; el hueco de debajo no se mueve */
-  width: auto; min-width: 16vw;
-  background: var(--bg-elev);
-  box-shadow: 0.6vw 0 3vw rgba(0, 0, 0, 0.6);
+.tv-nav-marca {
+  display: flex; align-items: center; gap: 0.7vw;
+  font-size: 1.35vw; font-weight: 800; letter-spacing: -0.01em;
+  white-space: nowrap;
 }
-.tv-carril-item {
-  display: flex; flex-direction: column; align-items: center; gap: 0.7vh;
-  padding: 1vh 0.2vw; border-radius: 1vw;
-  background: none; border: 0.2vw solid transparent; cursor: pointer;
-  color: rgba(255, 255, 255, 0.72); font-size: 1.05vw; font-weight: 700;
+.tv-nav-marca .tv-marca-logo { width: 2.4vw; height: 2.4vw; max-width: 46px; max-height: 46px; border-radius: 0.5vw; object-fit: contain; }
+
+/* Las secciones, centradas: son el eje de la pantalla, no un apéndice de la
+   marca ni del botón de salir */
+.tv-nav-items { display: flex; align-items: center; gap: 0.6vw; margin: 0 auto; }
+.tv-nav-item {
+  display: flex; align-items: center; gap: 0.5vw;
+  padding: 1vh 1.3vw; border-radius: 0.7vw;
+  background: none; border: 0.16vw solid transparent; cursor: pointer;
+  color: rgba(255, 255, 255, 0.6); font-size: 1.15vw; font-weight: 700;
+  white-space: nowrap;
   transition: color 0.12s, background 0.12s, border-color 0.12s;
 }
 /*
- * El nombre no se quita con `display`, se colapsa.
+ * La sección en la que estás lleva el subrayado de marca; el foco, un cerco.
  *
- * Con `display: none` el texto no existe y no puede animarse: aparecería de
- * golpe. Así el ancho va de cero a lo que ocupe y el carril se abre en vez
- * de dar un salto — y de paso el lector de pantalla lo sigue leyendo.
+ * Son dos cosas distintas —dónde estoy y qué se abre si pulso OK— y con un
+ * solo recurso para las dos no se sabía cuál era cuál al recorrer la barra
+ * con el mando desde la sección abierta.
  */
-/*
- * Cerrado no ocupa NADA, ni de ancho ni de alto.
- *
- * Colapsando solo el ancho, el hueco de la línea de texto seguía ahí y
- * separaba los iconos casi el doble de lo que miden: parecían cinco cosas
- * sueltas repartidas por el lateral en vez de un menú.
- */
-.tv-carril-txt {
-  max-width: 0; height: 0; overflow: hidden; white-space: nowrap; opacity: 0;
-  transition: max-width 0.22s cubic-bezier(0.22, 0.8, 0.2, 1),
-    height 0.22s cubic-bezier(0.22, 0.8, 0.2, 1), opacity 0.18s ease;
+.tv-nav-item.activo { color: #fff; position: relative; }
+.tv-nav-item.activo::after {
+  content: ""; position: absolute; left: 1.3vw; right: 1.3vw; bottom: -0.1vh;
+  height: 0.3vh; border-radius: 0.3vh; background: var(--accent);
 }
-.tv-carril.abierto .tv-carril-item {
-  flex-direction: row; justify-content: flex-start; gap: 0.9vw;
-  padding: 1.4vh 0.9vw;
-}
-.tv-carril.abierto .tv-carril-txt { max-width: 9vw; height: auto; opacity: 1; }
-.tv-carril-icono {
-  display: flex; align-items: center; justify-content: center;
-  width: 3.4vw; height: 3.4vw; max-width: 66px; max-height: 66px;
-  border-radius: 0.9vw;
-  /* Sin pastilla de fondo: el cuadrado gris detrás de cada icono los dejaba
-     apagados y lavados, como si estuvieran deshabilitados. El icono se
-     dibuja solo; el fondo aparece cuando hay foco, que es cuando significa
-     algo */
-  background: transparent;
-  transition: background 0.12s, color 0.12s;
-}
-/*
- * La sección en la que estás se marca por brillo, no por color.
- *
- * Iba en rojo, y el rojo ya dice «esto se pulsa». Además, teñir
- * permanentemente un icono del menú hace que el color de marca esté siempre
- * en pantalla sin señalar nada. Aquí el activo es simplemente el único que
- * está a plena luz —los demás van al 55%—, que se distingue igual de bien y
- * no gasta el color.
- */
-.tv-carril-item.activo { color: #fff; }
-.tv-carril-item.activo .tv-carril-icono { background: transparent; color: #fff; }
-.tv-carril-item.foco {
+.tv-nav-item.foco {
   border-color: rgba(255, 255, 255, 0.85); color: #fff;
   background: rgba(255, 255, 255, 0.10);
 }
-.tv-carril-item.foco .tv-carril-icono { background: rgba(255, 255, 255, 0.14); }
+.tv-nav-salir {
+  display: flex; align-items: center; gap: 0.5vw;
+  padding: 1vh 1.2vw; border-radius: 0.7vw;
+  background: none; border: 0.16vw solid transparent; cursor: pointer;
+  color: rgba(255, 255, 255, 0.55); font-size: 1.05vw; font-weight: 700;
+  white-space: nowrap;
+}
+.tv-nav-salir.foco {
+  border-color: rgba(255, 255, 255, 0.85); color: #fff;
+  background: rgba(255, 255, 255, 0.10);
+}
 
 /* ---- Listas: una columna, filas altas, foco imposible de perder ---- */
 
@@ -2781,82 +2802,255 @@ select.input { appearance: none; cursor: pointer; }
  * en una línea diminuta debajo del nombre.
  */
 /*
- * El directo, en dos columnas.
+ * ---- TV en directo: los canales a la izquierda, lo que dan a la derecha ----
  *
- * Los canales a la izquierda y el detalle del que tienes bajo el foco a la
- * derecha. Antes iban uno encima del otro, y eso en una tele es tirar media
- * pantalla: la ficha se llevaba un tercio del alto para enseñar cuatro datos
- * en una línea, y a la lista le quedaban seis canales visibles donde caben
- * quince. Una pantalla de televisor es ancha, no alta.
+ * Antes esto eran dos pantallas seguidas —el índice de categorías y, dentro,
+ * la lista de canales— y luego dos columnas dentro de la segunda. Encender
+ * la tele y que lo primero sea un índice es hacer administrar antes de dejar
+ * ver. Ahora la pantalla es una: la lista se recorre a la izquierda y la
+ * mitad derecha enseña lo que echan en el canal que tienes debajo del foco,
+ * sin entrar. Una pantalla de televisor es ancha, no alta; lo que sobra es a
+ * los lados.
  */
-.tv-directo-cols {
-  display: flex; gap: 2.5vw; flex: 1; min-height: 0;
-  padding: 0 4vw 3vh;
+.tv-directo {
+  flex: 1; min-height: 0;
+  display: flex; gap: 2.2vw;
+  padding: 2.4vh 4vw 3vh;
 }
-/*
- * La lista, a la izquierda; el detalle, a la derecha.
- *
- * En el HTML el detalle va primero porque estaba escrito como una cabecera,
- * de cuando iba encima. Reordenarlo con `order` en vez de mover el marcado
- * deja intacta la navegación con el mando, que recorre la lista en el orden
- * en que está escrita: cambiando el HTML habría que rehacerla entera para
- * volver justo al mismo sitio.
- *
- * Y la lista se lleva el lado izquierdo porque es lo que se recorre: en
- * castellano se lee de izquierda a derecha, así que el cursor tiene que
- * empezar donde empieza la mirada.
- */
-.tv-directo-cols .tv-lista { order: 1; flex: 0 0 46%; padding: 0; }
-.tv-directo-cols .tv-ahora { order: 2; flex: 1; }
 
-.tv-ahora {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 1.6vh;
-  align-self: flex-start;
-  padding: 2.4vh 2vw;
-  background: var(--bg-elev); border: 1px solid var(--border);
-  border-radius: 1vw;
+/* ---- La columna de canales ---- */
+
+.tv-dir-canales {
+  flex: 0 0 27vw; min-width: 0;
+  display: flex; flex-direction: column; gap: 1.2vh;
 }
-/* En columna, el logotipo puede ser grande de verdad: es lo que identifica
-   el canal de un vistazo, y a tres metros un logotipo pequeño no es nada */
-.tv-ahora-logo {
-  flex: none; width: 100%; height: 11vh;
+.tv-dir-cab { display: flex; align-items: baseline; gap: 0.8vw; }
+.tv-dir-cab h2 {
+  font-size: 1.6vw; font-weight: 800; letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tv-dir-cuenta {
+  font-size: 1.05vw; font-weight: 700; color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.tv-dir-lista {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 0.7vh;
+  scrollbar-width: none;
+}
+.tv-dir-lista::-webkit-scrollbar { display: none; }
+
+/*
+ * Cada canal: su distintivo, su nombre y qué dan.
+ *
+ * El distintivo es el logotipo si lo hay y el número si no. Cuadrado y del
+ * mismo tamaño siempre, porque lo que hace legible una lista larga es que
+ * todas las filas empiecen en la misma columna: con logotipos de anchos
+ * distintos, los nombres bailan y la vista deja de poder recorrerla.
+ */
+.tv-dir-canal {
+  flex: none;
+  display: flex; align-items: center; gap: 0.9vw;
+  padding: 1.1vh 0.9vw; border-radius: 0.7vw;
+  background: var(--bg-elev); border: 0.16vw solid transparent;
+  cursor: pointer; text-align: left; color: inherit;
+  transition: background 0.12s, border-color 0.12s;
+}
+.tv-dir-marca {
+  flex: none; width: 3.2vw; height: 3.2vw; max-width: 62px; max-height: 62px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.06); border-radius: 0.7vw;
-  color: var(--text-faint); overflow: hidden;
+  border-radius: 0.5vw; overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-dim); font-size: 1.2vw; font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
-.tv-ahora-logo img { max-width: 84%; max-height: 84%; object-fit: contain; }
-.tv-ahora-txt { min-width: 0; width: 100%; display: flex; flex-direction: column; gap: 0.9vh; }
-.tv-ahora-canal {
-  font-size: 2vw; font-weight: 750; line-height: 1.1;
+.tv-dir-marca img { max-width: 82%; max-height: 82%; object-fit: contain; }
+.tv-dir-txt { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 0.2vh; }
+.tv-dir-nombre {
+  font-size: 1.15vw; font-weight: 700; line-height: 1.2;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.tv-ahora-num {
-  display: inline-block; margin-right: 0.8vw; padding: 0 0.6vw;
-  border-radius: 0.4vw; background: rgba(255, 255, 255, 0.08);
-  color: var(--text-dim); font-size: 1.3vw; font-weight: 700;
-  vertical-align: middle;
-}
-.tv-ahora-prog {
-  display: flex; align-items: center; gap: 0.7vw;
-  font-size: 1.4vw; color: var(--text);
+/* El hueco se reserva aunque la guía no haya llegado: si no, las filas
+   crecen solas según van contestando y la lista salta debajo del ojo */
+.tv-dir-prog {
+  min-height: 1.5vh;
+  font-size: 0.95vw; color: var(--text-faint);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.tv-ahora-singuia { color: var(--text-faint); font-size: 1.2vw; }
-.tv-ahora-queda { color: var(--text-faint); font-size: 1.1vw; font-weight: 600; }
-/* La barra: cuánto lleva el programa, que es lo que dice si merece la pena
-   entrar ahora o esperar al siguiente */
-.tv-ahora-barra {
-  display: block; height: 0.5vh; min-height: 4px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14); overflow: hidden;
+.tv-dir-vivo {
+  flex: none; display: flex; align-items: center; gap: 0.35vw;
+  font-size: 0.8vw; font-weight: 800; letter-spacing: 0.06em;
+  color: var(--accent);
 }
-.tv-ahora-barra span {
+.tv-dir-canal.foco {
+  background: rgba(229, 9, 20, 0.12); border-color: var(--accent);
+}
+.tv-dir-todos {
+  flex: none; align-self: flex-start;
+  padding: 1vh 1vw; border-radius: 0.6vw;
+  background: none; border: 0.16vw solid transparent; cursor: pointer;
+  color: var(--text-dim); font-size: 1.05vw; font-weight: 700;
+}
+.tv-dir-todos.foco {
+  border-color: rgba(255, 255, 255, 0.85); color: #fff;
+  background: rgba(255, 255, 255, 0.10);
+}
+
+/* ---- Y la mitad derecha ---- */
+
+.tv-dir-main {
+  flex: 1; min-width: 0; min-height: 0;
+  display: flex; flex-direction: column; gap: 2.2vh;
+  overflow-y: auto; scrollbar-width: none;
+}
+.tv-dir-main::-webkit-scrollbar { display: none; }
+
+/*
+ * Lo que están dando, a lo ancho.
+ *
+ * Un canal no tiene cartel apaisado: tiene un logotipo cuadrado que estirado
+ * queda como una mancha de píxeles, y eso se lee como que la aplicación está
+ * rota. Así que la mancha se usa a propósito —ampliada y desenfocada, de
+ * fondo, donde lo borroso ES el efecto— y lo que ocupa el sitio del cartel
+ * es el título del programa, que es lo que se está eligiendo.
+ */
+.tv-dir-hero {
+  flex: none; position: relative;
+  aspect-ratio: 16 / 6.6; width: 100%;
+  border-radius: 1vw; overflow: hidden;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  display: flex; align-items: flex-end;
+}
+.tv-dir-hero-mancha {
+  position: absolute; inset: -12%; width: 124%; height: 124%;
+  object-fit: cover; filter: blur(3.2vw) saturate(1.15); opacity: 0.5;
+}
+.tv-dir-hero-velo {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.6) 55%, rgba(0, 0, 0, 0.25) 100%);
+}
+.tv-dir-hero-logo {
+  position: absolute; right: 3vw; top: 50%; transform: translateY(-50%);
+  width: 16vw; height: 60%;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255, 255, 255, 0.16);
+}
+.tv-dir-hero-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.tv-dir-hero-txt {
+  position: relative; z-index: 1;
+  max-width: 68%; padding: 2.6vh 2.4vw;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1.1vh;
+}
+.tv-dir-hero-t {
+  font-size: 2.6vw; font-weight: 850; line-height: 1.05; letter-spacing: -0.02em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tv-dir-hero-sub {
+  font-size: 1.1vw; color: var(--text-dim); line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tv-dir-hero-datos { display: flex; align-items: center; gap: 1vw; flex-wrap: wrap; }
+.tv-dir-hora {
+  display: flex; align-items: center; gap: 0.4vw;
+  font-size: 1.1vw; font-weight: 700; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.tv-dir-chip {
+  display: flex; align-items: center; gap: 0.5vw;
+  padding: 0.5vh 0.9vw; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  font-size: 1vw; font-weight: 700;
+}
+.tv-dir-chip b { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.tv-dir-hero-barra {
+  display: block; width: 60%; height: 0.5vh; min-height: 4px;
+  border-radius: 999px; background: rgba(255, 255, 255, 0.18); overflow: hidden;
+}
+.tv-dir-hero-barra i {
   display: block; height: 100%; background: var(--accent);
   border-radius: 999px; transition: width 0.4s linear;
 }
-.tv-ahora-luego {
-  font-size: 1.15vw; color: var(--text-faint);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+.tv-dir-ver {
+  display: flex; align-items: center; gap: 0.6vw;
+  margin-top: 0.4vh; padding: 1.1vh 1.6vw; border-radius: 0.6vw;
+  background: #fff; color: #000; border: 0.2vw solid transparent;
+  font-size: 1.2vw; font-weight: 800; cursor: pointer;
 }
+.tv-dir-ver.foco { border-color: var(--accent); box-shadow: 0 0 0 0.3vw rgba(229, 9, 20, 0.35); }
+
+/*
+ * Y lo que viene después, en una tira.
+ *
+ * Con el mando en la mano no se decide solo «me quedo o no»: se decide si
+ * volver a las diez. La hora delante y en negrita porque es lo que recorre
+ * la vista; el título, detrás.
+ */
+.tv-dir-luego {
+  flex: none; display: flex; align-items: baseline; gap: 1.4vw; flex-wrap: wrap;
+  font-size: 1vw; color: var(--text-dim);
+}
+.tv-dir-luego-t {
+  font-size: 0.85vw; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+.tv-dir-luego-p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 22vw; }
+.tv-dir-luego-p b { color: var(--text); font-variant-numeric: tabular-nums; margin-right: 0.3vw; }
+
+/*
+ * Los carruseles de esta pantalla van dentro de una columna, no a lo ancho
+ * de la pantalla: el relleno de 4vw que los separa del borde aquí los
+ * separaría del canal que tienen al lado, y quedaría un hueco muerto en
+ * mitad del televisor.
+ */
+.tv-dir-main .tv-carrusel { padding: 0; }
+.tv-dir-main .tv-carrusel-t {
+  display: flex; align-items: center;
+  padding: 0 0 0.8vh; font-size: 1.35vw;
+}
+.tv-dir-main .tv-carrusel-t::after { display: none; }
+.tv-dir-main .tv-carrusel-tira { padding: 1.8vh 0 2vh; }
+.tv-dir-main .tv-carrusel-tira.anchas .tv-tarjeta { flex: 0 0 15vw; width: 15vw; }
+
+/* «Ver todos» al final del rótulo de cada fila: la fila enseña catorce, y
+   sin esta puerta el resto del catálogo dejaría de existir */
+.tv-carrusel-todos {
+  margin-left: 1vw; padding: 0.4vh 0.7vw; border-radius: 0.5vw;
+  background: none; border: 0.16vw solid transparent; cursor: pointer;
+  color: var(--text-faint); font-size: 0.95vw; font-weight: 700;
+}
+.tv-carrusel-todos.foco {
+  border-color: rgba(255, 255, 255, 0.85); color: #fff;
+  background: rgba(255, 255, 255, 0.10);
+}
+
+/* Los destacados van en pastilla: aquí se elige por el canal, no por el
+   programa, y una tarjeta apaisada para decir «Antena 3» es mucho hueco */
+.tv-carrusel-tira.chips { gap: 0.8vw; }
+.tv-chip-canal {
+  flex: none; display: flex; align-items: center; gap: 0.7vw;
+  padding: 0.9vh 1vw; border-radius: 0.7vw;
+  background: var(--bg-elev); border: 0.16vw solid transparent;
+  cursor: pointer; color: inherit;
+  transition: background 0.12s, border-color 0.12s;
+}
+.tv-chip-logo {
+  flex: none; width: 2.6vw; height: 2.6vw; max-width: 50px; max-height: 50px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 0.4vw; overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-dim); font-size: 1vw; font-weight: 800;
+}
+.tv-chip-logo img { max-width: 82%; max-height: 82%; object-fit: contain; }
+.tv-chip-nombre {
+  font-size: 1.05vw; font-weight: 700; white-space: nowrap;
+  max-width: 10vw; overflow: hidden; text-overflow: ellipsis;
+}
+.tv-chip-canal.foco { background: rgba(229, 9, 20, 0.12); border-color: var(--accent); }
+
+/* La tarjeta de un canal enseña el programa, así que el logotipo va centrado
+   sobre su propia mancha en vez de estirado: ver `.tv-tarjeta` */
+.tv-tarjeta-canal .tv-tarjeta-t { font-weight: 750; }
+
 /*
  * Y debajo, la tarde entera.
  *
@@ -3091,50 +3285,6 @@ select.input { appearance: none; cursor: pointer; }
 }
 .tv-canal.foco .tv-canal-prog { color: var(--text-dim); }
 
-/*
- * El banner del directo.
- *
- * Sin imagen de fondo: el logotipo de un canal ampliado a pantalla completa
- * es una mancha, no un fondo. Lo que llena el sitio es el propio dato —qué
- * dan, cuánto le queda, qué viene después— y el logotipo en su caja a la
- * derecha, que es como se ve un logotipo.
- */
-.tv-banner-canal {
-  height: 40vh;
-  background: var(--bg-elev);
-  border-bottom: 1px solid var(--border);
-}
-.tv-banner-canal .tv-banner-txt { max-width: 58vw; }
-.tv-banner-antena {
-  display: flex; align-items: center; gap: 0.6vw;
-  font-size: 1.1vw; font-weight: 750; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--accent-bright);
-}
-.tv-banner-canal .tv-banner-t { font-size: 2.8vw; }
-.tv-banner-prog {
-  display: flex; align-items: baseline; gap: 0.8vw;
-  font-size: 1.5vw; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 100%;
-}
-.tv-banner-barra {
-  display: block; width: 26vw; max-width: 100%;
-  height: 0.5vh; min-height: 4px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16); overflow: hidden;
-}
-.tv-banner-barra i {
-  display: block; height: 100%; background: var(--accent);
-  border-radius: 999px; transition: width 0.4s linear;
-}
-.tv-banner-luego { font-size: 1.15vw; color: var(--text-faint); }
-.tv-banner-canal-logo {
-  position: absolute; right: 5vw; top: 50%; transform: translateY(-50%);
-  width: 20vw; height: 12vw;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.07); border: 1px solid var(--border);
-  border-radius: 1.2vw; color: var(--text-faint); overflow: hidden;
-}
-.tv-banner-canal-logo img { max-width: 76%; max-height: 72%; object-fit: contain; }
 
 /*
  * El número del ranking va ENCIMA de la carátula, no fuera.
@@ -3576,7 +3726,48 @@ select.input { appearance: none; cursor: pointer; }
 /* En una tele pequeña o en el navegador de pruebas, los vw se quedan cortos */
 @media (max-width: 900px) {
   .tv-app { font-size: 16px; }
-  .tv-tile { width: 38vw; height: 38vw; font-size: 15px; }
+  /* La barra de secciones, en una línea que se desplaza: en 900px no caben
+     cinco nombres con su icono, y partida en dos filas se lleva un tercio
+     de la pantalla */
+  .tv-nav { gap: 12px; padding: 12px 16px; overflow-x: auto; scrollbar-width: none; }
+  .tv-nav::-webkit-scrollbar { display: none; }
+  .tv-nav-marca { font-size: 15px; }
+  .tv-nav-marca .tv-marca-logo { width: 28px; height: 28px; }
+  .tv-nav-items { gap: 4px; margin: 0; }
+  .tv-nav-item { font-size: 14px; padding: 8px 10px; border-radius: 8px; border-width: 2px; }
+  .tv-nav-item.activo::after { left: 10px; right: 10px; height: 3px; }
+  .tv-nav-salir { font-size: 14px; padding: 8px 10px; border-radius: 8px; border-width: 2px; }
+  .tv-nav-salir span { display: none; }
+
+  /* Y el directo, en una sola columna: los canales debajo de lo que dan.
+     Dos columnas de 27vw en un móvil son dos columnas de nada */
+  .tv-directo { flex-direction: column; gap: 16px; padding: 16px; overflow-y: auto; }
+  .tv-dir-canales { flex: none; }
+  .tv-dir-lista { overflow: visible; max-height: none; }
+  .tv-dir-cab h2 { font-size: 20px; }
+  .tv-dir-canal { padding: 10px; border-radius: 12px; border-width: 2px; }
+  .tv-dir-marca { width: 44px; height: 44px; border-radius: 8px; font-size: 15px; }
+  .tv-dir-nombre { font-size: 15px; }
+  .tv-dir-prog, .tv-dir-vivo { font-size: 12px; }
+  .tv-dir-main { overflow: visible; }
+  .tv-dir-hero { aspect-ratio: 16 / 10; }
+  .tv-dir-hero-logo { display: none; }
+  .tv-dir-hero-txt { max-width: none; padding: 16px; gap: 8px; }
+  .tv-dir-hero-t { font-size: 24px; }
+  .tv-dir-hero-sub, .tv-dir-hora, .tv-dir-chip { font-size: 13px; }
+  .tv-dir-ver { font-size: 15px; padding: 10px 16px; border-radius: 10px; }
+  .tv-dir-luego, .tv-dir-luego-p { font-size: 13px; }
+  .tv-dir-luego-t { font-size: 11px; }
+  .tv-dir-luego-p { max-width: 60vw; }
+  .tv-dir-todos { font-size: 14px; }
+  .tv-dir-main .tv-carrusel-t { font-size: 17px; }
+  .tv-carrusel-todos { font-size: 13px; }
+  .tv-dir-main .tv-carrusel-tira.anchas .tv-tarjeta { flex: 0 0 44vw; width: 44vw; }
+  .tv-chip-logo { width: 36px; height: 36px; }
+  .tv-chip-nombre { font-size: 14px; max-width: 34vw; }
+
+  /* Y las pestañas del inicio, que en 900px no caben de cuatro en cuatro */
+  .tv-pestana { font-size: 14px; }
   .tv-activar h1 { font-size: 26px; }
   .tv-activar-paso, .tv-cargando { font-size: 15px; }
   .tv-cabecera h2 { font-size: 20px; }
@@ -3594,14 +3785,9 @@ select.input { appearance: none; cursor: pointer; }
   .tv-canal-marco { border-radius: 10px; border-width: 2px; }
   .tv-canal-ph, .tv-canal-prog, .tv-canal-nombre b { font-size: 12px; }
   .tv-canal-prog { height: 16px; }
-  .tv-banner-canal { height: 34vh; }
-  .tv-banner-canal .tv-banner-t { font-size: 24px; }
-  .tv-banner-antena, .tv-banner-luego { font-size: 12px; }
-  .tv-banner-prog { font-size: 15px; }
-  .tv-banner-barra { width: 46vw; }
+
   /* En pantalla estrecha el logotipo se come el texto: fuera */
-  .tv-banner-canal-logo { display: none; }
-  .tv-banner-canal .tv-banner-txt { max-width: none; }
+
 }
 
 /* Código de activación en el móvil: se teclea una vez, que se lea bien */

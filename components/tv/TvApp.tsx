@@ -249,6 +249,8 @@ interface Guia {
   /** En milisegundos. 0 si el panel no manda horas, que pasa. */
   desde: number;
   hasta: number;
+  /** De qué va. Vacío en la mayoría de paneles, que solo mandan el título. */
+  resumen: string;
 }
 
 /**
@@ -387,6 +389,24 @@ export default function TvApp() {
   const [fichaEp, setFichaEp] = useState(0);
   /** Carpeta abierta dentro de una sección (null = viendo las carpetas) */
   const [carpetaAbierta, setCarpetaAbierta] = useState<string>("");
+  /**
+   * Todos los canales del panel, en plano y sin agrupar.
+   *
+   * La pantalla del directo enseña dos cosas a la vez —la lista de la
+   * izquierda y las filas de la derecha— y las dos salen de aquí. Sin esto,
+   * al entrar en una categoría `filas` pasaba a ser solo la de esa categoría
+   * y las filas de abajo se quedaban con lo que hubiera dentro, que es
+   * justo lo contrario de lo que hacen: enseñar lo que hay fuera.
+   */
+  const [canales, setCanales] = useState<Fila[]>([]);
+  /**
+   * En qué mitad de la pantalla del directo está el foco.
+   *
+   * Va aparte del número de foco por lo mismo que la barra de secciones: son
+   * dos sitios distintos y cada uno recuerda por dónde iba. Con un solo
+   * número, ir a la derecha y volver perdía el canal en el que estabas.
+   */
+  const [zonaDir, setZonaDir] = useState<"canales" | "derecha">("canales");
   const [poniendoLista, setPoniendoLista] = useState(false);
   const [haciendoLogin, setHaciendoLogin] = useState(false);
   const [entrando, setEntrando] = useState(false);
@@ -530,6 +550,16 @@ export default function TvApp() {
    */
   const [vista, setVista] = useState<"portada" | "carpetas">("portada");
   const [filasPortada, setFilasPortada] = useState<FilaPortada[]>([]);
+  /*
+   * La portada de inicio: lo que hay en las tres secciones, a la vez.
+   *
+   * Antes esta pantalla era un lanzador —tres tarjetas con el nombre de cada
+   * sección— y no enseñaba ni un título. Encender la tele y que lo primero
+   * que veas sea un menú es hacerte elegir antes de haber visto nada. Ahora
+   * es una portada: qué hay en directo, qué series y qué películas, y los
+   * tres accesos arriba para ir a la sección entera.
+   */
+  const [filasInicio, setFilasInicio] = useState<FilaPortada[]>([]);
   /** Qué fila y qué carátula tienen el foco. La fila −1 es el banner. */
   const [focoFila, setFocoFila] = useState(-1);
   const [focoCol, setFocoCol] = useState(0);
@@ -555,17 +585,8 @@ export default function TvApp() {
    * condición se quedaban detrás de la portada y pulsar OK sobre una serie
    * no hacía nada visible. Lo mismo con una carpeta abierta.
    */
-  /**
-   * El directo también tiene portada, pero de canales.
-   *
-   * Con una lista M3U no la hay —de un M3U no salen categorías ni logotipos
-   * fiables, solo grupos—, y por eso se pide que haya filas montadas: si no
-   * las hay, el directo se enseña como siempre, por carpetas.
-   */
-  const portadaDeCanales = pantalla === "directo" && filasPortada.length > 0;
-
   const enPortada =
-    (pantalla === "cine" || pantalla === "series" || portadaDeCanales) &&
+    (pantalla === "cine" || pantalla === "series") &&
     vista === "portada" &&
     !serieAbierta &&
     !carpetaAbierta;
@@ -1024,6 +1045,16 @@ export default function TvApp() {
     []
   );
 
+  /* La portada se pide al entrar y no se vuelve a pedir: el catálogo no
+     cambia mientras estás mirándolo, y tres peticiones cada vez que se vuelve
+     al inicio son tres esperas para ver lo mismo */
+  useEffect(() => {
+    if (pantalla !== "portada" || !creds || lista?.tipo !== "xtream") return;
+    if (filasInicio.length || cargando) return;
+    void cargarInicio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pantalla, creds, lista]);
+
   const abrirTitulo = useCallback((t: Titulo) => {
     acciones.current.get(t.id)?.();
   }, []);
@@ -1038,7 +1069,7 @@ export default function TvApp() {
     /* A TMDB no se le pregunta por canales de televisión: «La 1» no es una
        película y lo que devolvería sería ruido —o peor, la carátula de otra
        cosa con ese nombre— */
-    if (!enPortada || portadaDeCanales || !filasPortada.length) return;
+    if (!enPortada || !filasPortada.length) return;
     const unicos = new Map<string, Titulo>();
     for (const f of filasPortada) for (const t of f.items) unicos.set(llaveTmdb(t), t);
     const pendientes = [...unicos.entries()].filter(([llave]) => !meta[llave]);
@@ -1072,7 +1103,7 @@ export default function TvApp() {
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enPortada, portadaDeCanales, filasPortada]);
+  }, [enPortada, filasPortada]);
 
   const cargar = useCallback(
     async (destino: Pantalla) => {
@@ -1103,6 +1134,14 @@ export default function TvApp() {
             if (!porGrupo.has(g)) porGrupo.set(g, []);
             porGrupo.get(g)!.push(c);
           }
+          setCanales(
+            canales.map((c, i) => ({
+              id: `m3u-plano-${i}`,
+              nombre: c.name || `Canal ${i + 1}`,
+              logo: c.logo || "",
+              abrir: () => reproducir({ url: c.url, name: c.name || "", kind: "auto" }),
+            }))
+          );
           setFilas(
             [...porGrupo.entries()].map(([grupo, suyos]) => ({
               id: `grupo-${grupo}`,
@@ -1140,16 +1179,18 @@ export default function TvApp() {
               () => pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) }),
               String(c.stream_id)
             );
-          setFilas(
-            carpetasDe(cats, limpios, (c) => c.category_id, (c) => ({
-              id: `live-${c.stream_id}`,
-              nombre: c.name,
-              logo: c.stream_icon || "",
-              epgId: String(c.stream_id),
-              numero: Number(c.num) || 0,
-              abrir: verCanal(c),
-            }))
-          );
+          const aFila = (c: XtreamLiveStream): Fila => ({
+            id: `live-${c.stream_id}`,
+            nombre: c.name,
+            logo: c.stream_icon || "",
+            epgId: String(c.stream_id),
+            numero: Number(c.num) || 0,
+            abrir: verCanal(c),
+          });
+          setFilas(carpetasDe(cats, limpios, (c) => c.category_id, aFila));
+          /* Y en plano, sin agrupar: es de donde salen la lista de la
+             izquierda y las dos filas de la derecha */
+          setCanales(limpios.map(aFila));
           /*
            * El directo entra en la lista, no en una portada de carátulas.
            *
@@ -1349,6 +1390,182 @@ export default function TvApp() {
 
   /* La carpeta llega como parámetro porque aquí no hay categorías: se
      conocen en la carga de la sección, que es quien monta los abridores */
+  /**
+   * La ficha de una película.
+   *
+   * Estaba dentro de `cargar`, atada a la carga de la sección de cine. La
+   * portada de inicio enseña películas sin haber entrado en cine, así que
+   * necesita poder abrir la ficha por su cuenta: es la misma función, y por
+   * eso ahora vive aquí y no dentro de aquel cierre.
+   */
+  /**
+   * Lo que se enseña al encender: una fila de cada sección.
+   *
+   * Son tres peticiones al panel en vez de ninguna, y merecen la pena: sin
+   * ellas la primera pantalla es un menú con tres palabras y no se ve un solo
+   * título hasta después de elegir. Se piden a la vez y la pantalla se pinta
+   * en cuanto llegan; si alguna falla, las otras dos salen igual.
+   *
+   * Los canales van con su logotipo y lo que dan ahora, no con carátula: un
+   * canal no tiene cartel, y esa es la razón por la que su fila se ve
+   * distinta a las otras dos por mucho que se quiera que se vean iguales.
+   */
+  const cargarInicio = useCallback(async () => {
+    if (!creds || lista?.tipo !== "xtream") return;
+    setCargando(true);
+    const filas: FilaPortada[] = [];
+    const nuevas = new Map<string, () => void | Promise<void>>();
+
+    const [canales, pelis, series] = await Promise.all([
+      xtreamApi<XtreamLiveStream[]>(creds, "get_live_streams").catch(() => []),
+      xtreamApi<XtreamVodStream[]>(creds, "get_vod_streams").catch(() => []),
+      xtreamApi<XtreamSeries[]>(creds, "get_series").catch(() => []),
+    ]);
+
+    /* En directo: los primeros del panel, que es el orden que ha puesto el
+       proveedor —sus destacados delante— y no uno inventado por nosotros */
+    const enDirecto = (Array.isArray(canales) ? canales : [])
+      .filter((c) => typeof c.name === "string" && c.name.trim())
+      .slice(0, 14)
+      .map((c) => {
+        nuevas.set(`live-${c.stream_id}`, () =>
+          verEsto(
+            c.name,
+            "hls",
+            () => pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) }),
+            String(c.stream_id)
+          )
+        );
+        return {
+          id: `live-${c.stream_id}`,
+          nombre: c.name,
+          imagen: c.stream_icon || "",
+          anio: "",
+          nota: "",
+          alta: 0,
+          sinopsis: "",
+          generos: "",
+          esSerie: false,
+          categoria: String(c.category_id ?? ""),
+          epgId: String(c.stream_id),
+          numero: Number(c.num) || 0,
+        } as Titulo;
+      });
+    if (enDirecto.length) filas.push({ titulo: "En directo ahora", items: enDirecto, anchas: true });
+
+    const conNota = (a: Titulo, b: Titulo) => Number(b.nota || 0) - Number(a.nota || 0);
+
+    const seriesDestacadas = (Array.isArray(series) ? series : [])
+      .filter((x) => typeof x.name === "string" && x.name.trim())
+      .map((x) => {
+        nuevas.set(`serie-${x.series_id}`, () => abrirSerie(x));
+        return {
+          id: `serie-${x.series_id}`,
+          nombre: x.name,
+          imagen: x.cover || "",
+          anio: anioDe(x.releaseDate ?? x.release_date),
+          nota: String(x.rating ?? ""),
+          alta: Number(x.last_modified) || 0,
+          sinopsis: String(x.plot ?? ""),
+          generos: String(x.genre ?? ""),
+          esSerie: true,
+          categoria: String(x.category_id ?? ""),
+        } as Titulo;
+      })
+      .sort(conNota)
+      .slice(0, 14);
+    if (seriesDestacadas.length) filas.push({ titulo: "Series destacadas", items: seriesDestacadas });
+
+    const pelisDestacadas = (Array.isArray(pelis) ? pelis : [])
+      .filter((x) => typeof x.name === "string" && x.name.trim())
+      .map((x) => {
+        nuevas.set(`vod-${x.stream_id}`, () => abrirPelicula(x));
+        return {
+          id: `vod-${x.stream_id}`,
+          nombre: x.name,
+          imagen: x.stream_icon || "",
+          anio: anioDe(x.year ?? x.releasedate),
+          nota: String(x.rating ?? ""),
+          alta: Number(x.added) || 0,
+          sinopsis: String(x.plot ?? ""),
+          generos: String(x.genre ?? ""),
+          esSerie: false,
+          categoria: String(x.category_id ?? ""),
+        } as Titulo;
+      })
+      .sort(conNota)
+      .slice(0, 14);
+    if (pelisDestacadas.length) filas.push({ titulo: "Películas destacadas", items: pelisDestacadas });
+
+    /* Se añaden a las que ya hubiera, no se reemplazan: la ficha que se abra
+       desde aquí y la que se abra desde la sección son la misma */
+    for (const [id, que] of nuevas) acciones.current.set(id, que);
+    setFilasInicio(filas);
+    setCargando(false);
+  }, [creds, lista]);
+
+  async function abrirPelicula(v: XtreamVodStream, carpeta = "") {
+    if (!creds) return;
+    const suyo = mejor({
+      id: `vod-${v.stream_id}`,
+      nombre: v.name,
+      imagen: v.stream_icon || "",
+      anio: anioDe(v.year ?? v.releasedate),
+      nota: String(v.rating ?? ""),
+      alta: Number(v.added) || 0,
+      sinopsis: String(v.plot ?? ""),
+      generos: String(v.genre ?? ""),
+      esSerie: false,
+      categoria: String(v.category_id ?? ""),
+    });
+    const ext = v.container_extension || "mp4";
+    abrirFicha({
+      id: `vod-${v.stream_id}`,
+      nombre: v.name,
+      volverA: "cine",
+      cartel: imgSrc(suyo.imagen) || "",
+      fondo: suyo.fondo || "",
+      sinopsis: suyo.sinopsis || "",
+      datos: datosDe(suyo),
+      anio: suyo.anio || "",
+      duracion: "",
+      genero: suyo.generos || "",
+      nota: suyo.nota ? String(suyo.nota) : "",
+      votos: suyo.votos || 0,
+      categoria: carpeta,
+      reparto: "",
+      direccion: "",
+      temporadas: [],
+      episodios: {},
+      reproducir: () =>
+        verEsto(v.name, "video", () =>
+          pedirEnlace({ ...creds, clase: "movie", id: String(v.stream_id), ext })
+        ),
+      enlace: async () =>
+        (await pedirEnlace({ ...creds, clase: "movie", id: String(v.stream_id), ext })).url,
+    });
+    /* El detalle del panel —reparto, dirección y la sinopsis cuando TMDB no
+       la tiene— por debajo y sin bloquear la pantalla */
+    try {
+      const info = await xtreamApi<XtreamVodInfo>(creds, "get_vod_info", { vod_id: String(v.stream_id) });
+      setFicha((antes) =>
+        antes && antes.nombre === v.name
+          ? {
+              ...antes,
+              sinopsis: antes.sinopsis || String(info.info?.plot ?? info.info?.description ?? ""),
+              duracion: minutosDe(info.info?.duration || String(info.info?.duration_secs ?? "")),
+              genero: antes.genero || String(info.info?.genre ?? ""),
+              nota: antes.nota || String(info.info?.rating ?? ""),
+              reparto: String(info.info?.cast ?? info.info?.actors ?? ""),
+              direccion: String(info.info?.director ?? ""),
+            }
+          : antes
+      );
+    } catch {
+      /* Sin detalle no pasa nada: la ficha ya tiene lo que trae la lista */
+    }
+  }
+
   async function abrirSerie(s: XtreamSeries, carpeta = "") {
     if (!creds) return;
     const suyo = mejor({
@@ -1474,12 +1691,14 @@ export default function TvApp() {
       salir();
       return;
     }
-    /* Volver a la portada desde el carril deja lo mismo que ATRÁS: sin la
-       lista de la sección anterior debajo y con el foco en el acceso del
-       que se sale, no en la fila 47 de una lista que ya no está */
+    /* Volver al inicio desde la barra deja lo mismo que ATRÁS: sin la lista
+       de la sección anterior debajo y con el foco en la pestaña de la que se
+       sale, no en la fila 47 de una lista que ya no está */
     if (destino === "portada") {
       const vengoDe = destinos.findIndex((d) => d.id === pantalla);
       setFoco(vengoDe >= 0 ? vengoDe : 0);
+      setFocoFila(-1);
+      setFocoCol(vengoDe >= 0 ? vengoDe : 0);
       setFilas([]);
       setSerieAbierta("");
       setCarpetaAbierta("");
@@ -1506,6 +1725,9 @@ export default function TvApp() {
   function ir(destino: Pantalla) {
     setPantalla(destino);
     setFocoCarril(null);
+    /* El directo se abre siempre por la lista de canales, no por la mitad
+       derecha: es donde se elige */
+    setZonaDir("canales");
     /* Cine y series siempre abren por la portada, aunque la última vez se
        saliera desde la lista de carpetas: al entrar se pregunta «qué veo», no
        «en qué carpeta estaba» */
@@ -1561,17 +1783,22 @@ export default function TvApp() {
     if (
       vista === "carpetas" &&
       (pantalla === "cine" || pantalla === "series" ||
-        /* El directo solo tiene portada con una lista Xtream; con un M3U no
-           hay a dónde volver y ATRÁS tiene que salir al menú de una vez */
-        (pantalla === "directo" && filasPortada.length > 0))
+        /* El directo solo tiene pantalla propia si se han podido armar los
+           canales en plano; si no, no hay a dónde volver y ATRÁS tiene que
+           salir al inicio de una vez */
+        (pantalla === "directo" && canales.length > 0))
     ) {
       setVista("portada");
       return;
     }
-    /* De vuelta en la portada, el foco se queda en el acceso del que sales.
-       Si no, hereda la posición que tuviera la lista —la carátula 14, por
-       ejemplo— y la portada aparece con un acceso cualquiera iluminado. */
+    /* De vuelta en el inicio, el foco se queda en la pestaña de la que
+       sales. Si no, hereda la posición que tuviera la lista —la carátula 14,
+       por ejemplo— y el inicio aparece con una pestaña cualquiera encendida.
+       Va en `focoFila`/`focoCol` porque así se recorre el inicio: la fila −1
+       son las pestañas y la columna, cuál de ellas. */
     const vengoDe = destinos.findIndex((d) => d.id === pantalla);
+    setFocoFila(-1);
+    setFocoCol(vengoDe >= 0 ? vengoDe : 0);
     setFoco(vengoDe >= 0 ? vengoDe : 0);
     setPantalla("portada");
     setFilas([]);
@@ -1598,11 +1825,23 @@ export default function TvApp() {
      */
     if (pantalla === "viendo") return;
     setEpgAhora({});
-    if (pantalla !== "directo" || !creds || lista?.tipo !== "xtream") return;
-    /* Los canales que hay que consultar salen de la carpeta abierta: fuera
-       de ella lo que se ve son carpetas, que no tienen guía */
-    const ids = filas
-      .map((f) => f.epgId)
+    if (!creds || lista?.tipo !== "xtream") return;
+    if (pantalla !== "directo" && pantalla !== "portada") return;
+    /*
+     * De dónde salen los canales que hay que consultar.
+     *
+     * En el directo, de la carpeta abierta —fuera de ella lo que se ve son
+     * carpetas, que no tienen guía—. En la portada de inicio, de la fila «en
+     * directo ahora», que sin la guía sería una fila de logotipos sin decir
+     * qué dan, que es justo lo que no sirve para elegir.
+     */
+    const ids = (
+      pantalla === "portada"
+        ? filasInicio.flatMap((f) => f.items.map((t) => t.epgId))
+        : pantalla === "directo"
+          ? (carpetaAbierta ? filas : canales).map((f) => f.epgId)
+          : filas.map((f) => f.epgId)
+    )
       .filter((id): id is string => Boolean(id))
       .slice(0, 40);
     if (!ids.length) return;
@@ -1613,11 +1852,12 @@ export default function TvApp() {
         const tanda = ids.slice(i, i + 6);
         const hechas = await Promise.all(
           tanda.map(async (id) => {
-            const vacia: Guia = { ahora: "", luego: "", desde: 0, hasta: 0 };
+            const vacia: Guia = { ahora: "", luego: "", desde: 0, hasta: 0, resumen: "" };
             try {
               const res = await xtreamApi<{
                 epg_listings?: {
                   title?: string;
+                  description?: string;
                   start?: string;
                   end?: string;
                   start_timestamp?: string | number;
@@ -1637,6 +1877,7 @@ export default function TvApp() {
                */
               const horas = listado.map((e) => ({
                 titulo: decodeBase64Maybe(e.title) || "",
+                resumen: decodeBase64Maybe(e.description) || "",
                 desde: momento(e.start_timestamp ?? e.start),
                 hasta: momento(e.stop_timestamp ?? e.end),
               }));
@@ -1650,6 +1891,7 @@ export default function TvApp() {
                   luego: horas[i + 1]?.titulo || "",
                   desde: horas[i].desde,
                   hasta: horas[i].hasta,
+                  resumen: horas[i].resumen,
                 } as Guia,
               ] as const;
             } catch {
@@ -1669,12 +1911,44 @@ export default function TvApp() {
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, carpetaAbierta, lista]);
+  }, [pantalla, filas, filasInicio, canales, carpetaAbierta, lista]);
 
   const ultimaLista = useRef<Pantalla>("directo");
   useEffect(() => {
     if (pantalla === "directo" || pantalla === "cine" || pantalla === "series") ultimaLista.current = pantalla;
   }, [pantalla]);
+
+  /*
+   * Las dos filas de la derecha del directo.
+   *
+   * «En vivo ahora» son canales que sí tienen guía: la tarjeta enseña el
+   * programa, y sin guía la tarjeta no diría nada que la lista de la
+   * izquierda no diga ya. «Destacados» son los que más pones en este
+   * aparato —una raya en la pared por cada vez, ver `K_VISTOS`—, y en un
+   * aparato recién estrenado, los primeros que manda el panel.
+   */
+  const filaEnVivo = useMemo(() => {
+    const conGuia = canales.filter((c) => c.epgId && epgAhora[c.epgId]?.ahora);
+    return {
+      titulo: "En vivo ahora",
+      chips: false,
+      items: (conGuia.length ? conGuia : canales).slice(0, 14),
+    };
+  }, [canales, epgAhora]);
+  const filaDestacados = useMemo(() => {
+    const puestos = [...canales].sort((a, b) => (vistos[b.id] || 0) - (vistos[a.id] || 0));
+    return { titulo: "Canales destacados", chips: true, items: puestos.slice(0, 14) };
+  }, [canales, vistos]);
+  /*
+   * Y cuándo se enseña esta pantalla en vez del índice de categorías.
+   *
+   * Hace falta la lista en plano, que solo se arma con una lista Xtream o un
+   * M3U ya leído: mientras carga, o si el proveedor no manda nada, se cae a
+   * la lista de siempre en vez de enseñar una pantalla vacía con dos
+   * carruseles sin nada dentro.
+   */
+  const dirEnPortada =
+    pantalla === "directo" && canales.length > 0 && (vista === "portada" || Boolean(carpetaAbierta));
 
   /* ---------- El mando ---------- */
 
@@ -1688,10 +1962,9 @@ export default function TvApp() {
   /*
    * El canal que hay debajo del foco, con su guía.
    *
-   * Solo dentro de una carpeta de canales: en la lista de carpetas no hay
-   * canal que enseñar, y en cine y series manda la portada.
+   * Solo en el directo: en cine y series manda la portada de carátulas.
    */
-  const enDirecto = pantalla === "directo" && Boolean(carpetaAbierta);
+  const enDirecto = pantalla === "directo";
   /* Una lista de carpetas se pinta distinta que una de canales: son cajas
      cortas, y estiradas al ancho entero desperdician la pantalla */
   const soloCarpetas = filas.length > 0 && filas.every((f) => f.carpeta);
@@ -1748,7 +2021,18 @@ export default function TvApp() {
       setPreparando("");
     }
   };
-  const canalMirado = enDirecto ? filas[foco] : undefined;
+  /*
+   * La lista de la izquierda: los canales de la categoría abierta, y si no
+   * hay ninguna abierta, todos.
+   *
+   * Antes el directo entraba por una lista de carpetas y no enseñaba un solo
+   * canal hasta que elegías una. Eso es hacer elegir antes de haber visto
+   * nada: se entra a ver la tele, no a administrar categorías. Ahora la
+   * categoría es un filtro que se aplica encima, no una puerta que hay que
+   * abrir primero.
+   */
+  const canalesVista = carpetaAbierta ? filas : canales;
+  const canalMirado = enDirecto ? canalesVista[foco] : undefined;
   const guiaMirada = canalMirado?.epgId ? epgAhora[canalMirado.epgId] : undefined;
 
   /*
@@ -1774,9 +2058,8 @@ export default function TvApp() {
   }, [pantalla, viendo]);
 
   const [ahoraMismo, setAhoraMismo] = useState(() => Date.now());
-  /* El reloj corre en los dos sitios donde se enseña una guía: la cabecera de
-     una carpeta de canales y el banner de la portada del directo */
-  const conGuiaALaVista = enDirecto || portadaDeCanales;
+  /* El reloj corre donde se enseña una guía, que es la pantalla del directo */
+  const conGuiaALaVista = enDirecto;
   useEffect(() => {
     if (!conGuiaALaVista) return;
     const t = setInterval(() => setAhoraMismo(Date.now()), 30000);
@@ -1958,16 +2241,18 @@ export default function TvApp() {
         return;
       }
 
-      /* El carril: mientras el foco está en él, se mueve por sus iconos y
-         nada de lo que hay a la derecha se entera */
+      /* La barra de arriba: mientras el foco está en ella se mueve por sus
+         secciones y nada de lo que hay debajo se entera. Se recorre de lado
+         porque de lado está pintada, y se sale con ▼, que es por donde se
+         ha entrado */
       if (focoCarrilRef.current !== null) {
-        if (tecla === "Arriba" || tecla === "Abajo") {
+        if (tecla === "Izquierda" || tecla === "Derecha") {
           e.preventDefault();
           setFocoCarril((f) => {
-            const n = (f ?? 0) + (tecla === "Abajo" ? 1 : -1);
+            const n = (f ?? 0) + (tecla === "Derecha" ? 1 : -1);
             return (n + carril.length) % carril.length;
           });
-        } else if (tecla === "Derecha") {
+        } else if (tecla === "Abajo") {
           e.preventDefault();
           setFocoCarril(null);
         } else if (tecla === "Ok") {
@@ -1992,10 +2277,15 @@ export default function TvApp() {
         const total = descargas.length;
         if (tecla === "Izquierda") {
           e.preventDefault();
-          /* Pegado al borde de la fila, ◀ sale al carril; desde la papelera,
-             vuelve a la ficha */
+          /* Desde la papelera, ◀ vuelve a la ficha; en la ficha ya no hay
+             nada más a la izquierda */
           if (descargaCol > 0) setDescargaCol(0);
-          else setFocoCarril(Math.max(0, carril.findIndex((d) => d.id === "descargas")));
+          return;
+        }
+        if (tecla === "Arriba" && (!total || foco === 0)) {
+          /* Arriba del todo, ▲ sube a la barra de secciones: es donde está */
+          e.preventDefault();
+          setFocoCarril(Math.max(0, carril.findIndex((d) => d.id === "descargas")));
           return;
         }
         if (!total) return;
@@ -2027,6 +2317,104 @@ export default function TvApp() {
       }
 
       /*
+       * El directo: dos mitades, y el mando pasa de una a otra de lado.
+       *
+       * A la izquierda la lista de canales, que se recorre de arriba abajo
+       * como cualquier guía de televisión. A la derecha lo que dan, que se
+       * recorre por filas como la portada de cine. ▶ pegado al borde de la
+       * lista pasa a la derecha y ◀ pegado al borde de una fila vuelve a la
+       * lista: es lo que se espera de dos columnas puestas una al lado de la
+       * otra, y no hay que aprenderse nada nuevo.
+       */
+      if (dirEnPortada) {
+        const dirFilas = [filaEnVivo, filaDestacados].filter((f) => f.items.length);
+        /* La última posición de la columna es «ver todos los canales»: está
+           debajo de la lista, así que se llega bajando */
+        const ultimoIzq = canalesVista.length;
+        /* Y la última de cada fila es su «ver todos», por lo mismo pero de
+           lado */
+        const anchoDe = (f: number) => (dirFilas[f]?.items.length ?? 0) + 1;
+
+        if (zonaDir === "canales") {
+          if (tecla === "Arriba") {
+            e.preventDefault();
+            if (foco === 0) setFocoCarril(Math.max(0, carril.findIndex((d) => d.id === "directo")));
+            else setFoco((f) => Math.max(0, f - 1));
+            return;
+          }
+          if (tecla === "Abajo") {
+            e.preventDefault();
+            setFoco((f) => Math.min(ultimoIzq, f + 1));
+            return;
+          }
+          if (tecla === "PaginaAbajo" || tecla === "PaginaArriba") {
+            e.preventDefault();
+            const salto = tecla === "PaginaAbajo" ? 8 : -8;
+            setFoco((f) => Math.max(0, Math.min(ultimoIzq, f + salto)));
+            return;
+          }
+          if (tecla === "Derecha") {
+            e.preventDefault();
+            setZonaDir("derecha");
+            setFocoFila(-1);
+            setFocoCol(0);
+            return;
+          }
+          if (tecla === "Ok") {
+            e.preventDefault();
+            if (foco === ultimoIzq) verCarpetas();
+            else canalesVista[foco]?.abrir();
+            return;
+          }
+          return;
+        }
+
+        // Y en la derecha, por filas
+        if (tecla === "Arriba") {
+          e.preventDefault();
+          if (focoFila <= -1) setFocoCarril(Math.max(0, carril.findIndex((d) => d.id === "directo")));
+          else {
+            const nueva = focoFila - 1;
+            setFocoFila(nueva);
+            if (nueva >= 0) setFocoCol((c) => Math.min(c, anchoDe(nueva) - 1));
+          }
+          return;
+        }
+        if (tecla === "Abajo") {
+          e.preventDefault();
+          const nueva = Math.min(dirFilas.length - 1, focoFila + 1);
+          setFocoFila(nueva);
+          if (nueva >= 0) setFocoCol((c) => Math.min(c, anchoDe(nueva) - 1));
+          return;
+        }
+        if (tecla === "Derecha") {
+          e.preventDefault();
+          if (focoFila >= 0) setFocoCol((c) => Math.min(anchoDe(focoFila) - 1, c + 1));
+          return;
+        }
+        if (tecla === "Izquierda") {
+          e.preventDefault();
+          /* Pegado al borde de la fila —y en la cabecera, que no tiene
+             columnas— se vuelve a la lista de canales */
+          if (focoFila >= 0 && focoCol > 0) setFocoCol((c) => c - 1);
+          else setZonaDir("canales");
+          return;
+        }
+        if (tecla === "Ok") {
+          e.preventDefault();
+          if (focoFila === -1) canalMirado?.abrir();
+          else {
+            const f = dirFilas[focoFila];
+            if (!f) return;
+            if (focoCol >= f.items.length) verCarpetas();
+            else f.items[focoCol]?.abrir();
+          }
+          return;
+        }
+        return;
+      }
+
+      /*
        * La portada se recorre distinto: filas de lado y no una columna.
        *
        * Arriba y abajo cambian de fila —del banner a «Mejor valoradas», de
@@ -2040,6 +2428,12 @@ export default function TvApp() {
         const primera = destacado ? -1 : 0;
         const anchoDe = (fi: number) => filasConLista[fi]?.items.length ?? 1;
 
+        if (tecla === "Arriba" && focoFila === primera) {
+          /* Ya en lo más alto de la página, ▲ sube a la barra de secciones */
+          e.preventDefault();
+          setFocoCarril(Math.max(0, carril.findIndex((d) => d.id === pantalla)));
+          return;
+        }
         if (tecla === "Arriba" || tecla === "Abajo") {
           e.preventDefault();
           const salto = tecla === "Abajo" ? 1 : -1;
@@ -2058,10 +2452,7 @@ export default function TvApp() {
         }
         if (tecla === "Izquierda") {
           e.preventDefault();
-          /* Pegado al borde de la fila, ◀ sale al carril: es lo mismo que en
-             las listas y así no hay que aprenderse dos gestos */
           if (focoFila >= 0 && focoFila < ultima && focoCol > 0) setFocoCol((c) => c - 1);
-          else setFocoCarril(Math.max(0, carril.findIndex((d) => d.id === pantalla)));
           return;
         }
         if (tecla === "Ok") {
@@ -2078,30 +2469,78 @@ export default function TvApp() {
       }
 
       /*
-       * ◀ pegado al borde izquierdo entra en el carril: es donde está, y es
-       * lo que hace cualquier aplicación de televisión.
+       * ▲ en la primera fila entra en la barra de secciones: es donde está,
+       * y es lo que hace cualquier aplicación de televisión.
        *
        * Va ANTES de mirar si hay filas. Mientras una sección carga la lista
-       * está vacía, y ahí el carril es lo único a lo que se puede llegar:
-       * comprobándolo después, ◀ no hacía nada y el ATRÁS siguiente se
+       * está vacía, y ahí la barra es lo único a lo que se puede llegar:
+       * comprobándolo después, ▲ no hacía nada y el ATRÁS siguiente se
        * llevaba por delante la sección entera.
        */
-      if (tecla === "Izquierda" && pantalla !== "portada" && (columnas <= 1 || foco % columnas === 0)) {
+      if (tecla === "Arriba" && pantalla !== "portada" && (!filas.length || foco < Math.max(1, columnas))) {
         e.preventDefault();
         setFocoCarril(Math.max(0, carril.findIndex((d) => d.id === pantalla)));
         return;
       }
 
-      const total = pantalla === "portada" ? 4 : filas.length;
+      /*
+       * La portada de inicio se recorre como la de cine: por filas.
+       *
+       * La −1 son los accesos a las secciones —con «Salir» de última columna,
+       * que es donde está—, la −2 es «seguir viendo», y de la 0 para abajo el
+       * contenido. Es el mismo recorrido que en cine y series, así que el
+       * mando se aprende una vez y vale para toda la aplicación.
+       */
+      if (pantalla === "portada") {
+        const accesos = destinos.filter((d) => d.id !== "salir");
+        const ultimaFila = filasInicio.length - 1;
+        const primeraFila = ultimo ? -2 : -1;
+        const anchoDeFila = (f: number) =>
+          f === -1 ? accesos.length + 1 : f === -2 ? 1 : filasInicio[f]?.items.length ?? 1;
+
+        if (tecla === "Arriba" || tecla === "Abajo") {
+          e.preventDefault();
+          const salto = tecla === "Abajo" ? 1 : -1;
+          /* La −2 va DEBAJO de la −1 en pantalla, así que bajar de los accesos
+             lleva a «seguir viendo» y no al revés: el orden de los números no
+             es el orden de la pantalla y aquí manda la pantalla */
+          const orden = ultimo ? [-1, -2, ...filasInicio.map((_, i) => i)] : [-1, ...filasInicio.map((_, i) => i)];
+          const donde = Math.max(0, Math.min(orden.length - 1, orden.indexOf(focoFila) + salto));
+          const nueva = orden[donde] ?? -1;
+          setFocoFila(nueva);
+          setFocoCol((c) => Math.min(c, anchoDeFila(nueva) - 1));
+          return;
+        }
+        if (tecla === "Derecha" || tecla === "Izquierda") {
+          e.preventDefault();
+          const salto = tecla === "Derecha" ? 1 : -1;
+          setFocoCol((c) => Math.max(0, Math.min(anchoDeFila(focoFila) - 1, c + salto)));
+          return;
+        }
+        if (tecla === "Ok") {
+          e.preventDefault();
+          if (focoFila === -2 && ultimo) reproducir(ultimo.source);
+          else if (focoFila === -1) {
+            elegirDestino(focoCol >= accesos.length ? "salir" : accesos[focoCol]?.id);
+          } else {
+            const t = filasInicio[focoFila]?.items[focoCol];
+            if (t) abrirTitulo(t);
+          }
+          return;
+        }
+        /* Y con nada elegido todavía, la primera pulsación cae en los accesos */
+        if (focoFila < primeraFila) setFocoFila(-1);
+        return;
+      }
+
+      const total = filas.length;
       if (!total) return;
-      /* «Seguir viendo» es el −1 de la portada: por encima de los cuatro
-         accesos, que es donde lo busca quien enciende para seguir con lo suyo */
-      const primero = pantalla === "portada" && ultimo ? -1 : 0;
+      const primero = 0;
 
       /* En una lista todo es una columna y da igual la flecha; en la rejilla
          de carátulas, arriba y abajo saltan una fila entera, que es lo que
          espera cualquiera que haya usado el mando de una tele */
-      const cols = pantalla === "portada" ? 1 : columnas;
+      const cols = columnas;
       const salto = cols > 1 ? cols * 3 : 8;
       const siguiente = (f: number) => (f + 1 > total - 1 ? primero : f + 1);
       const anterior = (f: number) => (f - 1 < primero ? total - 1 : f - 1);
@@ -2110,8 +2549,6 @@ export default function TvApp() {
         e.preventDefault();
         setFoco(siguiente);
       } else if (tecla === "Izquierda") {
-        /* En medio de una fila de carátulas sigue siendo «la anterior»: el
-           borde izquierdo, que es el que lleva al carril, ya se ha atendido */
         e.preventDefault();
         setFoco(anterior);
       } else if (tecla === "Abajo") {
@@ -2128,16 +2565,13 @@ export default function TvApp() {
         setFoco((f) => Math.max(primero, f - salto));
       } else if (tecla === "Ok") {
         e.preventDefault();
-        if (pantalla === "portada") {
-          if (foco === -1 && ultimo) reproducir(ultimo.source);
-          else elegirDestino(destinos[foco]?.id);
-        } else filas[foco]?.abrir();
+        filas[foco]?.abrir();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol]);
+  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol, dirEnPortada, zonaDir, canalesVista, filaEnVivo, filaDestacados, canalMirado]);
 
   // La fila con el foco siempre a la vista, sin que el usuario persiga nada
   useEffect(() => {
@@ -2643,13 +3077,27 @@ export default function TvApp() {
     );
   }
 
+  /*
+   * La portada de inicio, como el mockup.
+   *
+   * Arriba la marca; debajo los accesos a las tres secciones en botones
+   * grandes —el abierto con su aro de color—; y debajo, lo que hay: una fila
+   * en directo, una de series y una de películas.
+   *
+   * Antes esto era un lanzador: tres tarjetas con el nombre de cada sección y
+   * ni un solo título a la vista. Encender la tele y que lo primero sea un
+   * menú es hacer elegir antes de haber visto nada.
+   *
+   * Se recorre igual que la portada de cine: la fila −1 son los accesos y de
+   * ahí para abajo el contenido, así que el mando funciona igual en las dos y
+   * no hay que aprenderlo dos veces.
+   */
   if (pantalla === "portada") {
+    const accesos = destinos.filter((d) => d.id !== "salir");
     return (
-      <div className="tv-app tv-centro tv-lienzo">
-        <div className="tv-portada">
+      <div className="tv-app tv-inicio">
+        <header className="tv-inicio-cab">
           <div className="tv-marca">
-            {/* El logotipo del proveedor si lo tiene; el nuestro solo cuando
-                la marca es la nuestra. Ver `SesionGuardada.logo` */}
             {logo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img className="tv-marca-logo" src={imgSrc(logo) || logo} alt="" />
@@ -2659,86 +3107,193 @@ export default function TvApp() {
             ) : null}
             <span>{marca}</span>
           </div>
-          {sinRed && (
-            <p className="tv-sinred" role="status">
-              Sin conexión: estás viendo lo de la última vez. Se reintenta solo.
+          {/* Salir arriba a la derecha y en fino: es una puerta, no un
+              destino, y con los accesos en el centro competía con ellos */}
+          <button
+            className={`tv-inicio-salir ${foc(focoFila === -1 && focoCol === accesos.length)}`}
+            onMouseEnter={() => { conElRaton(); setFocoFila(-1); setFocoCol(accesos.length); }}
+            onClick={() => elegirDestino("salir")}
+          >
+            <Icon name="power" size={20} />
+            Salir
+          </button>
+        </header>
+
+        {sinRed && (
+          <p className="tv-sinred" role="status">
+            Sin conexión: estás viendo lo de la última vez. Se reintenta solo.
+          </p>
+        )}
+
+        <div className="tv-pestanas" onMouseLeave={ratonSeVa}>
+          {accesos.map((d, i) => (
+            <button
+              key={d.id}
+              className={`tv-pestana ${foc(focoFila === -1 && focoCol === i)}`}
+              onMouseEnter={() => { conElRaton(); setFocoFila(-1); setFocoCol(i); }}
+              onClick={() => elegirDestino(d.id)}
+            >
+              <Icon name={d.icono} size={30} />
+              {d.titulo}
+            </button>
+          ))}
+        </div>
+
+        {ultimo && (
+          <button
+            className={`tv-seguir ${foc(focoFila === -2)}`}
+            onMouseEnter={() => { conElRaton(); setFocoFila(-2); }}
+            onClick={() => reproducir(ultimo.source)}
+          >
+            <Icon name="play" size={26} />
+            <span>
+              Seguir viendo
+              <b>{ultimo.nombre}</b>
+            </span>
+          </button>
+        )}
+
+        <div className="tv-cuerpo-portada" ref={listaRef}>
+          {filasInicio.map((f, fi) => (
+            <section className="tv-carrusel" key={f.titulo}>
+              <h3 className="tv-carrusel-t">{f.titulo}</h3>
+              <div className="tv-carrusel-tira anchas" onMouseLeave={ratonSeVa}>
+                {f.items.map((t0, ci) => {
+                  const t = mejor(t0);
+                  const puesto = focoFila === fi && focoCol === ci;
+                  const guia = t.epgId ? epgAhora[t.epgId] : undefined;
+                  return (
+                    <button
+                      key={t.id}
+                      className={`tv-tarjeta ${foc(puesto)}`}
+                      data-fila={fi}
+                      data-foco={puesto ? "1" : undefined}
+                      onMouseEnter={() => { conElRaton(); setFocoFila(fi); setFocoCol(ci); }}
+                      onClick={() => abrirTitulo(t)}
+                    >
+                      <span className="tv-tarjeta-marco">
+                        {/*
+                          Apaisada siempre, con lo que haya.
+
+                          Un panel Xtream manda carátulas verticales y
+                          logotipos cuadrados; el apaisado solo existe cuando
+                          TMDB reconoce el título. Cuando lo hay va entero;
+                          cuando no, la propia imagen difuminada de fondo pone
+                          el color y la de verdad va centrada encima. Estirar
+                          una vertical a 16:9 da una mancha de píxeles, y eso
+                          se lee como que la aplicación está rota.
+                        */}
+                        {t.fondo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img className="tv-tarjeta-ancha" src={t.fondo} alt="" loading="lazy" onError={() => marcarRota(t.fondo || "")} />
+                        ) : imgSrc(t.imagen) ? (
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img className="tv-tarjeta-mancha" src={imgSrc(t.imagen)} alt="" aria-hidden="true" />
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img className="tv-tarjeta-centro" src={imgSrc(t.imagen)} alt="" loading="lazy" onError={() => marcarRota(t.imagen)} />
+                          </>
+                        ) : (
+                          <span className="tv-tarjeta-ph">{t.nombre}</span>
+                        )}
+                        {t.epgId && (
+                          <span className="tv-vivo">
+                            <span className="tv-punto" aria-hidden="true" />
+                            EN VIVO
+                          </span>
+                        )}
+                      </span>
+                      <span className="tv-tarjeta-t">{t.nombre}</span>
+                      {/* Debajo, lo que distingue una tarjeta de otra: en un
+                          canal, qué dan ahora; en un título, año y género */}
+                      <span className="tv-tarjeta-sub">
+                        {guia?.ahora || datosDe(t) || "\u00a0"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+          {cargando && !filasInicio.length && <p className="tv-cargando">Cargando…</p>}
+          {!cargando && !filasInicio.length && (
+            <p className="tv-cargando">
+              Elige arriba qué quieres ver.
             </p>
           )}
-          {ultimo && (
-            <button
-              className={`tv-seguir ${foc(foco === -1)}`}
-              onMouseEnter={() => { conElRaton(); setFoco(-1); }}
-              onClick={() => reproducir(ultimo.source)}
-            >
-              <Icon name="play" size={28} />
-              <span>
-                Seguir viendo
-                <b>{ultimo.nombre}</b>
-              </span>
-            </button>
-          )}
-          {/*
-            Los tres sitios donde hay algo que ver, en fila y del mismo
-            tamaño. Estaban en una rejilla de dos por dos junto con «Salir»,
-            o sea que apagar la tele tenía el mismo peso visual que entrar en
-            el cine. No son la misma clase de cosa: tres son destinos y el
-            cuarto es una puerta de salida, y eso tiene que verse.
-          */}
-          {/* Con descargas son cuatro y no tres: caben en la misma fila,
-              pero apretando un poco. La clase lo dice para no tener que
-              contarlos desde el CSS con `:has`, que en el navegador de
-              una tele de hace cuatro años no existe */}
-          <div className={`tv-tiles ${conDescargas ? "cuatro" : ""}`} onMouseLeave={ratonSeVa}>
-            {destinos.filter((d) => d.id !== "salir").map((d, i) => (
-              <button
-                key={d.id}
-                className={`tv-tile ${foc(foco === i)}`}
-                onMouseEnter={() => { conElRaton(); setFoco(i); }}
-                onClick={() => elegirDestino(d.id)}
-              >
-                <span className="tv-tile-icono"><Icon name={d.icono} size={40} /></span>
-                <span className="tv-tile-txt">
-                  {d.titulo}
-                  {/* Una línea que diga de qué va: tres nombres a secas
-                      obligan a entrar para saber qué hay detrás */}
-                  <span className="tv-tile-sub">{d.pie}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-          {/* Aparte y en fino: sigue en el mismo recorrido del mando —es el
-              último— pero deja de competir con los destinos */}
-          {destinos.filter((d) => d.id === "salir").map((d) => {
-            const i = destinos.findIndex((x) => x.id === d.id);
-            return (
-              <button
-                key={d.id}
-                className={`tv-salir ${foc(foco === i)}`}
-                onMouseEnter={() => { conElRaton(); setFoco(i); }}
-                onClick={() => elegirDestino(d.id)}
-              >
-                <Icon name={d.icono} size={20} />
-                {d.titulo}
-              </button>
-            );
-          })}
-
-          <p className="tv-pie">
-            {caduca ? `Tu acceso vence el ${new Date(caduca).toLocaleDateString("es-ES")}` : "Acceso sin fecha de fin"}
-            {soporte ? ` · Soporte: ${soporte}` : ""}
-          </p>
-          {/* La MAC siempre a la vista, como en los reproductores de siempre:
-              es lo primero que le pide el proveedor cuando algo falla.
-              Y al lado la versión: sin ella, «no veo los cambios» no se
-              puede contestar sin adivinar si es que no se ha desplegado, si
-              es la caché del aparato o si es otra cosa */}
-          <p className="tv-pie tv-pie-mac">
-            MAC: {macDelAparato()} · versión {process.env.NEXT_PUBLIC_BUILD || "?"}
-          </p>
         </div>
+
+        <p className="tv-pie">
+          {caduca ? `Tu acceso vence el ${new Date(caduca).toLocaleDateString("es-ES")}` : "Acceso sin fecha de fin"}
+          {soporte ? ` · Soporte: ${soporte}` : ""}
+          {" · "}<span className="tv-pie-mac">MAC: {macDelAparato()}</span> · versión{" "}
+          {process.env.NEXT_PUBLIC_BUILD || "?"}
+        </p>
       </div>
     );
   }
+
+
+  /*
+   * La barra de arriba: la marca, las secciones y la puerta de salida.
+   *
+   * Antes esto era un carril de iconos pegado al borde izquierdo. Funcionaba,
+   * pero se comía ancho justo en el lado por el que empieza a leerse la
+   * pantalla, y obligaba a un gesto propio —◀ para entrar en él— que no se
+   * parece a nada de lo que hace el resto de la aplicación. Arriba y en
+   * horizontal se lee de una pasada, deja la pantalla entera al contenido y
+   * se entra con ▲ desde la primera fila, que es hacia donde está.
+   *
+   * El foco vive en `focoCarril` igual que antes: es «el foco está en el
+   * menú, en la posición N», y eso no cambia porque el menú se haya puesto
+   * de lado.
+   */
+  const navItems = carril.filter((d) => d.id !== "salir");
+  const iSalir = carril.length - 1;
+  const barraNav = (
+    <nav
+      className="tv-nav"
+      aria-label="Secciones"
+      /* Salir del menú con el ratón apaga su foco, no el de cada botón: de
+         botón a botón el de salida se adelantaba al de entrada y la barra
+         parpadeaba al recorrerla */
+      onMouseLeave={() => setFocoCarril(null)}
+    >
+      <div className="tv-nav-marca">
+        {logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="tv-marca-logo" src={imgSrc(logo) || logo} alt="" />
+        ) : marca === "TOTALplayer" ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="tv-marca-logo" src="/icono-192.png" alt="" />
+        ) : null}
+        <span>{marca}</span>
+      </div>
+      <div className="tv-nav-items">
+        {navItems.map((d, i) => (
+          <button
+            key={d.id}
+            className={`tv-nav-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
+            onMouseEnter={() => { conElRaton(); setFocoCarril(i); }}
+            onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
+          >
+            <Icon name={d.icono} size={22} />
+            <span>{d.titulo}</span>
+          </button>
+        ))}
+      </div>
+      {/* Salir al otro extremo: es una puerta, no una sección, y en medio de
+          las demás pesaba lo mismo que entrar en el cine */}
+      <button
+        className={`tv-nav-salir ${focoCarril === iSalir ? "foco" : ""}`}
+        onMouseEnter={() => { conElRaton(); setFocoCarril(iSalir); }}
+        onClick={() => { setFocoCarril(null); elegirDestino("salir"); }}
+      >
+        <Icon name="power" size={20} />
+        <span>Salir</span>
+      </button>
+    </nav>
+  );
 
   /*
    * La portada de cine y de series.
@@ -2753,122 +3308,14 @@ export default function TvApp() {
   if (enPortada) {
     const ultima = filasConLista.length;
     return (
-      <div className="tv-app tv-con-carril">
-        {/*
-          El carril, cerrado: solo los iconos.
-
-          Abierto todo el rato se lleva un trozo de ancho para enseñar cinco
-          palabras que ya se saben de memoria a la segunda vez. Cerrado deja
-          ese ancho al contenido, y se abre solo cuando hace falta: al entrar
-          en él con ◀ o al posarse el ratón en uno de sus iconos. Un icono
-          suelto es ambiguo la primera vez; a partir de ahí, sobra el texto.
-
-          Lo de abrir se queda en los iconos y NO en el carril entero: con el
-          manejador en el carril, el puntero simplemente parado en la esquina
-          de la pantalla lo daba por abierto, y a partir de ahí las flechas
-          movían el menú en vez de la lista.
-        */}
-        <nav
-          className={`tv-carril ${focoCarril !== null ? "abierto" : ""}`}
-          aria-label="Secciones"
-          /*
-           * Cerrar va aquí, en el carril, y no en cada icono.
-           *
-           * Estaba en el icono, así que al mover el ratón de «Directo» a
-           * «Series» el de salida cerraba el carril un instante antes de que
-           * el de entrada lo volviera a abrir: pasar de una sección a otra
-           * era un parpadeo. Del carril solo se sale una vez, al salir del
-           * carril, que es cuando de verdad hay que cerrarlo.
-           */
-          onMouseLeave={() => setFocoCarril(null)}
-        >
-          {carril.map((d, i) => (
-            <button
-              key={d.id}
-              className={`tv-carril-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
-              onMouseEnter={() => { conElRaton(); setFocoCarril(i); }}
-              onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
-            >
-              <span className="tv-carril-icono"><Icon name={d.icono} size={34} /></span>
-              <span className="tv-carril-txt">{d.titulo}</span>
-            </button>
-          ))}
-        </nav>
+      <div className="tv-app tv-con-nav">
+        {barraNav}
 
         <div className="tv-cuerpo tv-cuerpo-portada" ref={listaRef}>
           {cargando && <p className="tv-cargando">Cargando…</p>}
           {error && <p className="tv-activar-error">{error}</p>}
 
-          {/*
-            El banner del directo: el canal que más pones, con lo que echan.
-
-            No es el banner de cine con otra imagen. Un canal no tiene cartel
-            apaisado ni sinopsis, así que estirar su logotipo a lo ancho de la
-            pantalla daría una mancha; aquí el logotipo va en su caja, y el
-            sitio del texto lo ocupa lo único que de verdad interesa de un
-            canal: qué están dando, cuánto le queda y qué viene después.
-          */}
-          {portadaDeCanales && destacado && (
-            <section
-              className="tv-banner tv-banner-canal"
-              data-fila="-1"
-              data-foco={focoFila === -1 ? "1" : undefined}
-            >
-              <span className="tv-banner-velo" aria-hidden="true" />
-              <div className="tv-banner-txt">
-                <p className="tv-banner-antena">
-                  <span className="tv-punto" aria-hidden="true" />
-                  En directo
-                </p>
-                <h2 className="tv-banner-t">
-                  {destacado.numero ? <span className="tv-ahora-num">{destacado.numero}</span> : null}
-                  {destacado.nombre}
-                </h2>
-                {(() => {
-                  const g = destacado.epgId ? epgAhora[destacado.epgId] : undefined;
-                  if (!g?.ahora) return null;
-                  const parte = avanceDe(g);
-                  const falta = quedaDe(g);
-                  return (
-                    <>
-                      <p className="tv-banner-prog">
-                        {g.ahora}
-                        {falta ? <span className="tv-ahora-queda">{falta}</span> : null}
-                      </p>
-                      {parte !== null && (
-                        <span className="tv-banner-barra" aria-hidden="true">
-                          <i style={{ width: `${parte}%` }} />
-                        </span>
-                      )}
-                      {g.luego && <p className="tv-banner-luego">Después · {g.luego}</p>}
-                    </>
-                  );
-                })()}
-                <button
-                  className={`tv-banner-ver ${foc(focoFila === -1)}`}
-                  onMouseEnter={() => { conElRaton(); setFocoFila(-1); }}
-                  onClick={() => abrirTitulo(destacado)}
-                >
-                  <Icon name="play" size={24} />
-                  Ver ahora
-                </button>
-              </div>
-              <span className="tv-banner-canal-logo">
-                {imgSrc(destacado.imagen) ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={imgSrc(destacado.imagen)}
-                    alt=""
-                    onError={() => marcarRota(destacado.imagen)}
-                  />
-                ) : (
-                  <Icon name="tv" size={90} />
-                )}
-              </span>
-            </section>
-          )}
-
-          {!portadaDeCanales && destacado && (
+          {destacado && (
             <section className="tv-banner" data-fila="-1" data-foco={focoFila === -1 ? "1" : undefined}>
               {destacado.fondo && !rotas[destacado.fondo] ? (
                 /* Con fondo apaisado de verdad, el banner es lo que se
@@ -3035,111 +3482,273 @@ export default function TvApp() {
     );
   }
 
+  /*
+   * ---------- TV en directo ----------
+   *
+   * La pantalla entera en una: a la izquierda los canales, a la derecha lo
+   * que están dando en el que tienes debajo del foco.
+   *
+   * Antes esto eran dos pantallas seguidas: una lista de carpetas, y dentro
+   * de cada una la lista de canales. Encender la tele y que lo primero sea
+   * un índice de categorías es hacer administrar antes de dejar ver, y
+   * además desperdiciaba la pantalla: un televisor es ancho, no alto, y
+   * había medio ancho en negro mientras la lista se estiraba de borde a
+   * borde para escribir «Deportes (4)».
+   *
+   * Aquí la categoría es un filtro que se pone encima —«Ver todos los
+   * canales» lleva al índice completo— y la mitad derecha se gana para lo
+   * único que de verdad decide si te quedas en un canal: qué echan ahora.
+   */
+  if (dirEnPortada) {
+    const dirFilas = [filaEnVivo, filaDestacados].filter((f) => f.items.length);
+    return (
+      <div className="tv-app tv-con-nav">
+        {barraNav}
+        <div className="tv-directo">
+          {/*
+            La columna de canales.
+
+            Cada fila lleva su distintivo a la izquierda —el logotipo, y si
+            no hay, el número—, el nombre, qué dan debajo y la marca de
+            directo. Es la forma que tiene una guía de televisión desde que
+            existen: se recorre de arriba abajo sin leer, buscando el sitio.
+          */}
+          <aside className="tv-dir-canales">
+            <div className="tv-dir-cab">
+              <h2>{carpetaAbierta || "Canales"}</h2>
+              <span className="tv-dir-cuenta">{canalesVista.length}</span>
+            </div>
+            <div className="tv-dir-lista" ref={listaRef} onMouseLeave={ratonSeVa}>
+              {canalesVista.map((c, i) => {
+                const g = c.epgId ? epgAhora[c.epgId] : undefined;
+                const puesto = zonaDir === "canales" && foco === i;
+                return (
+                  <button
+                    key={c.id}
+                    data-i={i}
+                    className={`tv-dir-canal ${foc(puesto)}`}
+                    data-foco={puesto ? "1" : undefined}
+                    onMouseEnter={() => { conElRaton(); setZonaDir("canales"); setFoco(i); }}
+                    onClick={c.abrir}
+                  >
+                    <span className="tv-dir-marca">
+                      {imgSrc(c.logo) && !rotas[c.logo] ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={imgSrc(c.logo)} alt="" loading="lazy" onError={() => marcarRota(c.logo)} />
+                      ) : (
+                        <b>{c.numero || i + 1}</b>
+                      )}
+                    </span>
+                    <span className="tv-dir-txt">
+                      <span className="tv-dir-nombre">{c.nombre}</span>
+                      {/* El hueco se reserva siempre: sin esto, las filas
+                          cuya guía llega más tarde crecen solas y la lista
+                          entera da un salto debajo del foco */}
+                      <span className="tv-dir-prog">{g?.ahora || ""}</span>
+                    </span>
+                    <span className="tv-dir-vivo">
+                      <span className="tv-punto" aria-hidden="true" />
+                      EN VIVO
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              className={`tv-dir-todos ${foc(zonaDir === "canales" && foco === canalesVista.length)}`}
+              onMouseEnter={() => { conElRaton(); setZonaDir("canales"); setFoco(canalesVista.length); }}
+              onClick={verCarpetas}
+            >
+              Ver todos los canales  ›
+            </button>
+          </aside>
+
+          <div className="tv-dir-main">
+            {/*
+              Lo que están dando, en grande.
+
+              Un canal no tiene cartel apaisado: tiene un logotipo cuadrado
+              que estirado a lo ancho queda como una mancha. Así que la
+              mancha se usa a propósito —muy ampliada y desenfocada, de
+              fondo— y el logotipo va entero encima, en su proporción. Lo que
+              ocupa el sitio del cartel es el título del programa, que es lo
+              que se está eligiendo.
+            */}
+            {canalMirado && (
+              <section
+                className="tv-dir-hero"
+                data-fila="-1"
+                data-foco={zonaDir === "derecha" && focoFila === -1 ? "1" : undefined}
+              >
+                {imgSrc(canalMirado.logo) && !rotas[canalMirado.logo] && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className="tv-dir-hero-mancha" src={imgSrc(canalMirado.logo)} alt="" aria-hidden="true" />
+                )}
+                <span className="tv-dir-hero-velo" aria-hidden="true" />
+                {/* Y el logotipo del canal, entero y a la derecha: es lo
+                    único con imagen propia que tiene un canal, y sin él la
+                    mitad derecha de la cabecera se queda en negro */}
+                <span className="tv-dir-hero-logo" aria-hidden="true">
+                  {imgSrc(canalMirado.logo) && !rotas[canalMirado.logo] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={imgSrc(canalMirado.logo)} alt="" onError={() => marcarRota(canalMirado.logo)} />
+                  ) : (
+                    <Icon name="tv" size={120} />
+                  )}
+                </span>
+                <div className="tv-dir-hero-txt">
+                  <p className="tv-vivo tv-vivo-suelto">
+                    <span className="tv-punto" aria-hidden="true" />
+                    EN VIVO
+                  </p>
+                  <h2 className="tv-dir-hero-t">{guiaMirada?.ahora || canalMirado.nombre}</h2>
+                  {guiaMirada?.resumen && <p className="tv-dir-hero-sub">{guiaMirada.resumen}</p>}
+                  <p className="tv-dir-hero-datos">
+                    {horaCorta(guiaMirada?.desde || 0) && (
+                      <span className="tv-dir-hora">
+                        <Icon name="clock" size={20} />
+                        {horaCorta(guiaMirada?.desde || 0)}
+                      </span>
+                    )}
+                    <span className="tv-dir-chip">
+                      {canalMirado.numero ? <b>{canalMirado.numero}</b> : null}
+                      {canalMirado.nombre}
+                    </span>
+                  </p>
+                  {avance !== null && (
+                    <span className="tv-dir-hero-barra" aria-hidden="true">
+                      <i style={{ width: `${avance}%` }} />
+                    </span>
+                  )}
+                  <button
+                    className={`tv-dir-ver ${foc(zonaDir === "derecha" && focoFila === -1)}`}
+                    onMouseEnter={() => { conElRaton(); setZonaDir("derecha"); setFocoFila(-1); }}
+                    onClick={canalMirado.abrir}
+                  >
+                    <Icon name="play" size={24} />
+                    Ver ahora
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* Y lo que viene después, en una tira: la pregunta que se hace
+                con el mando en la mano no es solo «qué dan» sino «¿y luego?»,
+                y son datos que ya se han pedido para el canal del foco */}
+            {parrilla.length > 1 ? (
+              <div className="tv-dir-luego">
+                <span className="tv-dir-luego-t">A continuación</span>
+                {parrilla.slice(1, 4).map((pr, i) => (
+                  <span className="tv-dir-luego-p" key={`${pr.desde}-${i}`}>
+                    <b>{horaCorta(pr.desde) || "—"}</b> {pr.titulo}
+                  </span>
+                ))}
+              </div>
+            ) : guiaMirada?.luego ? (
+              <div className="tv-dir-luego">
+                <span className="tv-dir-luego-t">A continuación</span>
+                <span className="tv-dir-luego-p">{guiaMirada.luego}</span>
+              </div>
+            ) : null}
+
+            {dirFilas.map((f, fi) => (
+              <section className="tv-carrusel" key={f.titulo}>
+                <h3 className="tv-carrusel-t">
+                  {f.titulo}
+                  <button
+                    className={`tv-carrusel-todos ${foc(zonaDir === "derecha" && focoFila === fi && focoCol === f.items.length)}`}
+                    onMouseEnter={() => { conElRaton(); setZonaDir("derecha"); setFocoFila(fi); setFocoCol(f.items.length); }}
+                    onClick={verCarpetas}
+                  >
+                    Ver todos  ›
+                  </button>
+                </h3>
+                <div className={`tv-carrusel-tira ${f.chips ? "chips" : "anchas"}`} onMouseLeave={ratonSeVa}>
+                  {f.items.map((c, ci) => {
+                    const g = c.epgId ? epgAhora[c.epgId] : undefined;
+                    const puesto = zonaDir === "derecha" && focoFila === fi && focoCol === ci;
+                    /* Los destacados van en pastilla pequeña: aquí se elige
+                       por el canal, no por el programa, y una tarjeta
+                       apaisada con un logotipo dentro es mucho hueco para
+                       decir «Antena 3» */
+                    if (f.chips) {
+                      return (
+                        <button
+                          key={c.id}
+                          className={`tv-chip-canal ${foc(puesto)}`}
+                          data-fila={fi}
+                          data-col={ci}
+                          data-foco={puesto ? "1" : undefined}
+                          onMouseEnter={() => { conElRaton(); setZonaDir("derecha"); setFocoFila(fi); setFocoCol(ci); }}
+                          onClick={c.abrir}
+                        >
+                          <span className="tv-chip-logo">
+                            {imgSrc(c.logo) && !rotas[c.logo] ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={imgSrc(c.logo)} alt="" loading="lazy" onError={() => marcarRota(c.logo)} />
+                            ) : (
+                              <b>{c.numero || ci + 1}</b>
+                            )}
+                          </span>
+                          <span className="tv-chip-nombre">{c.nombre}</span>
+                        </button>
+                      );
+                    }
+                    return (
+                      <button
+                        key={c.id}
+                        className={`tv-tarjeta tv-tarjeta-canal ${foc(puesto)}`}
+                        data-fila={fi}
+                        data-col={ci}
+                        data-foco={puesto ? "1" : undefined}
+                        onMouseEnter={() => { conElRaton(); setZonaDir("derecha"); setFocoFila(fi); setFocoCol(ci); }}
+                        onClick={c.abrir}
+                      >
+                        <span className="tv-tarjeta-marco">
+                          {imgSrc(c.logo) && !rotas[c.logo] ? (
+                            <>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img className="tv-tarjeta-mancha" src={imgSrc(c.logo)} alt="" aria-hidden="true" />
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img className="tv-tarjeta-centro" src={imgSrc(c.logo)} alt="" loading="lazy" onError={() => marcarRota(c.logo)} />
+                            </>
+                          ) : (
+                            <span className="tv-tarjeta-ph">{c.nombre}</span>
+                          )}
+                          <span className="tv-vivo">
+                            <span className="tv-punto" aria-hidden="true" />
+                            EN VIVO
+                          </span>
+                        </span>
+                        <span className="tv-tarjeta-t">{g?.ahora || c.nombre}</span>
+                        <span className="tv-tarjeta-sub">
+                          {c.nombre}
+                          {horaCorta(g?.desde || 0) ? ` · ${horaCorta(g?.desde || 0)}` : ""}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+        {error && <p className="tv-activar-error">{error}</p>}
+      </div>
+    );
+  }
+
+
   return (
-    <div className="tv-app tv-con-carril">
-      {/* El carril: cambiar de sección sin volver a la portada. Con el mando
-          se entra con ◀ desde la primera columna y se sale con ▶ */}
-      {/* El mismo carril que en la portada: cerrado enseña solo los iconos y
-          se abre al entrar en él con ◀ o al pasarle el ratón. Ver el CSS */}
-      <nav
-        className={`tv-carril ${focoCarril !== null ? "abierto" : ""}`}
-        aria-label="Secciones"
-        /* Cerrar en el carril y no en cada icono: ver la portada */
-        onMouseLeave={() => setFocoCarril(null)}
-      >
-        {carril.map((d, i) => (
-          <button
-            key={d.id}
-            className={`tv-carril-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
-            onMouseEnter={() => { conElRaton(); setFocoCarril(i); }}
-            onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
-          >
-            <span className="tv-carril-icono"><Icon name={d.icono} size={34} /></span>
-            <span className="tv-carril-txt">{d.titulo}</span>
-          </button>
-        ))}
-      </nav>
+    <div className="tv-app tv-con-nav">
+      {barraNav}
       <div className="tv-cuerpo">
       <header className="tv-cabecera">
         <h2>{serieAbierta || carpetaAbierta || TITULOS[pantalla]}</h2>
         {(serieAbierta || carpetaAbierta) && <span className="tv-cabecera-de">{TITULOS[pantalla]}</span>}
-        <span className="tv-cabecera-pista">◀ para las secciones · ATRÁS para volver</span>
+        <span className="tv-cabecera-pista">▲ para las secciones · ATRÁS para volver</span>
       </header>
 
-      {/*
-        La cabecera viva del directo: el canal que tienes debajo del foco,
-        en grande y con lo que están echando.
-
-        Una lista de nombres de canal no dice nada —«AXN HD» no es una razón
-        para quedarse— y con un mando asomarse a un canal y volver cuesta
-        cuatro pulsaciones. Aquí se ve sin entrar: el logotipo grande, qué
-        dan ahora, cuánto le queda y qué viene después.
-      */}
-      {/*
-        En el directo, dos columnas: los canales a la izquierda y el detalle
-        a la derecha.
-
-        Estaban uno encima del otro —la ficha del canal ocupando el ancho
-        entero y la lista debajo—, y en una tele eso es tirar la mitad de la
-        pantalla: la ficha se llevaba un tercio del alto para enseñar cuatro
-        datos en una línea, y a la lista le quedaban seis canales visibles
-        donde caben quince. Una pantalla de televisor es ancha, no alta; lo
-        que sobra es a los lados.
-      */}
-      <div className={enDirecto ? "tv-directo-cols" : ""}>
-      {enDirecto && canalMirado && (
-        <section className="tv-ahora">
-          <span className="tv-ahora-logo">
-            {imgSrc(canalMirado.logo) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={imgSrc(canalMirado.logo)}
-                alt=""
-                onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")}
-              />
-            ) : (
-              <Icon name="tv" size={40} />
-            )}
-          </span>
-          <div className="tv-ahora-txt">
-            <p className="tv-ahora-canal">
-              {canalMirado.numero ? <span className="tv-ahora-num">{canalMirado.numero}</span> : null}
-              {canalMirado.nombre}
-            </p>
-            {guiaMirada?.ahora ? (
-              <>
-                <p className="tv-ahora-prog">
-                  <span className="tv-punto" aria-hidden="true" />
-                  {guiaMirada.ahora}
-                  {queda ? <span className="tv-ahora-queda">{queda}</span> : null}
-                </p>
-                {avance !== null && (
-                  <span className="tv-ahora-barra" aria-hidden="true">
-                    <span style={{ width: `${avance}%` }} />
-                  </span>
-                )}
-                {/* Con parrilla, la parrilla; sin ella, la línea de siempre:
-                    un panel que no manda horas sí suele mandar los títulos */}
-                {parrilla.length > 1 ? (
-                  <div className="tv-parrilla">
-                    <p className="tv-parrilla-t">A continuación</p>
-                    {parrilla.slice(1, 7).map((pr, i) => (
-                      <p className="tv-parrilla-fila" key={`${pr.desde}-${i}`}>
-                        <span className="tv-parrilla-hora">{horaCorta(pr.desde) || "—"}</span>
-                        <span className="tv-parrilla-tit">{pr.titulo}</span>
-                      </p>
-                    ))}
-                  </div>
-                ) : (
-                  guiaMirada.luego && <p className="tv-ahora-luego">Después · {guiaMirada.luego}</p>
-                )}
-              </>
-            ) : (
-              <p className="tv-ahora-prog tv-ahora-singuia">Tu proveedor no manda la guía de este canal</p>
-            )}
-          </div>
-        </section>
-      )}
       {cargando && <p className="tv-cargando">Cargando…</p>}
       {error && <p className="tv-activar-error">{error}</p>}
       {/*
@@ -3292,7 +3901,6 @@ export default function TvApp() {
       </div>
       </>
       )}
-      </div>
       </div>
     </div>
   );
