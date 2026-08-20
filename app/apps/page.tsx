@@ -4,6 +4,7 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import Icon from "@/components/Icon";
 import LogoAparato from "@/components/LogoAparato";
+import Aparece from "@/components/Aparece";
 
 export const metadata: Metadata = {
   title: "Aplicaciones — TOTALplayer en la tele, el móvil y el ordenador",
@@ -34,8 +35,9 @@ export default function AppsPage() {
           {/* Cada tarjeta enseña de quién es cada aparato: se reconoce antes
               un logotipo que un titular, y aquí lo que busca el visitante es
               el suyo */}
-          <div className="features-grid">
-            <Link href="/apps/androidtv" className="feature-card app-card">
+          <div className="features-grid apps-grid">
+            <Aparece className="feature-card app-card" retraso={0} etiqueta="div">
+            <Link href="/apps/androidtv" className="app-card-todo">
               <div className="marcas">
                 <span className="marca">
                   <LogoAparato nombre="android" size={19} /> Android TV
@@ -52,12 +54,28 @@ export default function AppsPage() {
                 Con su icono en el menú de la tele y manejo con el mando. Es la mejor forma de verlo en un
                 televisor.
               </p>
-              <span className="app-card-mas">
-                Cómo instalarla <Icon name="external" size={14} />
-              </span>
-            </Link>
+              </Link>
+              {/*
+                Y el enlace de descarga, aquí y no escondido dentro.
+                Instalar en un Fire TV se hace con Downloader, escribiendo la
+                dirección letra a letra con el mando: por eso es corta. Que
+                haya que entrar en otra página para encontrarla es lo que
+                convierte «pásame la app» en tres mensajes.
+              */}
+              <div className="app-card-bajar">
+                <a className="btn btn-primary btn-sm" href="/apk/tv">
+                  <Icon name="bajar" size={16} /> Descargar el APK
+                </a>
+                <Link href="/apps/androidtv" className="app-card-mas">
+                  Cómo instalarla <Icon name="external" size={14} />
+                </Link>
+              </div>
+              <p className="app-card-teclear">
+                O escríbelo en Downloader: <b>totalplayer.app/apk/tv</b>
+              </p>
+            </Aparece>
 
-            <div className="feature-card">
+            <Aparece className="feature-card" retraso={70} etiqueta="div">
               <div className="marcas">
                 <span className="marca marca-nombre">Samsung</span>
                 <span className="marca marca-nombre">LG</span>
@@ -71,9 +89,10 @@ export default function AppsPage() {
                 mando funciona igual.
               </p>
               <span className="app-card-mas app-card-pronto">Aplicación: pendiente de publicar en sus tiendas</span>
-            </div>
+            </Aparece>
 
-            <Link href="/apps/movil" className="feature-card app-card">
+            <Aparece className="feature-card app-card" retraso={140} etiqueta="div">
+            <Link href="/apps/movil" className="app-card-todo">
               <div className="marcas">
                 <span className="marca">
                   <LogoAparato nombre="android" size={19} /> Android
@@ -84,15 +103,25 @@ export default function AppsPage() {
               </div>
               <h3>Móvil y tablet</h3>
               <p>
-                Se añade a la pantalla de inicio y se abre a pantalla completa, con su icono, como cualquier
-                otra aplicación. No hay nada que descargar de ninguna tienda.
+                En Android, con su APK: se instala y queda con su icono, como cualquier otra. En iPhone y
+                iPad se añade a la pantalla de inicio desde Safari y se abre igual, a pantalla completa. En
+                los dos casos, sin pasar por ninguna tienda.
               </p>
-              <span className="app-card-mas">
-                Cómo instalarla <Icon name="external" size={14} />
-              </span>
-            </Link>
+              </Link>
+              <div className="app-card-bajar">
+                <a className="btn btn-primary btn-sm" href="/apk/movil">
+                  <Icon name="bajar" size={16} /> Descargar el APK
+                </a>
+                <Link href="/apps/movil" className="app-card-mas">
+                  Cómo instalarla <Icon name="external" size={14} />
+                </Link>
+              </div>
+              <p className="app-card-teclear">
+                En iPhone no hay APK: se añade a la pantalla de inicio desde Safari.
+              </p>
+            </Aparece>
 
-            <div className="feature-card">
+            <Aparece className="feature-card" retraso={210} etiqueta="div">
               <div className="marcas">
                 <span className="marca">
                   <LogoAparato nombre="windows" size={19} /> Windows
@@ -107,12 +136,21 @@ export default function AppsPage() {
               <h3>Ordenador</h3>
               <p>
                 Cualquier navegador moderno. Es donde va todo más fino: teclado para buscar y la guía de
-                programación entera de un vistazo.
+                programación entera de un vistazo. Y en Windows, además, el programa de escritorio: la misma
+                pantalla de la tele, sin barra de direcciones y con lo descargado en el disco.
               </p>
-              <Link href="/player" className="app-card-mas">
-                Abrir el reproductor <Icon name="external" size={14} />
-              </Link>
-            </div>
+              <div className="app-card-bajar">
+                <a className="btn btn-primary btn-sm" href="/exe">
+                  <Icon name="bajar" size={16} /> Descargar para Windows
+                </a>
+                <Link href="/player" className="app-card-mas">
+                  Abrir el reproductor <Icon name="external" size={14} />
+                </Link>
+              </div>
+              <p className="app-card-teclear">
+                Mac y Linux, desde el navegador · <a href="/exe?msi">instalador MSI</a> para empresas
+              </p>
+            </Aparece>
           </div>
 
           <p className="section-sub" style={{ marginTop: 62, marginBottom: 0 }}>

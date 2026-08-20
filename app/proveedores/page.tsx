@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import Icon from "@/components/Icon";
+import Aparece from "@/components/Aparece";
 import { listPlans } from "@/lib/provider";
 
 export const metadata: Metadata = {
@@ -50,21 +51,21 @@ export default function ProvidersPage() {
               Cada cliente nuevo son mensajes explicando cómo pegar una URL. Con nosotros, se acabó.
             </p>
             <div className="steps">
-              <div className="step">
+              <Aparece className="step" retraso={0} etiqueta="div">
                 <div className="step-num">1</div>
                 <h3>Creas el acceso</h3>
                 <p>Desde tu panel: usuario, contraseña y las credenciales Xtream de ese cliente. Diez segundos.</p>
-              </div>
-              <div className="step">
+              </Aparece>
+              <Aparece className="step" retraso={90} etiqueta="div">
                 <div className="step-num">2</div>
                 <h3>Se lo entregas</h3>
                 <p>Tu cliente solo necesita dos datos. Nada de URLs largas, ni get.php, ni códigos de activación.</p>
-              </div>
-              <div className="step">
+              </Aparece>
+              <Aparece className="step" retraso={180} etiqueta="div">
                 <div className="step-num">3</div>
                 <h3>Entra y ve la tele</h3>
                 <p>Abre el reproductor, escribe usuario y contraseña, y ya está viendo su lista. En web y en su tele.</p>
-              </div>
+              </Aparece>
             </div>
           </div>
         </section>
@@ -73,25 +74,25 @@ export default function ProvidersPage() {
           <div className="container">
             <h2 className="section-title">Todo lo que incluye tu cuenta</h2>
             <div className="features-grid">
-              <div className="feature-card">
+              <Aparece className="feature-card" retraso={0} etiqueta="div">
                 <div className="feature-icon"><Icon name="users" size={22} /></div>
                 <h3>Gestión de clientes</h3>
                 <p>Alta, baja, cambio de contraseña, activar y desactivar al instante. Búsqueda inmediata entre miles.</p>
-              </div>
-              <div className="feature-card">
+              </Aparece>
+              <Aparece className="feature-card" retraso={70} etiqueta="div">
                 <div className="feature-icon"><Icon name="device" size={22} /></div>
                 <h3>Control de dispositivos</h3>
                 <p>Decide cuántas pantallas puede usar cada cliente y libéralas cuando cambie de televisor.</p>
-              </div>
-              <div className="feature-card">
+              </Aparece>
+              <Aparece className="feature-card" retraso={140} etiqueta="div">
                 <div className="feature-icon"><Icon name="tv" size={22} /></div>
                 <h3>Web y televisores</h3>
                 <p>El mismo acceso funciona en navegador, móvil y Smart TV con navegación por mando a distancia.</p>
-              </div>
+              </Aparece>
               {/* La pregunta que hace todo proveedor en la primera llamada:
                   «¿y una app con mi nombre?». Estaba contestada en el
                   repositorio y en ninguna parte donde él pudiera leerla */}
-              <div className="feature-card">
+              <Aparece className="feature-card" retraso={0} etiqueta="div">
                 <div className="feature-icon"><Icon name="device" size={22} /></div>
                 <h3>Aplicaciones con tu marca</h3>
                 <p>
@@ -99,22 +100,22 @@ export default function ProvidersPage() {
                   clientes no ven TOTALplayer por ningún lado. En el móvil se instala desde el navegador, sin
                   tienda. <Link href="/apps">Ver los aparatos</Link>.
                 </p>
-              </div>
-              <div className="feature-card">
+              </Aparece>
+              <Aparece className="feature-card" retraso={70} etiqueta="div">
                 <div className="feature-icon"><Icon name="play" size={22} /></div>
                 <h3>Directo, cine y series</h3>
                 <p>Soporte completo de la API Xtream con carátulas, categorías, temporadas y EPG. También listas M3U.</p>
-              </div>
-              <div className="feature-card">
+              </Aparece>
+              <Aparece className="feature-card" retraso={140} etiqueta="div">
                 <div className="feature-icon"><Icon name="sparkle" size={22} /></div>
                 <h3>Menos incidencias</h3>
                 <p>Motor de compatibilidad que reintenta solo cuando un canal falla. Menos mensajes de «no me va».</p>
-              </div>
-              <div className="feature-card">
+              </Aparece>
+              <Aparece className="feature-card" retraso={0} etiqueta="div">
                 <div className="feature-icon"><Icon name="check" size={22} /></div>
                 <h3>Creces sin fricción</h3>
                 <p>Cambias de tramo cuando lo necesitas. Pagas por capacidad, no por activación individual.</p>
-              </div>
+              </Aparece>
               {/*
                 Lo que estaba hecho y no se contaba en ninguna parte. Un
                 proveedor que compara opciones pregunta por las cuatro —«¿mis
@@ -122,30 +123,30 @@ export default function ProvidersPage() {
                 a mano?», «¿esto me lo puedo facturar?», «¿puedo automatizar
                 desde mi panel?»— y aquí no había respuesta a ninguna.
               */}
-              <div className="feature-card">
+              <Aparece className="feature-card" retraso={70} etiqueta="div">
                 <div className="feature-icon"><Icon name="handshake" size={22} /></div>
                 <h3>Tus revendedores, con sus permisos</h3>
                 <p>
                   Cada uno entra al mismo panel con su cuenta y tú decides qué ve: solo sus clientes o todos,
                   cuántos puede dar de alta, y si ve tus dominios, solo el nombre o nada.
                 </p>
-              </div>
-              <div className="feature-card">
+              </Aparece>
+              <Aparece className="feature-card" retraso={140} etiqueta="div">
                 <div className="feature-icon"><Icon name="upload" size={22} /></div>
                 <h3>Tráete tus clientes de golpe</h3>
                 <p>
                   Los importas desde tu panel XUI y entran todos con el usuario y la contraseña que ya tienen.
                   Cambiar de reproductor no significa volver a darlos de alta uno a uno.
                 </p>
-              </div>
-              <div className="feature-card">
+              </Aparece>
+              <Aparece className="feature-card" retraso={0} etiqueta="div">
                 <div className="feature-icon"><Icon name="card" size={22} /></div>
                 <h3>Facturas y API</h3>
                 <p>
                   Tus facturas con IVA desglosado y en PDF de un clic, para tu gestor. Y una API con tu clave para
                   crear, cambiar y dar de baja clientes desde tu propio sistema.
                 </p>
-              </div>
+              </Aparece>
             </div>
           </div>
         </section>

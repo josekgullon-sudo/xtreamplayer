@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import Aparece from "@/components/Aparece";
 
 export const metadata: Metadata = {
   title: "Preguntas frecuentes sobre el reproductor IPTV web",
@@ -196,12 +197,16 @@ export default function FaqPage() {
         <div className="container">
           <h1 className="section-title">Preguntas frecuentes</h1>
           <p className="section-sub">Si no encuentras tu respuesta, escríbenos.</p>
+          {/* Entran escalonadas, y solo las ocho primeras se escalonan: a
+              partir de ahí el retraso se nota como que la página va lenta */}
           <div className="faq-list">
-            {FAQS.map((f) => (
-              <details className="faq-item" key={f.q}>
-                <summary>{f.q}</summary>
-                {f.a}
-              </details>
+            {FAQS.map((f, i) => (
+              <Aparece className="faq-envoltorio" retraso={Math.min(i, 8) * 45} key={f.q}>
+                <details className="faq-item">
+                  <summary>{f.q}</summary>
+                  {f.a}
+                </details>
+              </Aparece>
             ))}
           </div>
         </div>

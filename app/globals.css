@@ -988,11 +988,21 @@ button { font-family: inherit; }
   color: var(--accent-bright); font-size: 14px; font-weight: 700;
 }
 .feature-mas:hover { text-decoration: underline; text-underline-offset: 3px; }
+/*
+ * En gris, y con color solo al pasar por encima.
+ *
+ * Diez tarjetas con su cuadro rojo no son diez acentos: son el fondo de la
+ * página. El color tiene que significar algo, y aquí lo que significa es
+ * «esto es lo que estás mirando». Igual que en el menú de la aplicación de
+ * televisión, que se arregló por lo mismo.
+ */
 .feature-icon {
   width: 46px; height: 46px; border-radius: 13px; margin-bottom: 20px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--accent-tint); color: var(--accent-bright);
+  background: var(--surface-quiet); color: var(--text-dim);
+  transition: background 0.22s ease, color 0.22s ease;
 }
+.feature-card:hover .feature-icon { background: var(--accent-tint); color: var(--accent-bright); }
 .feature-card h3 { font-size: 18px; font-weight: 650; margin-bottom: 10px; letter-spacing: -0.02em; }
 .feature-card p { font-size: 15px; color: var(--text-dim); line-height: 1.6; }
 
@@ -1001,10 +1011,10 @@ button { font-family: inherit; }
 .step-num {
   width: 50px; height: 50px; margin: 0 auto 22px;
   border-radius: 50%;
-  background: var(--accent-tint);
-  border: 1px solid var(--accent-tint-strong);
+  background: var(--surface-quiet);
+  border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 19px; color: var(--accent-bright);
+  font-weight: 700; font-size: 19px; color: var(--text);
 }
 .step h3 { font-size: 18.5px; font-weight: 650; margin-bottom: 10px; letter-spacing: -0.02em; }
 .step p { color: var(--text-dim); font-size: 15px; line-height: 1.6; }
@@ -1025,7 +1035,7 @@ button { font-family: inherit; }
 .faq-item:hover { background: var(--bg-elev-2); border-color: var(--border); }
 /* Abierta, se marca con el color de la marca: en una columna de ocho, saber
    cuál está desplegada de un vistazo ahorra volver a leerlas todas */
-.faq-item[open] { border-color: var(--accent-tint-strong); background: var(--bg-elev-2); }
+.faq-item[open] { border-color: var(--border-strong); background: var(--bg-elev-2); }
 .faq-item summary { cursor: pointer; font-weight: 600; font-size: 16px; padding: 19px 0; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .faq-item summary::after {
   content: "+"; font-size: 22px; color: var(--text-faint); flex: none;
@@ -1055,15 +1065,28 @@ button { font-family: inherit; }
 
 /* ============ Pricing ============ */
 
-.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 340px)); gap: 24px; justify-content: center; }
-.price-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; padding: 32px; position: relative; }
-.price-card.featured { border-color: var(--accent); box-shadow: 0 0 40px var(--accent-tint); }
+.pricing-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 340px));
+  gap: 24px; justify-content: center; align-items: stretch;
+}
+/* En columna y con el botón abajo del todo: con dos planes de distinto
+   número de líneas, el de la derecha dejaba un palmo de hueco debajo del
+   botón y las dos tarjetas parecían mal alineadas */
+.price-card {
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 16px; padding: 32px; position: relative;
+  display: flex; flex-direction: column;
+}
+.price-card ul { flex: 1 1 auto; }
+.price-card.featured { border-color: var(--accent); box-shadow: var(--shadow); }
 .price-card .plan-name { font-size: 15px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
 .price-card .price { font-size: 44px; font-weight: 800; margin: 10px 0 4px; }
 .price-card .price span { font-size: 16px; font-weight: 500; color: var(--text-faint); }
 .price-card ul { list-style: none; margin: 24px 0; display: flex; flex-direction: column; gap: 11px; }
 .price-card li { font-size: 14.5px; color: var(--text-dim); display: flex; gap: 10px; align-items: flex-start; }
-.price-card li::before { content: "✓"; color: var(--success); font-weight: 700; }
+/* En gris y no en verde: un verde entre veinte líneas de texto blanco es lo
+   único que se ve de la lista, y lo que hay que leer es la línea */
+.price-card li::before { content: "✓"; color: var(--text-faint); font-weight: 700; }
 .price-card li.no::before { content: "—"; color: var(--text-faint); }
 
 /* ============ Auth ============ */
@@ -1543,7 +1566,9 @@ select.input { appearance: none; cursor: pointer; }
   display: flex; align-items: center; justify-content: center; gap: 10px;
   font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 18px;
 }
-.precios-titulo svg { color: var(--accent-bright); }
+/* El icono del rótulo, en gris: son dos rótulos en la misma página y dos
+   iconos rojos seguidos convierten el acento en decoración */
+.precios-titulo svg { color: var(--text-faint); }
 .precios-nota { font-size: 12.5px; color: var(--text-faint); text-align: center; }
 
 /* Un número que pide que lo mires, no uno que solo informa */
@@ -4592,10 +4617,52 @@ select.input { appearance: none; cursor: pointer; }
    que el subrayado del enlace sobra y ensucia el titular */
 .app-card { display: block; color: inherit; }
 .app-card:hover { text-decoration: none; }
+/*
+ * La parte de la tarjeta que es un enlace, y la que no.
+ *
+ * La tarjeta entera llevaba a «cómo instalarla». Ahora abajo hay un botón de
+ * descarga, y un botón dentro de un enlace es un botón que no se puede
+ * pulsar: se traga la pulsación el enlace de fuera. Así que el enlace se
+ * queda con los logotipos, el titular y el texto, que es lo que se lee, y
+ * abajo van los dos destinos de verdad.
+ */
+.app-card-todo { display: block; color: inherit; }
+.app-card-todo:hover { text-decoration: none; }
+/*
+ * Bajarlo y saber cómo instalarlo, abajo del todo y alineados.
+ *
+ * Van al final y no en medio del texto porque son lo último que se hace:
+ * primero se mira si el aparato es el tuyo, y solo entonces se descarga.
+ * `margin-top: auto` los pega al canto inferior, que es lo que deja los
+ * cuatro botones a la misma altura aunque las tarjetas midan distinto.
+ */
+.app-card-bajar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+  margin-top: auto; padding-top: 20px;
+}
+.app-card-bajar .app-card-mas { margin-top: 0; }
+/* La dirección que se teclea con el mando, en pequeño y debajo: en un Fire
+   TV la descarga no se pulsa, se escribe letra a letra en Downloader */
+.app-card-teclear {
+  margin-top: 12px;
+  font-size: 13px; color: var(--text-faint); line-height: 1.6;
+}
+.app-card-teclear b { color: var(--text-dim); font-weight: 700; }
+/*
+ * Cuatro aparatos, dos y dos.
+ *
+ * En tres columnas, el cuarto se quedaba solo en una segunda fila con dos
+ * huecos al lado: en una página que se llama «en qué aparatos se ve», eso
+ * parece que falta algo. En dos por dos, además, cada tarjeta tiene ancho
+ * para su texto y para los botones de abajo sin que se le apelotonen.
+ */
+.apps-grid { grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); }
 .app-card-mas {
   display: inline-flex; align-items: center; gap: 7px; margin-top: 16px;
   font-size: 14.5px; font-weight: 600; color: var(--accent-bright);
 }
+/* Dentro de una tarjeta, el botón normal se come la mitad del ancho */
+.btn-sm { padding: 10px 18px; font-size: 14px; gap: 8px; }
 .app-card-pronto { color: var(--text-faint); }
 
 /* La descarga, o lo que hay mientras no la haya */

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import Icon from "@/components/Icon";
+import Aparece from "@/components/Aparece";
 import { listPlans } from "@/lib/provider";
 
 export const metadata: Metadata = {
@@ -41,7 +42,7 @@ export default function PricingPage() {
             <Icon name="play" size={18} /> Para ver tu lista
           </h2>
           <div className="pricing-grid">
-            <div className="price-card">
+            <Aparece className="price-card" retraso={0} etiqueta="div">
               <div className="plan-name">Gratis</div>
               <div className="price">
                 0€<span>/siempre</span>
@@ -61,8 +62,8 @@ export default function PricingPage() {
               <Link href="/player" className="btn btn-ghost" style={{ width: "100%" }}>
                 Usar gratis
               </Link>
-            </div>
-            <div className="price-card featured">
+            </Aparece>
+            <Aparece className="price-card featured" retraso={90} etiqueta="div">
               <span className="badge badge-accent" style={{ position: "absolute", top: 18, right: 18 }}>
                 15 días gratis
               </span>
@@ -83,7 +84,7 @@ export default function PricingPage() {
               <p className="precios-nota">
                 Sin tarjeta para la prueba. Al acabar pasas al plan Gratis automáticamente.
               </p>
-            </div>
+            </Aparece>
           </div>
 
           {/* ---------- Para proveedores ---------- */}
@@ -94,7 +95,7 @@ export default function PricingPage() {
             Tu reproductor, con tu nombre y tus colores, para todos tus clientes. Cuota mensual fija por tramo: cuanto
             mayor es, menos pagas por cliente.
           </p>
-          <div className="tabla-scroll">
+          <Aparece className="tabla-scroll" etiqueta="div">
             <table className="compare-table">
               <thead>
                 <tr>
@@ -117,7 +118,7 @@ export default function PricingPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Aparece>
           <div style={{ textAlign: "center", marginTop: 28 }}>
             <Link href="/proveedores/registro" className="btn btn-primary btn-lg">
               Probar gratis 7 días
