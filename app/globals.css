@@ -1304,8 +1304,8 @@ select.input { appearance: none; cursor: pointer; }
   background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-sm);
   color: var(--text); cursor: pointer; margin-bottom: 8px; text-align: left; font-size: 14px;
 }
-.pa-episode:hover { border-color: var(--accent); }
-.pa-episode .ep-num { color: var(--accent-bright); font-weight: 700; min-width: 38px; }
+.pa-episode:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+.pa-episode .ep-num { color: var(--text-faint); font-weight: 700; min-width: 38px; }
 
 /* Ad slot */
 .ad-slot { display: flex; justify-content: center; padding: 12px 0; }
@@ -3769,7 +3769,10 @@ select.input { appearance: none; cursor: pointer; }
   transition: background 0.12s, color 0.12s;
 }
 .pa-live-cat:hover { background: var(--bg-hover); color: var(--text); }
-.pa-live-cat.activa { background: var(--accent-tint); color: var(--accent-bright); }
+/* La carpeta abierta: se enciende el fondo, no el color de la letra. Una
+   columna de cuarenta carpetas con la activa en rojo era lo único que se
+   veía de la columna */
+.pa-live-cat.activa { background: var(--bg-hover); color: var(--text); }
 .pa-live-cat .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /*
@@ -3791,7 +3794,7 @@ select.input { appearance: none; cursor: pointer; }
 }
 .pa-live-cat:hover .pa-cat-icono { color: var(--text-dim); }
 .pa-live-cat.activa .pa-cat-icono {
-  color: var(--accent-bright); border-color: var(--accent-tint-strong); background: var(--accent-tint-soft);
+  color: var(--text); border-color: var(--border); background: var(--bg-elev-2);
 }
 .pa-cat-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 /* En el escritorio manda la pastilla del número, que ocupa menos */
@@ -4023,8 +4026,16 @@ select.input { appearance: none; cursor: pointer; }
 .pa-rail-txt { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pa-rail-item:hover { color: var(--text); }
 .pa-rail-item:hover .pa-rail-icono { background: var(--bg-hover); }
-.pa-rail-item.activo { color: var(--accent-bright); }
-.pa-rail-item.activo .pa-rail-icono { background: var(--accent-tint-strong); color: var(--accent-bright); }
+/*
+ * La sección abierta se marca en blanco, no en rojo.
+ *
+ * El rojo es el color de lo que se pulsa. Marcando además con él dónde
+ * estás, las dos cosas dicen lo mismo y ninguna se distingue. Es el mismo
+ * cambio que se hizo en la aplicación de televisión y en la de Fire TV, y
+ * por lo mismo: el color se guarda para donde significa algo.
+ */
+.pa-rail-item.activo { color: var(--text); }
+.pa-rail-item.activo .pa-rail-icono { background: var(--bg-hover); color: var(--text); }
 .pa-rail-borrar:hover { color: var(--danger); }
 .pa-rail-borrar:hover .pa-rail-icono { background: var(--danger-tint); }
 
@@ -4124,7 +4135,8 @@ select.input { appearance: none; cursor: pointer; }
 }
 .pa-listas-item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pa-listas-item:hover, .pa-listas-acc:hover { background: var(--bg-hover); color: var(--text); }
-.pa-listas-item.activa { background: var(--accent-tint); color: var(--accent-bright); }
+/* La lista abierta: fondo, no color de letra. Ver `.pa-rail-item.activo` */
+.pa-listas-item.activa { background: var(--bg-hover); color: var(--text); }
 .pa-listas-sep { height: 1px; background: var(--hairline); margin: 6px 4px; }
 .pa-listas-borrar:hover { background: var(--danger-tint); color: var(--danger); }
 
@@ -4260,7 +4272,9 @@ select.input { appearance: none; cursor: pointer; }
 .ficha-episodios .ep-num {
   width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px;
   display: inline-flex; align-items: center; justify-content: center;
-  background: var(--accent-tint); color: var(--accent-bright);
+  /* En gris: veinte episodios con su número en rojo son veinte manchas, y
+     lo que se lee de la fila es el título */
+  background: var(--surface-quiet); color: var(--text-dim);
   font-size: 12.5px; font-weight: 700;
 }
 .ficha-episodios .ep-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

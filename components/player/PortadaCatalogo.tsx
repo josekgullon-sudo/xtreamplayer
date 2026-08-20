@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Icon from "@/components/Icon";
 import { imgSrc } from "@/lib/img";
 import {
   FilaPortada,
@@ -146,7 +147,11 @@ export default function PortadaCatalogo({ titulos, categorias, alAbrir, alVerTod
             <h2 className="pa-banner-t">{destacado.nombre}</h2>
             {datosDe(destacado) && <p className="pa-banner-datos">{datosDe(destacado)}</p>}
             {destacado.sinopsis && <p className="pa-banner-sinopsis">{destacado.sinopsis}</p>}
-            <button className="btn btn-lg" onClick={() => alAbrir(destacado.id)}>
+            {/* Con el color de la marca y su icono, como en la tele: es la
+                acción de la pantalla, y salía en blanco y sin dibujo porque
+                le faltaba `btn-primary` */}
+            <button className="btn btn-primary btn-lg" onClick={() => alAbrir(destacado.id)}>
+              <Icon name="play" size={17} />
               {destacado.esSerie ? "Ver la serie" : "Reproducir"}
             </button>
           </div>
