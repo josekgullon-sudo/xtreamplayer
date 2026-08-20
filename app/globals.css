@@ -561,11 +561,17 @@ button { font-family: inherit; }
 }
 .hero::before {
   content: "";
-  position: absolute; inset: -80px 0 0; z-index: -1;
-  background-image: url("/fondo-carteles.jpg");
-  background-size: cover;
-  background-position: center top;
-  opacity: 0.16;
+  /* Empieza donde empieza el héroe y ni un píxel antes: subiendo por encima,
+     asomaba entre el aviso de arriba y la barra de navegación, y ahí se leía
+     como una franja de colores suelta en vez de como un fondo */
+  position: absolute; inset: 0; z-index: -1;
+  /* Dos fondos: el del proveedor si lo ha puesto, y debajo el dibujado.
+     Un `url()` que da 404 no pinta nada y deja ver el de abajo, así que esto
+     se ve siempre y mejora solo el día que se suba una imagen de verdad */
+  background-image: url("/fondo-carteles.jpg"), url("/fondo-mosaico.svg");
+  background-size: cover, cover;
+  background-position: center top, center top;
+  opacity: 0.2;
   /* Se desvanece por los cuatro lados: un rectángulo con canto se lee como una
      imagen puesta encima, y esto tiene que leerse como el fondo que es */
   -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 30%, #000 30%, transparent 100%);
@@ -2247,9 +2253,9 @@ select.input { appearance: none; cursor: pointer; }
  */
 .tv-lienzo {
   background-color: var(--bg);
-  background-image: url("/fondo-carteles.jpg");
-  background-size: cover;
-  background-position: center;
+  background-image: url("/fondo-carteles.jpg"), url("/fondo-mosaico.svg");
+  background-size: cover, cover;
+  background-position: center, center;
 }
 .tv-lienzo::before {
   content: ""; position: absolute; inset: 0; z-index: 0;
