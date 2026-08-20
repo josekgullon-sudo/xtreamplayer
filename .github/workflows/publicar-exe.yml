@@ -29,8 +29,12 @@ jobs:
       # Un comando que el programa expone y el ACL no deja llamar compila igual
       # de verde: el fallo sale en el aparato de alguien, con un mensaje que no
       # llega a ninguna pantalla. Se mira antes de gastar veinte minutos
+      # `python`, no `python3`: este trabajo corre en Windows y allí el
+      # intérprete se llama así —los de Android usan `python3` porque corren
+      # en Linux—. Con el nombre equivocado el paso no comprueba nada: se cae
+      # antes, y de paso tira el resto del trabajo
       - name: Que ningún comando se quede fuera del ACL
-        run: python3 qa/comandos-permitidos.py
+        run: python qa/comandos-permitidos.py
 
       - uses: dtolnay/rust-toolchain@stable
 
