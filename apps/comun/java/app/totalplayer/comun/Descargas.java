@@ -58,6 +58,8 @@ public class Descargas {
     /** Lo que se ha mandado parar mientras bajaba */
     private final Set<String> cancelados = new HashSet<>();
     private ServidorLocal servidor;
+    /** Lo último que se rompió al encargar algo. Ver `fallo()`. */
+    private volatile String roto = "";
 
     public Descargas(Context contexto) {
         this.contexto = contexto.getApplicationContext();
@@ -83,11 +85,21 @@ public class Descargas {
      */
     @JavascriptInterface
     public void bajar(String encargo) {
+        roto = "";
         try {
             final JSONObject e = new JSONObject(encargo);
             final String id = e.optString("id");
             final String origen = e.optString("url");
-            if (id.isEmpty() || origen.isEmpty()) return;
+            if (id.isEmpty()) { roto = "El encargo viene sin identificador"; return; }
+            if (origen.isEmpty()) { roto = "Tu proveedor no ha dado la dirección de este vídeo"; return; }
+            /* Y una dirección tiene que ser una dirección: una ruta como
+               «/api/proxy?v=…» se completa sola en un navegador —con el sitio
+               en el que está— y aquí no hay sitio, así que moría dentro del
+               hilo y solo se veía una descarga fallida sin motivo */
+            if (!origen.startsWith("http://") && !origen.startsWith("https://")) {
+                roto = "La dirección no es completa: " + origen;
+                return;
+            }
             synchronized (this) {
                 if (buscar(id) != null) return;  // ya está, o ya está bajando
                 cancelados.remove(id);
@@ -99,6 +111,7 @@ public class Descargas {
                 fila.put("parte", 0);
                 fila.put("bytes", 0);
                 fila.put("origen", origen);
+                fila.put("motivo", "");
                 anotar(fila);
             }
             cola.execute(new Runnable() {
@@ -108,8 +121,21 @@ public class Descargas {
                 }
             });
         } catch (Exception fallo) {
+            roto = "El encargo no se entiende: " + fallo;
             Log.w(TAG, "encargo ilegible", fallo);
         }
+    }
+
+    /**
+     * Lo último que se rompió antes de empezar siquiera.
+     *
+     * `bajar` no puede contestar —el contrato es síncrono y lo que hace no lo
+     * es—, así que sin esto un encargo rechazado dejaba la pantalla como si
+     * no hubieras pulsado. La web lo pregunta justo después de encargar.
+     */
+    @JavascriptInterface
+    public String fallo() {
+        return roto == null ? "" : roto;
     }
 
     /** «Quítame esto»: pare si está bajando, y borra lo que haya en disco. */
@@ -138,6 +164,7 @@ public class Descargas {
                 /* La dirección solo tiene sentido cuando el fichero está
                    entero: media película se ve como un vídeo roto */
                 copia.put("url", "lista".equals(f.optString("estado")) ? donde(f.optString("id")) : "");
+                copia.put("motivo", f.optString("motivo"));
                 copia.remove("origen");   // la web no tiene nada que hacer con ella
                 fuera.put(copia);
             } catch (Exception ignorado) {
@@ -296,7 +323,7 @@ public class Descargas {
         } catch (Exception fallo) {
             Log.w(TAG, "no se ha podido bajar " + id, fallo);
             if (destino.exists() && !destino.delete()) Log.w(TAG, "sobra " + destino);
-            if (!cancelado(id)) fallar(id);
+            if (!cancelado(id)) fallar(id, String.valueOf(fallo.getMessage() != null ? fallo.getMessage() : fallo));
         } finally {
             cerrar(sale);
             cerrar(entra);
@@ -385,6 +412,10 @@ public class Descargas {
     }
 
     private synchronized void cambiar(String id, String estado, int parte, long bytes) {
+        cambiar(id, estado, parte, bytes, null);
+    }
+
+    private synchronized void cambiar(String id, String estado, int parte, long bytes, String motivo) {
         JSONArray lista = leer();
         for (int i = 0; i < lista.length(); i++) {
             JSONObject f = lista.optJSONObject(i);
@@ -393,6 +424,7 @@ public class Descargas {
                 if (estado != null) f.put("estado", estado);
                 if (parte >= 0) f.put("parte", parte);
                 if (bytes >= 0) f.put("bytes", bytes);
+                if (motivo != null) f.put("motivo", motivo);
             } catch (Exception ignorado) {
                 /* Un `put` de JSONObject no falla con estos tipos */
             }
@@ -409,8 +441,10 @@ public class Descargas {
         cambiar(id, "lista", 100, bytes);
     }
 
-    private void fallar(String id) {
-        cambiar(id, "fallo", -1, -1);
+    /* Con el motivo: «no se ha podido terminar» a secas no deja arreglar
+       nada, ni a quien lo usa ni a quien lo mantiene */
+    private void fallar(String id, String porque) {
+        cambiar(id, "fallo", -1, -1, porque);
     }
 
     /**

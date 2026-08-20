@@ -1143,6 +1143,14 @@ export default function PlayerApp() {
     if (enBajadas) setDescargas(leerDescargas());
   }, [enBajadas]);
 
+  /**
+   * La dirección con la que se guarda, que no es siempre la que se reproduce.
+   *
+   * Reproducir lo hace el navegador, con su sesión puesta; guardar lo hace un
+   * proceso del aparato, que no la tiene. Ver `/api/tele/ver`.
+   */
+  const dondeGuardar = (e: { url: string; paraGuardar?: string }) => e.paraGuardar || e.url;
+
   /* Y justo después de encargar algo, se pregunta un rato pase lo que pase:
      el reloj de arriba solo corre si YA hay algo bajando, y saber si lo hay
      se pregunta con una `lista()` que devuelve la respuesta anterior —tiene
@@ -1177,7 +1185,8 @@ export default function PlayerApp() {
     try {
       const url = await resolver();
       if (!url) throw new Error("Tu proveedor no ha dado la dirección de este vídeo");
-      encargarDescarga({ id, nombre, cartel, url });
+      const roto = encargarDescarga({ id, nombre, cartel, url });
+      if (roto) throw new Error(roto);
       setDescargas(leerDescargas());
       setReciénEncargado(Date.now());
     } catch (e) {
@@ -1980,7 +1989,9 @@ export default function PlayerApp() {
                   /* Un fallo se dice y se deja a la vista con su papelera al
                      lado: media descarga ocupando disco sin que nadie sepa
                      que está ahí es peor que el fallo */
-                  <span className="pa-bajada-estado pa-bajada-fallo">No se ha podido terminar</span>
+                  <span className="pa-bajada-estado pa-bajada-fallo">
+                    {d.motivo ? `No se ha podido terminar · ${d.motivo}` : "No se ha podido terminar"}
+                  </span>
                 ) : (
                   <span className="pa-bajada-estado">
                     En este aparato{tamanoLegible(d.bytes) ? ` · ${tamanoLegible(d.bytes)}` : ""}
@@ -2526,14 +2537,14 @@ export default function PlayerApp() {
                       className="btn btn-ghost"
                       onClick={() =>
                         bajarloAqui(id, vodDetail.vod.name, vodDetail.vod.stream_icon || "", async () =>
-                          (
+                          dondeGuardar(
                             await pedirEnlace({
                               ...credsOf(active),
                               clase: "movie",
                               id: String(vodDetail.vod.stream_id),
                               ext,
                             })
-                          ).url
+                          )
                         )
                       }
                     >
@@ -2633,14 +2644,14 @@ export default function PlayerApp() {
                           `${seriesDetail.series.name} · T${seriesDetail.season}E${ep.episode_num}`,
                           seriesDetail.series.cover || "",
                           async () =>
-                            (
+                            dondeGuardar(
                               await pedirEnlace({
                                 ...credsOf(active),
                                 clase: "series",
                                 id: ep.id,
                                 ext: ep.container_extension || "mp4",
                               })
-                            ).url
+                            )
                         )
                       }
                     >

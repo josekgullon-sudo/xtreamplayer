@@ -51,10 +51,42 @@ interface Contenido {
   d: string;
   /** Hasta cuándo. */
   h: number;
+  /**
+   * Vale de descarga: vale sin presentar la sesión.
+   *
+   * Lo usa el programa de Windows y la aplicación de Android para guardar una
+   * película en el aparato. Quien pide el fichero ahí no es el navegador sino
+   * un proceso del mismo ordenador, que no tiene —ni puede tener— la galleta
+   * de sesión: es de las que el navegador no deja leer, y hace bien. Sin
+   * esto, con VIDEO_OCULTO=1 la descarga se topaba con un 403 y lo único que
+   * se veía era «no se ha podido terminar».
+   *
+   * Sigue siendo infalsificable —va cifrado y sellado con la clave del
+   * servidor, y lleva dentro de quién es y hasta cuándo—; lo único que se
+   * afloja es la segunda barrera, la de que lo presente el mismo navegador
+   * que lo pidió. Por eso dura mucho menos.
+   */
+  x?: 1;
 }
+
+/** Un vale de descarga dura lo que tarda en bajar una película, no una noche. */
+const VIGENCIA_DESCARGA = 6 * 60 * 60 * 1000;
 
 export function emitirVale(url: string, dueño: string, imagen = false): string {
   const cuerpo: Contenido = { u: url, d: dueño, h: Date.now() + (imagen ? VIGENCIA_IMAGEN : VIGENCIA) };
+  const iv = crypto.randomBytes(12);
+  const cifra = crypto.createCipheriv("aes-256-gcm", clave(), iv);
+  const datos = Buffer.concat([cifra.update(JSON.stringify(cuerpo), "utf8"), cifra.final()]);
+  return [
+    iv.toString("base64url"),
+    cifra.getAuthTag().toString("base64url"),
+    datos.toString("base64url"),
+  ].join(".");
+}
+
+/** Como `emitirVale`, pero para que lo use el aparato y no el navegador. */
+export function emitirValeDeDescarga(url: string, dueño: string): string {
+  const cuerpo: Contenido = { u: url, d: dueño, h: Date.now() + VIGENCIA_DESCARGA, x: 1 };
   const iv = crypto.randomBytes(12);
   const cifra = crypto.createCipheriv("aes-256-gcm", clave(), iv);
   const datos = Buffer.concat([cifra.update(JSON.stringify(cuerpo), "utf8"), cifra.final()]);
@@ -71,6 +103,10 @@ export function emitirVale(url: string, dueño: string, imagen = false): string 
  * Null cuando está caducado, cuando no es de quien lo presenta, y cuando
  * viene tocado: el sello de GCM hace que cambiar un solo byte lo invalide,
  * así que nadie puede coger un vale suyo y torcerlo hacia otro sitio.
+ *
+ * La excepción son los vales de descarga, que se validan solos: quien los
+ * presenta es un proceso del aparato y no tiene galleta de sesión. Ver
+ * `emitirValeDeDescarga`.
  */
 export function abrirVale(vale: string, dueño: string): string | null {
   if (!vale) return null;
@@ -86,7 +122,7 @@ export function abrirVale(vale: string, dueño: string): string | null {
     const cuerpo = JSON.parse(claro) as Contenido;
     if (!cuerpo || typeof cuerpo.u !== "string") return null;
     if (cuerpo.h < Date.now()) return null;
-    if (cuerpo.d !== dueño) return null;
+    if (cuerpo.x !== 1 && cuerpo.d !== dueño) return null;
     return cuerpo.u;
   } catch {
     return null;

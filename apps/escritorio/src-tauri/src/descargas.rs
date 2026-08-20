@@ -45,6 +45,10 @@ pub struct Fila {
     /// hacer con ella y es una dirección con la sesión del proveedor dentro.
     #[serde(default)]
     pub origen: String,
+    /// Por qué falló, cuando falló. «No se ha podido terminar» a secas no
+    /// deja arreglar nada: ni a quien lo usa ni a quien lo mantiene.
+    #[serde(default)]
+    pub motivo: String,
 }
 
 /// Lo que se le manda a la web: lo de arriba, con `url` y sin `origen`.
@@ -57,6 +61,7 @@ struct Vista {
     parte: u8,
     bytes: u64,
     url: String,
+    motivo: String,
 }
 
 #[derive(Deserialize)]
@@ -149,10 +154,24 @@ fn guardar(app: &AppHandle) {
 }
 
 fn cambiar(app: &AppHandle, id: &str, estado: Option<&str>, parte: Option<u8>, bytes: Option<u64>) {
+    cambiar_con(app, id, estado, parte, bytes, None)
+}
+
+fn cambiar_con(
+    app: &AppHandle,
+    id: &str,
+    estado: Option<&str>,
+    parte: Option<u8>,
+    bytes: Option<u64>,
+    motivo: Option<&str>,
+) {
     if let Ok(mut c) = cuaderno().lock() {
         if let Some(f) = c.iter_mut().find(|f| f.id == id) {
             if let Some(e) = estado {
                 f.estado = e.to_string();
+            }
+            if let Some(m) = motivo {
+                f.motivo = m.to_string();
             }
             if let Some(p) = parte {
                 f.parte = p;
@@ -171,22 +190,31 @@ fn cancelado(id: &str) -> bool {
 
 /* ---------- Lo que ve la web ---------- */
 
+/// Devuelve el motivo si no puede ni empezar. Callarse aquí dejaba el botón
+/// como si no lo hubieras pulsado, que es la peor forma de fallar.
 #[tauri::command]
-pub fn tp_bajar(app: AppHandle, encargo: String) {
-    let e: Encargo = match serde_json::from_str(&encargo) {
-        Ok(e) => e,
-        Err(_) => return,
-    };
-    if e.id.is_empty() || e.url.is_empty() {
-        return;
+pub fn tp_bajar(app: AppHandle, encargo: String) -> Result<(), String> {
+    let e: Encargo = serde_json::from_str(&encargo)
+        .map_err(|x| format!("El encargo no se entiende: {x}"))?;
+    if e.id.is_empty() {
+        return Err("El encargo viene sin identificador".into());
+    }
+    if e.url.is_empty() {
+        return Err("Tu proveedor no ha dado la dirección de este vídeo".into());
+    }
+    /* Y una dirección tiene que ser una dirección: sin esto, una ruta como
+       «/api/proxy?v=…» —que en un navegador se completa sola con el sitio en
+       el que está, y aquí no hay sitio— moría dentro del hilo y lo único que
+       se veía era una descarga «fallida» sin motivo */
+    if !e.url.starts_with("http://") && !e.url.starts_with("https://") {
+        return Err(format!("La dirección no es completa: {}", e.url));
     }
     {
-        let mut c = match cuaderno().lock() {
-            Ok(c) => c,
-            Err(_) => return,
-        };
+        let mut c = cuaderno()
+            .lock()
+            .map_err(|_| "El cuaderno de descargas está bloqueado".to_string())?;
         if c.iter().any(|f| f.id == e.id) {
-            return; // ya está, o ya está bajando
+            return Ok(()); // ya está, o ya está bajando
         }
         // Lo último encargado, arriba
         c.insert(
@@ -199,6 +227,7 @@ pub fn tp_bajar(app: AppHandle, encargo: String) {
                 parte: 0,
                 bytes: 0,
                 origen: e.url.clone(),
+                motivo: String::new(),
             },
         );
     }
@@ -209,6 +238,7 @@ pub fn tp_bajar(app: AppHandle, encargo: String) {
 
     let hilo = app.clone();
     std::thread::spawn(move || traer(hilo, e.id, e.url));
+    Ok(())
 }
 
 #[tauri::command]
@@ -249,6 +279,7 @@ pub fn tp_descargas(app: AppHandle) -> String {
                 parte: f.parte,
                 bytes: f.bytes,
                 url,
+                motivo: f.motivo,
             }
         })
         .collect();
@@ -309,10 +340,10 @@ fn traer(app: AppHandle, id: String, origen: String) {
 
     match resultado {
         Ok(bytes) => cambiar(&app, &id, Some("lista"), Some(100), Some(bytes)),
-        Err(_) => {
+        Err(porque) => {
             let _ = fs::remove_file(&temporal);
             if !cancelado(&id) {
-                cambiar(&app, &id, Some("fallo"), None, None);
+                cambiar_con(&app, &id, Some("fallo"), None, None, Some(&porque));
             }
         }
     }
@@ -477,10 +508,16 @@ fn seco(quien: &mut TcpStream, codigo: u16, texto: &str) -> std::io::Result<()> 
  */
 pub const PUENTE: &str = r#"
 (function () {
+  var roto = '';
   function llamar(que, con) {
+    if (!window.__TAURI_INTERNALS__ || !window.__TAURI_INTERNALS__.invoke) {
+      roto = 'El programa no ha abierto el puente con la página';
+      return Promise.reject(new Error(roto));
+    }
     try {
       return window.__TAURI_INTERNALS__.invoke(que, con || {});
     } catch (niIdea) {
+      roto = String((niIdea && niIdea.message) || niIdea);
       return Promise.reject(niIdea);
     }
   }
@@ -490,9 +527,18 @@ pub const PUENTE: &str = r#"
   }
   refrescar();
   window.TPDescargas = {
-    bajar: function (encargo) { llamar('tp_bajar', { encargo: encargo }).then(refrescar, refrescar); },
+    bajar: function (encargo) {
+      roto = '';
+      llamar('tp_bajar', { encargo: encargo }).then(refrescar, function (x) {
+        /* Lo que conteste el programa cuando no puede ni empezar: sin esto,
+           pulsar «Descargar» no hacía nada y no había forma de saber por qué */
+        roto = String((x && x.message) || x);
+        refrescar();
+      });
+    },
     quitar: function (id) { llamar('tp_quitar', { id: id }).then(refrescar, refrescar); },
-    lista: function () { refrescar(); return ultima; }
+    lista: function () { refrescar(); return ultima; },
+    fallo: function () { return roto; }
   };
 })();
 "#;

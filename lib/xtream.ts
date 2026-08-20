@@ -208,6 +208,14 @@ export interface Enlace {
   urlTs?: string;
   vale?: string;
   valeTs?: string;
+  /**
+   * La misma dirección, pero para guardarla en el aparato.
+   *
+   * Distinta de `url` porque quien la usa es distinto: `url` la abre el
+   * navegador, que lleva su sesión puesta; esta la usa el programa nativo,
+   * que no la tiene. Ver la ruta `/api/tele/ver`.
+   */
+  paraGuardar?: string;
   directo?: boolean;
 }
 

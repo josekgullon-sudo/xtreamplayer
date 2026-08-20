@@ -2973,6 +2973,27 @@ select.input { appearance: none; cursor: pointer; }
 .tv-dir-canal.foco {
   background: rgba(229, 9, 20, 0.12); border-color: var(--accent);
 }
+/* Una carpeta en la lista: su dibujo, su nombre, un adelanto de lo que hay
+   dentro y cuántos son. Se distingue de un canal por el número a la derecha
+   en vez del «EN VIVO» */
+.tv-dir-canal.es-carpeta .tv-dir-marca { color: var(--text-dim); }
+.tv-dir-cuantos {
+  flex: none; padding: 0.2vh 0.6vw; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.85vw; font-weight: 800; color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.tv-dir-canal.foco .tv-dir-cuantos { background: rgba(255, 255, 255, 0.18); color: #fff; }
+/* Y dentro de una carpeta, su nombre es la puerta de vuelta: quien ha entrado
+   con el ratón no tiene tecla de ATRÁS */
+.tv-dir-volver {
+  display: flex; align-items: baseline; gap: 0.5vw; min-width: 0;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--text); font-size: 1.6vw; font-weight: 800; letter-spacing: -0.01em;
+}
+.tv-dir-volver span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tv-dir-volver:hover { color: var(--accent-bright); }
+
 .tv-dir-todos {
   flex: none; align-self: flex-start;
   padding: 1vh 1vw; border-radius: 0.6vw;
@@ -3675,14 +3696,30 @@ select.input { appearance: none; cursor: pointer; }
  * luego es la otra cosa que se hace en una ficha, y va al lado en contorno:
  * se ve que está, pero no compite.
  */
-.tv-ficha-acciones { display: flex; align-items: center; gap: 1vw; margin: 1.2vh 0 0.8vh; }
+/*
+ * En una línea y todos de la misma altura.
+ *
+ * Sin esto el texto se partía dentro de la pastilla —«Ver el primer /
+ * episodio», «Mi / lista»— y quedaban tres cápsulas de alturas distintas,
+ * cada una deformada por lo largo que fuera su rótulo. Un botón es una
+ * etiqueta, no un párrafo: si no cabe, que baje a la línea siguiente entero.
+ */
+.tv-ficha-acciones {
+  display: flex; align-items: stretch; flex-wrap: wrap;
+  gap: 0.8vw; margin: 1.2vh 0 0.8vh;
+}
 .tv-ficha-acciones .tv-ficha-ver { margin: 0; }
+.tv-ficha-acciones .tv-ficha-ver,
+.tv-ficha-guardar { white-space: nowrap; }
+/* El mismo cuerpo de letra en los tres: con dos tamaños distintos, el
+   relleno vertical daba alturas distintas y la fila quedaba escalonada */
+.tv-ficha-acciones .tv-ficha-ver { padding: 1.4vh 2.2vw; font-size: 1.3vw; }
 .tv-ficha-guardar {
-  display: inline-flex; align-items: center; gap: 0.7vw;
-  padding: 1.5vh 2.2vw; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.6vw;
+  padding: 1.4vh 1.8vw; border-radius: 999px;
   border: 0.25vh solid var(--border-strong);
   background: rgba(23, 23, 26, 0.72); color: var(--text-dim);
-  font-size: 1.35vw; font-weight: 700; cursor: pointer;
+  font-size: 1.3vw; font-weight: 700; cursor: pointer;
   transition: transform 0.16s cubic-bezier(0.22, 0.8, 0.2, 1),
     border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
 }

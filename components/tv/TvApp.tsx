@@ -110,6 +110,15 @@ interface Fila {
   epgId?: string;
   /** El número que le ha puesto el proveedor, para la cabecera del directo. */
   numero?: number;
+  /**
+   * Lo que hay dentro de una carpeta, sin abrirla.
+   *
+   * Sirve para enseñar de qué va una carpeta antes de entrar: recorriendo la
+   * lista de carpetas del directo, la mitad derecha va enseñando qué echan en
+   * el primer canal de cada una. Sin esto habría que entrar para saberlo, que
+   * es justo lo que se quería evitar.
+   */
+  hijos?: Fila[];
   /** Qué hacer al pulsar OK: reproducir, o abrir la lista de episodios */
   abrir: () => void;
 }
@@ -1090,13 +1099,15 @@ export default function TvApp() {
       for (const [clave, suyos] of porCat) if (!suyos.length) porCat.delete(clave);
       return [...porCat.entries()].map(([clave, suyos]) => {
         const titulo = clave === "__sueltos__" ? "Otros" : nombres.get(clave) || "Sin nombre";
+        const dentro = suyos.map(aFila);
         return {
           id: `cat-${clave}`,
           nombre: `${titulo}  (${suyos.length})`,
           logo: "",
           carpeta: true,
           icono: iconoDeCategoria(titulo),
-          abrir: () => entrarEnCarpeta(titulo, suyos.map(aFila)),
+          hijos: dentro,
+          abrir: () => entrarEnCarpeta(titulo, dentro),
         };
       });
     },
@@ -1169,6 +1180,15 @@ export default function TvApp() {
   useEffect(() => {
     setNavAbierta(false);
   }, [pantalla]);
+
+  /**
+   * La dirección con la que se guarda, que no es siempre la que se reproduce.
+   *
+   * Reproducir lo hace el navegador, que lleva su sesión puesta; guardar lo
+   * hace un proceso del aparato, que no la tiene. Cuando el servidor manda
+   * las dos, para guardar vale la suya. Ver `/api/tele/ver`.
+   */
+  const dondeGuardar = (e: { url: string; paraGuardar?: string }) => e.paraGuardar || e.url;
 
   const abrirTitulo = useCallback((t: Titulo) => {
     (acciones.current.get(t.id) || accionesInicio.current.get(t.id))?.();
@@ -1388,14 +1408,14 @@ export default function TvApp() {
               episodios: {},
               reproducir: ponerPeli(v),
               enlace: async () =>
-                (
+                dondeGuardar(
                   await pedirEnlace({
                     ...creds,
                     clase: "movie",
                     id: String(v.stream_id),
                     ext: v.container_extension || "mp4",
                   })
-                ).url,
+                ),
             });
             /* El detalle del panel —reparto, dirección y la sinopsis cuando
                TMDB no la tiene— por debajo y sin bloquear la pantalla */
@@ -1689,7 +1709,7 @@ export default function TvApp() {
           pedirEnlace({ ...creds, clase: "movie", id: String(v.stream_id), ext })
         ),
       enlace: async () =>
-        (await pedirEnlace({ ...creds, clase: "movie", id: String(v.stream_id), ext })).url,
+        dondeGuardar(await pedirEnlace({ ...creds, clase: "movie", id: String(v.stream_id), ext })),
     });
     /* El detalle del panel —reparto, dirección y la sinopsis cuando TMDB no
        la tiene— por debajo y sin bloquear la pantalla */
@@ -1772,14 +1792,14 @@ export default function TvApp() {
              puesta: guardarlo en el aparato y verlo son lo mismo con dos
              finales distintos */
           enlace: async () =>
-            (
+            dondeGuardar(
               await pedirEnlace({
                 ...creds,
                 clase: "series",
                 id: ep.id,
                 ext: ep.container_extension || "mp4",
               })
-            ).url,
+            ),
         }));
       }
       /* En orden de número y no como los mande el panel: hay paneles que
@@ -1867,13 +1887,17 @@ export default function TvApp() {
   /* «Todos»: quita el filtro de carpeta sin salir de la pantalla del directo
      ni volver a pedirle nada al panel — los canales en plano ya están */
   function quitarCarpeta() {
+    /* De vuelta arriba, el foco se queda en la carpeta de la que sales: si no,
+       salir de la carpeta 40 te deja en la 1 y hay que volver a bajar */
+    const vengoDe = carpetasDirecto.findIndex((c) => c.nombre.startsWith(carpetaAbierta));
     setCarpetaAbierta("");
     setVista("portada");
     /* Y `filas` vuelve a ser el índice de carpetas, que es lo que era antes
-       de entrar en una: si no, «Ver todos los canales» enseñaba los canales
-       de la carpeta que se acababa de quitar en vez del índice */
+       de entrar en una: si no, el catálogo entero enseñaba los canales de la
+       carpeta que se acababa de soltar */
     if (carpetasDirecto.length) setFilas(carpetasDirecto);
-    setFoco(0);
+    setFoco(vengoDe >= 0 ? vengoDe : 0);
+    setZonaDir("canales");
   }
 
   function verCarpetas() {
@@ -1933,6 +1957,13 @@ export default function TvApp() {
       return;
     }
     if (carpetaAbierta) {
+      /* En el directo, subir un piso no es volver a cargar la sección: los
+         canales en plano y las carpetas ya están en la mano, y pedírselos otra
+         vez al panel son ocho mil canales por una tecla de ATRÁS */
+      if (pantalla === "directo" && carpetasDirecto.length) {
+        quitarCarpeta();
+        return;
+      }
       setCarpetaAbierta("");
       cargar(pantalla);
       return;
@@ -2190,7 +2221,8 @@ export default function TvApp() {
       /* Sin dirección no hay descarga, y se dice: callarse aquí deja el
          botón como si no hubieras pulsado */
       if (!url) throw new Error("Tu proveedor no ha dado la dirección de este vídeo");
-      encargarDescarga({ id: bajable.id, nombre: bajable.nombre, cartel: bajable.cartel, url });
+      const roto = encargarDescarga({ id: bajable.id, nombre: bajable.nombre, cartel: bajable.cartel, url });
+      if (roto) throw new Error(roto);
       setDescargas(leerDescargas());
       setReciénEncargado(Date.now());
     } catch (e) {
@@ -2209,8 +2241,28 @@ export default function TvApp() {
    * categoría es un filtro que se aplica encima, no una puerta que hay que
    * abrir primero.
    */
-  const canalesVista = carpetaAbierta ? filas : canales;
-  const canalMirado = enDirecto ? canalesVista[foco] : undefined;
+  /*
+   * La columna de la izquierda tiene dos pisos, y se entra por el de arriba.
+   *
+   * Estuvo enseñando los canales en plano, todos: con un proveedor de verdad
+   * eso son ocho mil filas seguidas y encontrar uno es imposible, con mando y
+   * con ratón. Ahora arriba están las carpetas —que es como el proveedor ha
+   * ordenado su catálogo— y dentro de cada una, sus canales. ATRÁS sube un
+   * piso, igual que en el resto de la aplicación.
+   */
+  const canalesVista = carpetaAbierta ? filas : carpetasDirecto;
+  /*
+   * Y la mitad derecha enseña algo aunque estés en el piso de las carpetas:
+   * lo que echan en el primer canal de la que tienes debajo del foco. Así
+   * recorrer carpetas ya dice de qué va cada una, en vez de dejar media
+   * pantalla en negro hasta que entras.
+   */
+  const enCarpetas = enDirecto && !carpetaAbierta;
+  const canalMirado = enDirecto
+    ? enCarpetas
+      ? canalesVista[foco]?.hijos?.[0]
+      : canalesVista[foco]
+    : undefined;
   const guiaMirada = canalMirado?.epgId ? epgAhora[canalMirado.epgId] : undefined;
 
   /*
@@ -2540,8 +2592,16 @@ export default function TvApp() {
           }
           if (tecla === "Ok") {
             e.preventDefault();
-            if (foco === ultimoIzq) verCarpetas();
-            else canalesVista[foco]?.abrir();
+            if (foco === ultimoIzq) {
+              if (carpetaAbierta) quitarCarpeta();
+              else verCarpetas();
+            } else {
+              const cual = canalesVista[foco];
+              cual?.abrir();
+              /* Al entrar en una carpeta, el foco arriba del todo: lo que se
+                 va a hacer es recorrer sus canales desde el principio */
+              if (cual?.carpeta) setFoco(0);
+            }
             return;
           }
           return;
@@ -3766,24 +3826,37 @@ export default function TvApp() {
           */}
           <aside className="tv-dir-canales">
             <div className="tv-dir-cab">
-              <h2>{carpetaAbierta || "Canales"}</h2>
+              {/* Dentro de una carpeta, la cabecera es también la puerta de
+                  vuelta: el que ha entrado con el ratón no tiene ATRÁS */}
+              {carpetaAbierta ? (
+                <button className="tv-dir-volver" onClick={quitarCarpeta}>
+                  ‹ <span>{carpetaAbierta}</span>
+                </button>
+              ) : (
+                <h2>Carpetas</h2>
+              )}
               <span className="tv-dir-cuenta">{canalesVista.length}</span>
             </div>
             <div className="tv-dir-lista" ref={listaRef} onMouseLeave={ratonSeVa}>
               {canalesVista.map((c, i) => {
                 const g = c.epgId ? epgAhora[c.epgId] : undefined;
                 const puesto = zonaDir === "canales" && foco === i;
+                /* El nombre de una carpeta trae detrás cuántos canales tiene
+                   —«Deportes  (12)»—, y el número se lee mejor aparte */
+                const parte = c.carpeta ? /^(.*?)\s*\((\d+)\)\s*$/.exec(c.nombre) : null;
                 return (
                   <button
                     key={c.id}
                     data-i={i}
-                    className={`tv-dir-canal ${foc(puesto)}`}
+                    className={`tv-dir-canal ${c.carpeta ? "es-carpeta" : ""} ${foc(puesto)}`}
                     data-foco={puesto ? "1" : undefined}
                     onMouseEnter={() => { conElRaton(); setZonaDir("canales"); setFoco(i); }}
-                    onClick={c.abrir}
+                    onClick={() => { c.abrir(); if (c.carpeta) setFoco(0); }}
                   >
                     <span className="tv-dir-marca">
-                      {imgSrc(c.logo) && !rotas[c.logo] ? (
+                      {c.carpeta ? (
+                        <Icon name={c.icono || "list"} size={24} />
+                      ) : imgSrc(c.logo) && !rotas[c.logo] ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={imgSrc(c.logo)} alt="" loading="lazy" onError={() => marcarRota(c.logo)} />
                       ) : (
@@ -3791,16 +3864,24 @@ export default function TvApp() {
                       )}
                     </span>
                     <span className="tv-dir-txt">
-                      <span className="tv-dir-nombre">{c.nombre}</span>
+                      <span className="tv-dir-nombre">{parte ? parte[1] : c.nombre}</span>
                       {/* El hueco se reserva siempre: sin esto, las filas
                           cuya guía llega más tarde crecen solas y la lista
                           entera da un salto debajo del foco */}
-                      <span className="tv-dir-prog">{g?.ahora || ""}</span>
+                      <span className="tv-dir-prog">
+                        {c.carpeta
+                          ? c.hijos?.[0]?.nombre || ""
+                          : g?.ahora || ""}
+                      </span>
                     </span>
-                    <span className="tv-dir-vivo">
-                      <span className="tv-punto" aria-hidden="true" />
-                      EN VIVO
-                    </span>
+                    {c.carpeta ? (
+                      <span className="tv-dir-cuantos">{parte ? parte[2] : ""}</span>
+                    ) : (
+                      <span className="tv-dir-vivo">
+                        <span className="tv-punto" aria-hidden="true" />
+                        EN VIVO
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -3808,9 +3889,9 @@ export default function TvApp() {
             <button
               className={`tv-dir-todos ${foc(zonaDir === "canales" && foco === canalesVista.length)}`}
               onMouseEnter={() => { conElRaton(); setZonaDir("canales"); setFoco(canalesVista.length); }}
-              onClick={verCarpetas}
+              onClick={carpetaAbierta ? quitarCarpeta : verCarpetas}
             >
-              Ver todos los canales  ›
+              {carpetaAbierta ? "‹  Volver a las carpetas" : "Ver el catálogo entero  ›"}
             </button>
           </aside>
 
@@ -4080,7 +4161,9 @@ export default function TvApp() {
                      lado: media descarga ocupando disco sin que nadie sepa
                      que está ahí es peor que el fallo */
                   <span className="tv-bajada-estado tv-bajada-fallo">
-                    No se ha podido terminar
+                    {/* Y por qué: «no se ha podido» a secas no deja arreglar
+                        nada, ni a quien lo usa ni a quien lo mantiene */}
+                    {d.motivo ? `No se ha podido terminar · ${d.motivo}` : "No se ha podido terminar"}
                   </span>
                 ) : (
                   <span className="tv-bajada-estado">

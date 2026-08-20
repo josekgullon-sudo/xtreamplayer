@@ -34,9 +34,22 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
  */
 const ENVOLTORIO = () => {
   const cosas = [];
+  /* Lo que se le encargó, tal cual, para poder mirarlo desde la prueba: la
+     dirección que recibe un envoltorio es lo que decide si la descarga puede
+     siquiera empezar, y era justo lo que estaba mal */
+  window.__encargos = [];
+  let roto = "";
   window.TPDescargas = {
     bajar(encargo) {
       const e = JSON.parse(encargo);
+      window.__encargos.push(e);
+      roto = "";
+      /* Un envoltorio de verdad no sabe a dónde ir con una ruta a secas: no
+         está en ningún sitio contra el que completarla */
+      if (!/^https?:\/\//i.test(e.url || "")) {
+        roto = "La dirección no es completa: " + e.url;
+        return;
+      }
       const suyo = { ...e, estado: "bajando", parte: 0, bytes: 0, url: "" };
       cosas.push(suyo);
       const reloj = setInterval(() => {
@@ -56,6 +69,9 @@ const ENVOLTORIO = () => {
     },
     lista() {
       return JSON.stringify(cosas);
+    },
+    fallo() {
+      return roto;
     },
   };
 };
@@ -130,6 +146,16 @@ const ENVOLTORIO = () => {
   check("La ficha de una película ofrece descargarla",
     (await tv.locator(".tv-ficha-guardar:has-text('Descargar')").count()) === 1);
   await tv.locator(".tv-ficha-guardar:has-text('Descargar')").click();
+  /* Y lo que se le encarga al envoltorio es una dirección ENTERA.
+     El servidor contesta a veces con una ruta suya —«/api/proxy?v=…»—, que en
+     un navegador se completa sola con el sitio en el que está. Un programa
+     nativo no está en ningún sitio: recibía ese texto, no sabía a dónde ir, y
+     la descarga moría antes de empezar sin decir una palabra. */
+  await tv.waitForFunction(() => (window.__encargos || []).length > 0, { timeout: 15000 });
+  const encargo = (await tv.evaluate(() => window.__encargos[0])) || {};
+  check("Al envoltorio se le encarga una dirección entera, no una ruta",
+    /^https?:\/\//i.test(encargo.url || ""), encargo.url || "(vacía)");
+
   /* El botón cuenta en qué va sin salir de la ficha: si hay que ir a otra
      pantalla a comprobar que ha empezado, parece que no ha pasado nada */
   await tv.waitForFunction(

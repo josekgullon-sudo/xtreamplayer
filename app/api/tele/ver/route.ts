@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { origenPedido, urlDeTimeshift, urlDeXtream } from "@/lib/origen";
-import { emitirVale, enlaceDeVideo, videoOculto } from "@/lib/vale";
+import { emitirVale, emitirValeDeDescarga, enlaceDeVideo, videoOculto } from "@/lib/vale";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +67,24 @@ export async function POST(req: NextRequest) {
   if (!ext) return NextResponse.json({ error: "Formato inválido" }, { status: 400 });
 
   const url = urlDeXtream(origen, clase, id, ext);
+
+  /*
+   * Y para guardar en el aparato, una dirección que el aparato pueda usar.
+   *
+   * Quien pide el fichero al descargar no es el navegador sino un proceso del
+   * mismo ordenador —el programa de Windows, la aplicación de Android—, y ese
+   * proceso no tiene la galleta de sesión: es de las que el navegador no deja
+   * leer, y hace bien. Con VIDEO_OCULTO=1 la dirección de siempre pasa por
+   * aquí y exige esa galleta, así que la descarga se topaba con un 403 y lo
+   * único que se veía era «no se ha podido terminar».
+   *
+   * Con el interruptor apagado esto es la dirección del proveedor y no hay
+   * nada que hacer; con él encendido, un vale que se valida solo y dura seis
+   * horas en vez de doce. Ver `emitirValeDeDescarga`.
+   */
+  const paraGuardar = videoOculto()
+    ? `/api/proxy?v=${encodeURIComponent(emitirValeDeDescarga(url, origen.dueño))}`
+    : url;
   /*
    * El mismo canal en TS. Hay paneles que anuncian .m3u8 y solo sirven TS, y
    * el reproductor lo prueba como alternativa; antes lo componía él cambiando
@@ -79,6 +97,7 @@ export async function POST(req: NextRequest) {
     vale: emitirVale(url, origen.dueño),
     urlTs: enTs ? enlaceDeVideo(enTs, origen.dueño) : undefined,
     valeTs: enTs ? emitirVale(enTs, origen.dueño) : undefined,
+    paraGuardar,
     directo: !videoOculto(),
   });
 }

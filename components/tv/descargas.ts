@@ -44,6 +44,14 @@ export interface Descarga {
   url: string;
   /** Cuánto ocupa, en bytes. Cero mientras no se sepa */
   bytes: number;
+  /**
+   * Por qué falló, cuando falló.
+   *
+   * Sin esto, «No se ha podido terminar» es todo lo que se sabía —de este
+   * lado y del de quien lo usa—, y con eso no se arregla nada. El envoltorio
+   * lo tiene: es el error que le dio el servidor o el disco.
+   */
+  motivo?: string;
 }
 
 /** Lo que se le pide al envoltorio para que empiece a bajar algo. */
@@ -59,6 +67,18 @@ interface Puente {
   bajar(encargo: string): void;
   quitar(id: string): void;
   lista(): string;
+  /**
+   * Lo último que se le rompió al envoltorio, si algo se le rompió.
+   *
+   * `bajar` no puede contestar —tiene que ser síncrono y lo que hace es
+   * asíncrono—, así que cuando falla antes siquiera de empezar (una
+   * dirección que no vale, un permiso, un puente que no llega al programa) no
+   * había forma de enterarse: la lista seguía vacía y la pantalla se quedaba
+   * como si no hubieras pulsado. Esto se pregunta justo después de encargar.
+   *
+   * Opcional: un envoltorio viejo no lo trae y no pasa nada.
+   */
+  fallo?(): string;
 }
 
 declare global {
@@ -124,6 +144,7 @@ export function leerDescargas(): Descarga[] {
         parte: Math.max(0, Math.min(100, Number(d.parte) || 0)),
         url: String(d.url ?? ""),
         bytes: Number(d.bytes) || 0,
+        motivo: d.motivo ? String(d.motivo) : undefined,
       }));
   } catch {
     /* Un envoltorio que devuelve basura no puede tirar la pantalla abajo */
@@ -131,13 +152,44 @@ export function leerDescargas(): Descarga[] {
   }
 }
 
-export function encargarDescarga(e: Encargo): void {
+/**
+ * La dirección, entera.
+ *
+ * El servidor a veces contesta con una ruta suya —«/api/proxy?v=…»— en vez de
+ * con la dirección del proveedor, y en un navegador eso funciona porque la
+ * completa él con el sitio en el que está. Un programa nativo no está en
+ * ningún sitio: recibe ese texto y no sabe a dónde ir, así que la descarga
+ * moría antes de empezar y sin decir nada. Aquí se completa antes de salir.
+ */
+function entera(url: string): string {
+  const u = (url || "").trim();
+  if (!u) return "";
+  if (/^https?:\/\//i.test(u)) return u;
+  if (typeof window === "undefined") return u;
+  return new URL(u, window.location.origin).toString();
+}
+
+/**
+ * Encarga una descarga y devuelve lo que se haya roto, o cadena vacía.
+ *
+ * Devuelve en vez de tragar: un botón que no hace nada y no dice por qué es
+ * lo peor que puede pasar aquí, y era exactamente lo que pasaba.
+ */
+export function encargarDescarga(e: Encargo): string {
   const p = puente();
-  if (!p) return;
+  if (!p) return "Esta aplicación no puede guardar nada en el aparato";
+  const url = entera(e.url);
+  if (!url) return "Tu proveedor no ha dado la dirección de este vídeo";
   try {
-    p.bajar(JSON.stringify(e));
+    p.bajar(JSON.stringify({ ...e, url }));
+  } catch (nada) {
+    return String((nada as Error)?.message || nada) || "El programa no ha aceptado la descarga";
+  }
+  /* Y lo que diga el propio envoltorio, si sabe decirlo */
+  try {
+    return p.fallo?.() || "";
   } catch {
-    /* Si el envoltorio revienta, lo dirá su propia lista con estado «fallo» */
+    return "";
   }
 }
 
