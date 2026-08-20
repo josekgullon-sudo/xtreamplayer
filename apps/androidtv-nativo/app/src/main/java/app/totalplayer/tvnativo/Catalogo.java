@@ -133,6 +133,8 @@ public final class Catalogo {
     private static final Map<String, List<Episodio>> episodios = new LinkedHashMap<>();
     /** Todos los canales de directo juntos, para buscar. */
     private static List<Item> todoElDirecto;
+    /** Y lo mismo con las películas y las series. */
+    private static List<Item> todasLasPelis, todasLasSeries;
     /** La lista M3U entera, ya troceada en tres. */
     private static Map<String, Map<String, List<Item>>> m3u;
 
@@ -143,6 +145,8 @@ public final class Catalogo {
         contenidos.clear();
         episodios.clear();
         todoElDirecto = null;
+        todasLasPelis = null;
+        todasLasSeries = null;
         m3u = null;
     }
 
@@ -164,7 +168,8 @@ public final class Catalogo {
             todoElDirecto = null;
             loQueEchan.clear();
         }
-        if (SERIES.equals(seccion)) episodios.clear();
+        if (PELIS.equals(seccion)) todasLasPelis = null;
+        if (SERIES.equals(seccion)) { episodios.clear(); todasLasSeries = null; }
         // La lista M3U es una sola descarga para las tres secciones
         m3u = null;
     }
@@ -537,7 +542,7 @@ public final class Catalogo {
 
     private static List<Item> pelisXtream(String carpetaId) throws Exception {
         JSONArray flujos = new JSONArray(pedir(
-                Sesion.actual().api() + "&action=get_vod_streams&category_id=" + Web.escapar(carpetaId)));
+                Sesion.actual().api() + "&action=get_vod_streams" + filtro(carpetaId)));
         List<Item> lista = new ArrayList<>();
         for (int i = 0; i < flujos.length(); i++) {
             JSONObject c = flujos.getJSONObject(i);
@@ -565,7 +570,7 @@ public final class Catalogo {
 
     private static List<Item> seriesXtream(String carpetaId) throws Exception {
         JSONArray flujos = new JSONArray(pedir(
-                Sesion.actual().api() + "&action=get_series&category_id=" + Web.escapar(carpetaId)));
+                Sesion.actual().api() + "&action=get_series" + filtro(carpetaId)));
         List<Item> lista = new ArrayList<>();
         for (int i = 0; i < flujos.length(); i++) {
             JSONObject c = flujos.getJSONObject(i);
@@ -589,6 +594,18 @@ public final class Catalogo {
             lista.add(it);
         }
         return lista;
+    }
+
+    /**
+     * El «solo de esta carpeta» de una petición a Xtream, o nada.
+     *
+     * Con la carpeta en blanco el panel devuelve el catálogo entero, que es
+     * justo lo que hace falta para buscar: quien escribe un título no sabe
+     * —ni tiene por qué saber— en qué carpeta lo puso su proveedor.
+     */
+    private static String filtro(String carpetaId) {
+        return carpetaId == null || carpetaId.isEmpty() || TODAS.equals(carpetaId)
+                ? "" : "&category_id=" + Web.escapar(carpetaId);
     }
 
     private static String juntar(String anio, String nota) {
@@ -744,7 +761,33 @@ public final class Catalogo {
         try { return Integer.parseInt(s.trim()); } catch (Exception e) { return 0; }
     }
 
-    /* ---------------- Buscar en el directo ---------------- */
+    /* ---------------- Buscar ---------------- */
+
+    /**
+     * Todas las películas y todas las series, para el buscador.
+     *
+     * Se piden enteras y una sola vez. Son la petición más gorda que hace la
+     * aplicación —hay listas de treinta mil títulos—, así que el buscador no
+     * las espera: enseña los canales, que suelen estar ya pedidos, y mete lo
+     * demás cuando llega.
+     */
+    public static List<Item> todasLasPelis() throws Exception {
+        if (todasLasPelis != null) return todasLasPelis;
+        List<Item> lista = new ArrayList<>();
+        if (Sesion.actual().esXtream()) {
+            lista = pelisXtream("");
+        } else {
+            for (List<Item> deLaCarpeta : m3u().get(PELIS).values()) lista.addAll(deLaCarpeta);
+        }
+        todasLasPelis = lista;
+        return lista;
+    }
+
+    public static List<Item> todasLasSeries() throws Exception {
+        if (todasLasSeries != null) return todasLasSeries;
+        todasLasSeries = Sesion.actual().esXtream() ? seriesXtream("") : seriesDeM3u();
+        return todasLasSeries;
+    }
 
     /** Todos los canales, para el buscador. Se piden una vez y se guardan. */
     public static List<Item> todoElDirecto() throws Exception {

@@ -27,6 +27,16 @@ public class AdaptadorCanales extends RecyclerView.Adapter<AdaptadorCanales.Celd
     private String sonando = "";
     /** Lo que echan en el que suena, si se sabe. */
     private String loQueEchan = "";
+    /**
+     * En el buscador la segunda línea dice de qué es cada resultado.
+     *
+     * En la lista de canales de una carpeta sobra —ahí todo son canales—,
+     * pero en una lista donde salen mezclados un canal, una película y una
+     * serie con el mismo nombre, saber cuál es cuál es la mitad del trabajo.
+     */
+    private boolean conTipo;
+
+    public void conTipo(boolean si) { this.conTipo = si; }
 
     public AdaptadorCanales(AlElegir alElegir) { this.alElegir = alElegir; }
 
@@ -70,12 +80,23 @@ public class AdaptadorCanales extends RecyclerView.Adapter<AdaptadorCanales.Celd
         boolean suena = !sonando.isEmpty() && canal.id.equals(sonando);
         celda.sonando.setVisibility(suena ? View.VISIBLE : View.INVISIBLE);
         celda.estrella.setVisibility(favoritos.contains(canal.id) ? View.VISIBLE : View.GONE);
-        if (suena && !loQueEchan.isEmpty()) {
+        String pie = conTipo ? deQueEs(canal) : "";
+        if (!pie.isEmpty()) {
+            celda.ahora.setText(pie);
+            celda.ahora.setVisibility(View.VISIBLE);
+        } else if (suena && !loQueEchan.isEmpty()) {
             celda.ahora.setText(loQueEchan);
             celda.ahora.setVisibility(View.VISIBLE);
         } else {
             celda.ahora.setVisibility(View.GONE);
         }
+    }
+
+    /** «Serie · 2019 · ★ 8,1», o lo que se sepa. */
+    private static String deQueEs(Catalogo.Item it) {
+        String que = it.esSerie ? "Serie"
+                : Enlaces.PELICULA.equals(it.clase) ? "Película" : "Canal";
+        return it.extra == null || it.extra.isEmpty() ? que : que + "  ·  " + it.extra;
     }
 
     static class Celda extends RecyclerView.ViewHolder {

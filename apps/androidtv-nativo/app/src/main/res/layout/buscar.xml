@@ -19,7 +19,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Buscar un canal"
+            android:text="Buscar"
             android:textColor="@color/texto"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -39,7 +39,7 @@
             android:id="@+id/campo"
             android:layout_width="match_parent"
             android:layout_height="54dp"
-            android:hint="Escribe parte del nombre del canal"
+            android:hint="Un título, una serie o un canal"
             android:textColorHint="@color/tenue"
             android:textColor="@color/texto"
             android:textSize="16sp"
