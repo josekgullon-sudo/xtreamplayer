@@ -90,7 +90,7 @@ const FIRETV_UA =
 
   // Atrás (Escape, código 27) cierra el modal
   await tv.keyboard.press("Escape");
-  await tv.waitForTimeout(400);
+  await tv.waitForSelector(".modal", { state: "detached", timeout: 15000 }).catch(() => {});
   check("Mando: Atrás cierra el modal", (await tv.locator(".modal").count()) === 0);
 
   // Cargamos una lista para probar la navegación en la parrilla

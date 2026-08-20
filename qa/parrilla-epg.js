@@ -61,11 +61,25 @@ async function conLista(p) {
   const diaAntes = await p.locator(".pa-guia-dia").innerText();
   const primeraHora = (await p.locator(".pa-guia-hora").first().innerText()).trim();
   await p.locator(".pa-guia-barra button[aria-label='Una hora después']").click();
-  await p.waitForTimeout(400);
+  /* Se espera al cambio, no a que pasen 400 ms: con un tiempo fijo, en una
+     máquina lenta se lee la hora antes de que la parrilla se haya movido */
+  await p
+    .waitForFunction(
+      (antes) => (document.querySelector(".pa-guia-hora")?.innerText || "").trim() !== antes,
+      primeraHora,
+      { timeout: 15000 }
+    )
+    .catch(() => {});
   const despues = (await p.locator(".pa-guia-hora").first().innerText()).trim();
   check("Se avanza una hora", primeraHora !== despues, `${primeraHora} → ${despues}`);
   await p.locator(".pa-guia-barra button:has-text('Ahora')").click();
-  await p.waitForTimeout(400);
+  await p
+    .waitForFunction(
+      (vuelta) => (document.querySelector(".pa-guia-hora")?.innerText || "").trim() === vuelta,
+      primeraHora,
+      { timeout: 15000 }
+    )
+    .catch(() => {});
   check("Y «Ahora» devuelve al presente", (await p.locator(".pa-guia-hora").first().innerText()).trim() === primeraHora);
   check("El día se dice con letras", /^[a-záéíóú]+, \d+ de /i.test(diaAntes), diaAntes);
 
@@ -80,7 +94,9 @@ async function conLista(p) {
   const cats = await p.locator(".pa-guia .pa-live-cat .name").allInnerTexts();
   check("Las categorías siguen a la izquierda", cats.length >= 2, cats.join(" | "));
   await p.locator(".pa-guia .pa-live-cat").nth(1).click();
-  await p.waitForTimeout(800);
+  /* Cambiar de categoría vuelve a pedir la guía: se espera a que haya
+     canales, que es lo que la comprobación mira */
+  await p.waitForSelector(".pa-guia-canal", { timeout: 20000 }).catch(() => {});
   check("Y al cambiar de categoría cambian los canales", (await p.locator(".pa-guia-canal").count()) >= 1);
 
   // --- Móvil ---

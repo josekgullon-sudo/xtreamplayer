@@ -62,7 +62,13 @@ async function conLista(p) {
   await verRejilla(p);
   check("También en series", (await p.locator(".pa-live-nuevo").count()) === 1);
   await p.locator(".pa-live-nuevo").click();
-  await p.waitForTimeout(500);
+  /* Se espera a la tarjeta, no a medio segundo */
+  await p
+    .waitForFunction(
+      () => [...document.querySelectorAll(".pa-grid .pa-card .title")].some((t) => t.innerText.includes("Serie Demo")),
+      { timeout: 15000 }
+    )
+    .catch(() => {});
   check("Con su serie recién tocada", (await p.locator(".pa-grid .pa-card .title").allInnerTexts()).includes("Serie Demo"));
 
   // Volver a «Todo» devuelve el catálogo entero

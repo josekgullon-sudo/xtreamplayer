@@ -51,15 +51,28 @@ function check(name, ok, detail = "") {
   // Favorito
   await page.locator(".pa-live-titulo button", { hasText: "Favorito" }).click();
   await page.click('.pa-rail-item:has-text("Favoritos")');
-  await page.waitForTimeout(400);
-  const favVisible = await page.locator(".pa-live-chan", { hasText: "Canal Test WebM" }).count();
-  check("Favoritos funciona", favVisible >= 1);
+  /* Se espera a que el canal esté en la lista, no a que pasen 400 ms. Con un
+     tiempo fijo, en una máquina lenta se cuenta antes de que la lista se haya
+     repintado y la comprobación falla sin que nada esté roto */
+  const enFavoritos = page.locator(".pa-live-chan", { hasText: "Canal Test WebM" });
+  await enFavoritos.first().waitFor({ timeout: 15000 }).catch(() => {});
+  check("Favoritos funciona", (await enFavoritos.count()) >= 1);
   await page.click('.pa-rail-item:has-text(\"Canales\")');
 
   // Búsqueda. El campo se llama desde el carril y aparece flotando encima
   await page.locator('[aria-label="Buscar"]:visible').click();
   await page.fill(".pa-busca input", "Deporte");
-  await page.waitForTimeout(400);
+  /* Y aquí igual: se espera a que TODO lo que queda a la vista case con lo
+     buscado, que es lo que dice la comprobación de la línea siguiente */
+  await page
+    .waitForFunction(
+      () => {
+        const filas = [...document.querySelectorAll(".pa-live-chan")];
+        return filas.length > 0 && filas.every((f) => /deporte/i.test(f.innerText));
+      },
+      { timeout: 15000 }
+    )
+    .catch(() => {});
   const filtered = await page.locator(".pa-live-chan").allInnerTexts();
   check("Búsqueda filtra", filtered.length >= 1 && filtered.every((t) => t.toLowerCase().includes("deporte")), filtered.join("|"));
   await page.fill(".pa-busca input", "");
@@ -67,7 +80,14 @@ function check(name, ok, detail = "") {
 
   // Zapping con teclado
   await page.keyboard.press("ArrowDown");
-  await page.waitForTimeout(800);
+  /* Cambiar de canal pide el enlace al panel: son milisegundos aquí y pueden
+     ser segundos en una máquina cargada. Se espera al cambio, no a un tiempo */
+  await page
+    .waitForFunction(
+      () => (document.querySelector(".pa-live-titulo h2")?.innerText || "") !== "Canal Test WebM",
+      { timeout: 15000 }
+    )
+    .catch(() => {});
   const nowTitle = await page.locator(".pa-live-titulo h2").innerText();
   check("Zapping ↓ cambia de canal", nowTitle !== "Canal Test WebM", nowTitle);
 

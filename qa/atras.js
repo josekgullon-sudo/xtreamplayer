@@ -55,7 +55,10 @@ async function verRejilla(p) {
   check("La ficha de una película se abre", true);
 
   await p.goBack();
-  await p.waitForTimeout(700);
+  /* Se espera a que la ficha se vaya, no a que pasen 700 ms: es lo que
+     dice la comprobación, y con un tiempo fijo falla en una máquina
+     lenta sin que nada esté roto */
+  await p.waitForSelector(".ficha", { state: "detached", timeout: 15000 }).catch(() => {});
   check("Y «atrás» la cierra", (await p.locator(".ficha").count()) === 0);
   check("Sin salirse del reproductor", p.url().includes("/player"), p.url());
   check("Y deja a la vista el catálogo, donde estabas", (await p.locator(".pa-grid .pa-card").count()) > 0);
@@ -66,7 +69,10 @@ async function verRejilla(p) {
   await p.locator(".pa-grid .pa-card").first().click();
   await p.waitForSelector(".ficha", { timeout: 20000 });
   await p.locator(".ficha-cerrar").click();
-  await p.waitForTimeout(700);
+  /* Se espera a que la ficha se vaya, no a que pasen 700 ms: es lo que
+     dice la comprobación, y con un tiempo fijo falla en una máquina
+     lenta sin que nada esté roto */
+  await p.waitForSelector(".ficha", { state: "detached", timeout: 15000 }).catch(() => {});
   check("Cerrando con el aspa la ficha también se va", (await p.locator(".ficha").count()) === 0);
   const largoAntes = await p.evaluate(() => history.length);
   await p.locator(".pa-grid .pa-card").first().click();
@@ -81,7 +87,10 @@ async function verRejilla(p) {
   await p.locator(".pa-grid .pa-card").first().click();
   await p.waitForSelector(".ficha", { timeout: 20000 });
   await p.keyboard.press("Escape");
-  await p.waitForTimeout(700);
+  /* Se espera a que la ficha se vaya, no a que pasen 700 ms: es lo que
+     dice la comprobación, y con un tiempo fijo falla en una máquina
+     lenta sin que nada esté roto */
+  await p.waitForSelector(".ficha", { state: "detached", timeout: 15000 }).catch(() => {});
   check("Y con teclado, Escape cierra la ficha", (await p.locator(".ficha").count()) === 0);
 
   // ---------- El vídeo ----------

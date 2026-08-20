@@ -51,8 +51,10 @@ async function enLaGuia(p) {
   await p.waitForSelector(".pa-video-zone video", { timeout: 20000 });
   check("Pulsarlo abre el reproductor", true);
 
-  await p.waitForFunction(() => window.__nada === undefined, {}, { timeout: 100 }).catch(() => {});
-  await p.waitForTimeout(2500);
+  /* Se espera a que la petición haya salido, no a que pasen dos segundos y
+     medio: con un tiempo fijo, en una máquina lenta se cuenta antes de que el
+     reproductor haya pedido nada y parece que no lo pide nunca */
+  for (let i = 0; i < 60 && !pedidas.length; i++) await p.waitForTimeout(250);
   check("Y pide la grabación al panel, no el directo", pedidas.length >= 1, pedidas[0] ? pedidas[0].split("?")[0] : "ninguna petición");
 
   if (pedidas.length) {
