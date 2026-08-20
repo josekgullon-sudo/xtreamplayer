@@ -14,6 +14,10 @@ on:
     paths:
       - "apps/escritorio/**"
       - ".github/workflows/publicar-exe.yml"
+      # El guardián del ACL también: si cambia él, hay que volver a
+      # comprobarlo aquí. Sin esta línea se quedó arreglado en el repositorio
+      # y roto en el último resultado del CI, que es el que se mira
+      - "qa/comandos-permitidos.py"
   workflow_dispatch:
 
 permissions:
