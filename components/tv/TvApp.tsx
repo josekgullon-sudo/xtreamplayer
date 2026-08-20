@@ -512,6 +512,30 @@ export default function TvApp() {
     const t = setInterval(() => setDescargas(leerDescargas()), 1500);
     return () => clearInterval(t);
   }, [conDescargas, bajandoAlgo, enDescargas]);
+
+  /**
+   * Y justo después de encargar algo, se pregunta un rato pase lo que pase.
+   *
+   * Aquí había un punto muerto y era el que hacía que pulsar «Descargar» no
+   * hiciera nada visible. El reloj de arriba solo corre si YA hay algo
+   * bajando; saber si lo hay se pregunta con `lista()`; y `lista()` tiene que
+   * ser síncrona —el puente de Android no sabe devolver una promesa—, así que
+   * lo que devuelve es la respuesta anterior y pide la siguiente. Nada más
+   * encargar, esa respuesta anterior todavía está vacía: el reloj no
+   * arrancaba, la lista no se volvía a pedir nunca y el botón se quedaba
+   * como si no hubieras pulsado.
+   *
+   * Con esto se pregunta cada segundo durante quince, que es de sobra para
+   * que el envoltorio conteste; para entonces ya hay algo «bajando» y el
+   * reloj de arriba toma el relevo.
+   */
+  const [reciénEncargado, setReciénEncargado] = useState(0);
+  useEffect(() => {
+    if (!reciénEncargado) return;
+    const t = setInterval(() => setDescargas(leerDescargas()), 1000);
+    const fin = setTimeout(() => setReciénEncargado(0), 15000);
+    return () => { clearInterval(t); clearTimeout(fin); };
+  }, [reciénEncargado]);
   /* Al entrar en la pantalla, lo último que haya: si no, se ve la foto de
      hace un rato hasta que salte el primer aviso del reloj */
   useEffect(() => {
@@ -552,6 +576,27 @@ export default function TvApp() {
    * sobre la marca— y ahí también tiene que estar abierta.
    */
   const [navAbierta, setNavAbierta] = useState(false);
+  /**
+   * Mientras la barra se está desplegando, el ratón no manda.
+   *
+   * Al abrirse, los nombres empujan y los iconos —que van centrados— se
+   * corren de sitio. Con el puntero quieto, eso solo significa una cosa: el
+   * icono que tenía debajo se va y llega otro, así que el resaltado saltaba
+   * a un sitio en el que nadie ha puesto el ratón, y de rebote podía volver
+   * a moverse. Visto desde fuera, la barra daba un respingo al rozarla.
+   *
+   * Se ignoran los avisos del ratón durante lo que dura la animación. Lo que
+   * mueves tú sigue mandando; lo que se mueve solo, no.
+   */
+  const recolocando = useRef(false);
+  const finRecolocar = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abrirNav = () => {
+    if (navAbierta) return;
+    recolocando.current = true;
+    if (finRecolocar.current) clearTimeout(finRecolocar.current);
+    finRecolocar.current = setTimeout(() => { recolocando.current = false; }, 120);
+    setNavAbierta(true);
+  };
   /** Pinta el aro solo si además el puntero sigue dentro. */
   const foc = (activo: boolean) => (activo && !ratonFuera ? "foco" : "");
   const conElRaton = () => {
@@ -2142,10 +2187,12 @@ export default function TvApp() {
     setPreparando(bajable.id);
     try {
       const url = await bajable.enlace();
-      if (url) {
-        encargarDescarga({ id: bajable.id, nombre: bajable.nombre, cartel: bajable.cartel, url });
-        setDescargas(leerDescargas());
-      }
+      /* Sin dirección no hay descarga, y se dice: callarse aquí deja el
+         botón como si no hubieras pulsado */
+      if (!url) throw new Error("Tu proveedor no ha dado la dirección de este vídeo");
+      encargarDescarga({ id: bajable.id, nombre: bajable.nombre, cartel: bajable.cartel, url });
+      setDescargas(leerDescargas());
+      setReciénEncargado(Date.now());
     } catch (e) {
       setError(enCristiano(e, "No se ha podido empezar la descarga"));
     } finally {
@@ -3053,20 +3100,6 @@ export default function TvApp() {
                 hace falta espacio, y prometer «lo tienes guardado» para que
                 desaparezca solo es peor que no ofrecerlo.
               */}
-              {/*
-                Y si el programa es de antes de que esto existiera, se dice.
-
-                Callarse aquí es indistinguible de «esto no se puede hacer», y
-                no es eso: es que el puente va compilado dentro del programa y
-                esa versión no lo trae. Quien lo lea sabe qué hacer; sin esto,
-                lo único que se veía era una ficha sin botón.
-              */}
-              {programaViejo && bajable && (
-                <span className="tv-ficha-viejo">
-                  <Icon name="bajar" size={20} />
-                  Para descargar, actualiza el programa desde tu web
-                </span>
-              )}
               {conDescargas && bajable && (
                 <button
                   className={`tv-ficha-guardar ${foc(fichaZona === "bajar")} ${
@@ -3091,6 +3124,21 @@ export default function TvApp() {
                 </button>
               )}
             </div>
+            {/*
+              Y si el programa es de antes de que esto existiera, se dice —en
+              una línea y en pequeño, debajo.
+
+              Callarse es indistinguible de «esto no se puede hacer», y no es
+              eso: el puente va compilado dentro del programa y esa versión no
+              lo trae. Pero tampoco es una acción: no hay nada que pulsar, así
+              que puesto del tamaño de un botón y en la misma fila competía
+              con «Reproducir» por el mismo sitio y con la misma voz.
+            */}
+            {programaViejo && bajable && (
+              <p className="tv-ficha-viejo">
+                Para descargar, actualiza el programa desde tu web
+              </p>
+            )}
 
             {ficha.direccion && (
               <p className="tv-ficha-credito">
@@ -3446,7 +3494,7 @@ export default function TvApp() {
        * paso, así el puntero puede estar entre dos iconos o sobre la marca
        * sin que la barra se cierre en la mano.
        */
-      onMouseEnter={() => setNavAbierta(true)}
+      onMouseEnter={abrirNav}
       onMouseLeave={() => { setNavAbierta(false); setFocoCarril(null); }}
     >
       <div className="tv-nav-marca">
@@ -3471,12 +3519,12 @@ export default function TvApp() {
         lista, con el mando aparentemente roto. Saliendo del grupo se suelta;
         moviéndose dentro de él, no.
       */}
-      <div className="tv-nav-items" onMouseLeave={() => setFocoCarril(null)}>
+      <div className="tv-nav-items" onMouseLeave={() => { if (!recolocando.current) setFocoCarril(null); }}>
         {navItems.map((d, i) => (
           <button
             key={d.id}
             className={`tv-nav-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
-            onMouseEnter={() => { conElRaton(); setFocoCarril(i); }}
+            onMouseEnter={() => { if (recolocando.current) return; conElRaton(); setFocoCarril(i); }}
             onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
           >
             <span className="tv-nav-icono"><Icon name={d.icono} size={26} /></span>
@@ -3488,7 +3536,7 @@ export default function TvApp() {
           las demás pesaba lo mismo que entrar en el cine */}
       <button
         className={`tv-nav-salir ${focoCarril === iSalir ? "foco" : ""}`}
-        onMouseEnter={() => { conElRaton(); setFocoCarril(iSalir); }}
+        onMouseEnter={() => { if (recolocando.current) return; conElRaton(); setFocoCarril(iSalir); }}
         onMouseLeave={() => setFocoCarril(null)}
         onClick={() => { setFocoCarril(null); elegirDestino("salir"); }}
       >

@@ -1143,6 +1143,19 @@ export default function PlayerApp() {
     if (enBajadas) setDescargas(leerDescargas());
   }, [enBajadas]);
 
+  /* Y justo después de encargar algo, se pregunta un rato pase lo que pase:
+     el reloj de arriba solo corre si YA hay algo bajando, y saber si lo hay
+     se pregunta con una `lista()` que devuelve la respuesta anterior —tiene
+     que ser síncrona, ver `descargas.ts`—, que nada más encargar todavía
+     está vacía. Sin esto, pulsar «Descargar» no hacía nada visible */
+  const [reciénEncargado, setReciénEncargado] = useState(0);
+  useEffect(() => {
+    if (!reciénEncargado) return;
+    const t = setInterval(() => setDescargas(leerDescargas()), 1000);
+    const fin = setTimeout(() => setReciénEncargado(0), 15000);
+    return () => { clearInterval(t); clearTimeout(fin); };
+  }, [reciénEncargado]);
+
   /**
    * Guardar algo en el aparato: se resuelve la dirección y se le pasa al
    * envoltorio, que es quien tiene disco. El mismo botón pone y quita.
@@ -1163,10 +1176,10 @@ export default function PlayerApp() {
     setPreparando(id);
     try {
       const url = await resolver();
-      if (url) {
-        encargarDescarga({ id, nombre, cartel, url });
-        setDescargas(leerDescargas());
-      }
+      if (!url) throw new Error("Tu proveedor no ha dado la dirección de este vídeo");
+      encargarDescarga({ id, nombre, cartel, url });
+      setDescargas(leerDescargas());
+      setReciénEncargado(Date.now());
     } catch (e) {
       setLoadError(enCristiano(e, "No se ha podido empezar la descarga"));
     } finally {

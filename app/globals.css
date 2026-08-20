@@ -2484,11 +2484,8 @@ select.input { appearance: none; cursor: pointer; }
 /* El aviso de programa desactualizado, al lado de los botones de la ficha:
    no es un botón —no hay nada que pulsar— pero ocupa su sitio y se lee */
 .tv-ficha-viejo {
-  display: inline-flex; align-items: center; gap: 0.6vw;
-  padding: 1.1vh 1.4vw; border-radius: 0.6vw;
-  background: rgba(255, 255, 255, 0.06);
-  border: 0.16vw dashed var(--border-strong);
-  color: var(--text-faint); font-size: 1.05vw; font-weight: 700;
+  margin-top: 1.2vh;
+  font-size: 0.95vw; font-weight: 600; color: var(--text-faint);
 }
 
 /*
@@ -2554,7 +2551,10 @@ select.input { appearance: none; cursor: pointer; }
   background: none; border: 0.16vw solid transparent; cursor: pointer;
   color: rgba(255, 255, 255, 0.55); font-size: 1.15vw; font-weight: 700;
   white-space: nowrap;
-  transition: color 0.12s, background 0.12s, border-color 0.12s, gap 0.22s cubic-bezier(0.22, 0.8, 0.2, 1);
+  /* El hueco y el relleno cambian de golpe y solo se anima el ancho del
+     nombre: animando también los tres, cada icono salía flotando por su
+     cuenta y la barra entera parecía de goma */
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
 }
 .tv-nav-icono { display: flex; align-items: center; justify-content: center; flex: none; }
 
@@ -2579,7 +2579,16 @@ select.input { appearance: none; cursor: pointer; }
      lo colapsaba y el nombre seguía ahí, ocupando */
   flex: none; min-width: 0;
   max-width: 0; overflow: hidden; opacity: 0;
-  transition: max-width 0.22s cubic-bezier(0.22, 0.8, 0.2, 1), opacity 0.16s ease;
+  /*
+   * El ancho cambia de golpe; lo único que se anima es la tinta.
+   *
+   * Animar el ancho era lo que se veía mal: los nombres empujan, los iconos
+   * van centrados, y durante esa fracción de segundo la barra entera se
+   * arrastraba doscientos píxeles por debajo de un puntero que estaba
+   * quieto. Un menú que aparece no se desliza —aparece—, y sin el
+   * deslizamiento no hay nada que se mueva donde no debe.
+   */
+  transition: opacity 0.12s ease-out;
 }
 .tv-nav.abierta .tv-nav-item, .tv-nav.abierta .tv-nav-salir { gap: 0.5vw; padding: 0.9vh 1.3vw; }
 .tv-nav.abierta .tv-nav-txt { max-width: 12vw; opacity: 1; }
