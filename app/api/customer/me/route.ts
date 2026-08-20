@@ -37,7 +37,7 @@ export async function GET() {
     brand: provider?.brand_name || "",
     // El reproductor se viste con la marca del proveedor mientras dura la sesión
     branding: branding.isWhiteLabel
-      ? { name: branding.name, logo: branding.logo, support: branding.support, cssVars: brandCssVars(branding.color) }
+      ? { name: branding.name, logo: branding.logo, fondo: branding.fondo, support: branding.support, cssVars: brandCssVars(branding.color) }
       : null,
     playlist: {
       id: `provider-${customer.id}`,

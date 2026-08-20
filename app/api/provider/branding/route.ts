@@ -17,6 +17,7 @@ export async function GET() {
       name: provider.brand_name || "",
       color: provider.brand_color || "",
       logo: provider.brand_logo || "",
+      fondo: provider.brand_fondo || "",
       slug: provider.brand_slug || "",
       support: provider.brand_support || "",
       precioPerfil: (provider.extra_profile_price || 0) / 100,
@@ -29,7 +30,7 @@ export async function PUT(req: NextRequest) {
   const provider = await getCurrentProvider();
   if (!provider) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  let body: { name?: string; color?: string; logo?: string; slug?: string; support?: string; precioPerfil?: number };
+  let body: { name?: string; color?: string; logo?: string; fondo?: string; slug?: string; support?: string; precioPerfil?: number };
   try {
     body = await req.json();
   } catch {
@@ -44,6 +45,12 @@ export async function PUT(req: NextRequest) {
   }
 
   const logo = (body.logo || "").trim().slice(0, 500);
+  /* El mosaico del fondo, con el mismo trato que el logotipo: una dirección
+     https y nada más. Vacío es lo normal —entonces se dibuja uno— */
+  const fondo = (body.fondo || "").trim().slice(0, 500);
+  if (fondo && !/^https:\/\/.+/i.test(fondo)) {
+    return NextResponse.json({ error: "El fondo debe ser una URL https" }, { status: 400 });
+  }
   if (logo && !/^https:\/\/.+/i.test(logo)) {
     return NextResponse.json({ error: "El logotipo debe ser una URL https" }, { status: 400 });
   }
@@ -73,9 +80,9 @@ export async function PUT(req: NextRequest) {
 
   getDb()
     .prepare(
-      "UPDATE providers SET brand_name = ?, brand_color = ?, brand_logo = ?, brand_slug = ?, brand_support = ?, extra_profile_price = ? WHERE id = ?"
+      "UPDATE providers SET brand_name = ?, brand_color = ?, brand_logo = ?, brand_fondo = ?, brand_slug = ?, brand_support = ?, extra_profile_price = ? WHERE id = ?"
     )
-    .run(name, normalizeHexColor(color), logo, slug, (body.support || "").trim().slice(0, 200), precio, provider.id);
+    .run(name, normalizeHexColor(color), logo, fondo, slug, (body.support || "").trim().slice(0, 200), precio, provider.id);
 
   return NextResponse.json({
     ok: true,
@@ -94,7 +101,7 @@ export async function DELETE() {
   if (!provider) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   getDb()
-    .prepare("UPDATE providers SET brand_name = '', brand_color = '', brand_logo = '', brand_support = '', extra_profile_price = 0 WHERE id = ?")
+    .prepare("UPDATE providers SET brand_name = '', brand_color = '', brand_logo = '', brand_fondo = '', brand_support = '', extra_profile_price = 0 WHERE id = ?")
     .run(provider.id);
 
   return NextResponse.json({ ok: true, accessUrl: provider.brand_slug ? `${SITE_URL}/m/${provider.brand_slug}` : "" });

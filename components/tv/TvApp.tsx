@@ -169,6 +169,8 @@ interface SesionGuardada {
    * la marca es la nuestra se usa nuestro icono.
    */
   logo: string;
+  /** El mosaico que el proveedor haya puesto de fondo. Vacío: se dibuja uno */
+  fondo: string;
   caduca: number;
   soporte: string;
   lista: Lista;
@@ -369,6 +371,7 @@ export default function TvApp() {
   const [avisoCodigo, setAvisoCodigo] = useState("");
   const [marca, setMarca] = useState("TOTALplayer");
   const [logo, setLogo] = useState("");
+  const [fondoMarca, setFondoMarca] = useState("");
   const [caduca, setCaduca] = useState(0);
   const [soporte, setSoporte] = useState("");
   const [lista, setLista] = useState<Lista | null>(null);
@@ -854,6 +857,7 @@ export default function TvApp() {
       if (guardada) {
         setMarca(guardada.marca);
         setLogo(guardada.logo || "");
+        setFondoMarca(guardada.fondo || "");
         setCaduca(guardada.caduca);
         setSoporte(guardada.soporte);
         setLista(guardada.lista);
@@ -890,12 +894,13 @@ export default function TvApp() {
     const respuesta = d as unknown as {
       brand?: string;
       customer?: { expiresAt?: number };
-      branding?: { support?: string; logo?: string };
+      branding?: { support?: string; logo?: string; fondo?: string };
       playlist: { type: "xtream" | "m3u"; url: string; username?: string; password?: string };
     };
     const nueva: SesionGuardada = {
       marca: respuesta.brand || "TOTALplayer",
       logo: respuesta.branding?.logo || "",
+      fondo: respuesta.branding?.fondo || "",
       caduca: respuesta.customer?.expiresAt || 0,
       soporte: respuesta.branding?.support || "",
       lista: {
@@ -907,6 +912,7 @@ export default function TvApp() {
     };
     setMarca(nueva.marca);
     setLogo(nueva.logo);
+    setFondoMarca(nueva.fondo);
     setCaduca(nueva.caduca);
     setSoporte(nueva.soporte);
     setLista(nueva.lista);
@@ -3095,7 +3101,7 @@ export default function TvApp() {
   if (sesion === "sin-sesion" || caducado) {
     if (haciendoLogin) {
       return (
-        <div className="tv-app tv-centro tv-lienzo">
+        <div className="tv-app tv-centro tv-lienzo" style={fondoMarca ? { backgroundImage: `url(${JSON.stringify(fondoMarca).slice(1, -1)})` } : undefined}>
           <form className="tv-activar tv-form" onSubmit={entrarConUsuario}>
             <h1>Entrar con mi usuario</h1>
             <p className="tv-activar-paso">El usuario y la contraseña que te dio tu proveedor.</p>
@@ -3116,7 +3122,7 @@ export default function TvApp() {
     }
     if (poniendoLista) {
       return (
-        <div className="tv-app tv-centro tv-lienzo">
+        <div className="tv-app tv-centro tv-lienzo" style={fondoMarca ? { backgroundImage: `url(${JSON.stringify(fondoMarca).slice(1, -1)})` } : undefined}>
           <form className="tv-activar tv-form" onSubmit={guardarListaManual}>
             <h1>Poner mi lista</h1>
             <p className="tv-activar-paso">Pega tu URL M3U, o tu servidor Xtream con usuario y contraseña.</p>
@@ -3137,7 +3143,7 @@ export default function TvApp() {
       );
     }
     return (
-      <div className="tv-app tv-centro tv-lienzo">
+      <div className="tv-app tv-centro tv-lienzo" style={fondoMarca ? { backgroundImage: `url(${JSON.stringify(fondoMarca).slice(1, -1)})` } : undefined}>
         <div className="tv-activar">
           <div className="tv-marca">
             {/* El logotipo del proveedor si lo tiene; el nuestro solo cuando
@@ -3567,7 +3573,7 @@ export default function TvApp() {
    */
   if (pantalla === "perfiles") {
     return (
-      <div className="tv-app tv-centro tv-lienzo">
+      <div className="tv-app tv-centro tv-lienzo" style={fondoMarca ? { backgroundImage: `url(${JSON.stringify(fondoMarca).slice(1, -1)})` } : undefined}>
         <div className="tv-perfiles">
           <h1>¿Quién está viendo?</h1>
           <div className="tv-perfiles-fila" onMouseLeave={ratonSeVa}>

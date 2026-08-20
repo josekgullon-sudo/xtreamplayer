@@ -12,6 +12,11 @@ export interface Branding {
   logo: string;
   support: string;
   slug: string;
+  /**
+   * El mosaico que se ve, muy apagado, detrás de las pantallas de antes de
+   * entrar. Vacío es lo normal: entonces se dibuja uno.
+   */
+  fondo: string;
   isWhiteLabel: boolean;
 }
 
@@ -21,6 +26,7 @@ export const DEFAULT_BRANDING: Branding = {
   logo: "",
   support: "",
   slug: "",
+  fondo: "",
   isWhiteLabel: false,
 };
 
@@ -33,6 +39,7 @@ export function brandingOf(provider: ProviderRow | null | undefined): Branding {
     color,
     logo: provider.brand_logo || "",
     support: provider.brand_support || "",
+    fondo: provider.brand_fondo || "",
     slug: provider.brand_slug || "",
     isWhiteLabel: Boolean(name || color || provider.brand_logo),
   };

@@ -103,6 +103,7 @@ export default function ProviderPanel() {
     name: string;
     color: string;
     logo: string;
+    fondo: string;
     slug: string;
     support: string;
     precioPerfil: number;
@@ -422,6 +423,7 @@ export default function ProviderPanel() {
         name: String(form.get("brandName") || ""),
         color: String(form.get("brandColor") || ""),
         logo: String(form.get("brandLogo") || ""),
+        fondo: String(form.get("brandFondo") || ""),
         slug: String(form.get("brandSlug") || ""),
         support: String(form.get("brandSupport") || ""),
         precioPerfil: Number(form.get("precioPerfil") || 0),
@@ -827,7 +829,7 @@ export default function ProviderPanel() {
           {/* La clave fuerza a repintar los campos cuando la marca cambia
               desde fuera del formulario (restablecer): con defaultValue, si
               no, seguirían enseñando lo que había antes */}
-          <form className="card" key={`${branding.name}|${branding.color}|${branding.logo}|${branding.precioPerfil}`} onSubmit={saveBranding}>
+          <form className="card" key={`${branding.name}|${branding.color}|${branding.logo}|${branding.fondo}|${branding.precioPerfil}`} onSubmit={saveBranding}>
             <h3 style={{ marginBottom: 6 }}>Marca blanca</h3>
             <p style={{ color: "var(--text-dim)", fontSize: 14, marginBottom: 20 }}>
               Tus clientes verán tu nombre, tu color y tu logotipo, tanto al entrar como dentro del reproductor.
@@ -859,6 +861,17 @@ export default function ProviderPanel() {
             <div className="auth-field">
               <label className="label" htmlFor="b-logo">Logotipo (URL https)</label>
               <input id="b-logo" name="brandLogo" className="input" defaultValue={branding.logo} placeholder="https://…/logo.png" />
+            </div>
+            <div className="field">
+              {/* El mosaico de las pantallas de antes de entrar. Sin poner
+                  nada se dibuja uno, así que esto es para quien quiera el
+                  suyo — su catálogo, sus carteles */}
+              <label className="label" htmlFor="b-fondo">Fondo de las pantallas de entrada (URL https)</label>
+              <input id="b-fondo" name="brandFondo" className="input" defaultValue={branding.fondo} placeholder="https://…/mosaico.jpg" />
+              <p className="hint">
+                Un mosaico de carátulas, apaisado y grande. Se ve muy apagado detrás
+                de activar, entrar y elegir perfil. Sin poner nada, se dibuja uno.
+              </p>
             </div>
 
             <div className="auth-field">

@@ -118,6 +118,8 @@ export interface ProviderRow {
   brand_slug: string;
   /** Contacto de soporte que ve su cliente */
   brand_support: string;
+  /** Mosaico de fondo para las pantallas de antes de entrar. URL https */
+  brand_fondo: string;
   /** Panel Xtream del proveedor, para importar sus clientes */
   panel_url: string;
   panel_user: string;
