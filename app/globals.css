@@ -5599,14 +5599,4 @@ select.input { appearance: none; cursor: pointer; }
   background: var(--bg-elev-2); color: var(--text-dim);
 }
 
-/* Lo que no está, dicho con esas palabras: una lista de funciones sin esto es
-   media lista, y enterarse después de pagar es la peor forma de enterarse */
-.funcs-camino {
-  padding: 22px; border-radius: var(--radius-lg);
-  background: var(--bg-elev); border: 1px dashed var(--border-strong);
-}
-.funcs-camino p { font-size: 14.5px; line-height: 1.6; color: var(--text-dim); margin-bottom: 10px; }
-.funcs-camino b { color: var(--text); }
-.funcs-aviso { margin: 14px 0 0 !important; padding-top: 14px; border-top: 1px solid var(--hairline); color: var(--text-faint) !important; }
-
 .funcs-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 40px; }

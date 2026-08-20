@@ -46,17 +46,14 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   const fichas = await p.locator(".func-card").count();
   check("Con una ficha por función, diciendo qué hace", fichas >= 20, `${fichas} funciones`);
 
-  /* Lo que NO está, dicho con esas palabras. Una lista de funciones sin esto
-     es media lista, y enterarse después de pagar es la peor forma */
-  const camino = await p.locator(".funcs-camino").innerText();
-  check("Y lo que está en camino, separado y sin venderlo como hecho",
-    /todavía/i.test(camino) && /VPN/i.test(camino),
-    camino.split("\n").slice(-1)[0]);
-  /* Que no se cuele en la lista de arriba nada que no esté hecho: es la
-     diferencia entre un catálogo y una promesa */
-  const hechas = (await p.locator(".func-card h3").allInnerTexts()).join(" | ");
-  check("Y ninguna de las que aún no están, entre las hechas",
-    !/VPN|Multiview|AirPlay|Chromecast/i.test(hechas), hechas.slice(0, 80) + "…");
+  /* Que no se anuncie nada que no esté hecho, ni en las fichas ni en ningún
+     apartado de «en camino». Hubo uno y se quitó: sin nadie trabajando en
+     ello ni fecha, no es una hoja de ruta sino una lista de deseos, y en la
+     página de funciones se lee como una promesa */
+  const todoLoQuePone = await p.locator("main").innerText();
+  check("No se anuncia nada que no esté hecho",
+    !/VPN|Multiview|AirPlay|Chromecast/i.test(todoLoQuePone),
+    (todoLoQuePone.match(/VPN|Multiview|AirPlay|Chromecast/i) || ["nada de eso"])[0]);
 
   check("Y se llega desde el menú",
     (await p.locator(".site-header a[href='/funciones']").count()) >= 1);

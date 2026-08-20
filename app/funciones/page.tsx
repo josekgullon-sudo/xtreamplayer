@@ -90,9 +90,17 @@ export default function FuncionesPage() {
       <main className="section">
         <div className="container">
           <h1 className="section-title">Todo lo que hace</h1>
+          {/*
+            Todo lo de esta página está hecho y se puede usar. Hubo un
+            apartado de «en camino» —VPN, multiview, ventana flotante,
+            AirPlay— y se ha quitado: no hay nadie trabajando en ninguna de
+            ellas ni fecha para hacerlo, así que no era una hoja de ruta sino
+            una lista de deseos, y puesta en la página de funciones se lee
+            como una promesa. Cuando algo se empiece de verdad, vuelve.
+          */}
           <p className="section-sub">
-            Lo que está aquí se puede usar hoy. Lo que estamos haciendo va al final, y
-            dicho con esas palabras.
+            Todo lo que hay aquí se puede usar hoy. No prometemos nada que no esté
+            hecho.
           </p>
 
           <h2 className="funcs-t">Ver</h2>
@@ -106,34 +114,6 @@ export default function FuncionesPage() {
 
           <h2 className="funcs-t">Si eres proveedor</h2>
           <Rejilla que={PROVEEDOR} />
-
-          {/*
-            Lo que no está.
-
-            Una lista de funciones sin esto es media lista: quien compara
-            quiere saber tanto lo que hay como lo que le falta, y enterarse
-            después de pagar es la peor forma de enterarse.
-          */}
-          <h2 className="funcs-t">En camino</h2>
-          <div className="funcs-camino">
-            <p>
-              <b>VPN integrada.</b> Para conectarse a través de otro país sin instalar
-              nada aparte. Irá como suplemento aparte, no incluido en el precio.
-            </p>
-            <p>
-              <b>Multiview.</b> Dos partidos a la vez en la misma pantalla.
-            </p>
-            <p>
-              <b>Ventana flotante.</b> Seguir viendo mientras haces otra cosa.
-            </p>
-            <p>
-              <b>AirPlay y Chromecast.</b> Mandar a la tele desde el móvil.
-            </p>
-            <p className="funcs-aviso">
-              Nada de esto está hecho todavía. Está aquí para que sepas lo que hay y lo
-              que no antes de decidir, no como argumento de venta.
-            </p>
-          </div>
 
           <p className="funcs-cta">
             <Link className="btn btn-primary" href="/player">Probarlo ahora</Link>
