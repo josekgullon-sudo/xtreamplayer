@@ -36,6 +36,31 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   check("Ya no se vende como novedad lo que ya está", !texto.includes("multipantalla"), "sin «multipantalla»");
   check("Y se dice qué no somos", texto.includes("no vende ni incluye contenido"));
 
+  /* --- Todo lo que hace ---
+     Quien compara dos reproductores lo hace por esta lista, y estaba
+     repartida entre Precios, Para proveedores y la portada. */
+  await p.goto(BASE + "/funciones", { waitUntil: "networkidle" });
+  const grupos = (await p.locator(".funcs-t").allInnerTexts()).map((t) => t.trim());
+  check("Las funciones están agrupadas y no en una lista de treinta puntos",
+    grupos.length >= 4, grupos.join(" · "));
+  const fichas = await p.locator(".func-card").count();
+  check("Con una ficha por función, diciendo qué hace", fichas >= 20, `${fichas} funciones`);
+
+  /* Lo que NO está, dicho con esas palabras. Una lista de funciones sin esto
+     es media lista, y enterarse después de pagar es la peor forma */
+  const camino = await p.locator(".funcs-camino").innerText();
+  check("Y lo que está en camino, separado y sin venderlo como hecho",
+    /todavía/i.test(camino) && /VPN/i.test(camino),
+    camino.split("\n").slice(-1)[0]);
+  /* Que no se cuele en la lista de arriba nada que no esté hecho: es la
+     diferencia entre un catálogo y una promesa */
+  const hechas = (await p.locator(".func-card h3").allInnerTexts()).join(" | ");
+  check("Y ninguna de las que aún no están, entre las hechas",
+    !/VPN|Multiview|AirPlay|Chromecast/i.test(hechas), hechas.slice(0, 80) + "…");
+
+  check("Y se llega desde el menú",
+    (await p.locator(".site-header a[href='/funciones']").count()) >= 1);
+
   // --- Ayuda ---
   await p.goto(BASE + "/faq", { waitUntil: "networkidle" });
   const preguntas = await p.locator(".faq-item summary").allInnerTexts();

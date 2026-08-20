@@ -5560,3 +5560,53 @@ select.input { appearance: none; cursor: pointer; }
 .solo-apps-caja h1 { font-size: clamp(24px, 5vw, 34px); line-height: 1.2; margin: 18px 0 12px; }
 .solo-apps-caja p { color: var(--text-dim); font-size: 16px; line-height: 1.6; }
 .solo-apps-botones { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 26px; }
+
+/* ---- «Todo lo que hace»: el catálogo de funciones ---- */
+
+/*
+ * Quien compara dos reproductores lo hace por esta lista. Estaba repartida
+ * entre Precios, Para proveedores y la portada, y bastante de ella no estaba
+ * en ningún sitio.
+ *
+ * En tarjetas y por grupos —ver, tuyo, dónde, proveedor— y no en una lista
+ * seguida de treinta puntos: una lista larga se lee entera o no se lee, y por
+ * grupos se encuentra lo que uno venía a mirar.
+ */
+.funcs-t {
+  font-size: clamp(20px, 3vw, 26px); font-weight: 750; letter-spacing: -0.02em;
+  margin: 44px 0 18px;
+}
+.funcs-t::after {
+  content: ""; display: block; width: 34px; height: 3px; border-radius: 999px;
+  margin-top: 10px; background: var(--accent);
+}
+.funcs-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.func-card {
+  padding: 20px; border-radius: var(--radius-lg);
+  background: var(--bg-elev); border: 1px solid var(--hairline);
+}
+.func-card h3 { font-size: 16.5px; font-weight: 700; margin: 12px 0 6px; }
+.func-card p { font-size: 14.5px; line-height: 1.55; color: var(--text-dim); }
+/* El icono en gris: doce cuadros de color en la misma pantalla compiten entre
+   ellos y con la llamada principal. El color se guarda para lo que hay que
+   mirar, y aquí eso es el texto */
+.func-icono {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 11px;
+  background: var(--bg-elev-2); color: var(--text-dim);
+}
+
+/* Lo que no está, dicho con esas palabras: una lista de funciones sin esto es
+   media lista, y enterarse después de pagar es la peor forma de enterarse */
+.funcs-camino {
+  padding: 22px; border-radius: var(--radius-lg);
+  background: var(--bg-elev); border: 1px dashed var(--border-strong);
+}
+.funcs-camino p { font-size: 14.5px; line-height: 1.6; color: var(--text-dim); margin-bottom: 10px; }
+.funcs-camino b { color: var(--text); }
+.funcs-aviso { margin: 14px 0 0 !important; padding-top: 14px; border-top: 1px solid var(--hairline); color: var(--text-faint) !important; }
+
+.funcs-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 40px; }

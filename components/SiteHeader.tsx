@@ -229,6 +229,7 @@ const ENLACES: {
   texto: string;
   sub?: { href: string; texto: string; pie: string; icono: IconName }[];
 }[] = [
+  { href: "/funciones", texto: "Funciones" },
   { href: "/precios", texto: "Precios" },
   {
     href: "/apps",
