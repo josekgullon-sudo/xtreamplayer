@@ -13,13 +13,19 @@
   para el foco y para la marca.
 -->
 <resources>
-    <color name="fondo">#101012</color>
-    <color name="columna">#151517</color>
-    <color name="superficie">#1B1B1F</color>
-    <color name="elevada">#26262B</color>
-    <color name="encima">#33333A</color>
-    <color name="borde">#3A3A42</color>
-    <color name="borde_fuerte">#4E4E58</color>
+    <!--
+      Los mismos valores exactos que las variables del web (app/globals.css).
+      Estaban «parecidos» —un gris un punto más claro aquí, un rojo un punto
+      más vivo allá— y al poner las dos pantallas una al lado de la otra se
+      notaba que no eran la misma aplicación.
+    -->
+    <color name="fondo">#0E0E10</color>
+    <color name="columna">#141417</color>
+    <color name="superficie">#17171A</color>
+    <color name="elevada">#202024</color>
+    <color name="encima">#2A2A31</color>
+    <color name="borde">#2E2E35</color>
+    <color name="borde_fuerte">#454550</color>
 
     <!-- Las líneas finas: blanco a muy poca opacidad, como el web -->
     <color name="filo">#1FFFFFFF</color>
@@ -27,7 +33,7 @@
     <color name="tranquilo">#12FFFFFF</color>
 
     <color name="marca">#E5192B</color>
-    <color name="marca_viva">#FF3B4D</color>
+    <color name="marca_viva">#F5253A</color>
     <!--
       El tinte del foco, flojo a propósito. Al 28% la tele lo convertía en un
       bloque fucsia que se comía la tarjeta entera: en una pantalla que
@@ -53,7 +59,7 @@
          estante de la tele van sobre negro de verdad, y ahí un gris se nota -->
     <color name="negro_marca">#0A0A0B</color>
 
-    <color name="texto">#FFFFFF</color>
-    <color name="apagado">#B4B4BE</color>
-    <color name="tenue">#87878F</color>
+    <color name="texto">#F4F4F5</color>
+    <color name="apagado">#A1A1AA</color>
+    <color name="tenue">#84848D</color>
 </resources>

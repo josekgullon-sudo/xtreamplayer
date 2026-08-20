@@ -1,63 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Una tarjeta de sección: el icono grande arriba y el nombre debajo.
+  Una pestaña de sección: el icono y el nombre al lado, en una pastilla.
 
-  Todo más recogido de lo que estaba, porque la línea de abajo —«38
-  categorías»— salía cortada por el borde de la tarjeta: el contenido medía
-  209 puntos y la tarjeta solo daba 204. En una tele, cinco puntos de más se
-  ven como medio renglón partido.
+  Fue una tarjeta grande con el icono en un cuadro de color, el nombre debajo
+  y una línea de detalle. Ocupaba un tercio de la pantalla cada una y entre
+  las tres se llevaban el inicio entero, que así no tenía sitio para enseñar
+  ni un solo título. Ahora son pestañas: se leen de una pasada, y lo que se
+  gana debajo son las filas de lo que hay.
+
+  `detalle` sigue existiendo, oculto: es donde se escribía «38 categorías» o
+  «Cargando…», y el código lo sigue rellenando. Aquí no se enseña —una
+  pestaña es una etiqueta, no una ficha— pero quitarlo obligaría a tocar la
+  lógica para no ganar nada.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
     android:background="@drawable/tarjeta"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp"
+    android:paddingStart="22dp"
+    android:paddingEnd="26dp"
     android:paddingTop="14dp"
     android:paddingBottom="14dp"
     android:focusable="true">
 
-    <!-- `duplicateParentState` es lo que hace que el cuadro y el icono se
-         enteren de que la tarjeta tiene el foco: en Android el estado no baja
-         solo a los hijos -->
-    <FrameLayout
-        android:layout_width="76dp"
-        android:layout_height="76dp"
+    <!-- `duplicateParentState` es lo que hace que el icono se entere de que
+         la pestaña tiene el foco: en Android el estado no baja solo a los
+         hijos -->
+    <ImageView
+        android:id="@+id/icono"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
         android:duplicateParentState="true"
-        android:background="@drawable/insignia">
-
-        <ImageView
-            android:id="@+id/icono"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:layout_gravity="center"
-            android:duplicateParentState="true"
-            android:tint="@color/icono_seccion"
-            android:contentDescription="@null" />
-    </FrameLayout>
+        android:tint="@color/icono_seccion"
+        android:contentDescription="@null" />
 
     <TextView
         android:id="@+id/titulo"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="center"
+        android:duplicateParentState="true"
         android:textColor="@color/texto"
-        android:textSize="22sp"
+        android:textSize="19sp"
         android:textStyle="bold"
         android:maxLines="1"
         android:ellipsize="end"
-        android:layout_marginTop="14dp" />
+        android:layout_marginStart="12dp" />
 
     <TextView
         android:id="@+id/detalle"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="center"
         android:textColor="@color/tenue"
         android:textSize="14sp"
-        android:layout_marginTop="4dp"
-        android:maxLines="1"
-        android:ellipsize="end" />
+        android:visibility="gone" />
 </LinearLayout>

@@ -1,321 +1,360 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  El carril de secciones: cerrado son cinco iconos; abierto, sus nombres.
+  La barra de secciones: cerrada son seis iconos; abierta, sus nombres.
 
-  Antes iba siempre desplegado, con el icono y su etiqueta debajo, ocupando
-  78 puntos de columna en todas las pantallas. Esos 78 puntos se los quitaba
-  al contenido para enseñar cinco palabras que solo hacen falta el momento
-  en que se va a cambiar de sección — el resto del tiempo el dibujo basta.
+  Estuvo a la izquierda, en columna, y se abría con ◀. Funcionaba, pero se
+  comía ancho justo por donde empieza a leerse la pantalla y obligaba a un
+  gesto propio que no se parecía a nada del resto de la aplicación. Arriba y
+  en horizontal se lee de una pasada, no le quita sitio a la lista y se entra
+  con ▲ desde la primera fila, que es hacia donde está. Es lo mismo que hace
+  la versión de ordenador, y así la aplicación se aprende una vez.
 
-  Ahora es lo que hace YouTube en la tele: una tira estrecha de iconos, y en
-  cuanto el mando entra en ella con ◀ se abre por encima del contenido con
-  los nombres al lado. El contenido no se mueve: el carril flota, así que
-  abrirse no reordena media pantalla.
-
-  La etiqueta va a la derecha del icono y no debajo porque abierto se lee en
-  fila, que es como se lee un menú; y cerrada no se esconde con `gone` sino
-  con `INVISIBLE` + ancho cero desde Navegacion.java, para que el ancho de la
-  fila no dé un salto al aparecer.
+  Cerrada solo enseña los dibujos: abierta todo el rato se lleva un trozo de
+  pantalla para seis palabras que uno se sabe de memoria a la segunda vez. El
+  texto no se esconde con `gone` sino con `INVISIBLE` desde Navegacion.java,
+  para que la fila no dé un salto al aparecer.
 
   Dos señales distintas y visibles a la vez: dónde tienes el mando —el marco
-  de foco, que pinta el fondo del botón— y en qué sección estás —la raya de
-  al lado del icono—. Antes eran la misma cosa y no se entendía ninguna. Y la
-  raya es blanca, no roja: el color se guarda para lo que se pulsa, que es la
-  misma decisión que se tomó en el web.
+  de foco, que pinta el fondo del botón— y en qué sección estás —la raya bajo
+  el icono—. Antes eran la misma cosa y no se entendía ninguna. Y la raya es
+  blanca, no roja: el color se guarda para lo que se pulsa, que es la misma
+  decisión que se tomó en el web.
 
   Los mismos identificadores que la cápsula del teléfono: los engancha el
   mismo código (Navegacion.java).
 -->
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/carril"
     android:scrollbars="none"
+    android:fillViewport="true"
     android:clipToPadding="false">
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
-        android:paddingTop="18dp"
-        android:paddingBottom="18dp"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp">
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="26dp"
+        android:paddingEnd="26dp">
 
         <LinearLayout
             android:id="@+id/navInicio"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp"
-            android:paddingStart="15dp"
-            android:paddingEnd="10dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingTop="8dp"
+            android:paddingBottom="6dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
             android:background="@drawable/carril_item"
             android:focusable="true"
             android:clickable="true">
 
-            <ImageView
-                android:id="@+id/navInicioIcono"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@drawable/ic_casa"
-                android:tint="@color/apagado"
-                android:contentDescription="@null" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/navInicioIcono"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:src="@drawable/ic_casa"
+                    android:tint="@color/apagado"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:id="@+id/navInicioTexto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Inicio"
+                    android:textColor="@color/apagado"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:visibility="invisible"
+                    android:layout_marginStart="9dp" />
+            </LinearLayout>
 
             <!-- La raya: dice en qué sección ESTÁS. Nada que ver con el foco,
                  que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navInicioPastilla"
-                android:layout_width="3dp"
-                android:layout_height="20dp"
-                android:layout_marginStart="6dp"
+                android:layout_width="22dp"
+                android:layout_height="3dp"
+                android:layout_marginTop="5dp"
                 android:background="@drawable/carril_icono" />
-
-            <TextView
-                android:id="@+id/navInicioTexto"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Inicio"
-                android:textColor="@color/apagado"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:visibility="invisible"
-                android:layout_marginStart="12dp" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/navDirecto"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp"
-            android:paddingStart="15dp"
-            android:paddingEnd="10dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingTop="8dp"
+            android:paddingBottom="6dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
             android:background="@drawable/carril_item"
             android:focusable="true"
             android:clickable="true">
 
-            <ImageView
-                android:id="@+id/navDirectoIcono"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@drawable/ic_tv"
-                android:tint="@color/apagado"
-                android:contentDescription="@null" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/navDirectoIcono"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:src="@drawable/ic_tv"
+                    android:tint="@color/apagado"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:id="@+id/navDirectoTexto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Directo"
+                    android:textColor="@color/apagado"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:visibility="invisible"
+                    android:layout_marginStart="9dp" />
+            </LinearLayout>
 
             <!-- La raya: dice en qué sección ESTÁS. Nada que ver con el foco,
                  que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navDirectoPastilla"
-                android:layout_width="3dp"
-                android:layout_height="20dp"
-                android:layout_marginStart="6dp"
+                android:layout_width="22dp"
+                android:layout_height="3dp"
+                android:layout_marginTop="5dp"
                 android:background="@drawable/carril_icono" />
-
-            <TextView
-                android:id="@+id/navDirectoTexto"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Directo"
-                android:textColor="@color/apagado"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:visibility="invisible"
-                android:layout_marginStart="12dp" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/navCine"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp"
-            android:paddingStart="15dp"
-            android:paddingEnd="10dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingTop="8dp"
+            android:paddingBottom="6dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
             android:background="@drawable/carril_item"
             android:focusable="true"
             android:clickable="true">
 
-            <ImageView
-                android:id="@+id/navCineIcono"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@drawable/ic_cine"
-                android:tint="@color/apagado"
-                android:contentDescription="@null" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/navCineIcono"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:src="@drawable/ic_cine"
+                    android:tint="@color/apagado"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:id="@+id/navCineTexto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cine"
+                    android:textColor="@color/apagado"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:visibility="invisible"
+                    android:layout_marginStart="9dp" />
+            </LinearLayout>
 
             <!-- La raya: dice en qué sección ESTÁS. Nada que ver con el foco,
                  que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navCinePastilla"
-                android:layout_width="3dp"
-                android:layout_height="20dp"
-                android:layout_marginStart="6dp"
+                android:layout_width="22dp"
+                android:layout_height="3dp"
+                android:layout_marginTop="5dp"
                 android:background="@drawable/carril_icono" />
-
-            <TextView
-                android:id="@+id/navCineTexto"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Cine"
-                android:textColor="@color/apagado"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:visibility="invisible"
-                android:layout_marginStart="12dp" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/navSeries"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp"
-            android:paddingStart="15dp"
-            android:paddingEnd="10dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingTop="8dp"
+            android:paddingBottom="6dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
             android:background="@drawable/carril_item"
             android:focusable="true"
             android:clickable="true">
 
-            <ImageView
-                android:id="@+id/navSeriesIcono"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@drawable/ic_series"
-                android:tint="@color/apagado"
-                android:contentDescription="@null" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/navSeriesIcono"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:src="@drawable/ic_series"
+                    android:tint="@color/apagado"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:id="@+id/navSeriesTexto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Series"
+                    android:textColor="@color/apagado"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:visibility="invisible"
+                    android:layout_marginStart="9dp" />
+            </LinearLayout>
 
             <!-- La raya: dice en qué sección ESTÁS. Nada que ver con el foco,
                  que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navSeriesPastilla"
-                android:layout_width="3dp"
-                android:layout_height="20dp"
-                android:layout_marginStart="6dp"
+                android:layout_width="22dp"
+                android:layout_height="3dp"
+                android:layout_marginTop="5dp"
                 android:background="@drawable/carril_icono" />
-
-            <TextView
-                android:id="@+id/navSeriesTexto"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Series"
-                android:textColor="@color/apagado"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:visibility="invisible"
-                android:layout_marginStart="12dp" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/navBajadas"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp"
-            android:paddingStart="15dp"
-            android:paddingEnd="10dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingTop="8dp"
+            android:paddingBottom="6dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
             android:background="@drawable/carril_item"
             android:focusable="true"
             android:clickable="true">
 
-            <ImageView
-                android:id="@+id/navBajadasIcono"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@drawable/ic_bajar"
-                android:tint="@color/apagado"
-                android:contentDescription="@null" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/navBajadasIcono"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:src="@drawable/ic_bajar"
+                    android:tint="@color/apagado"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:id="@+id/navBajadasTexto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Descargas"
+                    android:textColor="@color/apagado"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:visibility="invisible"
+                    android:layout_marginStart="9dp" />
+            </LinearLayout>
 
             <!-- La raya: dice en qué sección ESTÁS. Nada que ver con el foco,
                  que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navBajadasPastilla"
-                android:layout_width="3dp"
-                android:layout_height="20dp"
-                android:layout_marginStart="6dp"
+                android:layout_width="22dp"
+                android:layout_height="3dp"
+                android:layout_marginTop="5dp"
                 android:background="@drawable/carril_icono" />
-
-            <TextView
-                android:id="@+id/navBajadasTexto"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Descargas"
-                android:textColor="@color/apagado"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:visibility="invisible"
-                android:layout_marginStart="12dp" />
         </LinearLayout>
+
         <LinearLayout
             android:id="@+id/navBuscar"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp"
-            android:paddingStart="15dp"
-            android:paddingEnd="10dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingTop="8dp"
+            android:paddingBottom="6dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginStart="3dp"
+            android:layout_marginEnd="3dp"
             android:background="@drawable/carril_item"
             android:focusable="true"
             android:clickable="true">
 
-            <ImageView
-                android:id="@+id/navBuscarIcono"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@drawable/ic_buscar"
-                android:tint="@color/apagado"
-                android:contentDescription="@null" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/navBuscarIcono"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:src="@drawable/ic_buscar"
+                    android:tint="@color/apagado"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:id="@+id/navBuscarTexto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Buscar"
+                    android:textColor="@color/apagado"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:visibility="invisible"
+                    android:layout_marginStart="9dp" />
+            </LinearLayout>
 
             <!-- La raya: dice en qué sección ESTÁS. Nada que ver con el foco,
                  que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navBuscarPastilla"
-                android:layout_width="3dp"
-                android:layout_height="20dp"
-                android:layout_marginStart="6dp"
+                android:layout_width="22dp"
+                android:layout_height="3dp"
+                android:layout_marginTop="5dp"
                 android:background="@drawable/carril_icono" />
-
-            <TextView
-                android:id="@+id/navBuscarTexto"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Buscar"
-                android:textColor="@color/apagado"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:visibility="invisible"
-                android:layout_marginStart="12dp" />
         </LinearLayout>
     </LinearLayout>
-</ScrollView>
+</HorizontalScrollView>

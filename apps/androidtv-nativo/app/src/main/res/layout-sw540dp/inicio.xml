@@ -1,133 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  El menú, con la misma cara que la web: todo centrado en mitad de la
-  pantalla. Nombre de la marca pequeño arriba, el saludo grande, y las tres
-  tarjetas debajo con el icono en grande.
+  El inicio, con la misma cara que la versión de ordenador.
 
-  Antes era una barra a lo ancho, un titular pegado a la izquierda y las
-  tarjetas apretadas contra el borde inferior. Sin nada centrado, la
-  pantalla parecía un panel de configuración.
+  Marca arriba a la izquierda y «Salir» a la derecha en fino —es una puerta,
+  no un destino—; las pestañas de sección centradas, con la abierta cercada
+  en color; y debajo lo que hay: una fila en directo, una de series y una de
+  películas.
 
-  Todo va por pesos: una tele de 1080p da 540 puntos de alto y cualquier
-  altura fija acaba cortada por el borde.
+  Antes era un lanzador: tres tarjetas con el nombre de cada sección y ni un
+  solo título a la vista. Encender la tele y que lo primero sea un menú es
+  hacer elegir antes de haber visto nada.
+
+  Todo va por pesos y no por alturas fijas: una tele de 1080p da 540 puntos
+  de alto y cualquier medida cerrada acaba cortada por el borde.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center_horizontal"
     android:background="@color/fondo"
     android:clipToPadding="false"
-    android:clipChildren="false"
-    android:paddingStart="56dp"
-    android:paddingEnd="56dp"
-    android:paddingTop="26dp"
-    android:paddingBottom="24dp">
+    android:clipChildren="false">
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <TextView
-        android:id="@+id/marca"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="TOTALPLAYER"
-        android:textColor="@color/marca_viva"
-        android:textSize="15sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.24" />
-
-    <TextView
-        android:id="@+id/saludo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:textColor="@color/texto"
-        android:textSize="34sp"
-        android:textStyle="bold"
-        android:layout_marginTop="10dp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:text="Elige por dónde empezar. Podrás cambiar cuando quieras."
-        android:textColor="@color/tenue"
-        android:textSize="16sp"
-        android:layout_marginTop="8dp" />
-
-    <!--
-      Las tres puertas.
-
-      Anchura por reparto y no en puntos fijos: tres tarjetas de 300 más sus
-      huecos son 944 puntos, y en una tele de 1080p solo hay 848 útiles. La
-      tercera se salía por la derecha y la fila entera aparecía descuadrada.
-    -->
+    <!-- La cabecera -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="6"
-        android:orientation="horizontal"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:paddingTop="18dp"
-        android:paddingBottom="18dp">
-
-        <include
-            android:id="@+id/tarjetaDirecto"
-            layout="@layout/pieza_menu"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1" />
-
-        <Space android:layout_width="20dp" android:layout_height="1dp" />
-
-        <include
-            android:id="@+id/tarjetaPelis"
-            layout="@layout/pieza_menu"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1" />
-
-        <Space android:layout_width="20dp" android:layout_height="1dp" />
-
-        <include
-            android:id="@+id/tarjetaSeries"
-            layout="@layout/pieza_menu"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1" />
-    </LinearLayout>
-
-    <!--
-      Lo de menos, centrado también y en voz baja.
-
-      Con su hueco por arriba: la tarjeta enfocada crece un poco y, sin ese
-      margen, se montaba encima de estos botones.
-    -->
-    <LinearLayout
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginTop="8dp">
+        android:gravity="center_vertical"
+        android:paddingStart="56dp"
+        android:paddingEnd="56dp"
+        android:paddingTop="22dp">
+
+        <TextView
+            android:id="@+id/marca"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="TOTALPLAYER"
+            android:textColor="@color/texto"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.06"
+            android:maxLines="1"
+            android:ellipsize="end" />
 
         <LinearLayout
             android:id="@+id/botonBuscar"
             android:layout_width="wrap_content"
-            android:layout_height="48dp"
+            android:layout_height="42dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:background="@drawable/pastilla"
             android:focusable="true"
-            android:paddingStart="20dp"
-            android:paddingEnd="24dp">
+            android:paddingStart="16dp"
+            android:paddingEnd="18dp">
 
             <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
                 android:src="@drawable/ic_buscar"
                 android:tint="@color/tenue"
                 android:contentDescription="@null" />
@@ -135,28 +66,28 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="8dp"
                 android:text="Buscar"
                 android:textColor="@color/tenue"
-                android:textSize="15sp" />
+                android:textSize="14sp" />
         </LinearLayout>
 
-        <Space android:layout_width="12dp" android:layout_height="1dp" />
+        <Space android:layout_width="10dp" android:layout_height="1dp" />
 
         <LinearLayout
             android:id="@+id/botonActualizar"
             android:layout_width="wrap_content"
-            android:layout_height="48dp"
+            android:layout_height="42dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:background="@drawable/pastilla"
             android:focusable="true"
-            android:paddingStart="20dp"
-            android:paddingEnd="24dp">
+            android:paddingStart="16dp"
+            android:paddingEnd="18dp">
 
             <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
                 android:src="@drawable/ic_recargar"
                 android:tint="@color/tenue"
                 android:contentDescription="@null" />
@@ -164,28 +95,28 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:text="Actualizar listas"
+                android:layout_marginStart="8dp"
+                android:text="Actualizar"
                 android:textColor="@color/tenue"
-                android:textSize="15sp" />
+                android:textSize="14sp" />
         </LinearLayout>
 
-        <Space android:layout_width="12dp" android:layout_height="1dp" />
+        <Space android:layout_width="10dp" android:layout_height="1dp" />
 
         <LinearLayout
             android:id="@+id/botonSalir"
             android:layout_width="wrap_content"
-            android:layout_height="48dp"
+            android:layout_height="42dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:background="@drawable/pastilla"
             android:focusable="true"
-            android:paddingStart="20dp"
-            android:paddingEnd="24dp">
+            android:paddingStart="16dp"
+            android:paddingEnd="18dp">
 
             <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
                 android:src="@drawable/ic_salir"
                 android:tint="@color/tenue"
                 android:contentDescription="@null" />
@@ -194,14 +125,106 @@
                 android:id="@+id/textoSalir"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="8dp"
                 android:textColor="@color/tenue"
-                android:textSize="15sp" />
+                android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
 
-    <View
+    <!-- El saludo, en voz baja: quién eres se dice una vez y no ocupa media
+         pantalla como cuando esto era un menú y no tenía nada más que decir -->
+    <TextView
+        android:id="@+id/saludo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/tenue"
+        android:textSize="15sp"
+        android:layout_marginTop="10dp" />
+
+    <!--
+      Las pestañas, centradas.
+
+      Son el eje de la pantalla: lo primero que se mira al encender y lo que
+      contesta a «¿y ahora qué?». Con la abierta cercada, que es como se sabe
+      dónde estás sin leer.
+    -->
+    <LinearLayout
+        android:id="@+id/pestanas"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:orientation="horizontal"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
+
+        <include
+            android:id="@+id/tarjetaDirecto"
+            layout="@layout/pieza_menu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <Space android:layout_width="14dp" android:layout_height="1dp" />
+
+        <include
+            android:id="@+id/tarjetaPelis"
+            layout="@layout/pieza_menu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <Space android:layout_width="14dp" android:layout_height="1dp" />
+
+        <include
+            android:id="@+id/tarjetaSeries"
+            layout="@layout/pieza_menu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <Space android:layout_width="14dp" android:layout_height="1dp" />
+
+        <include
+            android:id="@+id/tarjetaBajadas"
+            layout="@layout/pieza_menu"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!--
+      Y debajo, lo que hay.
+
+      Un ScrollView y no una lista reciclada: son tres filas contadas, cada
+      una con su propia lista horizontal dentro, y una lista vertical
+      reciclando listas horizontales es justo donde el foco de un mando se
+      pierde.
+    -->
+    <ScrollView
+        android:id="@+id/scroll"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:scrollbars="none"
+        android:clipToPadding="false"
+        android:clipChildren="false">
+
+        <LinearLayout
+            android:id="@+id/filas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingBottom="26dp" />
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/aviso"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/tenue"
+        android:textSize="14sp"
+        android:paddingBottom="10dp"
+        android:visibility="gone" />
 </LinearLayout>

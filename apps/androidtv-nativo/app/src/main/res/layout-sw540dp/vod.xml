@@ -22,7 +22,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:paddingStart="64dp">
+    android:paddingTop="64dp">
 
 
     <LinearLayout
@@ -177,7 +177,7 @@
   <include
       android:id="@+id/carril"
       layout="@layout/nav_secciones"
-      android:layout_width="78dp"
-      android:layout_height="match_parent"
-      android:layout_gravity="start" />
+      android:layout_width="match_parent"
+      android:layout_height="64dp"
+      android:layout_gravity="top" />
 </FrameLayout>

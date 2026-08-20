@@ -16,6 +16,11 @@ on:
     paths:
       - "apps/android/**"
       - "apps/androidtv/**"
+      # El nativo también: se compila aquí desde que existe, pero no estaba
+      # en la lista, así que cambiarlo no disparaba nada y el fallo aparecía
+      # más tarde, al publicar
+      - "apps/androidtv-nativo/**"
+      - "apps/comun/**"
       - ".github/workflows/apps-android.yml"
   # Y a mano, desde la propia pestaña Actions
   workflow_dispatch:

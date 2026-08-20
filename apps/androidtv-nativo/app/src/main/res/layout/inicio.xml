@@ -13,9 +13,12 @@
     android:background="@color/fondo">
 
     <ScrollView
+        android:id="@+id/scroll"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:clipChildren="false">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -103,11 +106,40 @@
 
                 <Space android:layout_width="12dp" android:layout_height="1dp" />
 
+                <include
+                    android:id="@+id/tarjetaBajadas"
+                    layout="@layout/pieza_menu"
+                    android:layout_width="0dp"
+                    android:layout_height="176dp"
+                    android:layout_weight="1" />
+
                 <Space
                     android:layout_width="0dp"
                     android:layout_height="1dp"
                     android:layout_weight="1" />
             </LinearLayout>
+
+            <!-- Y debajo, lo que hay: las mismas filas que en la tele. El
+                 código que las monta es el mismo, y así el teléfono deja de
+                 ser un menú sin nada que mirar -->
+            <LinearLayout
+                android:id="@+id/filas"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:layout_marginTop="18dp" />
+
+            <TextView
+                android:id="@+id/aviso"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textColor="@color/tenue"
+                android:textSize="14sp"
+                android:layout_marginTop="12dp"
+                android:visibility="gone" />
         </LinearLayout>
     </ScrollView>
 

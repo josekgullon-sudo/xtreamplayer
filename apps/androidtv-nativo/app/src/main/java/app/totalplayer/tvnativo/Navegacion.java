@@ -3,7 +3,6 @@ package app.totalplayer.tvnativo;
 import android.app.Activity;
 import android.content.Intent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -119,25 +118,30 @@ public final class Navegacion {
         pintaCarril(donde, carril);
     }
 
+    /**
+     * Enseña los nombres cuando el mando está en la barra, y solo entonces.
+     *
+     * Ya no cambia el tamaño de nada: con la barra arriba el nombre va al
+     * lado del icono, así que lo que crece es cada botón hacia la derecha y
+     * la altura se queda igual. Cuando era una columna había que ensancharla
+     * a mano, y ese ensanchado por encima del contenido es lo que se ha ido
+     * con el carril.
+     *
+     * GONE y no INVISIBLE, al revés que antes: en columna el hueco tenía que
+     * estar reservado para que el icono no saltara de sitio; en fila lo que
+     * se quiere es justo lo contrario — cerrada la barra son seis dibujos
+     * juntos, y con seis huecos de texto vacíos quedarían desperdigados de
+     * lado a lado de la pantalla.
+     */
     private static void pintaCarril(Activity donde, View carril) {
         boolean dentro = false;
         for (int id : DESTINOS) {
             View v = donde.findViewById(id);
             if (v != null && v.hasFocus()) { dentro = true; break; }
         }
-        int ancho = donde.getResources().getDimensionPixelSize(
-                dentro ? R.dimen.carril_abierto : R.dimen.carril_cerrado);
-        ViewGroup.LayoutParams medidas = carril.getLayoutParams();
-        if (medidas != null && medidas.width != ancho) {
-            medidas.width = ancho;
-            carril.setLayoutParams(medidas);
-        }
-        /* INVISIBLE y no GONE: con `gone` la fila se recompone y el icono da
-           un salto a la izquierda al aparecer el texto. Así el hueco ya está
-           reservado y lo único que cambia es que se vea */
         for (int id : ETIQUETAS) {
             View t = donde.findViewById(id);
-            if (t != null) t.setVisibility(dentro ? View.VISIBLE : View.INVISIBLE);
+            if (t != null) t.setVisibility(dentro ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -159,10 +163,13 @@ public final class Navegacion {
         int actual = Catalogo.PELIS.equals(seccionActual) ? R.id.navCine
                 : Catalogo.SERIES.equals(seccionActual) ? R.id.navSeries
                 : R.id.navDirecto;
-        carpetas.setNextFocusLeftId(actual);
+        /* Con la barra arriba se entra con ▲ y se sale con ▼. Cuando era una
+           columna era ◀ y ▶; el gesto cambia con el sitio, que es lo que
+           espera cualquiera */
+        carpetas.setNextFocusUpId(actual);
         for (int id : DESTINOS) {
             View v = donde.findViewById(id);
-            if (v != null) v.setNextFocusRightId(R.id.listaCarpetas);
+            if (v != null) v.setNextFocusDownId(R.id.listaCarpetas);
         }
     }
 
