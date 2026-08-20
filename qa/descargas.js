@@ -111,6 +111,15 @@ const ENVOLTORIO = () => {
   check("Con envoltorio, «Descargas» sí está en la portada",
     (await tv.locator(".tv-tile:has-text('Descargas')").count()) === 1,
     (await tv.locator(".tv-tile").allInnerTexts()).join(" | ").replace(/\n/g, " "));
+  /* Y los cuatro caben en la fila. Con las medidas de tres se salían por los
+     lados, y justo en los aparatos donde se puede descargar —una Fire TV y el
+     programa de Windows— que son los únicos donde sale el cuarto */
+  const anchoTiles = await tv.evaluate(() => {
+    const t = document.querySelector(".tv-tiles");
+    return { pide: t.scrollWidth, cabe: t.clientWidth };
+  });
+  check("Y los cuatro accesos caben en la fila, sin salirse",
+    anchoTiles.pide <= anchoTiles.cabe, `${anchoTiles.pide} en ${anchoTiles.cabe} px`);
 
   // La película, y su botón
   await tv.locator(".tv-tile:has-text('Películas')").click();

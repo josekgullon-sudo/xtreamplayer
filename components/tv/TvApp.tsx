@@ -2684,7 +2684,11 @@ export default function TvApp() {
             el cine. No son la misma clase de cosa: tres son destinos y el
             cuarto es una puerta de salida, y eso tiene que verse.
           */}
-          <div className="tv-tiles" onMouseLeave={ratonSeVa}>
+          {/* Con descargas son cuatro y no tres: caben en la misma fila,
+              pero apretando un poco. La clase lo dice para no tener que
+              contarlos desde el CSS con `:has`, que en el navegador de
+              una tele de hace cuatro años no existe */}
+          <div className={`tv-tiles ${conDescargas ? "cuatro" : ""}`} onMouseLeave={ratonSeVa}>
             {destinos.filter((d) => d.id !== "salir").map((d, i) => (
               <button
                 key={d.id}
@@ -3451,7 +3455,7 @@ const DESTINOS: { id: Pantalla; titulo: string; icono: IconName; pie: string }[]
   { id: "series", titulo: "Series", icono: "series", pie: "Temporadas y episodios" },
   /* Solo sale donde se puede guardar de verdad: en un navegador y en un
      televisor Samsung o LG este acceso no existe. Ver `descargas.ts` */
-  { id: "descargas", titulo: "Descargas", icono: "bajar", pie: "Lo que tienes en el aparato" },
+  { id: "descargas", titulo: "Descargas", icono: "bajar", pie: "Lo que tienes guardado" },
   { id: "salir", titulo: "Salir", icono: "power", pie: "Desactivar esta tele" },
 ];
 

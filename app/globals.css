@@ -2315,8 +2315,21 @@ select.input { appearance: none; cursor: pointer; }
  */
 .tv-tiles {
   display: flex; justify-content: center; flex-wrap: nowrap;
-  gap: 1vw; margin-bottom: 3vh;
+  gap: 1vw; margin-bottom: 3vh; max-width: 100%;
 }
+/*
+ * Y con descargas, cuatro en la misma fila.
+ *
+ * Donde se puede guardar sin conexión —Fire TV y el programa de Windows— hay
+ * un acceso más, y con las medidas de tres se salían del ancho del bloque.
+ * Se aprieta un poco en vez de partirlos en dos filas: el mando los recorre
+ * como una lista, y una rejilla de dos por dos con ▲▼ que se mueven de lado
+ * no la entiende nadie.
+ */
+.tv-tiles.cuatro { gap: 0.8vw; }
+.tv-tiles.cuatro .tv-tile { padding: 1.7vh 0.8vw; gap: 0.65vw; font-size: 1.2vw; }
+.tv-tiles.cuatro .tv-tile-icono { width: 3.7vw; height: 3.7vw; border-radius: 0.8vw; }
+.tv-tiles.cuatro .tv-tile-sub { font-size: 0.86vw; }
 .tv-tile {
   display: flex; flex-direction: row; align-items: center; gap: 0.9vw;
   padding: 1.9vh 1.4vw; text-align: left;
