@@ -237,7 +237,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical"
+                        android:gravity="top"
                         android:layout_marginTop="24dp">
 
                         <!--
@@ -266,36 +266,87 @@
                             android:focusable="true"
                             android:clickable="true" />
 
-                        <ImageView
-                            android:id="@+id/botonFavorito"
-                            android:layout_width="58dp"
-                            android:layout_height="58dp"
+                        <!--
+                             El icono, con su palabra debajo.
+
+                             Un icono suelto hay que probarlo para saber qué hace, y un corazón
+                             lo mismo es «me gusta» que «guardar» que «seguir». En el ordenador
+                             el rótulo va al lado; aquí debajo, que es donde cabe sin empujar
+                             «Ver ahora» fuera de la fila.
+
+                             La columna no coge el foco: lo sigue cogiendo el icono, que es lo
+                             que el código conoce por su identificador.
+                        -->
+                        <LinearLayout
+                            android:id="@+id/bloqueFavorito"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal"
                             android:layout_marginStart="14dp"
-                            android:padding="16dp"
-                            android:background="@drawable/circulo_accion"
-                            android:src="@drawable/ic_corazon"
-                            android:tint="@color/apagado"
-                            android:focusable="true"
-                            android:clickable="true"
-                            android:contentDescription="Favorito" />
+                            android:paddingTop="2dp"
+                            android:focusable="false">
+
+                            <ImageView
+                                android:id="@+id/botonFavorito"
+                                android:layout_width="58dp"
+                                android:layout_height="58dp"
+                                android:padding="16dp"
+                                android:background="@drawable/circulo_accion"
+                                android:src="@drawable/ic_corazon"
+                                android:tint="@color/apagado"
+                                android:focusable="true"
+                                android:clickable="true"
+                                android:contentDescription="Favorito" />
+
+                            <TextView
+                                android:id="@+id/etiquetaFavorito"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
+                                android:text="Mi lista"
+                                android:textColor="@color/apagado"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
                         <!--
                              Guardarlo en el aparato, al lado de reproducirlo y de marcarlo.
                              Nace escondido: solo aparece cuando la ficha es de algo que se puede
                              bajar —una película o un episodio— y hay hueco donde guardarlo.
                         -->
-                        <ImageView
-                            android:id="@+id/botonBajar"
-                            android:layout_width="58dp"
-                            android:layout_height="58dp"
+                        <LinearLayout
+                            android:id="@+id/bloqueBajar"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal"
                             android:layout_marginStart="14dp"
-                            android:padding="16dp"
-                            android:background="@drawable/circulo_accion"
-                            android:src="@drawable/ic_bajar"
-                            android:tint="@color/apagado"
+                            android:paddingTop="2dp"
                             android:visibility="gone"
-                            android:focusable="true"
-                            android:clickable="true"
-                            android:contentDescription="Descargar" />
+                            android:focusable="false">
+
+                            <ImageView
+                                android:id="@+id/botonBajar"
+                                android:layout_width="58dp"
+                                android:layout_height="58dp"
+                                android:padding="16dp"
+                                android:background="@drawable/circulo_accion"
+                                android:src="@drawable/ic_bajar"
+                                android:tint="@color/apagado"
+                                android:focusable="true"
+                                android:clickable="true"
+                                android:contentDescription="Descargar" />
+
+                            <TextView
+                                android:id="@+id/etiquetaBajar"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
+                                android:text="Descargar"
+                                android:textColor="@color/apagado"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
 
                         <FrameLayout
                             android:id="@+id/bloqueNota"
@@ -328,6 +379,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="10dp"
+                            android:paddingTop="11dp"
                             android:text="Calificación de\nlos usuarios"
                             android:textColor="@color/apagado"
                             android:textSize="14sp"

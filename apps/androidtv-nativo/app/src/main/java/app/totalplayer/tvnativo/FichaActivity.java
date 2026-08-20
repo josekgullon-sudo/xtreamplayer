@@ -35,6 +35,16 @@ public class FichaActivity extends Activity {
     private ProgressBar girando;
     private ImageView botonBajar;
     /*
+     * La columna del botón de bajar: el icono, y debajo la palabra.
+     *
+     * La visibilidad es de la columna y no del icono. Estando en el icono, al
+     * esconderlo —que es lo normal: solo hay algo que bajar en una película o
+     * en un episodio— la palabra «Descargar» se quedaba sola en la fila,
+     * debajo de nada.
+     */
+    private View bloqueBajar;
+    private TextView etiquetaBajar;
+    /*
      * Guardar en el aparato.
      *
      * El mismo motor que usan las otras dos aplicaciones de Android —está en
@@ -64,6 +74,8 @@ public class FichaActivity extends Activity {
         episodios = findViewById(R.id.episodios);
         girando = findViewById(R.id.girando);
         botonBajar = findViewById(R.id.botonBajar);
+        bloqueBajar = findViewById(R.id.bloqueBajar);
+        etiquetaBajar = findViewById(R.id.etiquetaBajar);
         guardadas = new Descargas(this);
 
         titulo.setText(ficha.nombre);
@@ -146,6 +158,12 @@ public class FichaActivity extends Activity {
     private void pintarCorazon(ImageView corazon, boolean marcado) {
         corazon.setImageResource(marcado ? R.drawable.ic_corazon_lleno : R.drawable.ic_corazon);
         corazon.setColorFilter(getResources().getColor(marcado ? R.color.marca_viva : R.color.apagado));
+        /* La palabra se enciende con el corazón. Si solo cambiara el dibujo,
+           desde el sofá los dos estados se parecen demasiado */
+        TextView rotulo = findViewById(R.id.etiquetaFavorito);
+        if (rotulo != null) {
+            rotulo.setTextColor(getResources().getColor(marcado ? R.color.marca_viva : R.color.apagado));
+        }
     }
 
     /** Pone un chip, o lo deja escondido si no hay nada que poner. */
@@ -366,7 +384,9 @@ public class FichaActivity extends Activity {
             fila.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { ver(ep); }
             });
-            pintarBoton(fila.findViewById(R.id.bajar), "ep-" + ep.id,
+            /* En la lista de episodios el icono va suelto: la fila ya dice
+               de qué episodio se trata y una palabra más solo estorba */
+            pintarBoton(fila.findViewById(R.id.bajar), null, "ep-" + ep.id,
                     ficha.nombre + " · " + ep.titulo,
                     ep.imagen.isEmpty() ? ficha.imagen : ep.imagen,
                     Enlaces.EPISODIO, ep.id, ep.extension, ep.url);
@@ -377,7 +397,8 @@ public class FichaActivity extends Activity {
     /** El botón de la cabecera, para una película. */
     private void prepararBajada(String id, String nombre, String cartel,
                                 String clase, String cual, String ext, String yaLaTengo) {
-        pintarBoton(botonBajar, id, nombre, cartel, clase, cual, ext, yaLaTengo);
+        if (bloqueBajar != null) bloqueBajar.setVisibility(View.VISIBLE);
+        pintarBoton(botonBajar, etiquetaBajar, id, nombre, cartel, clase, cual, ext, yaLaTengo);
     }
 
     /**
@@ -389,22 +410,25 @@ public class FichaActivity extends Activity {
      * misma decisión y se toman desde el mismo sitio, que es lo que evita que
      * un disco se llene y no se vacíe nunca.
      */
-    private void pintarBoton(final ImageView boton, final String id, final String nombre,
-                             final String cartel, final String clase, final String cual,
-                             final String ext, final String yaLaTengo) {
+    private void pintarBoton(final ImageView boton, final TextView rotulo, final String id,
+                             final String nombre, final String cartel, final String clase,
+                             final String cual, final String ext, final String yaLaTengo) {
         if (boton == null) return;
         boton.setVisibility(View.VISIBLE);
         final Descargas.Cosa como = guardadas.comoVa(id);
-        boton.setImageResource(como != null && "lista".equals(como.estado)
-                ? R.drawable.ic_papelera : R.drawable.ic_bajar);
-        boton.setContentDescription(como != null && "lista".equals(como.estado)
-                ? "Quitar del aparato" : "Descargar");
+        final boolean laTengo = como != null && "lista".equals(como.estado);
+        boton.setImageResource(laTengo ? R.drawable.ic_papelera : R.drawable.ic_bajar);
+        boton.setContentDescription(laTengo ? "Quitar del aparato" : "Descargar");
+        /* La palabra dice lo mismo que el dibujo, y cambia con él: con la
+           película ya guardada el icono es una papelera, y debajo tiene que
+           poner «Quitar» y no «Descargar» */
+        if (rotulo != null) rotulo.setText(laTengo ? "Quitar" : (como != null ? "Bajando" : "Descargar"));
         boton.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 if (como != null) {
                     guardadas.quitar(id);
                     Toast.makeText(FichaActivity.this, "Quitado del aparato", Toast.LENGTH_SHORT).show();
-                    pintarBoton(boton, id, nombre, cartel, clase, cual, ext, yaLaTengo);
+                    pintarBoton(boton, rotulo, id, nombre, cartel, clase, cual, ext, yaLaTengo);
                     return;
                 }
                 /* La dirección se pide al pulsar y fuera del hilo de la
@@ -420,7 +444,7 @@ public class FichaActivity extends Activity {
                         guardadas.pedir(id, nombre, cartel, url);
                         Toast.makeText(FichaActivity.this,
                                 "Descargando. Lo tienes en Descargas", Toast.LENGTH_LONG).show();
-                        pintarBoton(boton, id, nombre, cartel, clase, cual, ext, yaLaTengo);
+                        pintarBoton(boton, rotulo, id, nombre, cartel, clase, cual, ext, yaLaTengo);
                     }
                     @Override public void falla(Exception e) {
                         Toast.makeText(FichaActivity.this, Hilos.enCristiano(e), Toast.LENGTH_LONG).show();
