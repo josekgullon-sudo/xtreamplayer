@@ -197,6 +197,15 @@ public class Descargas {
         public long bytes;
         /** Dónde está el fichero, si ya está entero. Vacío si no. */
         public String ruta = "";
+        /**
+         * Por qué falló, cuando falló.
+         *
+         * La web ya lo recibe; en Java se quedaba dentro del fichero sin que
+         * nadie lo leyera, así que en la tele una descarga rota solo sabía
+         * decir «no se ha podido terminar» —que es exactamente lo que se ve
+         * mirando la pantalla— y no si fue el disco, la red o el proveedor.
+         */
+        public String motivo = "";
     }
 
     /** Encarga una descarga sin tener que montar el JSON a mano. */
@@ -213,6 +222,31 @@ public class Descargas {
         }
     }
 
+    /**
+     * Volver a intentarlo, con lo que ya se sabía.
+     *
+     * Una descarga fallida solo se podía tirar a la papelera y volver a la
+     * ficha a empezar de cero, y la mitad de los fallos son un corte de red
+     * de diez segundos. La dirección quedó apuntada al encargarla, así que
+     * reintentar es tirar lo que haya a medias y volver a pedir lo mismo.
+     *
+     * Si la dirección ya no vale —caducan a las seis horas— lo dice, que es
+     * mejor que un segundo fallo idéntico y sin explicación.
+     */
+    public void reintentar(String id) {
+        JSONObject f = buscar(id);
+        if (f == null) return;
+        String origen = f.optString("origen");
+        String nombre = f.optString("nombre");
+        String cartel = f.optString("cartel");
+        quitar(id);
+        if (origen.isEmpty()) {
+            roto = "Esta descarga no guardó la dirección: vuelve a pedirla desde su ficha";
+            return;
+        }
+        pedir(id, nombre, cartel, origen);
+    }
+
     /** Lo que hay guardado, de más reciente a más antiguo. */
     public java.util.List<Cosa> cosas() {
         java.util.List<Cosa> fuera = new java.util.ArrayList<>();
@@ -227,6 +261,7 @@ public class Descargas {
             c.estado = f.optString("estado");
             c.parte = f.optInt("parte");
             c.bytes = f.optLong("bytes");
+            c.motivo = f.optString("motivo");
             c.ruta = "lista".equals(c.estado) ? rutaLocal(c.id) : "";
             fuera.add(c);
         }

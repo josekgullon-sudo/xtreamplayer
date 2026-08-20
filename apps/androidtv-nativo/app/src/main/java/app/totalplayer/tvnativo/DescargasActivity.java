@@ -87,6 +87,7 @@ public class DescargasActivity extends Activity {
             TextView estado = fila.findViewById(R.id.estado);
             ProgressBar barra = fila.findViewById(R.id.barra);
             View pulsable = fila.findViewById(R.id.fila);
+            View otraVez = fila.findViewById(R.id.reintentar);
 
             if ("bajando".equals(c.estado)) {
                 algoBajando = true;
@@ -99,9 +100,21 @@ public class DescargasActivity extends Activity {
             } else if ("fallo".equals(c.estado)) {
                 /* Un fallo se dice y se deja a la vista con su papelera al
                    lado: media descarga ocupando disco sin que nadie sepa que
-                   está ahí es peor que el propio fallo */
-                estado.setText("No se ha podido terminar");
+                   está ahí es peor que el propio fallo.
+                   Y se dice POR QUÉ, si se sabe: «no se ha podido terminar»
+                   a secas es exactamente lo que ya se ve mirando la pantalla,
+                   y no distingue el disco lleno de un corte de red */
+                estado.setText(c.motivo == null || c.motivo.isEmpty()
+                        ? "No se ha podido terminar"
+                        : "No se ha podido terminar · " + c.motivo);
                 pulsable.setOnClickListener(null);
+                otraVez.setVisibility(View.VISIBLE);
+                otraVez.setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(View v) {
+                        guardadas.reintentar(c.id);
+                        pintar();
+                    }
+                });
             } else {
                 String cuanto = Descargas.tamano(c.bytes);
                 estado.setText(cuanto.isEmpty() ? "En este aparato" : "En este aparato · " + cuanto);

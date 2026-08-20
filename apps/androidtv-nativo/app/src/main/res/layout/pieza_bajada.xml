@@ -4,7 +4,8 @@
 
   Verla y quitarla van en la misma fila porque son las dos únicas cosas que
   se hacen aquí; esconder la segunda en un menú de ajustes es lo que hace que
-  un disco se llene y no se vacíe nunca.
+  un disco se llene y no se vacíe nunca. Y si ha fallado, volver a intentarlo,
+  que ahí sí hay una tercera.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -69,6 +70,26 @@
                 android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
+
+    <!--
+         Volver a intentarlo. Nace escondido y solo sale cuando algo ha
+         fallado: la mitad de los fallos son un corte de red de diez
+         segundos, y sin este botón la única salida era tirar la descarga a
+         la papelera y volver a la ficha a empezar de cero.
+    -->
+    <ImageView
+        android:id="@+id/reintentar"
+        android:layout_width="58dp"
+        android:layout_height="58dp"
+        android:layout_marginStart="12dp"
+        android:padding="16dp"
+        android:background="@drawable/circulo_accion"
+        android:src="@drawable/ic_recargar"
+        android:tint="@color/apagado"
+        android:visibility="gone"
+        android:focusable="true"
+        android:clickable="true"
+        android:contentDescription="Volver a intentarlo" />
 
     <ImageView
         android:id="@+id/quitar"
