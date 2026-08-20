@@ -53,7 +53,7 @@ APARTE=(dominio)
 
 TODAS=(
   e2e movil portada busqueda busqueda-global novedades listas-enormes atras
-  parrilla-epg catchup tv tv-app descargas envoltorios
+  parrilla-epg catchup tv tv-app descargas perfiles-tv envoltorios
   cliente-ux acceso sesiones-mezcladas recuperar alta-simple entrega-acceso
   b2b panel-ui panel-importa apps-proveedor
   soporte-api-facturas facturas-fiscales factura-pdf admin-facturas admin-panel

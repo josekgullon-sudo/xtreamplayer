@@ -63,6 +63,7 @@ import {
  */
 
 type Pantalla =
+  | "perfiles"
   | "portada"
   | "directo"
   | "cine"
@@ -71,6 +72,14 @@ type Pantalla =
   | "ficha"
   | "viendo"
   | "salir";
+
+/** Una persona de la casa. Lo mismo que en el reproductor web. */
+interface Perfil {
+  id: number;
+  name: string;
+  avatar: string;
+  kids: boolean;
+}
 
 interface Lista {
   tipo: "xtream" | "m3u";
@@ -363,6 +372,19 @@ export default function TvApp() {
   const [lista, setLista] = useState<Lista | null>(null);
 
   const [pantalla, setPantalla] = useState<Pantalla>("portada");
+  /**
+   * Quién está viendo.
+   *
+   * En el reproductor web esto existía desde el principio y en la televisión
+   * no, y es donde más falta hace: la tele del salón la usan cuatro personas
+   * y lo que has dejado a medias no es lo mismo para todas. Se pregunta al
+   * encender, y solo si hay más de uno —a quien vive solo no se le mete un
+   * paso de más—, y se puede cambiar desde la barra de arriba en cualquier
+   * momento.
+   */
+  const [perfiles, setPerfiles] = useState<Perfil[]>([]);
+  const [perfil, setPerfil] = useState<Perfil | null>(null);
+  const [perfilesPedidos, setPerfilesPedidos] = useState(false);
   const [filas, setFilas] = useState<Fila[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
@@ -2157,6 +2179,26 @@ export default function TvApp() {
   const dirEnPortada =
     pantalla === "directo" && canales.length > 0 && (vista === "portada" || Boolean(carpetaAbierta));
 
+  const elegirPerfil = useCallback(async (p: Perfil) => {
+    setPerfil(p);
+    setPantalla("portada");
+    setFoco(0);
+    setFocoFila(-1);
+    setFocoCol(0);
+    /* Y se le dice al servidor, que es quien guarda lo que va viendo cada
+       uno. Si falla, se sigue: haberlo elegido en la pantalla ya vale para
+       esta sesión */
+    try {
+      await fetch("/api/profiles", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId: p.id }),
+      });
+    } catch {
+      /* Ver arriba */
+    }
+  }, []);
+
   /* ---------- El mando ---------- */
 
   /* Una lista de películas o de series se enseña en carátulas grandes; los
@@ -2407,6 +2449,9 @@ export default function TvApp() {
 
       if (tecla === "Atras") {
         e.preventDefault();
+        /* De «¿quién está viendo?» no se sale hacia atrás: no hay nada
+           detrás, y salir dejaría la aplicación sin saber de quién es */
+        if (pantalla === "perfiles") return;
         /* Estando en el carril, ATRÁS es salir del carril y no de la
            pantalla: si no, entrar sin querer costaba volver a cargarlo todo */
         if (focoCarrilRef.current !== null) setFocoCarril(null);
@@ -2466,6 +2511,27 @@ export default function TvApp() {
           else if (fichaZona === "guardar") setMiLista(alternarEnMiLista(ficha.id));
           else if (fichaZona === "bajar") void bajarEsto();
           else ficha.reproducir();
+          return;
+        }
+        return;
+      }
+
+      /* ¿Quién está viendo?: una fila, y de ella no se sale sin elegir. No
+         hay ATRÁS que valga —no hay a dónde volver— y por eso tampoco se
+         enseña ninguna salida */
+      if (pantalla === "perfiles") {
+        if (tecla === "Izquierda" || tecla === "Derecha") {
+          e.preventDefault();
+          setFoco((f) => {
+            const n = f + (tecla === "Derecha" ? 1 : -1);
+            return (n + perfiles.length) % perfiles.length;
+          });
+          return;
+        }
+        if (tecla === "Ok") {
+          e.preventDefault();
+          const suyo = perfiles[foco];
+          if (suyo) void elegirPerfil(suyo);
           return;
         }
         return;
@@ -2817,7 +2883,7 @@ export default function TvApp() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol, dirEnPortada, zonaDir, canalesVista, filaCarpetas, filaDestacados, canalMirado, filasInicioALaVista]);
+  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol, dirEnPortada, zonaDir, canalesVista, filaCarpetas, filaDestacados, canalMirado, filasInicioALaVista, perfiles, elegirPerfil]);
 
   // La fila con el foco siempre a la vista, sin que el usuario persiga nada
   useEffect(() => {
@@ -2845,6 +2911,36 @@ export default function TvApp() {
   useEffect(() => {
     if (enPortada && !destacado && focoFila === -1) setFocoFila(0);
   }, [enPortada, destacado, focoFila]);
+
+  /*
+   * Los perfiles, en cuanto hay sesión.
+   *
+   * Se piden una vez y no se vuelve a preguntar: la lista de quién vive en
+   * esta casa no cambia mientras estás viendo la tele. Si sale uno solo —o
+   * ninguno, que es lo que pasa con una lista puesta a pelo por MAC y sin
+   * cuenta detrás— esta pantalla no llega a existir.
+   */
+  useEffect(() => {
+    if (sesion !== "dentro" || perfilesPedidos) return;
+    setPerfilesPedidos(true);
+    (async () => {
+      try {
+        const r = await fetch("/api/profiles", { cache: "no-store" });
+        if (!r.ok) return;
+        const d = (await r.json()) as { profiles?: Perfil[]; activeId?: number | null };
+        const suyos = Array.isArray(d.profiles) ? d.profiles : [];
+        setPerfiles(suyos);
+        if (suyos.length > 1) {
+          setPantalla("perfiles");
+          setFoco(Math.max(0, suyos.findIndex((p) => p.id === d.activeId)));
+        } else if (suyos.length === 1) {
+          setPerfil(suyos[0]);
+        }
+      } catch {
+        /* Sin perfiles se ve la tele igual: no es una puerta, es una comodidad */
+      }
+    })();
+  }, [sesion, perfilesPedidos]);
 
   /* ---------- Pantallas ---------- */
 
@@ -3339,6 +3435,51 @@ export default function TvApp() {
   }
 
   /*
+   * ---------- ¿Quién está viendo? ----------
+   *
+   * La misma pregunta que hace cualquier televisión al encender, y por el
+   * mismo motivo: lo que has dejado a medias, lo que tienes en tu lista y lo
+   * que te suena de haber visto no es lo mismo para las cuatro personas que
+   * comparten el aparato del salón.
+   *
+   * Solo sale con más de un perfil. A quien vive solo no se le mete un paso
+   * de más para contestar algo que ya se sabe.
+   */
+  if (pantalla === "perfiles") {
+    return (
+      <div className="tv-app tv-centro tv-lienzo">
+        <div className="tv-perfiles">
+          <h1>¿Quién está viendo?</h1>
+          <div className="tv-perfiles-fila" onMouseLeave={ratonSeVa}>
+            {perfiles.map((p, i) => (
+              <button
+                key={p.id}
+                data-i={i}
+                className={`tv-perfil ${foc(foco === i)}`}
+                data-foco={foco === i ? "1" : undefined}
+                onMouseEnter={() => { conElRaton(); setFoco(i); }}
+                onClick={() => void elegirPerfil(p)}
+              >
+                <span
+                  className="tv-perfil-cara"
+                  style={{ background: COLORES_PERFIL[i % COLORES_PERFIL.length] }}
+                >
+                  {p.name.trim().slice(0, 1).toUpperCase() || "?"}
+                </span>
+                <span className="tv-perfil-nombre">{p.name}</span>
+                {p.kids && <span className="tv-perfil-nota">Infantil</span>}
+              </button>
+            ))}
+          </div>
+          <p className="tv-perfiles-pista">
+            Puedes cambiar de perfil cuando quieras, desde la barra de arriba.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /*
    * La portada de inicio, como el mockup.
    *
    * Arriba la marca; debajo los accesos a las tres secciones en botones
@@ -3592,6 +3733,35 @@ export default function TvApp() {
           </button>
         ))}
       </div>
+      {/*
+        Quién está viendo, a la derecha y siempre a la vista.
+
+        Que se pregunte al encender no basta: la tele del salón cambia de
+        manos a media tarde y nadie va a apagarla y encenderla para decirlo.
+        Va con su color, que es como se reconoce el suyo de un vistazo desde
+        el sofá, y solo aparece cuando hay más de uno.
+      */}
+      {perfiles.length > 1 && (
+        <button
+          className="tv-nav-perfil"
+          onClick={() => { setFocoCarril(null); setPantalla("perfiles"); setFoco(Math.max(0, perfiles.findIndex((p) => p.id === perfil?.id))); }}
+          title="Cambiar de perfil"
+        >
+          <span
+            className="tv-nav-cara"
+            style={{
+              background:
+                COLORES_PERFIL[
+                  Math.max(0, perfiles.findIndex((p) => p.id === perfil?.id)) % COLORES_PERFIL.length
+                ],
+            }}
+          >
+            {(perfil?.name || "?").trim().slice(0, 1).toUpperCase()}
+          </span>
+          <span className="tv-nav-txt">{perfil?.name || "Perfil"}</span>
+        </button>
+      )}
+
       {/* Salir al otro extremo: es una puerta, no una sección, y en medio de
           las demás pesaba lo mismo que entrar en el cine */}
       <button
@@ -4417,6 +4587,9 @@ export interface Ficha {
    */
   enlace?: () => Promise<string>;
 }
+
+/** Un color por perfil, en el orden en que están. El mismo que el reproductor. */
+const COLORES_PERFIL = ["#e5192b", "#2ecc8f", "#3b82f6", "#f59e0b", "#a855f7"];
 
 const DESTINOS: { id: Pantalla; titulo: string; icono: IconName; pie: string }[] = [
   { id: "directo", titulo: "TV en directo", icono: "tv", pie: "Canales y qué echan ahora" },

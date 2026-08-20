@@ -2511,6 +2511,55 @@ select.input { appearance: none; cursor: pointer; }
 }
 .tv-app *::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); background-clip: padding-box; }
 
+/*
+ * ---- ¿Quién está viendo? ----
+ *
+ * La misma pregunta que hace cualquier televisión al encender. Caras grandes
+ * y en fila: a tres metros lo que se reconoce es el color y la inicial, no un
+ * nombre de doce píxeles.
+ */
+.tv-perfiles { display: flex; flex-direction: column; align-items: center; gap: 4vh; }
+.tv-perfiles h1 { font-size: 3vw; font-weight: 800; letter-spacing: -0.02em; }
+.tv-perfiles-fila { display: flex; gap: 2.4vw; flex-wrap: wrap; justify-content: center; }
+.tv-perfil {
+  display: flex; flex-direction: column; align-items: center; gap: 1.2vh;
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--text-dim); font-size: 1.3vw; font-weight: 700;
+  transition: color 0.12s, transform 0.16s cubic-bezier(0.22, 0.8, 0.2, 1);
+}
+.tv-perfil-cara {
+  display: flex; align-items: center; justify-content: center;
+  width: 10vw; height: 10vw; max-width: 190px; max-height: 190px;
+  border-radius: 1.4vw; border: 0.3vw solid transparent;
+  color: #fff; font-size: 4vw; font-weight: 800;
+  transition: border-color 0.12s;
+}
+.tv-perfil-nota {
+  padding: 0.2vh 0.7vw; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.9vw; font-weight: 700; color: var(--text-faint);
+}
+/* El aro entero y el salto de tamaño, que en una tele no hay puntero y el
+   foco tiene que verse desde el sofá */
+.tv-perfil.foco { color: #fff; transform: scale(1.06); }
+.tv-perfil.foco .tv-perfil-cara { border-color: #fff; }
+.tv-perfiles-pista { font-size: 1.1vw; color: var(--text-faint); }
+
+/* Y en la barra de arriba, para cambiarlo sin apagar la tele */
+.tv-nav-perfil {
+  display: flex; align-items: center; gap: 0.5vw;
+  padding: 0.6vh 0.6vw; border-radius: 999px;
+  background: none; border: 0.16vw solid transparent; cursor: pointer;
+  color: rgba(255, 255, 255, 0.55); font-size: 1.05vw; font-weight: 700;
+  white-space: nowrap;
+}
+.tv-nav-perfil:hover { color: #fff; background: rgba(255, 255, 255, 0.10); }
+.tv-nav-cara {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 2.2vw; height: 2.2vw; max-width: 42px; max-height: 42px;
+  border-radius: 0.5vw; color: #fff; font-size: 1.1vw; font-weight: 800;
+}
+
 /* ---- La barra de secciones, arriba ---- */
 
 /*
