@@ -2232,8 +2232,11 @@ select.input { appearance: none; cursor: pointer; }
 .tv-seguir {
   display: flex; align-items: center; gap: 2vw; width: 100%;
   margin: 0 0 3vh; padding: 3vh 2.4vw;
-  background: linear-gradient(100deg, var(--accent-tint), var(--bg-elev) 60%);
-  border: 0.2vw solid var(--filo); border-radius: 1.4vw;
+  /* Color entero y no un degradado tintado de rojo: en la portada compiten
+     este botón y los tres destinos, y si el botón se tiñe deja de leerse
+     como una tarjeta más y empieza a leerse como un aviso */
+  background: var(--bg-elev);
+  border: 0.2vw solid var(--border); border-radius: 1.4vw;
   color: var(--text); text-align: left; cursor: pointer;
   transition: border-color 0.12s, transform 0.12s;
 }
@@ -2243,8 +2246,10 @@ select.input { appearance: none; cursor: pointer; }
   font-size: 2.4vw; font-weight: 800; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* En blanco, como en toda la aplicación: el aro dice dónde estás, y si a
+   veces es rojo y a veces blanco deja de leerse como una sola cosa */
 .tv-seguir.foco {
-  border-color: var(--accent-bright); transform: scale(1.01);
+  border-color: #fff; transform: scale(1.01);
   box-shadow: 0 1.4vh 4vh rgba(0, 0, 0, 0.5);
 }
 
@@ -2281,7 +2286,7 @@ select.input { appearance: none; cursor: pointer; }
   display: flex; flex-direction: row; align-items: center; gap: 0.9vw;
   padding: 1.9vh 1.4vw; text-align: left;
   background: var(--bg-elev);
-  border: 0.15vw solid var(--filo); border-radius: 1vw;
+  border: 0.15vw solid var(--border); border-radius: 1vw;
   color: var(--text); font-size: 1.4vw; font-weight: 750;
   cursor: pointer; transition: transform 0.12s, background 0.12s, border-color 0.12s, color 0.12s;
 }
@@ -2294,21 +2299,25 @@ select.input { appearance: none; cursor: pointer; }
 .tv-tile-icono {
   flex: none; display: flex; align-items: center; justify-content: center;
   width: 4.4vw; height: 4.4vw; border-radius: 0.9vw;
-  background: var(--accent-tint); color: var(--accent-bright);
+  /* Gris, no rojo. Tres destinos con su cuadro rojo eran tres manchas de
+     color en la primera pantalla, compitiendo entre ellas y con el botón de
+     seguir viendo: el rojo se guarda para lo que hay que mirar, y en la
+     portada eso es dónde está el foco */
+  background: rgba(255, 255, 255, 0.07); color: var(--text-dim);
 }
 .tv-tile-txt { display: flex; flex-direction: column; gap: 0.4vh; min-width: 0; }
 .tv-tile-sub {
   font-size: 0.95vw; font-weight: 500; color: var(--text-faint);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.tv-tile.foco .tv-tile-icono { background: var(--accent); color: #fff; }
+.tv-tile.foco .tv-tile-icono { background: rgba(255, 255, 255, 0.16); color: #fff; }
 
 .tv-pie { font-size: 1.15vw; color: var(--text-faint); }
 
 /* Cómo se cierra la aplicación de Windows, que sin marco no es evidente */
 .tv-salida {
   margin-top: 2.4vh; padding: 1.2vh 1.6vw;
-  background: var(--bg-elev); border: 1px solid var(--filo); border-radius: 0.8vw;
+  background: var(--bg-elev); border: 1px solid var(--border); border-radius: 0.8vw;
   display: inline-block;
 }
 .tv-salida b { color: var(--text); }
@@ -2670,7 +2679,7 @@ select.input { appearance: none; cursor: pointer; }
   display: flex; flex-direction: column; align-items: flex-start; gap: 1.6vh;
   align-self: flex-start;
   padding: 2.4vh 2vw;
-  background: var(--bg-elev); border: 1px solid var(--filo);
+  background: var(--bg-elev); border: 1px solid var(--border);
   border-radius: 1vw;
 }
 /* En columna, el logotipo puede ser grande de verdad: es lo que identifica
@@ -2714,6 +2723,34 @@ select.input { appearance: none; cursor: pointer; }
   font-size: 1.15vw; color: var(--text-faint);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/*
+ * Y debajo, la tarde entera.
+ *
+ * «Después · Cine de sobremesa» contesta a la mitad de la pregunta: con el
+ * mando en la mano lo que se decide es si quedarse ahora o volver a las
+ * diez, y para eso hace falta ver a qué hora empieza cada cosa. La hora va
+ * en su columna, alineada, porque lo que se recorre con la vista es esa
+ * columna y no los títulos.
+ */
+.tv-parrilla {
+  display: flex; flex-direction: column; gap: 0.9vh;
+  width: 100%; margin-top: 0.6vh;
+  padding-top: 1.4vh; border-top: 1px solid var(--border);
+}
+.tv-parrilla-t {
+  font-size: 0.95vw; font-weight: 750; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+.tv-parrilla-fila {
+  display: flex; align-items: baseline; gap: 1vw;
+  font-size: 1.15vw; color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tv-parrilla-hora {
+  flex: none; min-width: 4vw;
+  font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums;
+}
+.tv-parrilla-tit { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---- La portada de cine y de series ---- */
 
@@ -2930,8 +2967,8 @@ select.input { appearance: none; cursor: pointer; }
  */
 .tv-banner-canal {
   height: 40vh;
-  background: linear-gradient(120deg, var(--bg-elev) 30%, rgba(229, 25, 43, 0.16) 100%);
-  border-bottom: 1px solid var(--filo);
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
 }
 .tv-banner-canal .tv-banner-txt { max-width: 58vw; }
 .tv-banner-antena {
@@ -2960,7 +2997,7 @@ select.input { appearance: none; cursor: pointer; }
   position: absolute; right: 5vw; top: 50%; transform: translateY(-50%);
   width: 20vw; height: 12vw;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.07); border: 1px solid var(--filo);
+  background: rgba(255, 255, 255, 0.07); border: 1px solid var(--border);
   border-radius: 1.2vw; color: var(--text-faint); overflow: hidden;
 }
 .tv-banner-canal-logo img { max-width: 76%; max-height: 72%; object-fit: contain; }
@@ -2986,7 +3023,7 @@ select.input { appearance: none; cursor: pointer; }
   font-size: 1.3vw; font-weight: 700; cursor: pointer;
 }
 .tv-vertodas.foco {
-  background: var(--accent); border-color: #fff; color: #fff;
+  background: rgba(255, 255, 255, 0.16); border-color: #fff; color: #fff;
 }
 
 /* El aviso que exige TMDB por usar su API. Pequeño y al final, pero puesto */
@@ -3108,12 +3145,41 @@ select.input { appearance: none; cursor: pointer; }
  * pantalla vacía por encima. Centrado, el hueco se reparte y el conjunto se
  * lee como un bloque y no como algo que se ha escurrido.
  */
+/*
+ * `safe center` es la diferencia entre centrar y recortar.
+ *
+ * Con `center` a secas, un bloque más alto que la pantalla se sale por los
+ * dos lados a la vez y `overflow: hidden` se lleva por delante el principio
+ * y el final: en una serie eso era el título por arriba y la fila de
+ * episodios por abajo, cortados los dos. Con `safe`, en cuanto no cabe deja
+ * de centrar y se apoya arriba, que es de donde se empieza a leer; y con el
+ * eje vertical desplazable, lo que sobra se alcanza en vez de perderse. El
+ * navegador que no entienda `safe` se queda como estaba, sin romperse.
+ */
 .tv-ficha-cuerpo {
   position: relative; z-index: 1;
-  display: flex; flex-direction: column; justify-content: center;
+  display: flex; flex-direction: column;
+  justify-content: center; justify-content: safe center;
   height: 100%; padding: 5vh 5vw 4vh; gap: 2.2vh;
-  overflow: hidden;
+  overflow-x: hidden; overflow-y: auto; scrollbar-width: none;
 }
+.tv-ficha-cuerpo::-webkit-scrollbar { display: none; }
+/*
+ * Y en una serie, el texto ocupa menos.
+ *
+ * Una película solo tiene texto y le sobra alto; una serie mete además las
+ * temporadas y una fila de episodios con fotograma, y ahí tres líneas de
+ * sinopsis son las que sobran. Se recorta la sinopsis, que es lo que se
+ * puede leer en la propia ficha del episodio, y no los episodios, que son
+ * para lo que se ha entrado.
+ */
+.con-episodios .tv-ficha-sinopsis { -webkit-line-clamp: 2; }
+.con-episodios .tv-ficha-t { font-size: 2.9vw; }
+.con-episodios .tv-ficha-txt { gap: 1vh; }
+.con-episodios .tv-ficha-credito { font-size: 1vw; }
+/* Y el cartel, más corto y arriba: a 76 vh se metía por debajo de la fila de
+   episodios, y las dos cosas peleaban por el mismo trozo de pantalla */
+.con-episodios .tv-ficha-arte { height: 52vh; top: 34vh; }
 /*
  * Y nada de encoger el texto.
  *
@@ -3201,6 +3267,32 @@ select.input { appearance: none; cursor: pointer; }
   box-shadow: 0 1.4vh 4vh rgba(0, 0, 0, 0.6);
 }
 
+/*
+ * Los dos botones, en la misma línea.
+ *
+ * «Reproducir» es lo que se viene a hacer y por eso va relleno; guardar para
+ * luego es la otra cosa que se hace en una ficha, y va al lado en contorno:
+ * se ve que está, pero no compite.
+ */
+.tv-ficha-acciones { display: flex; align-items: center; gap: 1vw; margin: 1.2vh 0 0.8vh; }
+.tv-ficha-acciones .tv-ficha-ver { margin: 0; }
+.tv-ficha-guardar {
+  display: inline-flex; align-items: center; gap: 0.7vw;
+  padding: 1.5vh 2.2vw; border-radius: 999px;
+  border: 0.25vh solid var(--border-strong);
+  background: rgba(23, 23, 26, 0.72); color: var(--text-dim);
+  font-size: 1.35vw; font-weight: 700; cursor: pointer;
+  transition: transform 0.16s cubic-bezier(0.22, 0.8, 0.2, 1),
+    border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
+}
+/* Ya guardado se dice con el color del texto, no con otro relleno: dos
+   botones rellenos en fila y ya no se sabe cuál es la acción principal */
+.tv-ficha-guardar.puesto { color: var(--text); border-color: var(--border-strong); }
+.tv-ficha-guardar.foco {
+  border-color: #fff; color: #fff; background: var(--bg-hover);
+  transform: scale(1.05);
+}
+
 .tv-ficha-serie { display: flex; flex-direction: column; gap: 1.6vh; }
 .tv-ficha-temporadas { display: flex; gap: 0.9vw; flex-wrap: wrap; }
 .tv-ficha-temporada {
@@ -3234,8 +3326,11 @@ select.input { appearance: none; cursor: pointer; }
  * que dejar de empujar.
  */
 .tv-ficha-episodios {
-  display: flex; gap: 1.1vw; overflow-x: auto;
-  margin: 0 -5vw; padding: 0.4vh 5vw 1vh;
+  display: flex; gap: 1.1vw; overflow-x: auto; overflow-y: hidden;
+  margin: -1.4vh -5vw;
+  /* El enfocado crece un 4% y lleva aro: sin este relleno, ese poco que
+     sobresale se lo comía el canto de la fila, arriba y abajo */
+  padding: 1.4vh 5vw;
   scroll-padding-inline: 5vw;
   scrollbar-width: none;
 }
@@ -3265,7 +3360,13 @@ select.input { appearance: none; cursor: pointer; }
   font-size: 0.85vw; font-weight: 650;
 }
 .tv-ficha-ep-cab { font-size: 0.95vw; font-weight: 700; color: var(--accent-bright); }
-.tv-ficha-ep-t { font-size: 1.15vw; font-weight: 650; }
+/* Dos líneas y punto: los proveedores repiten el nombre entero de la serie
+   en cada episodio —«Serie Demo - S01E03 - …»— y sin tope eso son tres o
+   cuatro líneas por tarjeta, que es justo lo que desbordaba la pantalla */
+.tv-ficha-ep-t {
+  font-size: 1.15vw; font-weight: 650; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 .tv-ficha-ep-p {
   font-size: 0.95vw; color: var(--text-faint); line-height: 1.45;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
@@ -3451,7 +3552,24 @@ select.input { appearance: none; cursor: pointer; }
 .tv-input:focus { outline: none; border-color: var(--accent); background: rgba(255, 255, 255, 0.12); }
 
 .tv-carpeta { font-weight: 700; }
-.tv-carpeta .tv-fila-ph { background: var(--accent-tint); color: var(--accent-bright); }
+/* En gris, no en rojo: una lista de proveedor trae cuarenta carpetas, y
+   cuarenta cuadritos rojos en fila no son un acento, son el fondo */
+.tv-carpeta .tv-fila-ph { background: rgba(255, 255, 255, 0.07); color: var(--text-dim); }
+.tv-fila.foco .tv-fila-ph { background: rgba(255, 255, 255, 0.16); color: #fff; }
+
+/*
+ * Las carpetas, en dos columnas.
+ *
+ * Una carpeta es un nombre y un número: estirada al ancho entero gastaba mil
+ * ochocientos píxeles en escribir «Deportes (4)», y la primera pantalla del
+ * directo eran dos filas y medio televisor en negro. En dos caben el doble y
+ * siguen leyéndose desde el sofá.
+ */
+.tv-lista.tv-carpetas {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 1.6vw; align-content: start;
+}
+.tv-lista.tv-carpetas .tv-fila { margin-bottom: 1vh; }
 .tv-cabecera-de { font-size: 1.2vw; color: rgba(255, 255, 255, 0.4); }
 
 @media (max-width: 900px) {

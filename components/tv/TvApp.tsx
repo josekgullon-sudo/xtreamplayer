@@ -235,6 +235,25 @@ interface Guia {
   hasta: number;
 }
 
+/**
+ * Un programa de la parrilla larga.
+ *
+ * `Guia` contesta a «qué dan ahora» y vale para la línea de debajo de cada
+ * canal. Esto contesta a la otra pregunta que se hace con el mando en la
+ * mano —«¿y luego?»—, que necesita la tarde entera y no dos títulos.
+ */
+interface Programa {
+  titulo: string;
+  desde: number;
+  hasta: number;
+}
+
+/** «21:30». Vacío si el panel no manda horas, que también pasa. */
+function horaCorta(ms: number): string {
+  if (!ms) return "";
+  return new Date(ms).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+}
+
 /** El panel manda la hora de dos maneras y a veces de ninguna. */
 function momento(v?: string | number): number {
   if (v === undefined || v === null || v === "") return 0;
@@ -333,10 +352,20 @@ export default function TvApp() {
    * tele, que es donde se elige a tres metros y sin teclado, no.
    */
   const [ficha, setFicha] = useState<Ficha | null>(null);
+  /* Se lee al arrancar y se mantiene aquí: preguntarle al almacenamiento en
+     cada pintada es leer y parsear en mitad del render */
+  const [miLista, setMiLista] = useState<string[]>([]);
   /* Dónde está el foco dentro de la ficha. Son tres zonas y no una lista:
      el botón de arriba, la fila de temporadas y la de episodios */
-  const [fichaZona, setFichaZona] = useState<"boton" | "temporadas" | "episodios">("boton");
+  const [fichaZona, setFichaZona] = useState<"boton" | "guardar" | "temporadas" | "episodios">("boton");
   const [fichaTemp, setFichaTemp] = useState(0);
+
+  /* Mi lista vive en el aparato: se lee una vez al arrancar y se mantiene
+     aquí. Preguntarle al almacenamiento en cada pintada sería leer y parsear
+     en mitad del render */
+  useEffect(() => {
+    setMiLista(leerMiLista());
+  }, []);
   const [fichaEp, setFichaEp] = useState(0);
   /** Carpeta abierta dentro de una sección (null = viendo las carpetas) */
   const [carpetaAbierta, setCarpetaAbierta] = useState<string>("");
@@ -396,6 +425,28 @@ export default function TvApp() {
    * solo sin tocar nada.
    */
   const conElMando = useRef(true);
+
+  /*
+   * Y en cuanto el ratón se va, el resaltado se va con él.
+   *
+   * El foco es uno solo y lo comparten el mando y el puntero, así que al
+   * apartar el ratón de una fila la última carátula por la que había pasado
+   * se quedaba encendida para siempre, como si estuviera seleccionada. En
+   * una tele no pasa —no hay puntero— pero en el navegador y en el
+   * ejecutable se ve todo el rato.
+   *
+   * No se borra el foco, que es lo que el mando necesita para saber dónde
+   * seguir: se deja de pintar. Cualquier tecla o cualquier nuevo `enter` del
+   * ratón lo vuelve a encender donde estaba.
+   */
+  const [ratonFuera, setRatonFuera] = useState(false);
+  /** Pinta el aro solo si además el puntero sigue dentro. */
+  const foc = (activo: boolean) => (activo && !ratonFuera ? "foco" : "");
+  const conElRaton = () => {
+    conElMando.current = false;
+    setRatonFuera(false);
+  };
+  const ratonSeVa = () => setRatonFuera(true);
 
   /* ---------- La portada de cine y de series ---------- */
 
@@ -1067,6 +1118,7 @@ export default function TvApp() {
               categoria: String(v.category_id ?? ""),
             });
             abrirFicha({
+              id: `vod-${v.stream_id}`,
               nombre: v.name,
               volverA: "cine",
               cartel: imgSrc(suyo.imagen) || "",
@@ -1210,6 +1262,7 @@ export default function TvApp() {
       categoria: String(s.category_id ?? ""),
     });
     abrirFicha({
+      id: `serie-${s.series_id}`,
       nombre: s.name,
       volverA: "series",
       cartel: imgSrc(suyo.imagen) || "",
@@ -1520,6 +1573,9 @@ export default function TvApp() {
    * canal que enseñar, y en cine y series manda la portada.
    */
   const enDirecto = pantalla === "directo" && Boolean(carpetaAbierta);
+  /* Una lista de carpetas se pinta distinta que una de canales: son cajas
+     cortas, y estiradas al ancho entero desperdician la pantalla */
+  const soloCarpetas = filas.length > 0 && filas.every((f) => f.carpeta);
   const canalMirado = enDirecto ? filas[foco] : undefined;
   const guiaMirada = canalMirado?.epgId ? epgAhora[canalMirado.epgId] : undefined;
 
@@ -1572,12 +1628,70 @@ export default function TvApp() {
   const avance = avanceDe(guiaMirada);
   const queda = quedaDe(guiaMirada);
 
-  // Cuántas carátulas ha puesto el navegador por fila, para que baje una fila
+  /*
+   * La parrilla del canal que está bajo el foco.
+   *
+   * La lista pide dos títulos por canal —lo que dan y lo siguiente— porque
+   * pedir más para noventa canales es castigar al panel del proveedor para
+   * enseñar algo que no cabe en la fila. Pero del canal que estás mirando sí
+   * interesa la tarde entera, y eso es una sola petición: la que llena la
+   * columna de la derecha, que hasta ahora enseñaba cuatro datos y dejaba
+   * medio televisor en negro.
+   */
+  const [parrilla, setParrilla] = useState<Programa[]>([]);
+  const canalDeLaParrilla = enDirecto ? canalMirado?.epgId : undefined;
   useEffect(() => {
-    if (!rejilla) {
-      setColumnas(1);
-      return;
-    }
+    setParrilla([]);
+    if (!canalDeLaParrilla || !creds || lista?.tipo !== "xtream") return;
+    let vivo = true;
+    /* Con el mando se pasa por diez canales en dos segundos: sin esta espera
+       se dispararían diez peticiones y llegaría la del canal por el que
+       pasaste, no la del que te has quedado */
+    const espera = setTimeout(async () => {
+      try {
+        const res = await xtreamApi<{
+          epg_listings?: {
+            title?: string;
+            start?: string;
+            end?: string;
+            start_timestamp?: string | number;
+            stop_timestamp?: string | number;
+          }[];
+        }>(creds, "get_short_epg", { stream_id: canalDeLaParrilla, limit: "10" });
+        if (!vivo) return;
+        const cuando = Date.now();
+        const todos = (res.epg_listings || [])
+          .map((e) => ({
+            titulo: decodeBase64Maybe(e.title) || "",
+            desde: momento(e.start_timestamp ?? e.start),
+            hasta: momento(e.stop_timestamp ?? e.end),
+          }))
+          .filter((e) => e.titulo);
+        /* Lo que ya ha terminado no es parrilla, es historia: algunos paneles
+           empiezan el listado en el bloque de la hora anterior */
+        setParrilla(todos.filter((e) => !e.hasta || e.hasta > cuando));
+      } catch {
+        if (vivo) setParrilla([]);
+      }
+    }, 400);
+    return () => {
+      vivo = false;
+      clearTimeout(espera);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canalDeLaParrilla, lista]);
+
+  // Cuántas carátulas ha puesto el navegador por fila, para que baje una fila
+  /*
+   * Se mide siempre, no solo con carátulas.
+   *
+   * Antes solo la rejilla de cine podía tener más de una columna, así que
+   * fuera de ella se daba por hecho que había una. Ahora las carpetas
+   * también van en dos, y la medida vale igual para las dos: se cuentan las
+   * celdas que comparten la misma altura, que en una lista en columna es
+   * siempre una.
+   */
+  useEffect(() => {
     const medir = () => {
       const celdas = listaRef.current?.querySelectorAll<HTMLElement>("[data-i]");
       if (!celdas?.length) return;
@@ -1592,7 +1706,7 @@ export default function TvApp() {
     medir();
     window.addEventListener("resize", medir);
     return () => window.removeEventListener("resize", medir);
-  }, [rejilla, filas]);
+  }, [rejilla, filas, soloCarpetas]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -1600,6 +1714,9 @@ export default function TvApp() {
       const el = document.activeElement as HTMLElement | null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
       conElMando.current = true;
+      /* Se ha tocado el mando: aunque el ratón esté aparcado fuera, el aro
+         vuelve a pintarse donde quedó */
+      setRatonFuera(false);
 
       const tecla = normalizarTecla(e);
 
@@ -1623,9 +1740,10 @@ export default function TvApp() {
         const temporadas = ficha.temporadas;
         const eps = ficha.episodios[temporadas[fichaTemp]] || [];
         const esSerie = temporadas.length > 0;
+        const enBotones = fichaZona === "boton" || fichaZona === "guardar";
         if (tecla === "Abajo") {
           e.preventDefault();
-          if (fichaZona === "boton" && esSerie) setFichaZona("temporadas");
+          if (enBotones && esSerie) setFichaZona("temporadas");
           else if (fichaZona === "temporadas") { setFichaZona("episodios"); setFichaEp(0); }
           return;
         }
@@ -1640,7 +1758,11 @@ export default function TvApp() {
         if (tecla === "Izquierda" || tecla === "Derecha") {
           e.preventDefault();
           const salto = tecla === "Derecha" ? 1 : -1;
-          if (fichaZona === "temporadas") {
+          /* Los dos botones están uno al lado del otro, así que entre ellos
+             se pasa de lado, como se ven */
+          if (fichaZona === "boton" && salto > 0) setFichaZona("guardar");
+          else if (fichaZona === "guardar" && salto < 0) setFichaZona("boton");
+          else if (fichaZona === "temporadas") {
             const n = Math.max(0, Math.min(temporadas.length - 1, fichaTemp + salto));
             setFichaTemp(n);
             setFichaEp(0);
@@ -1652,6 +1774,7 @@ export default function TvApp() {
         if (tecla === "Ok") {
           e.preventDefault();
           if (fichaZona === "episodios") eps[fichaEp]?.abrir();
+          else if (fichaZona === "guardar") setMiLista(alternarEnMiLista(ficha.id));
           else ficha.reproducir();
           return;
         }
@@ -2009,8 +2132,9 @@ export default function TvApp() {
   if (pantalla === "ficha" && ficha) {
     const eps = ficha.episodios[ficha.temporadas[fichaTemp]] || [];
     const esSerie = ficha.temporadas.length > 0;
+    const enMiLista = miLista.includes(ficha.id);
     return (
-      <div className="tv-app tv-ficha">
+      <div className={`tv-app tv-ficha ${esSerie ? "con-episodios" : ""}`}>
         {ficha.fondo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img className="tv-ficha-fondo" src={ficha.fondo} alt="" onError={() => marcarRota(ficha.fondo)} />
@@ -2099,14 +2223,33 @@ export default function TvApp() {
               que se hace en esta pantalla es ponerlo; el reparto y la
               dirección se leen si acaso, y por eso van al final.
             */}
-            <button
-              className={`tv-ficha-ver ${fichaZona === "boton" ? "foco" : ""}`}
-              onMouseEnter={() => { conElMando.current = false; setFichaZona("boton"); }}
-              onClick={() => ficha.reproducir()}
-            >
-              <Icon name="play" size={26} />
-              {esSerie ? "Ver el primer episodio" : "Reproducir"}
-            </button>
+            <div className="tv-ficha-acciones" onMouseLeave={ratonSeVa}>
+              <button
+                className={`tv-ficha-ver ${foc(fichaZona === "boton")}`}
+                onMouseEnter={() => { conElRaton(); setFichaZona("boton"); }}
+                onClick={() => ficha.reproducir()}
+              >
+                <Icon name="play" size={26} />
+                {esSerie ? "Ver el primer episodio" : "Reproducir"}
+              </button>
+              {/*
+                Guardar para luego.
+                Un catálogo de miles de títulos se recorre una vez y lo que
+                te llamó la atención se pierde: sin un sitio donde dejarlo,
+                la única forma de volver a encontrarlo es acordarse del
+                nombre exacto y buscarlo.
+              */}
+              <button
+                className={`tv-ficha-guardar ${foc(fichaZona === "guardar")} ${
+                  enMiLista ? "puesto" : ""
+                }`}
+                onMouseEnter={() => { conElRaton(); setFichaZona("guardar"); }}
+                onClick={() => setMiLista(alternarEnMiLista(ficha.id))}
+              >
+                <Icon name={enMiLista ? "check" : "plus"} size={22} />
+                {enMiLista ? "En mi lista" : "Mi lista"}
+              </button>
+            </div>
 
             {ficha.direccion && (
               <p className="tv-ficha-credito">
@@ -2129,14 +2272,14 @@ export default function TvApp() {
             <div className="tv-ficha-serie">
               {/* Las temporadas, en fila. Con siete temporadas en una lista
                   plana, llegar a la última costaba doscientas pulsaciones */}
-              <div className="tv-ficha-temporadas">
+              <div className="tv-ficha-temporadas" onMouseLeave={ratonSeVa}>
                 {ficha.temporadas.map((t, i) => (
                   <button
                     key={t}
                     className={`tv-ficha-temporada ${i === fichaTemp ? "activa" : ""} ${
-                      fichaZona === "temporadas" && i === fichaTemp ? "foco" : ""
+                      foc(fichaZona === "temporadas" && i === fichaTemp)
                     }`}
-                    onMouseEnter={() => { conElMando.current = false; setFichaZona("temporadas"); setFichaTemp(i); setFichaEp(0); }}
+                    onMouseEnter={() => { conElRaton(); setFichaZona("temporadas"); setFichaTemp(i); setFichaEp(0); }}
                     onClick={() => { setFichaTemp(i); setFichaEp(0); }}
                   >
                     Temporada {t}
@@ -2151,13 +2294,13 @@ export default function TvApp() {
                 línea de qué pasa, se elige de un vistazo; y en fila, porque
                 una tele es ancha y así caben cinco sin tapar la ficha.
               */}
-              <div className="tv-ficha-episodios" ref={listaRef}>
+              <div className="tv-ficha-episodios" ref={listaRef} onMouseLeave={ratonSeVa}>
                 {eps.map((ep, i) => (
                   <button
                     key={ep.id}
                     data-i={i}
-                    className={`tv-ficha-ep ${fichaZona === "episodios" && i === fichaEp ? "foco" : ""}`}
-                    onMouseEnter={() => { conElMando.current = false; setFichaZona("episodios"); setFichaEp(i); }}
+                    className={`tv-ficha-ep ${foc(fichaZona === "episodios" && i === fichaEp)}`}
+                    onMouseEnter={() => { conElRaton(); setFichaZona("episodios"); setFichaEp(i); }}
                     onClick={ep.abrir}
                   >
                     <span className="tv-ficha-ep-foto">
@@ -2269,8 +2412,8 @@ export default function TvApp() {
           )}
           {ultimo && (
             <button
-              className={`tv-seguir ${foco === -1 ? "foco" : ""}`}
-              onMouseEnter={() => { conElMando.current = false; setFoco(-1); }}
+              className={`tv-seguir ${foc(foco === -1)}`}
+              onMouseEnter={() => { conElRaton(); setFoco(-1); }}
               onClick={() => reproducir(ultimo.source)}
             >
               <Icon name="play" size={28} />
@@ -2287,12 +2430,12 @@ export default function TvApp() {
             el cine. No son la misma clase de cosa: tres son destinos y el
             cuarto es una puerta de salida, y eso tiene que verse.
           */}
-          <div className="tv-tiles">
+          <div className="tv-tiles" onMouseLeave={ratonSeVa}>
             {DESTINOS.filter((d) => d.id !== "salir").map((d, i) => (
               <button
                 key={d.id}
-                className={`tv-tile ${foco === i ? "foco" : ""}`}
-                onMouseEnter={() => { conElMando.current = false; setFoco(i); }}
+                className={`tv-tile ${foc(foco === i)}`}
+                onMouseEnter={() => { conElRaton(); setFoco(i); }}
                 onClick={() => elegirDestino(d.id)}
               >
                 <span className="tv-tile-icono"><Icon name={d.icono} size={40} /></span>
@@ -2312,8 +2455,8 @@ export default function TvApp() {
             return (
               <button
                 key={d.id}
-                className={`tv-salir ${foco === i ? "foco" : ""}`}
-                onMouseEnter={() => { conElMando.current = false; setFoco(i); }}
+                className={`tv-salir ${foc(foco === i)}`}
+                onMouseEnter={() => { conElRaton(); setFoco(i); }}
                 onClick={() => elegirDestino(d.id)}
               >
                 <Icon name={d.icono} size={20} />
@@ -2385,7 +2528,7 @@ export default function TvApp() {
             <button
               key={d.id}
               className={`tv-carril-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
-              onMouseEnter={() => { conElMando.current = false; setFocoCarril(i); }}
+              onMouseEnter={() => { conElRaton(); setFocoCarril(i); }}
               onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
             >
               <span className="tv-carril-icono"><Icon name={d.icono} size={34} /></span>
@@ -2444,8 +2587,8 @@ export default function TvApp() {
                   );
                 })()}
                 <button
-                  className={`tv-banner-ver ${focoFila === -1 ? "foco" : ""}`}
-                  onMouseEnter={() => { conElMando.current = false; setFocoFila(-1); }}
+                  className={`tv-banner-ver ${foc(focoFila === -1)}`}
+                  onMouseEnter={() => { conElRaton(); setFocoFila(-1); }}
                   onClick={() => abrirTitulo(destacado)}
                 >
                   <Icon name="play" size={24} />
@@ -2502,8 +2645,8 @@ export default function TvApp() {
                 {datosDe(destacado) && <p className="tv-banner-datos">{datosDe(destacado)}</p>}
                 {destacado.sinopsis && <p className="tv-banner-sinopsis">{destacado.sinopsis}</p>}
                 <button
-                  className={`tv-banner-ver ${focoFila === -1 ? "foco" : ""}`}
-                  onMouseEnter={() => { conElMando.current = false; setFocoFila(-1); }}
+                  className={`tv-banner-ver ${foc(focoFila === -1)}`}
+                  onMouseEnter={() => { conElRaton(); setFocoFila(-1); }}
                   onClick={() => abrirTitulo(destacado)}
                 >
                   <Icon name="play" size={24} />
@@ -2518,6 +2661,7 @@ export default function TvApp() {
               <h3 className="tv-carrusel-t">{f.titulo}</h3>
               <div
                 className={`tv-carrusel-tira ${f.numerada ? "numerada" : ""} ${f.anchas ? "anchas" : ""}`}
+                onMouseLeave={ratonSeVa}
               >
                 {f.items.map((t, ci) => {
                   const puesto = focoFila === fi && focoCol === ci;
@@ -2536,11 +2680,11 @@ export default function TvApp() {
                     return (
                       <button
                         key={t.id}
-                        className={`tv-canal ${puesto ? "foco" : ""}`}
+                        className={`tv-canal ${foc(puesto)}`}
                         data-fila={fi}
                         data-col={ci}
                         data-foco={puesto ? "1" : undefined}
-                        onMouseEnter={() => { conElMando.current = false; setFocoFila(fi); setFocoCol(ci); }}
+                        onMouseEnter={() => { conElRaton(); setFocoFila(fi); setFocoCol(ci); }}
                         onClick={() => abrirTitulo(t)}
                       >
                         <span className="tv-canal-marco">
@@ -2575,11 +2719,11 @@ export default function TvApp() {
                   return (
                     <button
                       key={t.id}
-                      className={`tv-poster ${puesto ? "foco" : ""}`}
+                      className={`tv-poster ${foc(puesto)}`}
                       data-fila={fi}
                       data-col={ci}
                       data-foco={puesto ? "1" : undefined}
-                      onMouseEnter={() => { conElMando.current = false; setFocoFila(fi); setFocoCol(ci); }}
+                      onMouseEnter={() => { conElRaton(); setFocoFila(fi); setFocoCol(ci); }}
                       onClick={() => abrirTitulo(t)}
                     >
                       <span className="tv-poster-marco">
@@ -2611,9 +2755,9 @@ export default function TvApp() {
           )}
 
           <button
-            className={`tv-vertodas ${focoFila === ultima ? "foco" : ""}`}
+            className={`tv-vertodas ${foc(focoFila === ultima)}`}
             data-foco={focoFila === ultima ? "1" : undefined}
-            onMouseEnter={() => { conElMando.current = false; setFocoFila(ultima); }}
+            onMouseEnter={() => { conElRaton(); setFocoFila(ultima); }}
             onClick={verCarpetas}
           >
             Ver todas las carpetas  ›
@@ -2649,7 +2793,7 @@ export default function TvApp() {
           <button
             key={d.id}
             className={`tv-carril-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
-            onMouseEnter={() => { conElMando.current = false; setFocoCarril(i); }}
+            onMouseEnter={() => { conElRaton(); setFocoCarril(i); }}
             onClick={() => { setFocoCarril(null); elegirDestino(d.id); }}
           >
             <span className="tv-carril-icono"><Icon name={d.icono} size={34} /></span>
@@ -2716,7 +2860,21 @@ export default function TvApp() {
                     <span style={{ width: `${avance}%` }} />
                   </span>
                 )}
-                {guiaMirada.luego && <p className="tv-ahora-luego">Después · {guiaMirada.luego}</p>}
+                {/* Con parrilla, la parrilla; sin ella, la línea de siempre:
+                    un panel que no manda horas sí suele mandar los títulos */}
+                {parrilla.length > 1 ? (
+                  <div className="tv-parrilla">
+                    <p className="tv-parrilla-t">A continuación</p>
+                    {parrilla.slice(1, 7).map((pr, i) => (
+                      <p className="tv-parrilla-fila" key={`${pr.desde}-${i}`}>
+                        <span className="tv-parrilla-hora">{horaCorta(pr.desde) || "—"}</span>
+                        <span className="tv-parrilla-tit">{pr.titulo}</span>
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  guiaMirada.luego && <p className="tv-ahora-luego">Después · {guiaMirada.luego}</p>
+                )}
               </>
             ) : (
               <p className="tv-ahora-prog tv-ahora-singuia">Tu proveedor no manda la guía de este canal</p>
@@ -2726,7 +2884,21 @@ export default function TvApp() {
       )}
       {cargando && <p className="tv-cargando">Cargando…</p>}
       {error && <p className="tv-activar-error">{error}</p>}
-      <div className={`tv-lista ${rejilla ? "tv-rejilla" : ""}`} ref={listaRef}>
+      {/*
+        Y las carpetas, en dos columnas.
+
+        Una carpeta es un nombre y un número: estirada de borde a borde
+        ocupaba mil ochocientos píxeles para escribir «Deportes (4)», y en la
+        primera pantalla del directo se veían dos filas y medio televisor en
+        negro. En dos columnas caben el doble sin que ninguna deje de leerse
+        desde el sofá, y el mando las recorre igual porque el número de
+        columnas se mide al pintar.
+      */}
+      <div
+        className={`tv-lista ${rejilla ? "tv-rejilla" : ""} ${soloCarpetas ? "tv-carpetas" : ""}`}
+        ref={listaRef}
+        onMouseLeave={ratonSeVa}
+      >
         {filas.map((f, i) =>
           /* Una película se elige por la carátula, no leyendo su nombre en
              una lista: se pinta grande y con el título debajo */
@@ -2734,8 +2906,8 @@ export default function TvApp() {
             <button
               key={f.id}
               data-i={i}
-              className={`tv-poster ${foco === i ? "foco" : ""}`}
-              onMouseEnter={() => { conElMando.current = false; setFoco(i); }}
+              className={`tv-poster ${foc(foco === i)}`}
+              onMouseEnter={() => { conElRaton(); setFoco(i); }}
               onClick={f.abrir}
             >
               <span className="tv-poster-marco">
@@ -2757,8 +2929,8 @@ export default function TvApp() {
             <button
               key={f.id}
               data-i={i}
-              className={`tv-fila ${foco === i ? "foco" : ""} ${f.carpeta ? "tv-carpeta" : ""}`}
-              onMouseEnter={() => { conElMando.current = false; setFoco(i); }}
+              className={`tv-fila ${foc(foco === i)} ${f.carpeta ? "tv-carpeta" : ""}`}
+              onMouseEnter={() => { conElRaton(); setFoco(i); }}
               onClick={f.abrir}
             >
               <span className="tv-fila-n">{String(i + 1).padStart(3, "0")}</span>
@@ -2837,6 +3009,46 @@ export interface Episodio {
   sinopsis: string;
   abrir: () => void;
 }
+/*
+ * Mi lista: lo que has guardado para verlo luego.
+ *
+ * Se guardan solo los identificadores, no los títulos enteros. El catálogo
+ * ya está cargado cuando se pinta la portada, así que con el identificador
+ * se recupera el título con su carátula y, sobre todo, con su forma de
+ * abrirse; copiando los datos tendríamos dos versiones de lo mismo y la
+ * guardada se quedaría vieja en cuanto el proveedor cambiara algo.
+ *
+ * Vive en el aparato y no en el servidor a propósito: un cliente de
+ * proveedor no tiene cuenta nuestra donde colgarlo, y en una tele lo que
+ * importa es que esté en ESA tele.
+ */
+const K_MI_LISTA = "xp.tvMiLista.v1";
+
+function leerMiLista(): string[] {
+  try {
+    const crudo = JSON.parse(localStorage.getItem(K_MI_LISTA) || "[]");
+    return Array.isArray(crudo) ? crudo.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function guardarMiLista(ids: string[]) {
+  try {
+    localStorage.setItem(K_MI_LISTA, JSON.stringify(ids));
+  } catch {
+    /* almacenamiento lleno o bloqueado: sin lista, pero sin romper */
+  }
+}
+
+/** Añade o quita, y devuelve cómo queda. Lo último guardado va primero. */
+function alternarEnMiLista(id: string): string[] {
+  const ya = leerMiLista();
+  const nueva = ya.includes(id) ? ya.filter((x) => x !== id) : [id, ...ya];
+  guardarMiLista(nueva);
+  return nueva;
+}
+
 /**
  * El nombre de la carpeta a la que pertenece un título.
  *
@@ -2855,6 +3067,8 @@ function nombreDeCategoria(cats: unknown, id: unknown): string {
 }
 
 export interface Ficha {
+  /** El mismo identificador que usa la portada: «vod-123», «serie-45» */
+  id: string;
   nombre: string;
   /** De dónde se entró, para que ATRÁS devuelva ahí y no a la portada */
   volverA: Pantalla;

@@ -209,9 +209,19 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   film: (
+    /*
+     * La tira de película, con las perforaciones separadas.
+     *
+     * La versión anterior metía tres líneas horizontales en ocho unidades de
+     * alto: en el carril de la tele, a 22 px, quedaban a tres píxeles unas de
+     * otras y el icono se veía como una mancha. Con dos perforaciones por
+     * lado y seis unidades entre ellas se sigue leyendo como carrete y cada
+     * trazo se distingue.
+     */
     <>
-      <rect x="2.5" y="4" width="19" height="16" rx="2" />
-      <path d="M7 4v16M17 4v16M2.5 12h19M2.5 8h4.5M2.5 16h4.5M17 8h4.5M17 16h4.5" />
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M8 4v16M16 4v16" />
+      <path d="M3 9h5M3 15h5M16 9h5M16 15h5" />
     </>
   ),
   series: (
@@ -223,10 +233,16 @@ const PATHS: Record<IconName, React.ReactNode> = {
   ),
   star: <path d="m12 3.5 2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.9l6-.8L12 3.5Z" />,
   casa: (
+    /*
+     * La casa, de una sola línea.
+     *
+     * Antes eran tejado y paredes por separado y no se encontraban en el
+     * mismo punto: la esquina quedaba con dos trazos cruzados y a tamaño de
+     * carril parecía un borrón. Ahora es un contorno continuo y la puerta.
+     */
     <>
-      <path d="m3 10.5 9-7 9 7" />
-      <path d="M5.5 9v11h13V9" />
-      <path d="M9.5 20v-6h5v6" />
+      <path d="m3 10.5 9-7.5 9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10.5Z" />
+      <path d="M9.5 21v-6.5h5V21" />
     </>
   ),
   recargar: (

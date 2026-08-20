@@ -359,7 +359,13 @@ async function abrirPrimeraCarpeta(tv) {
   const foco = () => tv.evaluate(() => [...document.querySelectorAll("[data-i]")].findIndex((e) => e.classList.contains("foco")));
   /* Se mide el movimiento, no la posición: el clic que entró en la carpeta
      deja el puntero encima de una carátula y pasar por encima también mueve
-     el foco —que es lo que se quiere con un ratón— */
+     el foco —que es lo que se quiere con un ratón—.
+
+     Y hace falta una pulsación antes de tomar la medida: con el puntero
+     apartado, el aro deja de pintarse a propósito, así que leer la clase
+     justo después de `mouse.move` da −1 y no dónde está el foco. La primera
+     tecla lo vuelve a encender donde estaba; desde ahí ya se mide el salto. */
+  await tv.keyboard.press("ArrowRight");
   const partida = await foco();
   await tv.keyboard.press("ArrowRight");
   check("Mando: ▶ mueve a la carátula de al lado", (await foco()) === partida + 1,
