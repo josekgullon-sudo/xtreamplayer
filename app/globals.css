@@ -3605,17 +3605,25 @@ select.input { appearance: none; cursor: pointer; }
   padding: 2.4vh 2vw; border-radius: 1.2vw;
   background: rgba(255, 255, 255, 0.04); border: 0.1vw solid rgba(255, 255, 255, 0.1);
 }
+/*
+ * El rótulo del paso, en gris.
+ *
+ * Iban los dos en rojo, con su círculo rojo al lado, y el código —que es lo
+ * único que hay que mirar en esta pantalla— iba en un tercer rojo. Con tres
+ * cosas rojas a la vez ninguna es la importante. En gris, lo que queda
+ * encendido es el código.
+ */
 .tv-camino-t {
   display: flex; align-items: center; gap: 0.8vw;
   font-size: 1.1vw; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--accent-bright); margin-bottom: 0.4vh;
+  color: var(--text-dim); margin-bottom: 0.4vh;
 }
 /* El número del paso, en su círculo. Como «1 ·» delante del rótulo no se
    leía como un paso a tres metros: era un punto y una cifra pequeña */
 .tv-camino-n {
   flex: none; display: flex; align-items: center; justify-content: center;
   width: 2.4vw; height: 2.4vw; border-radius: 50%;
-  background: var(--accent); color: #fff;
+  background: var(--surface-quiet); color: var(--text);
   font-size: 1.3vw; font-weight: 800; letter-spacing: 0;
 }
 .tv-camino-txt { font-size: 1.3vw; color: rgba(255, 255, 255, 0.7); }
