@@ -15,6 +15,8 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import app.totalplayer.comun.Descargas;
+
 /**
  * La aplicación de televisión, dentro de un WebView.
  *
@@ -30,6 +32,9 @@ public class MainActivity extends Activity {
 
     /** Dónde vive la aplicación. Se cambia aquí al montarla para otra marca. */
     private static final String INICIO = "https://totalplayer.app/tv?app=1";
+
+    /** El servidor de la aplicación, sacado de `INICIO`: lo único que se abre dentro */
+    private static final String CASA = android.net.Uri.parse(INICIO).getHost();
 
     private WebView web;
 
@@ -62,11 +67,31 @@ public class MainActivity extends Activity {
         // Vídeo a pantalla completa: sin esto, se ve en un recuadro
         web.setWebChromeClient(new WebChromeClient());
 
+        /*
+         * Descargar para ver sin conexión, que una web no puede hacer sola.
+         *
+         * La página pregunta si hay alguien capaz de guardar ficheros y, si lo
+         * hay, enseña el botón de descargar y su sección; en un navegador o en
+         * un televisor Samsung ese acceso simplemente no existe. Ver
+         * apps/comun/java/.../Descargas.java y components/tv/descargas.ts.
+         */
+        web.addJavascriptInterface(new Descargas(this), "TPDescargas");
+
         web.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView vista, WebResourceRequest peticion) {
-                // Todo se abre dentro: en una tele no hay «otra pestaña»
-                return false;
+                /*
+                 * Dentro se abre lo nuestro, y solo lo nuestro.
+                 *
+                 * En una tele no hay «otra pestaña», así que todo se abre
+                 * aquí; pero aquí dentro vive el puente de descargas, que
+                 * cualquier página cargada en este WebView podría llamar.
+                 * Quedándose en el dominio de la aplicación, ese puente solo
+                 * lo alcanza la aplicación. Nada de esto se nota usándola:
+                 * /tv no enlaza fuera.
+                 */
+                String donde = peticion.getUrl() == null ? "" : peticion.getUrl().getHost();
+                return donde != null && !donde.isEmpty() && !donde.equals(CASA);
             }
 
             @Override

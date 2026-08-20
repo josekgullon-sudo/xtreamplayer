@@ -14,6 +14,16 @@ android {
         versionName "1.0"
     }
 
+    /*
+     * El puente de descargas es el mismo en las dos aplicaciones de Android.
+     *
+     * Se comparte el fichero en vez de copiarlo: son dos proyectos Gradle
+     * distintos porque una va a la tienda de televisores y la otra a la de
+     * móviles, pero descargar una película es exactamente lo mismo en las dos
+     * y dos copias se separan al primer arreglo.
+     */
+    sourceSets { main { java.srcDirs += ['../../comun/java'] } }
+
     buildTypes {
         release {
             minifyEnabled false

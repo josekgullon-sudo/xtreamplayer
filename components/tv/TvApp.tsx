@@ -1,7 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Icon, { IconName } from "@/components/Icon";
+import {
+  type Descarga,
+  encargarDescarga,
+  leerDescargas,
+  quitarDescarga,
+  sePuedeDescargar,
+  tamanoLegible,
+} from "@/components/tv/descargas";
 import VideoPlayer, { PlaySource } from "@/components/player/VideoPlayer";
 import { parseM3U } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
@@ -52,7 +60,15 @@ import {
  * móvil, donde escribir es gratis.
  */
 
-type Pantalla = "portada" | "directo" | "cine" | "series" | "ficha" | "viendo" | "salir";
+type Pantalla =
+  | "portada"
+  | "directo"
+  | "cine"
+  | "series"
+  | "descargas"
+  | "ficha"
+  | "viendo"
+  | "salir";
 
 interface Lista {
   tipo: "xtream" | "m3u";
@@ -357,7 +373,9 @@ export default function TvApp() {
   const [miLista, setMiLista] = useState<string[]>([]);
   /* Dónde está el foco dentro de la ficha. Son tres zonas y no una lista:
      el botón de arriba, la fila de temporadas y la de episodios */
-  const [fichaZona, setFichaZona] = useState<"boton" | "guardar" | "temporadas" | "episodios">("boton");
+  const [fichaZona, setFichaZona] = useState<
+    "boton" | "guardar" | "bajar" | "temporadas" | "episodios"
+  >("boton");
   const [fichaTemp, setFichaTemp] = useState(0);
 
   /* Mi lista vive en el aparato: se lee una vez al arrancar y se mantiene
@@ -425,6 +443,58 @@ export default function TvApp() {
    * solo sin tocar nada.
    */
   const conElMando = useRef(true);
+
+  /*
+   * Descargas: solo donde el envoltorio sabe hacerlas.
+   *
+   * Se pregunta en un efecto y no al pintar porque la respuesta la da
+   * `window`, que en el servidor no existe: mirándolo durante el render, el
+   * HTML que manda el servidor y el que dibuja el navegador no coincidirían y
+   * React tira la página abajo y la vuelve a pintar. Un fotograma con tres
+   * accesos en vez de cuatro es más barato que eso.
+   */
+  const [conDescargas, setConDescargas] = useState(false);
+  /** El identificador de lo que se está resolviendo, mientras se resuelve */
+  const [preparando, setPreparando] = useState("");
+  /** En la pantalla de descargas: 0 es verla, 1 es quitarla del aparato */
+  const [descargaCol, setDescargaCol] = useState(0);
+  const [descargas, setDescargas] = useState<Descarga[]>([]);
+  useEffect(() => {
+    setConDescargas(sePuedeDescargar());
+    setDescargas(leerDescargas());
+  }, []);
+  /*
+   * Y mientras baje algo, se vuelve a preguntar.
+   *
+   * El envoltorio no avisa: son cuatro envoltorios distintos y cada uno
+   * tendría que saber cómo llamar a la web. Preguntar cada segundo y medio
+   * cuesta menos que eso, y en cuanto no hay nada bajando y no se está
+   * mirando la pantalla de descargas, se deja de preguntar.
+   */
+  const bajandoAlgo = descargas.some((d) => d.estado === "bajando");
+  const enDescargas = pantalla === "descargas";
+  useEffect(() => {
+    if (!conDescargas) return;
+    if (!bajandoAlgo && !enDescargas) return;
+    const t = setInterval(() => setDescargas(leerDescargas()), 1500);
+    return () => clearInterval(t);
+  }, [conDescargas, bajandoAlgo, enDescargas]);
+  /* Al entrar en la pantalla, lo último que haya: si no, se ve la foto de
+     hace un rato hasta que salte el primer aviso del reloj */
+  useEffect(() => {
+    if (enDescargas) setDescargas(leerDescargas());
+  }, [enDescargas]);
+
+  /* Los accesos que se enseñan. Donde no se puede guardar nada, «Descargas»
+     no aparece: ni en la portada, ni en el menú lateral */
+  const destinos = useMemo(
+    () => DESTINOS.filter((d) => d.id !== "descargas" || conDescargas),
+    [conDescargas]
+  );
+  const carril = useMemo(
+    () => CARRIL.filter((d) => d.id !== "descargas" || conDescargas),
+    [conDescargas]
+  );
 
   /*
    * Y en cuanto el ratón se va, el resaltado se va con él.
@@ -1159,6 +1229,15 @@ export default function TvApp() {
               temporadas: [],
               episodios: {},
               reproducir: ponerPeli(v),
+              enlace: async () =>
+                (
+                  await pedirEnlace({
+                    ...creds,
+                    clase: "movie",
+                    id: String(v.stream_id),
+                    ext: v.container_extension || "mp4",
+                  })
+                ).url,
             });
             /* El detalle del panel —reparto, dirección y la sinopsis cuando
                TMDB no la tiene— por debajo y sin bloquear la pantalla */
@@ -1325,6 +1404,18 @@ export default function TvApp() {
                 ext: ep.container_extension || "mp4",
               })
             ),
+          /* La misma dirección que usa `abrir`, pero devuelta en vez de
+             puesta: guardarlo en el aparato y verlo son lo mismo con dos
+             finales distintos */
+          enlace: async () =>
+            (
+              await pedirEnlace({
+                ...creds,
+                clase: "series",
+                id: ep.id,
+                ext: ep.container_extension || "mp4",
+              })
+            ).url,
         }));
       }
       /* En orden de número y no como los mande el panel: hay paneles que
@@ -1387,7 +1478,7 @@ export default function TvApp() {
        lista de la sección anterior debajo y con el foco en el acceso del
        que se sale, no en la fila 47 de una lista que ya no está */
     if (destino === "portada") {
-      const vengoDe = DESTINOS.findIndex((d) => d.id === pantalla);
+      const vengoDe = destinos.findIndex((d) => d.id === pantalla);
       setFoco(vengoDe >= 0 ? vengoDe : 0);
       setFilas([]);
       setSerieAbierta("");
@@ -1421,7 +1512,12 @@ export default function TvApp() {
     setVista("portada");
     setFilasPortada([]);
     setCandidatos([]);
-    if (destino !== "portada" && destino !== "viendo") cargar(destino);
+    setFoco(0);
+    setDescargaCol(0);
+    /* Las descargas ya están en el aparato: no hay nada que pedirle al panel
+       del proveedor, y pedírselo sería esperar a una respuesta que no cambia
+       nada de lo que se va a enseñar */
+    if (destino !== "portada" && destino !== "viendo" && destino !== "descargas") cargar(destino);
   }
 
   /**
@@ -1475,7 +1571,7 @@ export default function TvApp() {
     /* De vuelta en la portada, el foco se queda en el acceso del que sales.
        Si no, hereda la posición que tuviera la lista —la carátula 14, por
        ejemplo— y la portada aparece con un acceso cualquiera iluminado. */
-    const vengoDe = DESTINOS.findIndex((d) => d.id === pantalla);
+    const vengoDe = destinos.findIndex((d) => d.id === pantalla);
     setFoco(vengoDe >= 0 ? vengoDe : 0);
     setPantalla("portada");
     setFilas([]);
@@ -1599,6 +1695,59 @@ export default function TvApp() {
   /* Una lista de carpetas se pinta distinta que una de canales: son cajas
      cortas, y estiradas al ancho entero desperdician la pantalla */
   const soloCarpetas = filas.length > 0 && filas.every((f) => f.carpeta);
+
+  /*
+   * Qué se baja desde la ficha que haya abierta.
+   *
+   * En una película, la película. En una serie, el episodio que tengas
+   * elegido: bajar «la serie» son cuarenta ficheros y varios gigas, y eso no
+   * es una decisión que se tome sin querer con un botón.
+   *
+   * Va aquí y no dentro del render porque lo necesitan los dos: el botón que
+   * se pulsa con el ratón y la tecla OK del mando, que se atiende arriba.
+   */
+  const epsDeLaFicha = ficha ? ficha.episodios[ficha.temporadas[fichaTemp]] || [] : [];
+  const bajable = (() => {
+    if (!ficha) return null;
+    if (ficha.temporadas.length) {
+      const ep = epsDeLaFicha[fichaEp];
+      if (!ep?.enlace) return null;
+      return {
+        id: ep.id,
+        nombre: `${ficha.nombre} · ${ep.numero}`,
+        cartel: ep.imagen || ficha.cartel,
+        enlace: ep.enlace,
+      };
+    }
+    if (!ficha.enlace) return null;
+    return { id: ficha.id, nombre: ficha.nombre, cartel: ficha.cartel, enlace: ficha.enlace };
+  })();
+  const yaBajado = bajable ? descargas.find((d) => d.id === bajable.id) : undefined;
+  const bajarEsto = async () => {
+    if (!bajable) return;
+    /* El mismo botón pone y quita: si guardar es un botón y borrar es ir a
+       ajustes, el disco se llena y no se vacía nunca */
+    if (yaBajado) {
+      quitarDescarga(bajable.id);
+      setDescargas(leerDescargas());
+      return;
+    }
+    /* «Preparando…» en cuanto se pulsa: resolver la dirección contra el panel
+       del proveedor tarda, y un botón que no hace nada durante dos segundos
+       se pulsa otra vez */
+    setPreparando(bajable.id);
+    try {
+      const url = await bajable.enlace();
+      if (url) {
+        encargarDescarga({ id: bajable.id, nombre: bajable.nombre, cartel: bajable.cartel, url });
+        setDescargas(leerDescargas());
+      }
+    } catch (e) {
+      setError(enCristiano(e, "No se ha podido empezar la descarga"));
+    } finally {
+      setPreparando("");
+    }
+  };
   const canalMirado = enDirecto ? filas[foco] : undefined;
   const guiaMirada = canalMirado?.epgId ? epgAhora[canalMirado.epgId] : undefined;
 
@@ -1763,7 +1912,8 @@ export default function TvApp() {
         const temporadas = ficha.temporadas;
         const eps = ficha.episodios[temporadas[fichaTemp]] || [];
         const esSerie = temporadas.length > 0;
-        const enBotones = fichaZona === "boton" || fichaZona === "guardar";
+        const enBotones =
+          fichaZona === "boton" || fichaZona === "guardar" || fichaZona === "bajar";
         if (tecla === "Abajo") {
           e.preventDefault();
           if (enBotones && esSerie) setFichaZona("temporadas");
@@ -1785,6 +1935,9 @@ export default function TvApp() {
              se pasa de lado, como se ven */
           if (fichaZona === "boton" && salto > 0) setFichaZona("guardar");
           else if (fichaZona === "guardar" && salto < 0) setFichaZona("boton");
+          else if (fichaZona === "guardar" && salto > 0 && conDescargas && bajable)
+            setFichaZona("bajar");
+          else if (fichaZona === "bajar" && salto < 0) setFichaZona("guardar");
           else if (fichaZona === "temporadas") {
             const n = Math.max(0, Math.min(temporadas.length - 1, fichaTemp + salto));
             setFichaTemp(n);
@@ -1798,6 +1951,7 @@ export default function TvApp() {
           e.preventDefault();
           if (fichaZona === "episodios") eps[fichaEp]?.abrir();
           else if (fichaZona === "guardar") setMiLista(alternarEnMiLista(ficha.id));
+          else if (fichaZona === "bajar") void bajarEsto();
           else ficha.reproducir();
           return;
         }
@@ -1811,16 +1965,63 @@ export default function TvApp() {
           e.preventDefault();
           setFocoCarril((f) => {
             const n = (f ?? 0) + (tecla === "Abajo" ? 1 : -1);
-            return (n + CARRIL.length) % CARRIL.length;
+            return (n + carril.length) % carril.length;
           });
         } else if (tecla === "Derecha") {
           e.preventDefault();
           setFocoCarril(null);
         } else if (tecla === "Ok") {
           e.preventDefault();
-          const destino = CARRIL[focoCarrilRef.current]?.id;
+          const destino = carril[focoCarrilRef.current]?.id;
           setFocoCarril(null);
           elegirDestino(destino);
+        }
+        return;
+      }
+
+      /*
+       * Las descargas: una columna de fichas, y dos cosas que hacer en cada
+       * una.
+       *
+       * Verla es lo normal y va primero; quitarla del aparato está a su
+       * derecha, en la misma fila, porque es lo otro que se hace aquí y
+       * esconderlo en un menú de ajustes es lo que hace que un disco se
+       * llene y no se vacíe nunca.
+       */
+      if (enDescargas) {
+        const total = descargas.length;
+        if (tecla === "Izquierda") {
+          e.preventDefault();
+          /* Pegado al borde de la fila, ◀ sale al carril; desde la papelera,
+             vuelve a la ficha */
+          if (descargaCol > 0) setDescargaCol(0);
+          else setFocoCarril(Math.max(0, carril.findIndex((d) => d.id === "descargas")));
+          return;
+        }
+        if (!total) return;
+        if (tecla === "Derecha") {
+          e.preventDefault();
+          setDescargaCol(1);
+          return;
+        }
+        if (tecla === "Abajo" || tecla === "Arriba") {
+          e.preventDefault();
+          const salto = tecla === "Abajo" ? 1 : -1;
+          setFoco((f) => Math.max(0, Math.min(total - 1, f + salto)));
+          return;
+        }
+        if (tecla === "Ok") {
+          e.preventDefault();
+          const d = descargas[foco];
+          if (!d) return;
+          if (descargaCol === 1) {
+            quitarDescarga(d.id);
+            setDescargas(leerDescargas());
+            setFoco((f) => Math.max(0, Math.min(descargas.length - 2, f)));
+          } else if (d.estado === "lista" && d.url) {
+            reproducir({ url: d.url, name: d.nombre, kind: "video" });
+          }
+          return;
         }
         return;
       }
@@ -1860,7 +2061,7 @@ export default function TvApp() {
           /* Pegado al borde de la fila, ◀ sale al carril: es lo mismo que en
              las listas y así no hay que aprenderse dos gestos */
           if (focoFila >= 0 && focoFila < ultima && focoCol > 0) setFocoCol((c) => c - 1);
-          else setFocoCarril(Math.max(0, CARRIL.findIndex((d) => d.id === pantalla)));
+          else setFocoCarril(Math.max(0, carril.findIndex((d) => d.id === pantalla)));
           return;
         }
         if (tecla === "Ok") {
@@ -1887,7 +2088,7 @@ export default function TvApp() {
        */
       if (tecla === "Izquierda" && pantalla !== "portada" && (columnas <= 1 || foco % columnas === 0)) {
         e.preventDefault();
-        setFocoCarril(Math.max(0, CARRIL.findIndex((d) => d.id === pantalla)));
+        setFocoCarril(Math.max(0, carril.findIndex((d) => d.id === pantalla)));
         return;
       }
 
@@ -1929,7 +2130,7 @@ export default function TvApp() {
         e.preventDefault();
         if (pantalla === "portada") {
           if (foco === -1 && ultimo) reproducir(ultimo.source);
-          else elegirDestino(DESTINOS[foco]?.id);
+          else elegirDestino(destinos[foco]?.id);
         } else filas[foco]?.abrir();
       }
     }
@@ -2272,6 +2473,36 @@ export default function TvApp() {
                 <Icon name={enMiLista ? "check" : "plus"} size={22} />
                 {enMiLista ? "En mi lista" : "Mi lista"}
               </button>
+              {/*
+                Y guardarlo en el aparato, donde se pueda.
+                En un navegador este botón no existe: lo que hay ahí es
+                almacenamiento del sitio, que el navegador borra cuando le
+                hace falta espacio, y prometer «lo tienes guardado» para que
+                desaparezca solo es peor que no ofrecerlo.
+              */}
+              {conDescargas && bajable && (
+                <button
+                  className={`tv-ficha-guardar ${foc(fichaZona === "bajar")} ${
+                    yaBajado?.estado === "lista" ? "puesto" : ""
+                  }`}
+                  onMouseEnter={() => { conElRaton(); setFichaZona("bajar"); }}
+                  onClick={bajarEsto}
+                >
+                  <Icon
+                    name={yaBajado?.estado === "lista" ? "papelera" : "bajar"}
+                    size={22}
+                  />
+                  {preparando === bajable.id
+                    ? "Preparando…"
+                    : yaBajado?.estado === "lista"
+                      ? "Quitar del aparato"
+                      : yaBajado?.estado === "bajando"
+                        ? `Bajando ${yaBajado.parte}%`
+                        : esSerie
+                          ? "Descargar episodio"
+                          : "Descargar"}
+                </button>
+              )}
             </div>
 
             {ficha.direccion && (
@@ -2454,7 +2685,7 @@ export default function TvApp() {
             cuarto es una puerta de salida, y eso tiene que verse.
           */}
           <div className="tv-tiles" onMouseLeave={ratonSeVa}>
-            {DESTINOS.filter((d) => d.id !== "salir").map((d, i) => (
+            {destinos.filter((d) => d.id !== "salir").map((d, i) => (
               <button
                 key={d.id}
                 className={`tv-tile ${foc(foco === i)}`}
@@ -2473,8 +2704,8 @@ export default function TvApp() {
           </div>
           {/* Aparte y en fino: sigue en el mismo recorrido del mando —es el
               último— pero deja de competir con los destinos */}
-          {DESTINOS.filter((d) => d.id === "salir").map((d) => {
-            const i = DESTINOS.findIndex((x) => x.id === d.id);
+          {destinos.filter((d) => d.id === "salir").map((d) => {
+            const i = destinos.findIndex((x) => x.id === d.id);
             return (
               <button
                 key={d.id}
@@ -2547,7 +2778,7 @@ export default function TvApp() {
            */
           onMouseLeave={() => setFocoCarril(null)}
         >
-          {CARRIL.map((d, i) => (
+          {carril.map((d, i) => (
             <button
               key={d.id}
               className={`tv-carril-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
@@ -2812,7 +3043,7 @@ export default function TvApp() {
         /* Cerrar en el carril y no en cada icono: ver la portada */
         onMouseLeave={() => setFocoCarril(null)}
       >
-        {CARRIL.map((d, i) => (
+        {carril.map((d, i) => (
           <button
             key={d.id}
             className={`tv-carril-item ${focoCarril === i ? "foco" : ""} ${pantalla === d.id ? "activo" : ""}`}
@@ -2908,6 +3139,79 @@ export default function TvApp() {
       {cargando && <p className="tv-cargando">Cargando…</p>}
       {error && <p className="tv-activar-error">{error}</p>}
       {/*
+        Lo que hay guardado en el aparato.
+
+        Una fila por cosa, con su carátula, en qué va y cuánto ocupa: lo que
+        se pregunta aquí es «¿ya la tengo?» y «¿cuánto me está comiendo el
+        disco?», y las dos se contestan de un vistazo. Verla y quitarla van en
+        la misma fila porque son las dos únicas cosas que se hacen en esta
+        pantalla; esconder la segunda en un menú de ajustes es lo que hace que
+        un disco se llene y no se vacíe nunca.
+      */}
+      {enDescargas ? (
+        <div className="tv-bajadas" onMouseLeave={ratonSeVa}>
+          {!descargas.length && (
+            <p className="tv-cargando">
+              Todavía no has guardado nada. En la ficha de una película o de un episodio
+              tienes el botón de descargar.
+            </p>
+          )}
+          {descargas.map((d, i) => (
+            <div className="tv-bajada" key={d.id}>
+              <span className="tv-bajada-cartel">
+                {imgSrc(d.cartel) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={imgSrc(d.cartel)} alt="" />
+                ) : (
+                  <Icon name="film" size={30} />
+                )}
+              </span>
+              <button
+                data-i={i}
+                className={`tv-bajada-txt ${foc(foco === i && descargaCol === 0)}`}
+                onMouseEnter={() => { conElRaton(); setFoco(i); setDescargaCol(0); }}
+                onClick={() =>
+                  d.estado === "lista" && d.url
+                    ? reproducir({ url: d.url, name: d.nombre, kind: "video" })
+                    : undefined
+                }
+              >
+                <span className="tv-bajada-nombre">{d.nombre}</span>
+                {d.estado === "bajando" ? (
+                  <>
+                    <span className="tv-bajada-estado">Bajando · {d.parte}%</span>
+                    <span className="tv-bajada-barra" aria-hidden="true">
+                      <i style={{ width: `${d.parte}%` }} />
+                    </span>
+                  </>
+                ) : d.estado === "fallo" ? (
+                  /* Un fallo se dice y se deja a la vista con su papelera al
+                     lado: media descarga ocupando disco sin que nadie sepa
+                     que está ahí es peor que el fallo */
+                  <span className="tv-bajada-estado tv-bajada-fallo">
+                    No se ha podido terminar
+                  </span>
+                ) : (
+                  <span className="tv-bajada-estado">
+                    En este aparato{tamanoLegible(d.bytes) ? ` · ${tamanoLegible(d.bytes)}` : ""}
+                  </span>
+                )}
+              </button>
+              <button
+                className={`tv-bajada-quitar ${foc(foco === i && descargaCol === 1)}`}
+                aria-label={`Quitar ${d.nombre} del aparato`}
+                onMouseEnter={() => { conElRaton(); setFoco(i); setDescargaCol(1); }}
+                onClick={() => { quitarDescarga(d.id); setDescargas(leerDescargas()); }}
+              >
+                <Icon name="papelera" size={24} />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {enDescargas ? null : (
+      <>
+      {/*
         Y las carpetas, en dos columnas.
 
         Una carpeta es un nombre y un número: estirada de borde a borde
@@ -2982,6 +3286,8 @@ export default function TvApp() {
         )}
         {!cargando && !filas.length && !error && <p className="tv-cargando">Aquí no hay nada todavía.</p>}
       </div>
+      </>
+      )}
       </div>
       </div>
     </div>
@@ -2992,6 +3298,7 @@ const TITULOS: Record<string, string> = {
   directo: "TV en directo",
   cine: "Películas",
   series: "Series",
+  descargas: "Descargas",
 };
 
 /**
@@ -3031,6 +3338,8 @@ export interface Episodio {
   duracion: string;
   sinopsis: string;
   abrir: () => void;
+  /** Dónde está su vídeo, para poder bajarlo. Ver `Ficha.enlace` */
+  enlace?: () => Promise<string>;
 }
 /*
  * Mi lista: lo que has guardado para verlo luego.
@@ -3125,12 +3434,24 @@ export interface Ficha {
   episodios: Record<string, Episodio[]>;
   /** Poner la película, o el primer episodio de la serie */
   reproducir: () => void;
+  /*
+   * Y dónde está el vídeo, para poder bajarlo.
+   *
+   * Es lo mismo que resuelve `reproducir` por dentro, pero devuelto en vez
+   * de puesto: guardar en el aparato y ponerlo son la misma dirección con
+   * dos finales distintos. Solo lo tienen las películas; en una serie lo que
+   * se baja es un episodio, y cada uno trae el suyo.
+   */
+  enlace?: () => Promise<string>;
 }
 
 const DESTINOS: { id: Pantalla; titulo: string; icono: IconName; pie: string }[] = [
   { id: "directo", titulo: "TV en directo", icono: "tv", pie: "Canales y qué echan ahora" },
   { id: "cine", titulo: "Películas", icono: "film", pie: "Estrenos y lo mejor valorado" },
   { id: "series", titulo: "Series", icono: "series", pie: "Temporadas y episodios" },
+  /* Solo sale donde se puede guardar de verdad: en un navegador y en un
+     televisor Samsung o LG este acceso no existe. Ver `descargas.ts` */
+  { id: "descargas", titulo: "Descargas", icono: "bajar", pie: "Lo que tienes en el aparato" },
   { id: "salir", titulo: "Salir", icono: "power", pie: "Desactivar esta tele" },
 ];
 
@@ -3144,6 +3465,7 @@ const CARRIL: { id: Pantalla; titulo: string; icono: IconName }[] = [
   { id: "directo", titulo: "Directo", icono: "tv" },
   { id: "cine", titulo: "Cine", icono: "film" },
   { id: "series", titulo: "Series", icono: "series" },
+  { id: "descargas", titulo: "Descargas", icono: "bajar" },
   { id: "salir", titulo: "Salir", icono: "power" },
 ];
 

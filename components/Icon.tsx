@@ -52,7 +52,9 @@ export type IconName =
   | "libro"
   | "antena"
   | "rejilla"
-  | "chart";
+  | "chart"
+  | "bajar"
+  | "papelera";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   users: (
@@ -92,6 +94,23 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M12 3v9" />
       <path d="M18.4 6.6a9 9 0 1 1-12.8 0" />
+    </>
+  ),
+  /* Bajar al aparato: la flecha hacia abajo y el suelo donde cae. Con el
+     trazo del carrete y el de la casa, para que la fila del menú pese igual */
+  bajar: (
+    <>
+      <path d="M12 3v12" />
+      <path d="M7 11l5 5 5-5" />
+      <path d="M4 20h16" />
+    </>
+  ),
+  papelera: (
+    <>
+      <path d="M4 7h16" />
+      <path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+      <path d="M6 7v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7" />
+      <path d="M10 11v6M14 11v6" />
     </>
   ),
   tv: (

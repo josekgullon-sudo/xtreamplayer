@@ -8,6 +8,8 @@ use std::time::Duration;
 
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
+mod descargas;
+
 /// La dirección de siempre. Se cambia de una vez con
 /// `bash apps/poner-dominio.sh https://tudominio.com`, igual que en las
 /// aplicaciones de televisor.
@@ -22,8 +24,17 @@ fn destino(base: &str) -> String {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![guardar_direccion, alternar_pantalla_completa])
+        .invoke_handler(tauri::generate_handler![
+            guardar_direccion,
+            alternar_pantalla_completa,
+            descargas::tp_bajar,
+            descargas::tp_quitar,
+            descargas::tp_descargas
+        ])
         .setup(|app| {
+            // Lo que hubiera guardado de la vez anterior, y lo que quedara a
+            // medias, que al arrancar de nuevo ya no va a avanzar solo
+            descargas::al_arrancar(app.handle());
             let base = leer(app.handle());
             /*
              * Se pregunta antes de abrir, no después.
@@ -65,6 +76,10 @@ fn abrir_tele(app: &AppHandle, base: &str) -> tauri::Result<()> {
         .decorations(true)
         .resizable(true)
         .initialization_script(RECARGAR)
+        /* Y el puente de descargas: en Windows sí hay disco donde guardar una
+           película, así que la web enseña el botón y su sección. En un
+           navegador no lo enseña, porque allí no se puede. Ver descargas.rs */
+        .initialization_script(descargas::PUENTE)
         .build()?;
     Ok(())
 }

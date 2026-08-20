@@ -2490,6 +2490,71 @@ select.input { appearance: none; cursor: pointer; }
 }
 .tv-fila.foco .tv-fila-ahora { color: rgba(255, 255, 255, 0.8); }
 
+/*
+ * ---- Lo que está guardado en el aparato ----
+ *
+ * Una fila por cosa: carátula pequeña, nombre, en qué va, y la papelera al
+ * final. No es una rejilla de carátulas como el catálogo porque aquí no se
+ * elige qué ver de entre mil: se mira una lista corta de cosas que ya has
+ * elegido tú, y de cada una importa el estado —bajando, lista, fallida— más
+ * que la imagen.
+ */
+.tv-bajadas {
+  display: flex; flex-direction: column; gap: 1.2vh;
+  padding-bottom: 4vh;
+}
+.tv-bajada {
+  display: flex; align-items: stretch; gap: 1.2vw;
+  background: rgba(255, 255, 255, 0.03); border-radius: 1vw;
+  padding: 1.4vh 1.4vw;
+}
+.tv-bajada-cartel {
+  flex: none; width: 7vw; aspect-ratio: 16 / 10;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 0.6vw; overflow: hidden;
+  background: rgba(0, 0, 0, 0.45); color: var(--text-faint);
+}
+.tv-bajada-cartel img { width: 100%; height: 100%; object-fit: cover; }
+.tv-bajada-txt {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 0.6vh;
+  padding: 0.6vh 1vw; border-radius: 0.8vw;
+  border: 0.15vw solid transparent; background: none;
+  color: var(--text); text-align: left; cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.tv-bajada-txt.foco {
+  background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.85);
+}
+.tv-bajada-nombre {
+  font-size: 1.45vw; font-weight: 650;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tv-bajada-estado { font-size: 1.05vw; color: var(--text-faint); }
+/* El único sitio de esta pantalla donde el rojo significa algo: media
+   descarga ocupando disco sin que nadie sepa que está ahí */
+.tv-bajada-fallo { color: var(--accent-bright); font-weight: 650; }
+.tv-bajada-barra {
+  display: block; width: 100%; max-width: 34vw;
+  height: 0.5vh; min-height: 4px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16); overflow: hidden;
+}
+.tv-bajada-barra i {
+  display: block; height: 100%; background: var(--accent);
+  border-radius: 999px; transition: width 0.4s linear;
+}
+.tv-bajada-quitar {
+  flex: none; width: 4.4vw;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 0.8vw; border: 0.15vw solid transparent;
+  background: rgba(255, 255, 255, 0.05); color: var(--text-dim);
+  cursor: pointer; transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.tv-bajada-quitar.foco {
+  background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.85);
+  color: #fff;
+}
+
 /* ---- Cine y series: carátulas grandes, como en cualquier tele ----
    Una lista de nombres obliga a leer; una pared de carátulas se mira. Las
    columnas las decide el ancho de la pantalla y el mando las cuenta al
