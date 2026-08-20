@@ -312,6 +312,8 @@ fn traer(app: AppHandle, id: String, origen: String) {
         let mut trozo = vec![0u8; 64 * 1024];
         let mut llevamos: u64 = 0;
         let mut ultimo: i32 = -1;
+        /* Cuántos bytes llevábamos la última vez que se apuntó */
+        let mut apuntados: u64 = 0;
         loop {
             if cancelado(&id) {
                 return Err("cancelada".into());
@@ -323,10 +325,24 @@ fn traer(app: AppHandle, id: String, origen: String) {
             sale.write_all(&trozo[..leidos]).map_err(|e| e.to_string())?;
             llevamos += leidos as u64;
             let parte = if total > 0 { (llevamos * 100 / total) as i32 } else { 0 };
-            // Se apunta cada punto porcentual y no cada trozo: escribir el
-            // índice sesenta veces por segundo es tocar el disco sin motivo
-            if parte != ultimo {
+            /*
+             * Se apunta cada punto porcentual —escribir el índice sesenta
+             * veces por segundo es tocar el disco sin motivo— y, cuando no
+             * hay porcentaje, cada cuatro megas.
+             *
+             * Ese «y» es el arreglo de un fallo que dejaba la descarga
+             * aparentemente muerta. Media lista de IPTV sirve el vídeo sin
+             * `Content-Length`, así que no hay total contra el que medir y el
+             * porcentaje se queda clavado en cero. Como solo se apuntaba
+             * cuando el porcentaje CAMBIABA, después de la primera vuelta no
+             * se volvía a apuntar nunca: la pantalla veía «bajando, 0 %, 0
+             * bytes» durante toda la película, y lo que parece es que se ha
+             * parado. Estaba bajando perfectamente.
+             */
+            let cambio_trozo = llevamos / (4 * 1024 * 1024) != apuntados / (4 * 1024 * 1024);
+            if parte != ultimo || cambio_trozo {
                 ultimo = parte;
+                apuntados = llevamos;
                 cambiar(&app, &id, None, Some(parte.clamp(0, 100) as u8), Some(llevamos));
             }
         }

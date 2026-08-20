@@ -203,6 +203,21 @@ export function quitarDescarga(id: string): void {
   }
 }
 
+/**
+ * Cómo se dice por dónde va una descarga.
+ *
+ * Con porcentaje, el porcentaje. Sin él, los megas que lleva — y no un «0 %»
+ * clavado, que es lo que había y lo que hacía pensar que se había parado:
+ * media lista de IPTV sirve el vídeo sin decir cuánto ocupa, así que no hay
+ * total contra el que medir y el tanto por ciento no significa nada. Lo que
+ * sí significa algo, y crece a la vista, es cuánto llevas.
+ */
+export function comoVa(parte: number, bytes: number): string {
+  if (parte > 0) return `${parte}%`;
+  const cuanto = tamanoLegible(bytes);
+  return cuanto || "empezando…";
+}
+
 /** «1,4 GB». Vacío si todavía no se sabe cuánto ocupa. */
 export function tamanoLegible(bytes: number): string {
   if (!bytes || bytes < 0) return "";

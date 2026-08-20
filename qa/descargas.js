@@ -52,9 +52,20 @@ const ENVOLTORIO = () => {
       }
       const suyo = { ...e, estado: "bajando", parte: 0, bytes: 0, url: "" };
       cosas.push(suyo);
+      /*
+       * Media lista de IPTV sirve el vídeo sin decir cuánto ocupa, así que no
+       * hay total contra el que medir y el porcentaje se queda en cero toda
+       * la descarga. Se simula con `window.__sinTotal`, porque es el caso que
+       * dejaba la pantalla como si se hubiera parado.
+       */
+      const sinTotal = Boolean(window.__sinTotal);
+      /* Sin total va despacio a propósito: lo que se comprueba es que la
+         pantalla se entere de que avanza, y para eso tiene que dar tiempo a
+         mirarla mientras baja */
       const reloj = setInterval(() => {
-        suyo.parte += 20;
-        if (suyo.parte >= 100) {
+        suyo.bytes += (sinTotal ? 40 : 300) * 1024 * 1024;
+        if (!sinTotal) suyo.parte += 20;
+        if (suyo.bytes >= 1610612736) {
           suyo.parte = 100;
           suyo.estado = "lista";
           suyo.bytes = 1610612736;
@@ -199,6 +210,68 @@ const ENVOLTORIO = () => {
   check("Con la pantalla vacía diciendo dónde se guardan",
     (await tv.locator(".tv-bajadas").innerText()).includes("botón de descargar"),
     (await tv.locator(".tv-bajadas").innerText()).replace(/\n/g, " ").slice(0, 90));
+
+  /* --- Una descarga que no sabe cuánto ocupa ---
+     Media lista de IPTV sirve el vídeo sin `Content-Length`. Sin total no hay
+     porcentaje, y como el avance solo se apuntaba cuando el porcentaje
+     CAMBIABA, después de la primera vuelta no se apuntaba nunca: la pantalla
+     decía «bajando, 0 %» durante toda la película y lo que parecía es que se
+     había parado en seco. Estaba bajando perfectamente. */
+  {
+    const ctxSin = await b.newContext({ viewport: { width: 1920, height: 1080 } });
+    await ctxSin.addInitScript(() => { window.__sinTotal = true; });
+    await ctxSin.addInitScript(ENVOLTORIO);
+    const sin = await ctxSin.newPage();
+    await sin.goto(BASE + "/tv?app=1", { waitUntil: "networkidle" });
+    await sin.locator(".tv-boton:has-text('Entrar con usuario')").click();
+    await sin.fill("input[name=usuario]", U);
+    await sin.fill("input[name=password]", "clave1234");
+    await sin.locator(".tv-boton:has-text('Entrar')").first().click();
+    await sin.waitForSelector(".tv-pestanas", { timeout: 25000 });
+    await sin.locator(".tv-pestana:has-text('Películas')").click();
+    await sin.waitForSelector(".tv-poster", { timeout: 25000 });
+    await sin.locator(".tv-poster").first().click();
+    await sin.waitForSelector(".tv-ficha-guardar:has-text('Descargar')", { timeout: 20000 });
+    await sin.locator(".tv-ficha-guardar:has-text('Descargar')").click();
+
+    /* Lo que se comprueba es que AVANCE: que lo que enseña cambie sola,
+       aunque el porcentaje no se mueva del cero */
+    /* El de descargar es el segundo: el primero es «Mi lista», que comparte
+       clase porque comparte forma */
+    const botonBajar = () => sin.locator(".tv-ficha-guardar").last();
+    const textoBoton = () =>
+      sin.evaluate(() => {
+        const todos = document.querySelectorAll(".tv-ficha-guardar");
+        return todos[todos.length - 1]?.innerText || "";
+      });
+    await sin.waitForFunction(
+      () => {
+        const todos = document.querySelectorAll(".tv-ficha-guardar");
+        return /Bajando/.test(todos[todos.length - 1]?.innerText || "");
+      },
+      { timeout: 15000 }
+    );
+    const primero = await botonBajar().innerText();
+    /* Nunca un «0 %»: sin total, ese cero no significa nada y es justo lo que
+       hacía pensar que se había parado. Al principio dice «empezando…», que
+       es la verdad mientras no ha llegado ni un mega */
+    check("Sin saber el total, el botón no enseña un «0 %» que no significa nada",
+      !/0\s*%/.test(primero), primero.replace(/\n/g, " "));
+    const avanza = await sin
+      .waitForFunction(
+        (antes) => {
+          const todos = document.querySelectorAll(".tv-ficha-guardar");
+          return (todos[todos.length - 1]?.innerText || "") !== antes;
+        },
+        primero,
+        { timeout: 15000 }
+      )
+      .then(() => true)
+      .catch(() => false);
+    check("Y avanza a la vista, en vez de parecer parada", avanza,
+      (await textoBoton()).replace(/\n/g, " "));
+    await ctxSin.close();
+  }
 
   // Un episodio de una serie: lo que se guarda es el episodio, no la serie
   await tv.locator(".tv-nav-item:has-text('Series')").click();

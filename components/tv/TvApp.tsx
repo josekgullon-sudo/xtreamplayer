@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Icon, { IconName } from "@/components/Icon";
 import {
   type Descarga,
+  comoVa,
   encargarDescarga,
   envoltorioSinPuente,
   leerDescargas,
@@ -2151,23 +2152,6 @@ export default function TvApp() {
    * Ahora se cambia de carpeta sin salir de la pantalla: se pulsa y la lista
    * de la izquierda se filtra. «Todos» quita el filtro.
    */
-  const filaCarpetas = useMemo(() => {
-    const items: Fila[] = [
-      {
-        id: "carpeta-todos",
-        nombre: "Todos",
-        logo: "",
-        carpeta: true,
-        abrir: () => {},
-      },
-      ...carpetasDirecto,
-    ];
-    return { titulo: "Carpetas", chips: true, carpetas: true, items };
-  }, [carpetasDirecto]);
-  const filaDestacados = useMemo(() => {
-    const puestos = [...canales].sort((a, b) => (vistos[b.id] || 0) - (vistos[a.id] || 0));
-    return { titulo: "Canales destacados", chips: true, carpetas: false, items: puestos.slice(0, 14) };
-  }, [canales, vistos]);
   /*
    * Y cuándo se enseña esta pantalla en vez del índice de categorías.
    *
@@ -2355,6 +2339,51 @@ export default function TvApp() {
   const avance = avanceDe(guiaMirada);
   const queda = quedaDe(guiaMirada);
 
+  /*
+   * Lo que empieza ahora, que es la pregunta con la que se enciende la tele.
+   *
+   * No «qué canales hay» —eso ya está en la columna de la izquierda— sino
+   * «¿qué hago esta noche?»: lo que arranca en la próxima hora y media, en
+   * orden de reloj y con su canal al lado. Es un dato que ya tenemos y que no
+   * se estaba usando: la guía de cada canal trae qué dan ahora, qué viene
+   * después y a qué hora termina lo de ahora, que es exactamente la hora a la
+   * que empieza lo siguiente.
+   *
+   * Aquí estuvo una fila de carpetas, y sobraba: para cambiar de carpeta ya
+   * está el índice de abajo a la izquierda, y gastar la mejor fila de la
+   * pantalla en repetir una navegación es gastarla en nada.
+   */
+  const VENTANA_GUIA = 90 * 60 * 1000;
+  const canalesDeLaVista = carpetaAbierta ? filas : canales;
+  const filaGuia = useMemo(() => {
+    const cuando = ahoraMismo;
+    const items = canalesDeLaVista
+      .map((c) => {
+        const g = c.epgId ? epgAhora[c.epgId] : undefined;
+        if (!g?.luego || !g.hasta) return null;
+        return { ...c, id: `luego-${c.id}`, empieza: g.hasta, programa: g.luego, canal: c.nombre };
+      })
+      .filter((x): x is NonNullable<typeof x> => Boolean(x))
+      .filter((x) => x.empieza > cuando && x.empieza - cuando <= VENTANA_GUIA)
+      .sort((a, b) => a.empieza - b.empieza)
+      .slice(0, 14);
+    return { titulo: "Empieza ahora", chips: false, carpetas: false, guia: true, items };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canalesDeLaVista, epgAhora, ahoraMismo]);
+
+  /* Y los destacados, de la carpeta en la que estés: puesto en «Deportes», lo
+     que se quiere de un vistazo son los suyos, no los de todo el catálogo */
+  const filaDestacados = useMemo(() => {
+    const puestos = [...canalesDeLaVista].sort((a, b) => (vistos[b.id] || 0) - (vistos[a.id] || 0));
+    return {
+      titulo: carpetaAbierta ? `Destacados de ${carpetaAbierta}` : "Canales destacados",
+      chips: true,
+      carpetas: false,
+      guia: false,
+      items: puestos.slice(0, 14),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canalesDeLaVista, vistos, carpetaAbierta]);
   /*
    * La parrilla del canal que está bajo el foco.
    *
@@ -2623,7 +2652,7 @@ export default function TvApp() {
        * otra, y no hay que aprenderse nada nuevo.
        */
       if (dirEnPortada) {
-        const dirFilas = [filaCarpetas, filaDestacados].filter((f) => f.items.length > 1);
+        const dirFilas = [filaGuia, filaDestacados].filter((f) => f.items.length > 1);
         /* La última posición de la columna es «ver todos los canales»: está
            debajo de la lista, así que se llega bajando */
         const ultimoIzq = canalesVista.length;
@@ -2883,7 +2912,7 @@ export default function TvApp() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol, dirEnPortada, zonaDir, canalesVista, filaCarpetas, filaDestacados, canalMirado, filasInicioALaVista, perfiles, elegirPerfil]);
+  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol, dirEnPortada, zonaDir, canalesVista, filaGuia, filaDestacados, canalMirado, filasInicioALaVista, perfiles, elegirPerfil]);
 
   // La fila con el foco siempre a la vista, sin que el usuario persiga nada
   useEffect(() => {
@@ -3273,7 +3302,7 @@ export default function TvApp() {
                     : yaBajado?.estado === "lista"
                       ? "Quitar del aparato"
                       : yaBajado?.estado === "bajando"
-                        ? `Bajando ${yaBajado.parte}%`
+                        ? `Bajando ${comoVa(yaBajado.parte, yaBajado.bytes)}`
                         : esSerie
                           ? "Descargar episodio"
                           : "Descargar"}
@@ -3981,7 +4010,7 @@ export default function TvApp() {
    * único que de verdad decide si te quedas en un canal: qué echan ahora.
    */
   if (dirEnPortada) {
-    const dirFilas = [filaCarpetas, filaDestacados].filter((f) => f.items.length > 1);
+    const dirFilas = [filaGuia, filaDestacados].filter((f) => f.items.length > 1);
     return (
       <div className="tv-app tv-con-nav">
         {barraNav}
@@ -4223,6 +4252,39 @@ export default function TvApp() {
                         </button>
                       );
                     }
+                    /*
+                      La tarjeta de la guía: manda la hora, no el logotipo.
+                      Lo que se está contestando aquí es «¿qué hago esta
+                      noche?», y eso se lee por el reloj y por el título del
+                      programa; el canal es el dato pequeño de al lado.
+                    */
+                    const empieza = (c as { empieza?: number }).empieza || 0;
+                    const programa = (c as { programa?: string }).programa || "";
+                    if (f.guia) {
+                      return (
+                        <button
+                          key={c.id}
+                          className={`tv-tarjeta tv-tarjeta-guia ${foc(puesto)}`}
+                          data-fila={fi}
+                          data-col={ci}
+                          data-foco={puesto ? "1" : undefined}
+                          onMouseEnter={() => { conElRaton(); setZonaDir("derecha"); setFocoFila(fi); setFocoCol(ci); }}
+                          onClick={c.abrir}
+                        >
+                          <span className="tv-guia-hora">{horaCorta(empieza) || "—"}</span>
+                          <span className="tv-guia-t">{programa}</span>
+                          <span className="tv-guia-canal">
+                            {imgSrc(c.logo) && !rotas[c.logo] ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={imgSrc(c.logo)} alt="" loading="lazy" onError={() => marcarRota(c.logo)} />
+                            ) : (
+                              <b>{c.numero || ""}</b>
+                            )}
+                            <span>{c.nombre}</span>
+                          </span>
+                        </button>
+                      );
+                    }
                     return (
                       <button
                         key={c.id}
@@ -4321,7 +4383,7 @@ export default function TvApp() {
                 <span className="tv-bajada-nombre">{d.nombre}</span>
                 {d.estado === "bajando" ? (
                   <>
-                    <span className="tv-bajada-estado">Bajando · {d.parte}%</span>
+                    <span className="tv-bajada-estado">Bajando · {comoVa(d.parte, d.bytes)}</span>
                     <span className="tv-bajada-barra" aria-hidden="true">
                       <i style={{ width: `${d.parte}%` }} />
                     </span>

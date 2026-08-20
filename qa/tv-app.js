@@ -270,8 +270,23 @@ async function esperarCanales(tv) {
      de televisión y no una lista de nombres */
   const filasDir = (await tv.locator(".tv-dir-main .tv-carrusel-t").allInnerTexts())
     .map((t) => t.split("\n")[0].trim());
-  check("Con «Carpetas» y «Canales destacados» a la derecha",
-    filasDir.length === 2, filasDir.join(" | "));
+  check("Con «Empieza ahora» y los destacados a la derecha",
+    filasDir.length === 2 && /Empieza ahora/i.test(filasDir[0]), filasDir.join(" | "));
+
+  /* La fila de la guía: lo que arranca en la próxima hora y media, en orden
+     de reloj. No «qué canales hay» —eso ya lo dice la columna de la
+     izquierda— sino «¿qué hago esta noche?», que es la pregunta con la que
+     se enciende una tele. Antes esta fila repetía las carpetas, que ya están
+     a la izquierda: la mejor fila de la pantalla gastada en nada */
+  const horas = await tv.locator(".tv-guia-hora").allInnerTexts();
+  check("La guía enseña a qué hora empieza cada cosa", horas.length >= 1, horas.join(" · "));
+  check("Y en orden de reloj",
+    horas.every((h, i) => i === 0 || h.replace(":", "") >= horas[i - 1].replace(":", "")),
+    horas.join(" · "));
+  check("Con el programa y el canal, que es lo que se está eligiendo",
+    (await tv.locator(".tv-guia-t").first().innerText()).trim().length > 0 &&
+      (await tv.locator(".tv-guia-canal").first().innerText()).trim().length > 0,
+    `${await tv.locator(".tv-guia-t").first().innerText()} · ${(await tv.locator(".tv-guia-canal").first().innerText()).replace(/\n/g, " ")}`);
 
   /* --- Y de vuelta al piso de arriba ---
      ATRÁS sube un piso, igual que en el resto de la aplicación, y sin volver
@@ -285,29 +300,27 @@ async function esperarCanales(tv) {
   check("Y el foco se queda en la carpeta de la que sales, no en la primera",
     (await tv.locator(".tv-dir-canal.foco").count()) === 1);
 
-  /* --- La fila de carpetas de la derecha ---
-     La columna de la izquierda es para recorrer; la fila de abajo es para
-     saltar a otra carpeta sin subir de piso. */
-  check("La primera fila de la derecha son las carpetas",
-    (await tv.locator(".tv-chip-carpeta").count()) >= 2,
-    (await tv.locator(".tv-chip-carpeta").allInnerTexts()).join(" | ").replace(/\n/g, " "));
-  check("Con «Todos» marcada mientras no hay ninguna abierta",
-    (await tv.locator(".tv-chip-carpeta.activa").innerText()).includes("Todos"));
-  await tv.locator(".tv-chip-carpeta").nth(1).click();
+  /* --- Y los destacados, de la carpeta en la que estés ---
+     Puesto en «Deportes», lo que se quiere de un vistazo son los suyos y no
+     los de todo el catálogo. */
+  await tv.locator(".tv-dir-canal.es-carpeta").first().click();
   await tv.waitForFunction(
     () => document.querySelectorAll(".tv-dir-canal:not(.es-carpeta)").length > 0,
     { timeout: 15000 }
   );
-  check("Pulsar una de ellas abre esa carpeta, sin cambiar de pantalla",
-    (await tv.locator(".tv-directo").count()) === 1 &&
-      (await tv.locator(".tv-dir-canal:not(.es-carpeta)").count()) >= 1);
+  /* Sin fijar la posición: la fila de la guía solo sale si hay algo que
+     empiece pronto, y con la carpeta recién abierta sus guías pueden no
+     haber llegado todavía. Una fila vacía no se enseña, que es lo correcto */
+  const rotulosDir = (await tv.locator(".tv-dir-main .tv-carrusel-t").allInnerTexts())
+    .map((t) => t.split("\n")[0].trim());
+  check("Dentro de una carpeta, los destacados son los suyos y lo dicen",
+    rotulosDir.some((t) => /^Destacados de /i.test(t)), rotulosDir.join(" | "));
   check("Y la cabecera de la columna dice en cuál estás",
     (await tv.locator(".tv-dir-volver").innerText()).trim().length > 1,
     (await tv.locator(".tv-dir-volver").innerText()).replace(/\n/g, " "));
-  /* Y «Todos» vuelve arriba, que si no hay que salir para verlo todo */
-  await tv.locator(".tv-chip-carpeta").first().click();
+  await tv.mouse.move(2, 2);
+  await tv.keyboard.press("Escape");
   await tv.waitForFunction(() => document.querySelectorAll(".tv-dir-canal.es-carpeta").length > 0, { timeout: 15000 });
-  check("Y «Todos» vuelve a las carpetas", (await enCarpetas()) >= 2);
 
   /* --- El catálogo entero sigue estando, en su puerta --- */
   await tv.locator(".tv-dir-todos").click();

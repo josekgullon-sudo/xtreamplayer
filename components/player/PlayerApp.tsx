@@ -5,6 +5,7 @@ import Link from "next/link";
 import Icon, { IconName } from "@/components/Icon";
 import {
   type Descarga,
+  comoVa,
   encargarDescarga,
   leerDescargas,
   quitarDescarga,
@@ -1980,7 +1981,7 @@ export default function PlayerApp() {
                 <span className="pa-bajada-nombre">{d.nombre}</span>
                 {d.estado === "bajando" ? (
                   <>
-                    <span className="pa-bajada-estado">Bajando · {d.parte}%</span>
+                    <span className="pa-bajada-estado">Bajando · {comoVa(d.parte, d.bytes)}</span>
                     <span className="pa-bajada-barra" aria-hidden="true">
                       <i style={{ width: `${d.parte}%` }} />
                     </span>
@@ -2554,7 +2555,7 @@ export default function PlayerApp() {
                         : ya?.estado === "lista"
                           ? "Quitar del aparato"
                           : ya?.estado === "bajando"
-                            ? `Bajando ${ya.parte}%`
+                            ? `Bajando ${comoVa(ya.parte, ya.bytes)}`
                             : "Descargar"}
                     </button>
                   );
@@ -2634,7 +2635,7 @@ export default function PlayerApp() {
                         ya?.estado === "lista"
                           ? "Quitar del aparato"
                           : ya?.estado === "bajando"
-                            ? `Bajando ${ya.parte}%`
+                            ? `Bajando ${comoVa(ya.parte, ya.bytes)}`
                             : "Descargar"
                       }
                       aria-label={`Descargar ${titulo}`}

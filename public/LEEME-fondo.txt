@@ -1,0 +1,17 @@
+El mosaico de carteles que se ve detrás de las pantallas de antes de entrar
+—activar la tele, entrar con usuario y elegir perfil— sale de un fichero:
+
+    public/fondo-carteles.jpg
+
+Si no está, esas pantallas quedan sobre el negro de siempre y no se rompe
+nada: es una imagen de adorno.
+
+Qué conviene que sea:
+  · Apaisada y grande, 1920x1080 o más. Se recorta al centro.
+  · Un mosaico de carátulas, cuantas más pequeñas mejor: encima va texto que
+    hay que leer a tres metros, y una sola imagen grande detrás compite con
+    él. Muchas pequeñas se leen como una textura.
+  · Sin nada importante en el centro, que es donde va el formulario.
+
+Va muy oscurecida por CSS (ver `.tv-lienzo` en app/globals.css), así que no
+hace falta que venga ya apagada: cuanto más color traiga, mejor.

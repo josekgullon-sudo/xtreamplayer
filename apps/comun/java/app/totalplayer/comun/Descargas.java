@@ -292,6 +292,8 @@ public class Descargas {
             byte[] trozo = new byte[64 * 1024];
             long llevamos = 0;
             int ultimoAviso = -1;
+            /* Cuántos bytes llevábamos la última vez que se apuntó */
+            long apuntados = 0;
             int leidos;
             while ((leidos = entra.read(trozo)) > 0) {
                 if (cancelado(id)) {
@@ -302,11 +304,25 @@ public class Descargas {
                 sale.write(trozo, 0, leidos);
                 llevamos += leidos;
                 int parte = total > 0 ? (int) (llevamos * 100 / total) : 0;
-                /* Se apunta cada punto porcentual y no cada trozo: escribir en
-                   las preferencias sesenta veces por segundo es tocar el disco
-                   sin necesidad y se nota en un aparato barato */
-                if (parte != ultimoAviso) {
+                /*
+                 * Se apunta cada punto porcentual —escribir en las
+                 * preferencias sesenta veces por segundo es tocar el disco sin
+                 * necesidad y se nota en un aparato barato— y, cuando no hay
+                 * porcentaje, cada cuatro megas.
+                 *
+                 * Ese «y» es el arreglo de un fallo que dejaba la descarga
+                 * aparentemente muerta. Media lista de IPTV sirve el vídeo sin
+                 * `Content-Length`, así que no hay total contra el que medir y
+                 * el porcentaje se queda clavado en cero. Como solo se apuntaba
+                 * cuando CAMBIABA, después de la primera vuelta no se volvía a
+                 * apuntar nunca: la pantalla veía «bajando, 0 %, 0 bytes»
+                 * durante toda la película y lo que parece es que se ha
+                 * parado. Estaba bajando perfectamente.
+                 */
+                boolean otroTrozo = llevamos / (4 * 1024 * 1024) != apuntados / (4 * 1024 * 1024);
+                if (parte != ultimoAviso || otroTrozo) {
                     ultimoAviso = parte;
+                    apuntados = llevamos;
                     apuntarAvance(id, parte, llevamos);
                 }
             }
