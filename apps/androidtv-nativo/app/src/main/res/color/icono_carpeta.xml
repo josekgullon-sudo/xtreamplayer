@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El icono de una carpeta: gris, y blanco cuando la fila tiene el foco.
+
+  Una lista de proveedor trae cuarenta carpetas. Cuarenta iconos rojos en
+  columna no son cuarenta acentos: son el fondo de la pantalla. El mismo
+  cambio que se hizo en el web con `.tv-carpeta .tv-fila-ph`.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="@color/texto" />
+    <item android:color="@color/apagado" />
+</selector>

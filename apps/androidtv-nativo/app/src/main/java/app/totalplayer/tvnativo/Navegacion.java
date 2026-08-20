@@ -3,6 +3,7 @@ package app.totalplayer.tvnativo;
 import android.app.Activity;
 import android.content.Intent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -21,6 +22,15 @@ import android.widget.TextView;
 public final class Navegacion {
 
     private Navegacion() {}
+
+    /** Los cinco destinos del carril, en el orden en que se recorren. */
+    private static final int[] DESTINOS = {
+        R.id.navInicio, R.id.navDirecto, R.id.navCine, R.id.navSeries, R.id.navBuscar
+    };
+    private static final int[] ETIQUETAS = {
+        R.id.navInicioTexto, R.id.navDirectoTexto, R.id.navCineTexto,
+        R.id.navSeriesTexto, R.id.navBuscarTexto
+    };
 
     /**
      * Deja el carril listo en esta pantalla.
@@ -60,6 +70,64 @@ public final class Navegacion {
         seccion(donde, R.id.navCine, Catalogo.PELIS, "Películas", seccionActual);
         seccion(donde, R.id.navSeries, Catalogo.SERIES, "Series", seccionActual);
         caminos(donde, seccionActual);
+        abreYCierra(donde);
+    }
+
+    /**
+     * Cerrado son cinco iconos; abierto, sus nombres.
+     *
+     * Es lo que hace YouTube en la tele, y es lo que se pidió: la columna
+     * ocupa 78 puntos que le está quitando al contenido para enseñar cinco
+     * palabras que solo hacen falta en el momento de cambiar de sección. En
+     * cuanto el mando entra en el carril con ◀ se abre, y al salir se cierra.
+     *
+     * Se mira si el foco sigue en ALGUNO de los cinco y no solo en el que
+     * acaba de perderlo: moviéndose de «Cine» a «Series» hay un instante en
+     * que ninguno lo tiene, y comprobándolo en ese instante el carril se
+     * cerraba y se volvía a abrir en cada pulsación. Por eso la comprobación
+     * va en un `post`, cuando el foco ya ha llegado a su sitio.
+     *
+     * En un teléfono el carril no es una columna sino la cápsula de abajo, y
+     * ahí no hay nada que abrir: `carril_en_columna` lo dice.
+     */
+    private static void abreYCierra(final Activity donde) {
+        if (!donde.getResources().getBoolean(R.bool.carril_en_columna)) return;
+        final View carril = donde.findViewById(R.id.carril);
+        if (carril == null) return;
+        View.OnFocusChangeListener oreja = new View.OnFocusChangeListener() {
+            @Override public void onFocusChange(View v, boolean tiene) {
+                carril.post(new Runnable() {
+                    @Override public void run() { pintaCarril(donde, carril); }
+                });
+            }
+        };
+        for (int id : DESTINOS) {
+            View v = donde.findViewById(id);
+            if (v != null) v.setOnFocusChangeListener(oreja);
+        }
+        pintaCarril(donde, carril);
+    }
+
+    private static void pintaCarril(Activity donde, View carril) {
+        boolean dentro = false;
+        for (int id : DESTINOS) {
+            View v = donde.findViewById(id);
+            if (v != null && v.hasFocus()) { dentro = true; break; }
+        }
+        int ancho = donde.getResources().getDimensionPixelSize(
+                dentro ? R.dimen.carril_abierto : R.dimen.carril_cerrado);
+        ViewGroup.LayoutParams medidas = carril.getLayoutParams();
+        if (medidas != null && medidas.width != ancho) {
+            medidas.width = ancho;
+            carril.setLayoutParams(medidas);
+        }
+        /* INVISIBLE y no GONE: con `gone` la fila se recompone y el icono da
+           un salto a la izquierda al aparecer el texto. Así el hueco ya está
+           reservado y lo único que cambia es que se vea */
+        for (int id : ETIQUETAS) {
+            View t = donde.findViewById(id);
+            if (t != null) t.setVisibility(dentro ? View.VISIBLE : View.INVISIBLE);
+        }
     }
 
     /**
@@ -117,14 +185,22 @@ public final class Navegacion {
         });
     }
 
-    /** Enciende o apaga un destino: la pastilla, el icono y la etiqueta. */
+    /**
+     * Marca en qué sección estás. Con la raya, no con el color.
+     *
+     * El icono y el nombre de la sección abierta iban en rojo, y eso son dos
+     * cosas distintas dichas con el mismo color: el rojo de «estás aquí» y el
+     * rojo de «esto se pulsa». Ahora lo dice la raya de al lado del icono, y
+     * el color se queda donde significa algo. Es la misma decisión que se
+     * tomó en el web.
+     */
     private static void pinta(Activity donde, int id, int idPastilla, int idIcono, int idTexto, boolean activo) {
         View v = donde.findViewById(id);
         if (v == null) return;
         View pastilla = donde.findViewById(idPastilla);
         ImageView icono = donde.findViewById(idIcono);
         TextView texto = donde.findViewById(idTexto);
-        int color = donde.getResources().getColor(activo ? R.color.marca_viva : R.color.apagado);
+        int color = donde.getResources().getColor(activo ? R.color.texto : R.color.apagado);
         if (pastilla != null) pastilla.setActivated(activo);
         if (icono != null) icono.setColorFilter(color);
         if (texto != null) texto.setTextColor(color);

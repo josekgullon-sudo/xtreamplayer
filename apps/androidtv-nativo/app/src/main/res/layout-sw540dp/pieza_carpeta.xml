@@ -26,6 +26,7 @@
     <FrameLayout
         android:layout_width="38dp"
         android:layout_height="38dp"
+        android:duplicateParentState="true"
         android:background="@drawable/hueco_logo">
 
         <ImageView
@@ -33,7 +34,8 @@
             android:layout_width="21dp"
             android:layout_height="21dp"
             android:layout_gravity="center"
-            android:tint="@color/marca_viva"
+            android:duplicateParentState="true"
+            android:tint="@color/icono_carpeta"
             android:contentDescription="@null" />
     </FrameLayout>
 

@@ -1,27 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  El carril de secciones, a tres metros del sofá.
+  El carril de secciones: cerrado son cinco iconos; abierto, sus nombres.
 
-  Con la etiqueta debajo, en pequeño. Se probó sin ellas —la referencia no
-  las lleva— y en una tele de verdad no hay quien sepa cuál es cine y cuál
-  series: los dos dibujos son un rectángulo con algo dentro, y a tres
-  metros esa diferencia no existe. Once puntos de letra ocupan poco y
-  quitan la duda. La versión anterior llevaba cada icono en una
-  pastilla de 58 con su etiqueta debajo, y entre eso y el ancho de la
-  columna el nombre de la carpeta de al lado se quedaba en «AUT…». A tres
-  metros el dibujo ya se reconoce; la palabra solo roba sitio a lo que se
-  ha venido a ver.
+  Antes iba siempre desplegado, con el icono y su etiqueta debajo, ocupando
+  78 puntos de columna en todas las pantallas. Esos 78 puntos se los quitaba
+  al contenido para enseñar cinco palabras que solo hacen falta el momento
+  en que se va a cambiar de sección — el resto del tiempo el dibujo basta.
 
-  Dos señales distintas y visibles a la vez: dónde tienes el mando —el
-  marco de foco, que pinta el fondo del botón— y en qué sección estás —la
-  raya corta de debajo del icono—. Antes eran la misma cosa y no se
-  entendía ninguna.
+  Ahora es lo que hace YouTube en la tele: una tira estrecha de iconos, y en
+  cuanto el mando entra en ella con ◀ se abre por encima del contenido con
+  los nombres al lado. El contenido no se mueve: el carril flota, así que
+  abrirse no reordena media pantalla.
+
+  La etiqueta va a la derecha del icono y no debajo porque abierto se lee en
+  fila, que es como se lee un menú; y cerrada no se esconde con `gone` sino
+  con `INVISIBLE` + ancho cero desde Navegacion.java, para que el ancho de la
+  fila no dé un salto al aparecer.
+
+  Dos señales distintas y visibles a la vez: dónde tienes el mando —el marco
+  de foco, que pinta el fondo del botón— y en qué sección estás —la raya de
+  al lado del icono—. Antes eran la misma cosa y no se entendía ninguna. Y la
+  raya es blanca, no roja: el color se guarda para lo que se pulsa, que es la
+  misma decisión que se tomó en el web.
 
   Los mismos identificadores que la cápsula del teléfono: los engancha el
   mismo código (Navegacion.java).
 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="78dp"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/carril"
     android:scrollbars="none"
@@ -41,10 +47,12 @@
             android:id="@+id/navInicio"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp"
+            android:paddingStart="15dp"
+            android:paddingEnd="10dp"
             android:background="@drawable/carril_item"
             android:focusable="true"
             android:clickable="true">
@@ -57,36 +65,40 @@
                 android:tint="@color/apagado"
                 android:contentDescription="@null" />
 
-            <!-- La raya: dice en qué sección ESTÁS, y va pegada al icono.
-                 Se enciende desde Navegacion.java y no tiene nada que ver
-                 con el foco, que lo pinta el marco del botón -->
+            <!-- La raya: dice en qué sección ESTÁS. Nada que ver con el foco,
+                 que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navInicioPastilla"
-                android:layout_width="22dp"
-                android:layout_height="3dp"
-                android:layout_marginTop="5dp"
+                android:layout_width="3dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="6dp"
                 android:background="@drawable/carril_icono" />
 
             <TextView
                 android:id="@+id/navInicioTexto"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:gravity="center"
+                android:layout_weight="1"
                 android:text="Inicio"
                 android:textColor="@color/apagado"
-                android:textSize="11sp"
+                android:textSize="15sp"
+                android:textStyle="bold"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:layout_marginTop="5dp" />
+                android:visibility="invisible"
+                android:layout_marginStart="12dp" />
         </LinearLayout>
+
         <LinearLayout
             android:id="@+id/navDirecto"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp"
+            android:paddingStart="15dp"
+            android:paddingEnd="10dp"
             android:background="@drawable/carril_item"
             android:focusable="true"
             android:clickable="true">
@@ -99,36 +111,40 @@
                 android:tint="@color/apagado"
                 android:contentDescription="@null" />
 
-            <!-- La raya: dice en qué sección ESTÁS, y va pegada al icono.
-                 Se enciende desde Navegacion.java y no tiene nada que ver
-                 con el foco, que lo pinta el marco del botón -->
+            <!-- La raya: dice en qué sección ESTÁS. Nada que ver con el foco,
+                 que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navDirectoPastilla"
-                android:layout_width="22dp"
-                android:layout_height="3dp"
-                android:layout_marginTop="5dp"
+                android:layout_width="3dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="6dp"
                 android:background="@drawable/carril_icono" />
 
             <TextView
                 android:id="@+id/navDirectoTexto"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:gravity="center"
+                android:layout_weight="1"
                 android:text="Directo"
                 android:textColor="@color/apagado"
-                android:textSize="11sp"
+                android:textSize="15sp"
+                android:textStyle="bold"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:layout_marginTop="5dp" />
+                android:visibility="invisible"
+                android:layout_marginStart="12dp" />
         </LinearLayout>
+
         <LinearLayout
             android:id="@+id/navCine"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp"
+            android:paddingStart="15dp"
+            android:paddingEnd="10dp"
             android:background="@drawable/carril_item"
             android:focusable="true"
             android:clickable="true">
@@ -141,36 +157,40 @@
                 android:tint="@color/apagado"
                 android:contentDescription="@null" />
 
-            <!-- La raya: dice en qué sección ESTÁS, y va pegada al icono.
-                 Se enciende desde Navegacion.java y no tiene nada que ver
-                 con el foco, que lo pinta el marco del botón -->
+            <!-- La raya: dice en qué sección ESTÁS. Nada que ver con el foco,
+                 que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navCinePastilla"
-                android:layout_width="22dp"
-                android:layout_height="3dp"
-                android:layout_marginTop="5dp"
+                android:layout_width="3dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="6dp"
                 android:background="@drawable/carril_icono" />
 
             <TextView
                 android:id="@+id/navCineTexto"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:gravity="center"
+                android:layout_weight="1"
                 android:text="Cine"
                 android:textColor="@color/apagado"
-                android:textSize="11sp"
+                android:textSize="15sp"
+                android:textStyle="bold"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:layout_marginTop="5dp" />
+                android:visibility="invisible"
+                android:layout_marginStart="12dp" />
         </LinearLayout>
+
         <LinearLayout
             android:id="@+id/navSeries"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp"
+            android:paddingStart="15dp"
+            android:paddingEnd="10dp"
             android:background="@drawable/carril_item"
             android:focusable="true"
             android:clickable="true">
@@ -183,36 +203,40 @@
                 android:tint="@color/apagado"
                 android:contentDescription="@null" />
 
-            <!-- La raya: dice en qué sección ESTÁS, y va pegada al icono.
-                 Se enciende desde Navegacion.java y no tiene nada que ver
-                 con el foco, que lo pinta el marco del botón -->
+            <!-- La raya: dice en qué sección ESTÁS. Nada que ver con el foco,
+                 que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navSeriesPastilla"
-                android:layout_width="22dp"
-                android:layout_height="3dp"
-                android:layout_marginTop="5dp"
+                android:layout_width="3dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="6dp"
                 android:background="@drawable/carril_icono" />
 
             <TextView
                 android:id="@+id/navSeriesTexto"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:gravity="center"
+                android:layout_weight="1"
                 android:text="Series"
                 android:textColor="@color/apagado"
-                android:textSize="11sp"
+                android:textSize="15sp"
+                android:textStyle="bold"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:layout_marginTop="5dp" />
+                android:visibility="invisible"
+                android:layout_marginStart="12dp" />
         </LinearLayout>
+
         <LinearLayout
             android:id="@+id/navBuscar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp"
+            android:paddingStart="15dp"
+            android:paddingEnd="10dp"
             android:background="@drawable/carril_item"
             android:focusable="true"
             android:clickable="true">
@@ -225,27 +249,28 @@
                 android:tint="@color/apagado"
                 android:contentDescription="@null" />
 
-            <!-- La raya: dice en qué sección ESTÁS, y va pegada al icono.
-                 Se enciende desde Navegacion.java y no tiene nada que ver
-                 con el foco, que lo pinta el marco del botón -->
+            <!-- La raya: dice en qué sección ESTÁS. Nada que ver con el foco,
+                 que lo pinta el marco del botón -->
             <View
                 android:id="@+id/navBuscarPastilla"
-                android:layout_width="22dp"
-                android:layout_height="3dp"
-                android:layout_marginTop="5dp"
+                android:layout_width="3dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="6dp"
                 android:background="@drawable/carril_icono" />
 
             <TextView
                 android:id="@+id/navBuscarTexto"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:gravity="center"
+                android:layout_weight="1"
                 android:text="Buscar"
                 android:textColor="@color/apagado"
-                android:textSize="11sp"
+                android:textSize="15sp"
+                android:textStyle="bold"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:layout_marginTop="5dp" />
+                android:visibility="invisible"
+                android:layout_marginStart="12dp" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

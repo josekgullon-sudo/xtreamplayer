@@ -1,7 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- El cuadrado de detrás del icono: rojo muy diluido, como .feature-icon
-     del web. Grande, que es lo que se reconoce desde tres metros. -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/marca_tinte" />
-    <corners android:radius="22dp" />
-</shape>
+<!--
+  El cuadrado de detrás del icono, en gris.
+
+  Estaba en rojo diluido, igual que estuvo `.feature-icon` en el web. Con
+  cuatro tarjetas en la misma pantalla, cuatro cuadros rojos no son cuatro
+  acentos: son el fondo. El color aparece cuando la tarjeta tiene el foco,
+  que es cuando significa «esto es lo que estás mirando».
+
+  Cambia de estado gracias al `duplicateParentState` de la tarjeta: en
+  Android el foco no baja solo a los hijos.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/marca_tinte_fuerte" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/tranquilo" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+</selector>

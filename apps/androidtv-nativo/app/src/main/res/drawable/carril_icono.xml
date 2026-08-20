@@ -5,11 +5,15 @@
   pastilla de detrás. El mismo recurso para las dos: encendido cuando la
   sección está abierta, invisible el resto del tiempo. El foco del mando lo
   pinta otra cosa (carril_item), porque son dos preguntas distintas.
+
+  En blanco y no en rojo: el rojo es el color de lo que se pulsa, y usándolo
+  además para decir dónde estás las dos señales se confunden. Misma decisión
+  que en el web.
 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_activated="true">
         <shape android:shape="rectangle">
-            <solid android:color="@color/marca_viva" />
+            <solid android:color="@color/foco" />
             <corners android:radius="999dp" />
         </shape>
     </item>

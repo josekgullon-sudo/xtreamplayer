@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- En la tele el carril sí es una columna, y se abre. Ver values/dimens.xml -->
+<resources>
+    <bool name="carril_en_columna">true</bool>
+    <dimen name="carril_cerrado">78dp</dimen>
+    <dimen name="carril_abierto">240dp</dimen>
+</resources>

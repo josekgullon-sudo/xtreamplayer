@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lo que mide el carril, cerrado y abierto.
+
+  En un teléfono el carril no es una columna sino la cápsula de abajo, y ahí
+  no hay nada que abrir ni que cerrar: por eso `carril_en_columna` es falso
+  aquí y verdadero en values-sw540dp, que es lo que separa una tele de un
+  teléfono en este proyecto. Las medidas están puestas igual en los dos para
+  que el código no tenga que preguntar dos veces.
+-->
+<resources>
+    <bool name="carril_en_columna">false</bool>
+    <dimen name="carril_cerrado">78dp</dimen>
+    <dimen name="carril_abierto">240dp</dimen>
+</resources>

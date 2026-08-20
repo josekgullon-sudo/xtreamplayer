@@ -19,9 +19,13 @@
     android:paddingBottom="14dp"
     android:focusable="true">
 
+    <!-- `duplicateParentState` es lo que hace que el cuadro y el icono se
+         enteren de que la tarjeta tiene el foco: en Android el estado no baja
+         solo a los hijos -->
     <FrameLayout
         android:layout_width="76dp"
         android:layout_height="76dp"
+        android:duplicateParentState="true"
         android:background="@drawable/insignia">
 
         <ImageView
@@ -29,7 +33,8 @@
             android:layout_width="42dp"
             android:layout_height="42dp"
             android:layout_gravity="center"
-            android:tint="@color/marca_viva"
+            android:duplicateParentState="true"
+            android:tint="@color/icono_seccion"
             android:contentDescription="@null" />
     </FrameLayout>
 

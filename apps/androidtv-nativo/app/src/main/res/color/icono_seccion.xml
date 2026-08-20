@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El icono de una tarjeta de sección: gris, y del color de la marca cuando la
+  tarjeta tiene el foco. Es lo mismo que hace `.feature-icon` en el web, y
+  por el mismo motivo: cuatro iconos rojos a la vez dejan de ser un acento.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="@color/marca_viva" />
+    <item android:color="@color/apagado" />
+</selector>
