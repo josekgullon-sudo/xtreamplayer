@@ -20,6 +20,16 @@ import re
 import sys
 from pathlib import Path
 
+# La consola de Windows habla cp1252 y no sabe escribir «✅»: sin esto, la
+# comprobación pasaba y el guardián se caía al IMPRIMIR que había pasado,
+# tirando de paso el resto del trabajo. Este script corre en los dos sitios,
+# así que la salida se fuerza a UTF-8 en los dos.
+for _salida in (sys.stdout, sys.stderr):
+    try:
+        _salida.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:  # pragma: sin cobertura — Python muy viejo
+        pass
+
 RAIZ = Path(__file__).resolve().parent.parent
 MAIN = RAIZ / "apps/escritorio/src-tauri/src/main.rs"
 PERMISOS = RAIZ / "apps/escritorio/src-tauri/permissions"
