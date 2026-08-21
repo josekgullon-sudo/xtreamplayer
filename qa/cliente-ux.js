@@ -90,6 +90,21 @@ const ck = (sc, n) => {
   await p2.locator(".section-card:has-text('TV en directo')").click();
   await p2.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 15000 });
 
+  /*
+   * El canal que el panel manda sin nombre, con un rótulo que se lee.
+   *
+   * Hay paneles que los mandan con «name: null». Al entrar se saneaba a
+   * cadena vacía y en la lista quedaba un renglón en blanco: un canal que
+   * funciona, que se pone al pulsarlo, y que no se distingue de un fallo de
+   * dibujado. Con su número al lado, decir que no tiene nombre basta.
+   */
+  await p2.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();
+  await p2.waitForSelector(".pa-live-chan", { timeout: 15000 });
+  const nombresCanales = await p2.locator(".pa-live-chan .name").allInnerTexts();
+  check("Un canal sin nombre sale con un rótulo, no con un renglón en blanco",
+    nombresCanales.every((n) => n.trim()) && nombresCanales.some((n) => n.includes("sin nombre")),
+    nombresCanales.join(" | "));
+
   // Ponemos un canal y nos vamos a Cine: el reproductor no debe quedarse arriba
   // (el directo del mock no emite de verdad; basta con que esté seleccionado)
   await p2.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();

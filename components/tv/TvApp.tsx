@@ -1338,9 +1338,19 @@ export default function TvApp() {
             xtreamApi<XtreamCategory[]>(creds, "get_live_categories"),
             xtreamApi<XtreamLiveStream[]>(creds, "get_live_streams"),
           ]);
-          const limpios = (Array.isArray(canales) ? canales : []).filter(
-            (c) => typeof c.name === "string" && c.name.trim()
-          );
+          /*
+           * Un canal sin nombre se enseña, no se esconde.
+           *
+           * Hay paneles que mandan canales con `name: null`. Se caían de la
+           * lista entera, y desde el sofá eso es un canal que el proveedor
+           * vende y que en su televisor no existe —aunque al pulsarlo se
+           * pondría—. Con su número al lado, decir que no tiene nombre basta
+           * para saber cuál es.
+           */
+          const limpios = (Array.isArray(canales) ? canales : []).map((c) => ({
+            ...c,
+            name: (typeof c.name === "string" ? c.name : "").trim() || "Canal sin nombre",
+          }));
           const verCanal = (c: XtreamLiveStream) => () =>
             verEsto(
               c.name,
@@ -1698,7 +1708,10 @@ export default function TvApp() {
     /* En directo: los primeros del panel, que es el orden que ha puesto el
        proveedor —sus destacados delante— y no uno inventado por nosotros */
     const enDirecto = (Array.isArray(canales) ? canales : [])
-      .filter((c) => typeof c.name === "string" && c.name.trim())
+      .map((c) => ({
+        ...c,
+        name: (typeof c.name === "string" ? c.name : "").trim() || "Canal sin nombre",
+      }))
       .slice(0, 14)
       .map((c) => {
         nuevas.set(`live-${c.stream_id}`, () =>

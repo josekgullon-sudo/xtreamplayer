@@ -524,8 +524,14 @@ public final class Catalogo {
         for (int i = 0; i < flujos.length(); i++) {
             JSONObject c = flujos.getJSONObject(i);
             String id = c.optString("stream_id", "");
+            if (id.isEmpty()) continue;
+            /* Un canal sin nombre se enseña, no se esconde: hay paneles que
+               los mandan con «name: null», y se caían de la lista entera.
+               Desde el sofá eso es un canal que el proveedor vende y que en
+               su televisor no existe, aunque al pulsarlo se pondría. Con su
+               número al lado, decir que no tiene nombre basta */
             String nombre = c.optString("name", "").trim();
-            if (id.isEmpty() || nombre.isEmpty()) continue;
+            if (nombre.isEmpty()) nombre = "Canal sin nombre";
             Item it = new Item();
             it.id = id;
             it.nombre = nombre;
@@ -1027,8 +1033,10 @@ public final class Catalogo {
             for (int i = 0; i < flujos.length(); i++) {
                 JSONObject c = flujos.getJSONObject(i);
                 String id = c.optString("stream_id", "");
+                if (id.isEmpty()) continue;
+                /* Sin nombre también entra: ver arriba */
                 String nombre = c.optString("name", "").trim();
-                if (id.isEmpty() || nombre.isEmpty()) continue;
+                if (nombre.isEmpty()) nombre = "Canal sin nombre";
                 Item it = new Item();
                 it.id = id;
                 it.nombre = nombre;

@@ -156,6 +156,23 @@ function alta(valor?: string | number): number {
   return ms > 946684800000 && ms < Date.now() + 86400000 ? ms : 0;
 }
 
+/*
+ * El nombre del canal, o algo que se pueda leer.
+ *
+ * Hay paneles que mandan canales con `name: null`. Al entrar se saneaba a
+ * cadena vacía —para que el resto del código pueda fiarse de que es texto— y
+ * en la lista quedaba un renglón en blanco: un canal que funciona, que se
+ * pone al pulsarlo, y que no se distingue de un fallo de dibujado. Con su
+ * número al lado, decir que no tiene nombre basta para saber cuál es.
+ *
+ * Fuera del componente a propósito: lo usan varios `useMemo`, y el primero
+ * de ellos se ejecuta antes de que una constante declarada dentro llegue a
+ * existir —lo que deja la pantalla en blanco y sin una sola pista de por qué—.
+ */
+function rotulo(n?: string): string {
+  return (n || "").trim() || "Canal sin nombre";
+}
+
 export default function PlayerApp() {
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [customer, setCustomer] = useState<{ username: string; brand: string } | null>(null);
@@ -1005,7 +1022,7 @@ export default function PlayerApp() {
         name,
         channels: chs.map((ch) => ({
           id: ch.id,
-          name: ch.name,
+          name: rotulo(ch.name),
           logo: ch.logo,
           favKey: `${active.id}:m3u:${ch.url}`,
           archivo: false,
@@ -1037,7 +1054,7 @@ export default function PlayerApp() {
       name,
       channels: chs.map((ch) => ({
         id: String(ch.stream_id),
-        name: ch.name,
+        name: rotulo(ch.name),
         logo: ch.stream_icon,
         favKey: `${active.id}:live:${ch.stream_id}`,
         archivo: Number(ch.tv_archive) > 0,
@@ -1083,7 +1100,7 @@ export default function PlayerApp() {
     if (active.type === "m3u") {
       return (m3uData[active.id] || []).map((ch) => ({
         id: ch.id,
-        name: ch.name,
+        name: rotulo(ch.name),
         logo: ch.logo,
         favKey: `${active.id}:m3u:${ch.url}`,
         play: () => playM3u(active, ch),
@@ -1091,7 +1108,7 @@ export default function PlayerApp() {
     }
     return (xtreamData[active.id]?.liveStreams || []).map((ch) => ({
       id: String(ch.stream_id),
-      name: ch.name,
+      name: rotulo(ch.name),
       logo: ch.stream_icon,
       favKey: `${active.id}:live:${ch.stream_id}`,
       play: () => playLive(active, ch),
@@ -1684,7 +1701,7 @@ export default function PlayerApp() {
               playRecent(r);
             },
           })),
-          canales: flatChannels.filter((c) => c.name.trim()).slice(0, 14).map((c) => ({
+          canales: flatChannels.slice(0, 14).map((c) => ({
             key: c.favKey,
             nombre: c.name,
             logo: imgSrc(c.logo) || "",
