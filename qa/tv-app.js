@@ -950,8 +950,21 @@ async function esperarCanales(tv) {
   await tv.waitForSelector(".tv-pestanas", { timeout: 15000 });
   await tv.keyboard.press("Enter");
   await esperarCanales(tv);
-  /* El nombre del canal, sin el número que va delante en su propia casilla */
-  const canal = (await tv.locator(".tv-dir-canal:not(.es-carpeta) .tv-dir-nombre").first().innerText()).trim();
+  /*
+   * El nombre del canal, sin el número que va delante en su propia casilla.
+   *
+   * Leído en un bucle y no de una vez: la fila existe antes que su guía, y
+   * cuando la guía llega la fila se vuelve a dibujar. Entre el «ya hay
+   * canales» y el `innerText` cabe ese redibujado, y entonces el elemento
+   * que se estaba leyendo ya no es el que hay — que es como se caía esta
+   * prueba en el servidor de integración de vez en cuando.
+   */
+  let canal = "";
+  for (let intento = 0; intento < 40; intento++) {
+    canal = (await tv.locator(".tv-dir-canal:not(.es-carpeta) .tv-dir-nombre").first().innerText().catch(() => "")).trim();
+    if (canal) break;
+    await tv.waitForTimeout(400);
+  }
   await tv.locator(".tv-dir-canal:not(.es-carpeta)").first().click();
   /* El ratón, fuera antes de volver: al salir del vídeo, «Seguir viendo»
      aparece justo donde quedó el puntero del clic y se enfoca él solo —que

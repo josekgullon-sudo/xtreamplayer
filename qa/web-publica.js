@@ -61,6 +61,27 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   check("Y se llega desde el menú",
     (await p.locator(".site-header a[href='/funciones']").count()) >= 1);
 
+  /*
+   * La página que no está.
+   *
+   * Salía la de fábrica de Next —«404 · This page could not be found», en
+   * inglés, sobre blanco y sin una salida— dentro de un producto que está
+   * entero en castellano y en oscuro. Quien llega aquí es casi siempre un
+   * cliente con un enlace viejo de su proveedor, y eso no se lee como «te
+   * has equivocado de dirección» sino como «esto no es donde creías».
+   *
+   * Es una pantalla que solo aparece cuando algo va mal, o sea que si nadie
+   * la comprueba no se entera nadie de que se ha vuelto a romper.
+   */
+  const perdida = await p.goto(BASE + "/esto-no-existe-y-no-va-a-existir", { waitUntil: "networkidle" });
+  check("Una dirección que no existe contesta 404 de verdad", perdida.status() === 404, String(perdida.status()));
+  const textoPerdida = await p.locator("body").innerText();
+  check("Y con la página del producto, no la de fábrica en inglés",
+    !textoPerdida.includes("This page could not be found") && /reproductor|principio/i.test(textoPerdida),
+    textoPerdida.replace(/\s+/g, " ").slice(0, 80));
+  check("Con salida al reproductor y a la portada",
+    (await p.locator("a[href='/player']").count()) >= 1 && (await p.locator("a[href='/']").count()) >= 1);
+
   // --- Ayuda ---
   await p.goto(BASE + "/faq", { waitUntil: "networkidle" });
   const preguntas = await p.locator(".faq-item summary").allInnerTexts();
