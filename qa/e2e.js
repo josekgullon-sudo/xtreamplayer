@@ -188,12 +188,14 @@ function check(name, ok, detail = "") {
    * el texto en el instante en que aparece pilla el «En directo» de relleno.
    * Se espera a la guía, que es lo que esta comprobación mira.
    */
-  await page
-    .waitForFunction(
-      () => !/^En directo\s*$/.test(document.querySelector(".pa-live-titulo p")?.innerText || ""),
-      { timeout: 15000 }
-    )
-    .catch(() => {});
+  /* Y si no llega, que lo diga la espera y no la comprobación de después.
+     Tragándose el fallo con un `catch` vacío, una guía que tarda demasiado
+     se leía como «el programa es "En directo"» y la prueba culpaba al
+     contenido de un problema de tiempo */
+  await page.waitForFunction(
+    () => !/^En directo\s*$/.test(document.querySelector(".pa-live-titulo p")?.innerText || ""),
+    { timeout: 30000 }
+  );
   const epgText = await page.locator(".pa-live-titulo p").innerText();
   /*
    * «Ahora» es el que está en antena, no el primero que manda el panel.
