@@ -144,6 +144,50 @@ async function esperarCanales(tv) {
 
   // --- La tele en el navegador ---
   const b = await chromium.launch({ ...ejecutable });
+
+  /*
+   * Y lo mismo, pero por donde lo hace el cliente: la página /activar.
+   *
+   * Todo lo de arriba prueba las rutas, que es donde está la lógica. Pero el
+   * cliente no llama a ninguna ruta: abre /activar en el móvil, mete su
+   * usuario y escribe el código de seis letras que ve en la tele. Esa página
+   * no la abría ninguna prueba, y es la primera pantalla de cualquiera que
+   * estrene un televisor: si su formulario se rompe, no se activa nadie.
+   */
+  {
+    const otro = await call("/api/tv/code", { method: "POST", body: JSON.stringify({ deviceKey: `tv-cocina-${RUN}` }) });
+    const codigo = otro.body.code;
+    const ctxMovil = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const movil = await ctxMovil.newPage();
+    const fallos = [];
+    movil.on("pageerror", (e) => fallos.push(String(e).slice(0, 160)));
+    await movil.goto(BASE + "/activar", { waitUntil: "networkidle" });
+    /* La página abre por «Con el código», y sin sesión ahí no hay dónde
+       escribirlo: primero se entra con el usuario, que es lo que ella misma
+       dice que hay que hacer */
+    await movil.waitForSelector(".pa-tab", { timeout: 20000 });
+    await movil.locator(".pa-tab:has-text('Con mi usuario')").click();
+    await movil.waitForSelector("#ac-user", { timeout: 20000 });
+    await movil.fill("#ac-user", U);
+    await movil.fill("#ac-pass", "clave1234");
+    await movil.locator("form:has(#ac-user) button[type=submit], form:has(#ac-user) button").first().click();
+    await movil.waitForSelector("#tv-code", { timeout: 20000 });
+    check("El cliente entra en /activar y le piden el código de la tele", true);
+    /* En minúsculas a propósito: nadie mira si el mando escribe mayúsculas */
+    await movil.fill("#tv-code", codigo.toLowerCase());
+    await movil.locator("form:has(#tv-code) button[type=submit], form:has(#tv-code) button").first().click();
+    /* Y la tele, que es quien estaba esperando, entra */
+    let estado = "";
+    for (let intento = 0; intento < 40; intento++) {
+      estado = (await call(`/api/tv/code?code=${codigo}`)).body.estado || "";
+      if (estado === "listo") break;
+      await movil.waitForTimeout(400);
+    }
+    check("Y al escribirlo desde el móvil, la tele entra", estado === "listo", estado || "sin respuesta");
+    check("Sin errores de JavaScript por el camino", fallos.length === 0, fallos[0] || "");
+    await ctxMovil.close();
+  }
+
   const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 } });
   const tv = await ctx.newPage();
   tv.on("pageerror", (e) => console.log("PAGEERROR:", String(e).slice(0, 200)));
