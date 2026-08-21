@@ -2279,6 +2279,33 @@ export default function PlayerApp() {
                 {q ? "Nada con ese nombre en esta lista." : "Aquí no hay canales."}
               </p>
             )}
+            {/*
+              Y debajo, lo guardado que no es un canal.
+              Aquí y no en el hueco del vídeo: ahí solo se veía con nada
+              puesto, y en esta pantalla lo normal es poner un canal
+              favorito — con lo cual la lista desaparecía entera justo
+              después de entrar a buscarla.
+            */}
+            {tab === "favs" && miListaCatalogo.length > 0 && (
+              <div className="pa-milista">
+                <h3 className="pa-milista-t">Películas y series</h3>
+                <div className="pa-milista-grid">
+                  {miListaCatalogo.map((it) => (
+                    <button className="pa-card" key={it.llave} onClick={it.abrir} title={it.nombre}>
+                      {imgSrc(it.cartel) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img className="poster" src={imgSrc(it.cartel)} alt="" loading="lazy" />
+                      ) : (
+                        <div className="poster-ph">{it.nombre}</div>
+                      )}
+                      <div className="meta">
+                        <div className="title">{it.nombre}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -2312,32 +2339,6 @@ export default function PlayerApp() {
               </div>
               <VideoPlayer source={current.source} />
             </>
-          ) : tab === "favs" && miListaCatalogo.length ? (
-            /*
-             * En Favoritos, el hueco del vídeo es la lista.
-             *
-             * Ahí ponía «Elige un canal y empieza a verlo aquí» ocupando dos
-             * tercios de la pantalla sin decir nada: es el sitio más grande
-             * que hay, y lo que le corresponde es lo que se ha guardado.
-             */
-            <div className="pa-milista">
-              <h3 className="pa-milista-t">Películas y series guardadas</h3>
-              <div className="pa-grid">
-                {miListaCatalogo.map((it) => (
-                  <button className="pa-card" key={it.llave} onClick={it.abrir} title={it.nombre}>
-                    {imgSrc(it.cartel) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img className="poster" src={imgSrc(it.cartel)} alt="" loading="lazy" />
-                    ) : (
-                      <div className="poster-ph">{it.nombre}</div>
-                    )}
-                    <div className="meta">
-                      <div className="title">{it.nombre}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
           ) : canalEnGrande ? (
             <div className="pa-avance">
               <span className="pa-avance-logo">

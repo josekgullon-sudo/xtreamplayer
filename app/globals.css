@@ -3120,14 +3120,18 @@ select.input { appearance: none; cursor: pointer; }
 }
 
 /*
- * Lo guardado del catálogo, en el hueco grande de Favoritos.
+ * Lo guardado del catálogo, debajo de los canales guardados.
  *
- * Con su propio desplazamiento: la columna de canales de la izquierda ya
- * tiene el suyo, y una sola barra para las dos cosas obligaba a bajar la
- * lista de canales para llegar a las carátulas.
+ * En la misma columna y en el mismo desplazamiento que ellos: son dos
+ * mitades de la misma lista —lo que has guardado tú— y separarlas en dos
+ * paneles con dos barras hacía parecer que eran dos cosas distintas.
+ *
+ * Tres por fila, que es lo que cabe en una columna de trescientos y pico
+ * píxeles sin que el título de la película deje de leerse.
  */
-.pa-milista { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 22px 28px; }
-.pa-milista-t { font-size: 17px; font-weight: 750; margin-bottom: 14px; }
+.pa-milista { padding: 16px 4px 8px; border-top: 1px solid var(--hairline); margin-top: 14px; }
+.pa-milista-t { font-size: 14px; font-weight: 750; margin-bottom: 10px; color: var(--text-dim); }
+.pa-milista-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 
 /* Puesto en la lista: la estrella se enciende. Con el mismo botón gris en
    los dos estados, la única diferencia era leer el rótulo */

@@ -122,6 +122,39 @@ const ck = (sc, n) => {
   const fichaTxt = await p2.locator(".ficha").innerText();
   check("La película abre su ficha con sinopsis y reparto", fichaTxt.includes("thriller de prueba") && fichaTxt.includes("Ana Actriz"), "");
   check("Con género, año y nota como chips", (await p2.locator(".ficha-chip").count()) >= 3, (await p2.locator(".ficha-chip").allInnerTexts()).join(" | "));
+
+  /*
+   * Guardarla para luego, que es la mitad de para lo que se abre una ficha.
+   *
+   * La estrella de los canales existía desde el primer día y el catálogo no
+   * tenía nada: se podía guardar el canal de deportes y no una película para
+   * el sábado. Se comprueba el ciclo entero —ponerla, que lo diga, y que
+   * salga en Favoritos— porque guardar algo que luego no aparece en ningún
+   * sitio es peor que no ofrecerlo.
+   */
+  const miLista = p2.locator(".ficha-acciones button:has-text('Mi lista')");
+  check("La ficha de una película deja guardarla en mi lista", (await miLista.count()) === 1);
+  await miLista.click();
+  check("Y al pulsarla lo dice",
+    (await p2.locator(".ficha-acciones button:has-text('En mi lista')").count()) === 1);
+  await p2.locator(".ficha-cerrar").click();
+  await p2.click('.pa-rail-item:has-text("Favoritos")');
+  await p2.waitForSelector(".pa-milista .pa-card", { timeout: 20000 });
+  check("Y en Favoritos aparece, con las guardadas del catálogo",
+    (await p2.locator(".pa-milista").innerText()).includes("Película Demo"),
+    (await p2.locator(".pa-milista").innerText()).replace(/\s+/g, " ").slice(0, 90));
+  /* Y se quita desde donde se puso: poner y quitar son la misma decisión */
+  await p2.locator(".pa-milista .pa-card").first().click();
+  await p2.waitForSelector(".ficha-acciones button:has-text('En mi lista')", { timeout: 20000 });
+  await p2.locator(".ficha-acciones button:has-text('En mi lista')").click();
+  check("Y se quita desde la misma ficha",
+    (await p2.locator(".ficha-acciones button:has-text('Mi lista')").count()) === 1);
+  await p2.locator(".ficha-cerrar").click();
+  await p2.click('.pa-rail-item:has-text("Cine")');
+  await p2.waitForSelector(".pa-card", { timeout: 20000 });
+  await p2.locator(".pa-card:has-text('Película Demo')").first().click();
+  await p2.waitForSelector(".ficha button:has-text('Reproducir')", { timeout: 15000 });
+
   await p2.locator(".ficha button:has-text('Reproducir')").click();
   await p2.waitForFunction(() => {
     const v = document.querySelector("video");

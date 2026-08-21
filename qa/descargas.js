@@ -337,6 +337,30 @@ const ENVOLTORIO = () => {
   await m.locator(".pa-bajada-quitar").click();
   await m.waitForFunction(() => document.querySelectorAll(".pa-bajada").length === 0, { timeout: 10000 });
   check("Y quitarlo lo quita", true);
+
+  /*
+   * Y una serie, que es la mitad que faltaba.
+   *
+   * La película estaba probada y la serie no, en el lado del reproductor.
+   * De una serie no se baja «la serie» —cuarenta ficheros y varios gigas no
+   * es una decisión que se tome pulsando un botón sin querer— sino el
+   * episodio que quieras, así que el botón va en cada fila de episodio.
+   */
+  await m.locator(".pa-bottomnav-item:has-text('Series')").click();
+  await m.waitForSelector(".pa-card", { timeout: 25000 });
+  await m.locator(".pa-card").first().click();
+  await m.waitForSelector(".ficha-episodios .pa-episode-fila", { timeout: 20000 });
+  const conBoton = await m.locator(".ficha-episodios .pa-episode-bajar").count();
+  const episodios = await m.locator(".ficha-episodios .pa-episode-fila").count();
+  check("En el reproductor, cada episodio de una serie se puede guardar",
+    episodios > 0 && conBoton === episodios, `${conBoton} botones para ${episodios} episodios`);
+  await m.locator(".ficha-episodios .pa-episode-bajar").first().click();
+  await m.locator(".ficha-cerrar").click();
+  await m.locator(".pa-bottomnav-item:has-text('Descargas')").click();
+  await m.waitForSelector(".pa-bajada", { timeout: 20000 });
+  check("Y lo que se guarda es el episodio, con su número",
+    /·\s*T\d+E\d+/.test(await m.locator(".pa-bajada-nombre").innerText()),
+    await m.locator(".pa-bajada-nombre").innerText());
   await m.screenshot({ path: __dirname + "/94-movil-descargas.png" });
 
   await b.close();
