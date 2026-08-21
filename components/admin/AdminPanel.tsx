@@ -1228,7 +1228,9 @@ export default function AdminPanel() {
                         <tr key={c.nombre}>
                           <td><code className="cred">{c.nombre}</code></td>
                           <td>{fechaHora(c.cuando)}</td>
-                          <td>{(c.bytes / 1024 / 1024).toFixed(2)} MB</td>
+                          {/* Con coma, como el tamaño de lo descargado en la
+                              tele y como se escriben aquí los decimales */}
+                          <td>{(c.bytes / 1024 / 1024).toFixed(2).replace(".", ",")} MB</td>
                           <td className="col-actions">
                             <a className="btn btn-ghost btn-sm" href={`/api/admin/copias?bajar=${encodeURIComponent(c.nombre)}`} download>
                               Descargar

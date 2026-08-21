@@ -3,6 +3,7 @@ import { getDb, InvoiceRow, ProviderRow } from "@/lib/db";
 import { getCurrentAdmin } from "@/lib/admin";
 import { facturas, anotar } from "@/lib/adminData";
 import { registrarFactura } from "@/lib/invoices";
+import { euros } from "@/lib/dinero";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,9 @@ export async function POST(req: NextRequest) {
     status: body.estado === "pendiente" ? "pendiente" : "pagada",
   });
 
-  anotar(admin.email, "factura", proveedor.email, `${factura.number} · ${(importe / 100).toFixed(2)} €`);
+  /* Esta línea se lee en el registro del panel: el importe, escrito como se
+     escribe en el resto del producto */
+  anotar(admin.email, "factura", proveedor.email, `${factura.number} · ${euros(importe / 100)}`);
   return NextResponse.json({ ok: true, numero: factura.number });
 }
 
