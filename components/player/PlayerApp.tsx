@@ -259,6 +259,17 @@ export default function PlayerApp() {
    * se elige y se recuerda.
    */
   const [vistaCanales, setVistaCanales] = useState<"lista" | "rejilla">("lista");
+  /**
+   * El canal por el que va el ratón, para enseñarlo en grande al lado.
+   *
+   * Sin nada puesto, dos tercios de la pantalla del directo eran un cuadro
+   * gris con «Elige un canal y empieza a verlo aquí»: el sitio más grande
+   * que hay, ocupado por una instrucción. Ahí va ahora el canal que se está
+   * mirando —su logotipo, su nombre y qué echan— y el botón de verlo. Es la
+   * misma idea que en la tele, donde ese sitio lo llena el canal que tiene
+   * el foco; aquí el foco es el ratón.
+   */
+  const [canalMirado, setCanalMirado] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Record<string, true>>({});
   const [recents, setRecents] = useState<RecentItem[]>([]);
   const [seriesDetail, setSeriesDetail] = useState<{ series: XtreamSeries; info: XtreamSeriesInfo; season: string } | null>(null);
@@ -625,6 +636,10 @@ export default function PlayerApp() {
     setEpgAhora({});
     epgPedidos.current = new Set();
   }, [activeId]);
+
+  useEffect(() => {
+    setCanalMirado(null);
+  }, [activeId, tab, grupoSel]);
 
   /* ---------- Acciones ---------- */
 
@@ -1462,6 +1477,18 @@ export default function PlayerApp() {
   }, [active, tab, canalesVisibles, rangoCanales]);
 
   /*
+   * El canal del panel grande: el que se está mirando, y si no, el primero.
+   *
+   * Que haya uno por defecto es lo que hace que la pantalla no nazca vacía:
+   * al entrar en el directo ya se ve un canal con su nombre y lo que echan,
+   * antes de mover el ratón.
+   */
+  const canalEnGrande = useMemo(
+    () => canalesVisibles.find((c) => c.favKey === canalMirado) || canalesVisibles[0] || null,
+    [canalesVisibles, canalMirado]
+  );
+
+  /*
    * Y aquí se piden sus guías, de seis en seis: treinta peticiones a la vez
    * contra un panel modesto acaban en tiempos de espera.
    *
@@ -2171,6 +2198,8 @@ export default function PlayerApp() {
                       key={ch.favKey}
                       className={`pa-canal-tarjeta ${current?.favKey === ch.favKey ? "activo" : ""}`}
                       onClick={ch.play}
+                      onMouseEnter={() => setCanalMirado(ch.favKey)}
+                      onFocus={() => setCanalMirado(ch.favKey)}
                       title={ahora ? `${ch.name} — ${ahora}` : ch.name}
                     >
                       <span className="pa-canal-logo">
@@ -2207,6 +2236,8 @@ export default function PlayerApp() {
                     key={ch.favKey}
                     className={`pa-live-chan ${current?.favKey === ch.favKey ? "activo" : ""}`}
                     onClick={ch.play}
+                    onMouseEnter={() => setCanalMirado(ch.favKey)}
+                    onFocus={() => setCanalMirado(ch.favKey)}
                     title={ahora ? `${ch.name} — ${ahora}` : ch.name}
                   >
                     <span className="pa-live-num">{i + 1}</span>
@@ -2296,6 +2327,38 @@ export default function PlayerApp() {
                   </button>
                 ))}
               </div>
+            </div>
+          ) : canalEnGrande ? (
+            <div className="pa-avance">
+              <span className="pa-avance-logo">
+                {imgSrc(canalEnGrande.logo) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imgSrc(canalEnGrande.logo)}
+                    alt=""
+                    onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")}
+                  />
+                ) : (
+                  <span className="ph">{canalEnGrande.name.trim().slice(0, 1).toUpperCase()}</span>
+                )}
+              </span>
+              <h3 className="pa-avance-nombre">{canalEnGrande.name}</h3>
+              {epgAhora[`${active.id}:${canalEnGrande.id}`] ? (
+                <p className="pa-avance-ahora">
+                  <span className="pa-punto" aria-hidden="true" />
+                  {epgAhora[`${active.id}:${canalEnGrande.id}`]}
+                </p>
+              ) : (
+                /* Cadena vacía es «preguntado y no hay guía»; sin poner es
+                   «todavía sin preguntar». Solo lo primero merece decirse */
+                epgAhora[`${active.id}:${canalEnGrande.id}`] === "" && (
+                  <p className="pa-avance-sin">Tu proveedor no manda la guía de este canal.</p>
+                )
+              )}
+              <button className="btn btn-primary btn-lg" onClick={canalEnGrande.play}>
+                <Icon name="play" size={17} /> Ver ahora
+              </button>
+              <p className="pa-avance-pista">Pasa por encima de un canal para ver qué echan.</p>
             </div>
           ) : (
             <div className="pa-live-vacio">

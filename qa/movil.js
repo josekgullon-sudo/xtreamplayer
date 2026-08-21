@@ -35,6 +35,10 @@ async function abrirCanales(p) {
      que lo que va a pulsar esté quieto, y si no se queda quieto agota los
      treinta segundos y falla sin que nada esté roto. */
   await p.waitForFunction(() => {
+    /* Y a que se haya ido el esqueleto de carga, que va JUSTO ENCIMA de la
+       lista: mientras está, ocupa ocho filas que empujan las carpetas hacia
+       abajo, y al irse todas suben de golpe */
+    if (document.querySelector(".skeleton-list")) return false;
     const cuantos = document.querySelectorAll(".pa-live-cat").length;
     const antes = window.__qaCat;
     window.__qaCat = cuantos;
