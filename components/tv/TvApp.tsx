@@ -16,6 +16,7 @@ import {
 import VideoPlayer, { PlaySource } from "@/components/player/VideoPlayer";
 import { parseM3U } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
+import { indiceEnAntena, momento } from "@/lib/epg";
 import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
 import {
@@ -297,17 +298,6 @@ function horaCorta(ms: number): string {
 }
 
 /** El panel manda la hora de dos maneras y a veces de ninguna. */
-function momento(v?: string | number): number {
-  if (v === undefined || v === null || v === "") return 0;
-  const n = Number(v);
-  if (Number.isFinite(n) && n > 1000000000) return n * 1000;
-  /* «2026-08-12 21:00:00» sin zona: los paneles la mandan en la del
-     servidor, así que se lee como local y se acepta el desvío —vale para
-     pintar una barra, no para programar una grabación— */
-  const t = Date.parse(String(v).replace(" ", "T"));
-  return Number.isFinite(t) ? t : 0;
-}
-
 function normalizarTecla(e: KeyboardEvent): Tecla {
   switch (e.key) {
     case "Escape":
@@ -2098,24 +2088,15 @@ export default function TvApp() {
               }>(creds, "get_short_epg", { stream_id: id, limit: "2" });
               const listado = res.epg_listings || [];
               if (!listado.length) return [id, vacia] as const;
-              /*
-               * El que está en antena, no el primero de la lista.
-               *
-               * `get_short_epg` empieza donde le parece al panel: unos lo
-               * hacen en el programa en curso y otros en el bloque de la
-               * hora anterior, que ya ha terminado. Cogiendo el primero a
-               * ciegas se anunciaba como «ahora» algo emitido hace una hora,
-               * y la barra de progreso salía llena o no salía.
-               */
+              /* El que está en antena, no el primero de la lista: la regla
+                 vive en lib/epg.ts y la comparte con el reproductor web */
               const horas = listado.map((e) => ({
                 titulo: decodeBase64Maybe(e.title) || "",
                 resumen: decodeBase64Maybe(e.description) || "",
                 desde: momento(e.start_timestamp ?? e.start),
                 hasta: momento(e.stop_timestamp ?? e.end),
               }));
-              const cuando = Date.now();
-              let i = horas.findIndex((e) => e.desde && e.hasta && e.desde <= cuando && cuando < e.hasta);
-              if (i < 0) i = 0;
+              const i = indiceEnAntena(listado);
               return [
                 id,
                 {

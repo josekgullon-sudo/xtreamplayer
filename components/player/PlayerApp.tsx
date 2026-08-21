@@ -34,6 +34,7 @@ import {
 } from "@/lib/storage";
 import { parseM3U, M3UChannel } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
+import { indiceEnAntena, type Emision } from "@/lib/epg";
 import PortadaCatalogo from "./PortadaCatalogo";
 import { Titulo, anioDe } from "@/lib/portada";
 import { iconoDeCategoria } from "@/lib/categorias";
@@ -597,17 +598,21 @@ export default function PlayerApp() {
     const p = playlists.find((x) => x.id === current.playlistId);
     if (!p || p.type !== "xtream") return;
     let cancelled = false;
-    xtreamApi<{ epg_listings?: { title?: string; start?: string; end?: string }[] }>(
+    /* Tres y no dos: si el panel empieza la tira en el bloque anterior —que
+       muchos lo hacen— con dos solo caben «lo que ya terminó» y «lo de
+       ahora», y no queda ninguno para el «después» */
+    xtreamApi<{ epg_listings?: Emision[] }>(
       credsOf(p),
       "get_short_epg",
-      { stream_id: String(current.streamId), limit: "2" }
+      { stream_id: String(current.streamId), limit: "3" }
     )
       .then((res) => {
         if (cancelled) return;
         const listings = res.epg_listings || [];
+        const i = indiceEnAntena(listings);
         setEpg({
-          now: decodeBase64Maybe(listings[0]?.title),
-          next: decodeBase64Maybe(listings[1]?.title),
+          now: decodeBase64Maybe(listings[i]?.title),
+          next: decodeBase64Maybe(listings[i + 1]?.title),
         });
       })
       .catch(() => {});
@@ -1513,12 +1518,17 @@ export default function PlayerApp() {
         const hechas = await Promise.all(
           tanda.map(async (id) => {
             try {
-              const res = await xtreamApi<{ epg_listings?: { title?: string }[] }>(
+              /* Dos, para poder descartar el que ya terminó: pidiendo uno
+                 solo no hay forma de saber si el que llega es el de ahora o
+                 el de la hora pasada, y se anunciaba lo segundo */
+              const res = await xtreamApi<{ epg_listings?: Emision[] }>(
                 creds,
                 "get_short_epg",
-                { stream_id: id, limit: "1" }
+                { stream_id: id, limit: "2" }
               );
-              return [id, decodeBase64Maybe(res.epg_listings?.[0]?.title) || ""] as const;
+              const listado = res.epg_listings || [];
+              const enAntena = listado[indiceEnAntena(listado)];
+              return [id, decodeBase64Maybe(enAntena?.title) || ""] as const;
             } catch {
               /* Un canal sin guía no puede dejar en blanco a los otros cinco */
               return [id, ""] as const;

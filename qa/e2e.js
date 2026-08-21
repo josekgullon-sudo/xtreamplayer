@@ -195,13 +195,25 @@ function check(name, ok, detail = "") {
     )
     .catch(() => {});
   const epgText = await page.locator(".pa-live-titulo p").innerText();
-  check("EPG ahora/después decodificada", epgText.includes("Telediario de prueba") && epgText.includes("El programa siguiente"), epgText);
+  /*
+   * «Ahora» es el que está en antena, no el primero que manda el panel.
+   *
+   * El servidor simulado empieza la tira una hora antes, como hacen muchos
+   * paneles de verdad: el primero de la lista es «Telediario de prueba», que
+   * YA TERMINÓ, y lo que se está emitiendo es «El programa siguiente». Esto
+   * daba por buena la lectura ingenua —el primero— y por eso el fallo llevaba
+   * ahí desde el principio sin que nadie lo viera.
+   */
+  check("El «ahora» es el que está en antena, no el que ya terminó",
+    epgText.includes("El programa siguiente") && !epgText.includes("Telediario de prueba"), epgText);
+  check("Y detrás, el de después", epgText.includes("Cine de sobremesa"), epgText);
 
   /* Qué echan ahora, en la propia lista y no solo dentro del canal: es lo
      que evita entrar en veinte para descubrir qué dan. El dato ya se pedía */
   await page.waitForSelector(".pa-live-chan .pa-live-ahora", { timeout: 20000 });
   const enLista = await page.locator(".pa-live-chan .pa-live-ahora").first().innerText();
-  check("La lista de canales dice qué echan ahora", enLista.includes("Telediario de prueba"), enLista);
+  check("La lista de canales dice qué echan ahora, y es lo de ahora",
+    enLista.includes("El programa siguiente") && !enLista.includes("Telediario"), enLista);
   check("Y cada carpeta lleva su icono", (await page.locator(".pa-live-cat .pa-cat-icono").count()) >= 2);
 
   // La otra forma de mirar la misma carpeta: el logotipo grande
