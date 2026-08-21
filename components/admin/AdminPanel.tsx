@@ -465,7 +465,9 @@ export default function AdminPanel() {
             <h1>{TITULOS[tab]}</h1>
             <p className="panel-sub">{SUBTITULOS[tab]}</p>
           </div>
-          {resumen && (
+          {/* En «Resumen» no: esa pantalla ya trae la misma cifra en su
+              propia tarjeta, y salían las dos a la vez */}
+          {resumen && tab !== "resumen" && (
             <div className="panel-head-stat">
               <span className="panel-card-label">Clientes activos</span>
               <span className="panel-card-value">
@@ -497,16 +499,29 @@ export default function AdminPanel() {
             {tab === "resumen" && resumen && (
               <>
                 <div className="panel-cards">
+                  {/*
+                    «Activos de total», y no solo los activos.
+
+                    El número que va al lado de «Proveedores» en el menú es el
+                    total, y aquí salían los activos: dos cifras distintas
+                    bajo la misma palabra y a dos dedos una de otra —27 en la
+                    tarjeta, 28 en el menú—, que es de las cosas que hacen
+                    dudar de todos los demás números de la pantalla.
+                  */}
                   <div className="panel-card">
                     <span className="panel-card-label">Proveedores</span>
-                    <span className="panel-card-value">{resumen.proveedores.activos}</span>
+                    <span className="panel-card-value">
+                      {resumen.proveedores.activos} <small>/ {resumen.proveedores.total}</small>
+                    </span>
                     <span className="admin-card-pie">
                       {resumen.proveedores.enPrueba} en prueba · {plural(resumen.proveedores.suspendidos, "suspendido", "suspendidos")}
                     </span>
                   </div>
                   <div className="panel-card">
                     <span className="panel-card-label">Clientes finales</span>
-                    <span className="panel-card-value">{resumen.clientes.activos}</span>
+                    <span className="panel-card-value">
+                      {resumen.clientes.activos} <small>/ {resumen.clientes.total}</small>
+                    </span>
                     <span className="admin-card-pie">
                       {plural(resumen.clientes.caducados, "caducado", "caducados")} ·{" "}
                       <b className={resumen.clientes.caducanEn7 ? "admin-ojo" : ""}>{resumen.clientes.caducanEn7}</b>{" "}
