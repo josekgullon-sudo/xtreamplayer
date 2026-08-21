@@ -636,11 +636,11 @@ public final class Catalogo {
             peli.sinopsis = primero(info.optString("plot", ""), info.optString("description", ""));
             String portada = primero(info.optString("movie_image", ""), info.optString("cover_big", ""));
             if (!portada.isEmpty()) peli.imagen = portada;
-            String duracion = info.optString("duration", "");
+            String duracion = duracionDe(info.optString("duration", ""), info.optString("duration_secs", ""));
             String genero = info.optString("genre", "");
             /* Cada dato por su lado, además de la línea de siempre: la ficha
                los coloca en su sitio y el cartel sigue usando `extra` */
-            peli.duracion = limpio(duracion);
+            peli.duracion = duracion;
             peli.generos = limpio(genero);
             peli.nota = limpio(info.optString("rating", ""));
             peli.reparto = primero(limpio(info.optString("cast", "")), limpio(info.optString("actors", "")));
@@ -651,7 +651,7 @@ public final class Catalogo {
                 if (extra.length() > 0) extra.append("  ·  ");
                 extra.append(genero);
             }
-            if (!duracion.isEmpty() && !"null".equals(duracion)) {
+            if (!duracion.isEmpty()) {
                 if (extra.length() > 0) extra.append("  ·  ");
                 extra.append(duracion);
             }
@@ -668,6 +668,29 @@ public final class Catalogo {
         return ("null".equals(t) || "0".equals(t) || "N/A".equalsIgnoreCase(t)) ? "" : t;
     }
 
+    /**
+     * «112 min», de lo que mande el panel.
+     *
+     * Xtream manda la duración por duplicado: `duration` como un reloj
+     * —«01:52:00»— y `duration_secs` como un número —«6720»—. Enseñar el
+     * reloj tal cual obliga a restar de cabeza para saber si una película
+     * cabe antes de cenar. Lo que no se entiende no se enseña: un «0 min»
+     * es peor que no poner nada. El mismo cálculo que en `lib/episodios.ts`.
+     */
+    private static String duracionDe(String bruto, String segundos) {
+        String t = limpio(bruto);
+        Matcher reloj = Pattern.compile("^(\\d+):(\\d{2}):(\\d{2})$").matcher(t);
+        if (reloj.find()) {
+            int min = entero(reloj.group(1)) * 60 + entero(reloj.group(2));
+            return min > 0 ? min + " min" : "";
+        }
+        int n = entero(t);
+        if (n > 0) return n + " min";
+        /* Menos de un minuto no es una duración: es un 0 o un campo a medias */
+        int s = entero(limpio(segundos));
+        return s >= 60 ? Math.round(s / 60f) + " min" : "";
+    }
+
     /** Los cuatro dígitos del año, de una fecha escrita como sea. */
     private static String anioDe(String fecha) {
         if (fecha == null) return "";
@@ -680,6 +703,99 @@ public final class Catalogo {
     }
 
     /* ---------------- Los episodios de una serie ---------------- */
+
+    /** Sin acentos, sin signos y en minúsculas, para comparar nombres. */
+    private static String llano(String s) {
+        if (s == null) return "";
+        String n = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+                .replaceAll("[\\u0300-\\u036f]", "")
+                .toLowerCase(java.util.Locale.ROOT);
+        return n.replaceAll("[^a-z0-9]+", " ").trim();
+    }
+
+    /** Los separadores con los que un panel pega las partes de un título. */
+    private static final Pattern SEPARADOR = Pattern.compile("^[\\s\\-–—:.·|]+");
+
+    /** «S01E03», «1x03», «T1E3», «Temporada 1 Episodio 3». */
+    private static final Pattern CODIGO = Pattern.compile(
+            "(?i)^(?:s\\s*\\d{1,3}\\s*e\\s*\\d{1,4}|t\\s*\\d{1,3}\\s*e\\s*\\d{1,4}"
+            + "|\\d{1,3}\\s*x\\s*\\d{1,4}|temporada\\s*\\d{1,3}\\s*(?:episodio\\s*\\d{1,4})?"
+            + "|episodio\\s*\\d{1,4}|capítulo\\s*\\d{1,4}|capitulo\\s*\\d{1,4})");
+
+    /** Las palabras del texto de verdad, para recortar por donde acaban. */
+    private static final Pattern PALABRA = Pattern.compile("[\\p{L}\\p{N}]+");
+
+    /**
+     * Le quita al texto el nombre de la serie, si va por delante.
+     *
+     * Palabra a palabra sobre el texto DE VERDAD y comparando su versión
+     * llana, en vez de recortar por la longitud del nombre sin tildes: «El
+     * Ministerio del Tiempo» ocupa distinto con acentos que sin ellos, y
+     * contando por la versión llana el corte cae a media palabra.
+     */
+    private static String sinElNombre(String texto, String[] palabras) {
+        if (palabras.length == 0) return texto;
+        Matcher m = PALABRA.matcher(texto);
+        int cuantas = 0;
+        int hasta = 0;
+        while (cuantas < palabras.length && m.find()) {
+            /* La primera tiene que estar al principio: si el nombre aparece
+               por el medio, no es un prefijo y no hay nada que quitar */
+            if (cuantas == 0 && m.start() != 0) return texto;
+            if (!llano(m.group()).equals(palabras[cuantas])) return texto;
+            hasta = m.end();
+            cuantas++;
+        }
+        return cuantas == palabras.length ? texto.substring(hasta) : texto;
+    }
+
+    private static String sinSeparador(String t) {
+        Matcher m = SEPARADOR.matcher(t);
+        return m.find() ? t.substring(m.end()) : t;
+    }
+
+    /**
+     * El título de un episodio, sin lo que ya dice la fila.
+     *
+     * Los paneles copian la ficha entera del proveedor, y ahí un episodio se
+     * llama «Serie Demo - S01E03 - Un título que repite el nombre entero».
+     * En una lista dentro de la ficha de esa misma serie, con su número al
+     * lado, las dos primeras terceras partes son ruido. Si al quitarlas no
+     * queda nada, se devuelve el original: es peor un renglón vacío que uno
+     * repetido. Es el mismo recorte que hacen la web y la tele —está en
+     * `lib/episodios.ts`—, escrito aquí porque el aparato no tiene aquello.
+     */
+    static String tituloDeEpisodio(String titulo, String nombreDeLaSerie) {
+        String original = titulo == null ? "" : titulo.trim();
+        if (original.isEmpty()) return "";
+
+        String queda = original;
+        String serie = llano(nombreDeLaSerie);
+        String[] palabras = serie.isEmpty() ? new String[0] : serie.split(" ");
+
+        /* Tres vueltas: el nombre puede ir antes o después del código, y hay
+           paneles que ponen «Serie - S01E03 - Serie - Título» */
+        for (int vuelta = 0; vuelta < 3; vuelta++) {
+            String antes = queda;
+            queda = sinSeparador(queda);
+
+            if (!serie.isEmpty()) {
+                /* El título es exactamente el nombre de la serie: quitándolo
+                   no queda nada, y lo que hay tampoco aporta */
+                if (llano(queda).equals(serie)) return original;
+                queda = sinElNombre(queda, palabras);
+            }
+
+            queda = sinSeparador(queda);
+            Matcher codigo = CODIGO.matcher(queda);
+            if (codigo.find()) queda = queda.substring(codigo.end());
+
+            if (queda.equals(antes)) break;
+        }
+
+        queda = sinSeparador(queda).trim();
+        return queda.isEmpty() ? original : queda;
+    }
 
     public static List<Episodio> episodios(Item serie) throws Exception {
         List<Episodio> ya = episodios.get(serie.id);
@@ -699,8 +815,8 @@ public final class Catalogo {
                     serie.anio = anioDe(primero(info.optString("releaseDate", ""), info.optString("release_date", "")));
                 }
                 if (serie.duracion.isEmpty()) {
-                    String porEp = limpio(info.optString("episode_run_time", ""));
-                    if (!porEp.isEmpty()) serie.duracion = porEp + " min/ep";
+                    String porEp = duracionDe(info.optString("episode_run_time", ""), "");
+                    if (!porEp.isEmpty()) serie.duracion = porEp.replace(" min", " min/ep");
                 }
             }
             JSONObject porTemporada = r.optJSONObject("episodes");
@@ -716,7 +832,8 @@ public final class Catalogo {
                         ep.id = e.optString("id", "");
                         ep.temporada = e.optInt("season", entero(clave));
                         ep.numero = e.optInt("episode_num", i + 1);
-                        ep.titulo = e.optString("title", "Episodio " + ep.numero);
+                        ep.titulo = tituloDeEpisodio(e.optString("title", ""), serie.nombre);
+                        if (ep.titulo.isEmpty()) ep.titulo = "Episodio " + ep.numero;
                         ep.extension = e.optString("container_extension", "mp4");
                         JSONObject datos = e.optJSONObject("info");
                         if (datos != null) {
@@ -735,7 +852,7 @@ public final class Catalogo {
                 Item it = sueltos.get(i);
                 Episodio ep = new Episodio();
                 ep.id = it.id;
-                ep.titulo = it.nombre;
+                ep.titulo = tituloDeEpisodio(it.nombre, serie.nombre);
                 ep.url = it.url;
                 ep.imagen = it.imagen;
                 Matcher m = TEMPORADA.matcher(it.nombre);

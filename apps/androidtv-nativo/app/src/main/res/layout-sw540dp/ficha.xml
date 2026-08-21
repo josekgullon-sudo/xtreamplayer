@@ -123,6 +123,20 @@
                             android:visibility="gone" />
 
                         <TextView
+                            android:id="@+id/chipTemporadas"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/chip_ficha"
+                            android:paddingStart="14dp"
+                            android:paddingEnd="14dp"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"
+                            android:textColor="@color/texto"
+                            android:textSize="15sp"
+                            android:visibility="gone" />
+
+                        <TextView
                             android:id="@+id/chipEdad"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"

@@ -4998,7 +4998,71 @@ select.input { appearance: none; cursor: pointer; }
  * dos acciones sobre lo mismo.
  */
 .pa-episode-fila { display: flex; align-items: stretch; gap: 8px; }
-.pa-episode-fila .pa-episode { flex: 1; min-width: 0; }
+.pa-episode-fila .pa-episode { flex: 1; min-width: 0; align-items: flex-start; }
+
+/*
+ * La fila de un episodio: fotograma, y al lado lo que hace falta saber.
+ *
+ * Antes era número y título en una línea. Dos episodios seguidos de la
+ * misma serie se distinguen por el fotograma antes que por el nombre —sobre
+ * todo cuando el proveedor los llama «S01E03» y «S01E04»—, y con la sinopsis
+ * delante se elige cuál poner sin entrar a probar. Es lo que ya hacía la
+ * ficha de la tele; aquí faltaba.
+ */
+.pa-episode-foto {
+  position: relative; flex: none; width: 128px; aspect-ratio: 16 / 9;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm); overflow: hidden;
+  background: var(--bg-elev-2);
+}
+.pa-episode-foto img { width: 100%; height: 100%; object-fit: cover; }
+/* Sin fotograma, el número en grande: un hueco gris parece un fallo, y esto
+   se lee como una decisión */
+.pa-episode-n { font-size: 26px; font-weight: 800; color: var(--text-faint); }
+.pa-episode-min {
+  position: absolute; right: 5px; bottom: 5px;
+  padding: 1px 6px; border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72); color: #fff;
+  font-size: 11px; font-weight: 650;
+}
+.pa-episode-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+/*
+ * El «T1: E3» ya no es la pastilla con el número dentro.
+ *
+ * Esa pastilla mide 30x30 y estaba pensada para un dígito; con «T1: E3»
+ * dentro, el texto parte en dos renglones y la fila crece. Ahora el número
+ * va como rótulo encima del título, así que hay que deshacer la pastilla —y
+ * con la sangría de `.ficha-episodios` delante, para ganarle a la regla que
+ * la pinta.
+ */
+.ficha-episodios .pa-episode { align-items: flex-start; }
+.ficha-episodios .pa-episode-txt .ep-num {
+  width: auto; height: auto; border-radius: 0; background: none;
+  display: block; white-space: nowrap;
+  font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--text-faint); min-width: 0;
+}
+/* Y el título puede ocupar dos renglones: cortado con puntos suspensivos en
+   uno solo, «Un título que repite el nombre entero» se queda en «Un título
+   que repite…», que es justo lo que había que arreglar */
+.ficha-episodios .pa-episode-txt .ep-t {
+  flex: none; white-space: normal; overflow: visible;
+  font-weight: 650; line-height: 1.35;
+}
+/* Dos líneas de sinopsis: los paneles copian la ficha entera del episodio y
+   hay quien manda cinco renglones, que en una lista de veinte episodios es
+   una pared que no lee nadie */
+.pa-episode-txt .ep-p {
+  font-size: 12.5px; line-height: 1.45; color: var(--text-dim);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* En el móvil el fotograma se encoge: con 128 px al nombre del episodio le
+   quedaban dos palabras por línea */
+@media (max-width: 640px) {
+  .pa-episode-foto { width: 96px; }
+  .pa-episode-txt .ep-p { -webkit-line-clamp: 2; font-size: 12px; }
+}
 .pa-episode-bajar {
   flex: none; width: 46px;
   display: flex; align-items: center; justify-content: center;

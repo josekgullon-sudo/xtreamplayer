@@ -19,7 +19,7 @@ const check = (n, ok, d = "") => {
 };
 
 (async () => {
-  const { tituloDeEpisodio } = await import("../lib/episodios.ts");
+  const { tituloDeEpisodio, duracionDe } = await import("../lib/episodios.ts");
 
   /* [título tal y como lo manda el panel, nombre de la serie, lo que se lee] */
   const casos = [
@@ -46,7 +46,24 @@ const check = (n, ok, d = "") => {
     check(porque, sale === esperado, sale === esperado ? "" : `«${titulo}» → «${sale}», esperaba «${esperado}»`);
   }
 
+  /* [reloj, segundos, lo que se lee] */
+  const duraciones = [
+    ["01:52:00", "", "112 min", "El reloj que manda Xtream, en minutos"],
+    ["00:48:00", "", "48 min", "Y uno de menos de una hora"],
+    ["", "6720", "112 min", "Solo los segundos: no son 6720 minutos"],
+    ["", "0", "", "Un cero no es una duración"],
+    ["", "", "", "Sin nada, nada"],
+    ["45", "", "45 min", "Los minutos sueltos de `episode_run_time`"],
+    ["00:00:00", "", "", "Un reloj a cero tampoco dice nada"],
+    ["", "30", "", "Medio minuto es un campo a medias, no una película"],
+  ];
+
+  for (const [reloj, segundos, esperado, porque] of duraciones) {
+    const sale = duracionDe(reloj, segundos);
+    check(porque, sale === esperado, sale === esperado ? "" : `«${reloj}»/«${segundos}» → «${sale}», esperaba «${esperado}»`);
+  }
+
   const fallan = results.filter((x) => !x).length;
-  console.log(`\n${results.length - fallan}/${results.length} pruebas de títulos de episodio OK`);
+  console.log(`\n${results.length - fallan}/${results.length} pruebas de títulos y duraciones OK`);
   process.exit(fallan ? 1 : 0);
 })();

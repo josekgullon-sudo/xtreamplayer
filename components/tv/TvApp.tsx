@@ -17,7 +17,7 @@ import VideoPlayer, { PlaySource } from "@/components/player/VideoPlayer";
 import { parseM3U } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
 import { indiceEnAntena, momento } from "@/lib/epg";
-import { minutosDe } from "@/lib/episodios";
+import { duracionDe, minutosDe, tituloDeEpisodio } from "@/lib/episodios";
 import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
 import {
@@ -1460,7 +1460,7 @@ export default function TvApp() {
                   ? {
                       ...antes,
                       sinopsis: antes.sinopsis || String(info.info?.plot ?? info.info?.description ?? ""),
-                      duracion: minutosDe(info.info?.duration || String(info.info?.duration_secs ?? "")),
+                      duracion: duracionDe(info.info?.duration, info.info?.duration_secs),
                       genero: antes.genero || String(info.info?.genre ?? ""),
                       nota: antes.nota || String(info.info?.rating ?? ""),
                       reparto: String(info.info?.cast ?? info.info?.actors ?? ""),
@@ -1789,7 +1789,7 @@ export default function TvApp() {
           ? {
               ...antes,
               sinopsis: antes.sinopsis || String(info.info?.plot ?? info.info?.description ?? ""),
-              duracion: minutosDe(info.info?.duration || String(info.info?.duration_secs ?? "")),
+              duracion: duracionDe(info.info?.duration, info.info?.duration_secs),
               genero: antes.genero || String(info.info?.genre ?? ""),
               nota: antes.nota || String(info.info?.rating ?? ""),
               reparto: String(info.info?.cast ?? info.info?.actors ?? ""),
@@ -1841,35 +1841,41 @@ export default function TvApp() {
       const info = await xtreamApi<XtreamSeriesInfo>(creds, "get_series_info", { series_id: String(s.series_id) });
       const porTemporada: Record<string, Episodio[]> = {};
       for (const [temporada, lista] of Object.entries(info.episodes || {})) {
-        porTemporada[temporada] = (lista || []).map((ep) => ({
-          id: `ep-${ep.id}`,
-          numero: String(ep.episode_num ?? ""),
-          titulo: ep.title || `Episodio ${ep.episode_num}`,
-          imagen: imgSrc(ep.info?.movie_image || "") || "",
-          duracion: minutosDe(ep.info?.duration || ""),
-          sinopsis: String(ep.info?.plot ?? ""),
-          abrir: () =>
-            verEsto(`${s.name} — ${ep.title || ""}`, "video", () =>
-              pedirEnlace({
-                ...creds,
-                clase: "series",
-                id: ep.id,
-                ext: ep.container_extension || "mp4",
-              })
-            ),
-          /* La misma dirección que usa `abrir`, pero devuelta en vez de
-             puesta: guardarlo en el aparato y verlo son lo mismo con dos
-             finales distintos */
-          enlace: async () =>
-            dondeGuardar(
-              await pedirEnlace({
-                ...creds,
-                clase: "series",
-                id: ep.id,
-                ext: ep.container_extension || "mp4",
-              })
-            ),
-        }));
+        porTemporada[temporada] = (lista || []).map((ep) => {
+          /* Sin el nombre de la serie ni el «S01E03» delante: estás dentro
+             de la serie y el número va en la propia fila. También en el
+             rótulo de «estás viendo», que si no dice la serie dos veces */
+          const titulo = tituloDeEpisodio(ep.title || "", s.name) || `Episodio ${ep.episode_num}`;
+          return {
+            id: `ep-${ep.id}`,
+            numero: String(ep.episode_num ?? ""),
+            titulo,
+            imagen: imgSrc(ep.info?.movie_image || "") || "",
+            duracion: minutosDe(ep.info?.duration || ""),
+            sinopsis: String(ep.info?.plot ?? ""),
+            abrir: () =>
+              verEsto(`${s.name} — ${titulo}`, "video", () =>
+                pedirEnlace({
+                  ...creds,
+                  clase: "series",
+                  id: ep.id,
+                  ext: ep.container_extension || "mp4",
+                })
+              ),
+            /* La misma dirección que usa `abrir`, pero devuelta en vez de
+               puesta: guardarlo en el aparato y verlo son lo mismo con dos
+               finales distintos */
+            enlace: async () =>
+              dondeGuardar(
+                await pedirEnlace({
+                  ...creds,
+                  clase: "series",
+                  id: ep.id,
+                  ext: ep.container_extension || "mp4",
+                })
+              ),
+          };
+        });
       }
       /* En orden de número y no como los mande el panel: hay paneles que
          devuelven la 10 antes que la 2 porque ordenan por texto */
@@ -1882,9 +1888,11 @@ export default function TvApp() {
               sinopsis: antes.sinopsis || String(info.info?.plot ?? ""),
               /* En una serie, la duración es la del episodio: decir «45 min»
                  a secas de una serie de siete temporadas no significa nada */
-              duracion: info.info?.episode_run_time
-                ? `${minutosDe(String(info.info.episode_run_time))} por episodio`.replace(/^ por episodio$/, "")
-                : "",
+              /* «45 min/ep» y no «45 min»: decir «45 min» a secas de una
+                 serie de siete temporadas no significa nada. Y es como lo
+                 dicen la web y el aparato, que es lo mismo mirado en otra
+                 pantalla */
+              duracion: minutosDe(String(info.info?.episode_run_time ?? "")).replace(/ min$/, " min/ep"),
               genero: antes.genero || String(info.info?.genre ?? ""),
               nota: antes.nota || String(info.info?.rating ?? ""),
               reparto: String(info.info?.cast ?? ""),
@@ -2405,8 +2413,20 @@ export default function TvApp() {
 
   const quedaDe = (g?: Guia) => {
     if (!g?.hasta) return "";
-    const minutos = Math.round((g.hasta - ahoraMismo) / 60000);
-    if (minutos <= 0 || minutos > 600) return "";
+    const falta = g.hasta - ahoraMismo;
+    /* Ya terminó, o falta tanto que la guía se ha quedado vieja: decir
+       «quedan» de algo que no está en antena es peor que callarse */
+    if (falta <= 0 || falta > 600 * 60000) return "";
+    const minutos = Math.round(falta / 60000);
+    /*
+     * El último minuto se dice con palabras.
+     *
+     * Redondeando, ese minuto sale como «quedan 0 min», así que la línea
+     * desaparecía —y volvía sola un minuto después con el programa
+     * siguiente—. Justo en el momento en que más se mira: se está acabando
+     * y hay que decidir si se sigue ahí o se cambia.
+     */
+    if (minutos < 1) return "acaba ya";
     return minutos < 60 ? `quedan ${minutos} min` : `quedan ${Math.floor(minutos / 60)} h ${minutos % 60} min`;
   };
 
@@ -3348,7 +3368,7 @@ export default function TvApp() {
               {ficha.nota && (
                 <span className="tv-ficha-nota">
                   <Icon name="star" size={18} />
-                  {ficha.nota}
+                  {ficha.nota.replace(".", ",")}
                   {/* Cuánta gente la ha votado. Un 9,4 con doce votos y un
                       8,1 con doce mil no dicen lo mismo; sin el número, la
                       nota sola invita a fiarse de cualquiera de los dos */}
@@ -3440,11 +3460,6 @@ export default function TvApp() {
               </p>
             )}
 
-            {ficha.direccion && (
-              <p className="tv-ficha-credito">
-                <span>Dirección</span> <b>{ficha.direccion}</b>
-              </p>
-            )}
             {/*
               El reparto con la cara de cada uno, y si TMDB no conoce el
               título, los nombres del panel en una línea como hasta ahora.
@@ -3488,6 +3503,11 @@ export default function TvApp() {
                   <span>Reparto</span> <b>{ficha.reparto}</b>
                 </p>
               )
+            )}
+            {ficha.direccion && (
+              <p className="tv-ficha-credito">
+                <span>Dirección</span> <b>{ficha.direccion}</b>
+              </p>
             )}
             {ficha.genero && (
               <p className="tv-ficha-credito">

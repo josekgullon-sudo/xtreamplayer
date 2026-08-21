@@ -101,7 +101,9 @@ public class FichaActivity extends Activity {
      * valorar cuando lo que pasa es que ese panel no manda valoraciones.
      */
     private void pintarDatos() {
-        chip(R.id.chipNota, ficha.nota.isEmpty() ? "" : "★ " + ficha.nota);
+        /* Con coma, que es como se escriben aquí los decimales y como lo
+           dicen la web y la tele */
+        chip(R.id.chipNota, ficha.nota.isEmpty() ? "" : "★ " + ficha.nota.replace('.', ','));
         chip(R.id.chipAnio, ficha.anio);
         chip(R.id.chipEdad, ficha.edad);
         chip(R.id.chipDuracion, ficha.duracion);
@@ -376,6 +378,22 @@ public class FichaActivity extends Activity {
     }
 
     private void pintarTemporadas() {
+        /*
+         * Cuántas temporadas, arriba con los demás datos.
+         *
+         * No es lo mismo empezar algo de una temporada que algo de nueve, y
+         * es lo primero que se pregunta de una serie. La fila de abajo lo
+         * dice —«Temporada 1», «Temporada 2»…— pero con una sola no se
+         * pinta, que no hay nada que elegir, y entonces no se dice en
+         * ninguna parte. Es el mismo dato que ya sale en la web y en la
+         * tele. Si el panel no numera las temporadas, la única que hay es la
+         * 0 y decir «1 temporada» sería inventárselo.
+         */
+        int cuantas = porTemporada.size();
+        boolean sinNumerar = cuantas == 1 && porTemporada.containsKey(0);
+        chip(R.id.chipTemporadas,
+                sinNumerar ? "" : cuantas + (cuantas == 1 ? " temporada" : " temporadas"));
+
         temporadas.removeAllViews();
         LayoutInflater de = LayoutInflater.from(this);
         boolean primera = true;

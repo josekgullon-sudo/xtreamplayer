@@ -106,3 +106,20 @@ export function minutosDe(bruto?: string): string {
   const n = parseInt(t, 10);
   return Number.isFinite(n) && n > 0 ? `${n} min` : "";
 }
+
+/**
+ * Lo mismo, pero mirando también el campo en segundos.
+ *
+ * Xtream manda la duración de una película por duplicado: `duration` como
+ * un reloj —«01:52:00»— y `duration_secs` como un número —«6720»—. Hay
+ * paneles que solo mandan el segundo, y ahí `minutosDe` lee 6720 y escribe
+ * «6720 min», que es una película de cuatro días. Por eso los segundos
+ * entran por su propia puerta y no por la de los minutos.
+ */
+export function duracionDe(bruto?: string | number, segundos?: string | number): string {
+  const conReloj = minutosDe(String(bruto ?? ""));
+  if (conReloj) return conReloj;
+  const s = Number(String(segundos ?? "").trim());
+  /* Menos de un minuto no es una duración: es un 0 o un campo a medias */
+  return Number.isFinite(s) && s >= 60 ? `${Math.round(s / 60)} min` : "";
+}

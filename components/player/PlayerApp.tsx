@@ -37,7 +37,7 @@ import { imgSrc } from "@/lib/img";
 import { indiceEnAntena, type Emision } from "@/lib/epg";
 import PortadaCatalogo from "./PortadaCatalogo";
 import { Titulo, anioDe, type Actor } from "@/lib/portada";
-import { minutosDe, tituloDeEpisodio } from "@/lib/episodios";
+import { duracionDe, minutosDe, tituloDeEpisodio } from "@/lib/episodios";
 import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
 import {
@@ -2755,7 +2755,7 @@ export default function PlayerApp() {
               <FichaMeta
                 genero={vodDetail.info?.info?.genre}
                 fecha={vodDetail.info?.info?.releasedate || vodDetail.info?.info?.release_date}
-                duracion={vodDetail.info?.info?.duration}
+                duracion={duracionDe(vodDetail.info?.info?.duration, vodDetail.info?.info?.duration_secs)}
                 nota={vodDetail.info?.info?.rating || vodDetail.vod.rating}
               />
               {vodDetail.info === null ? (
@@ -2846,8 +2846,9 @@ export default function PlayerApp() {
               <FichaMeta
                 genero={seriesDetail.info.info?.genre}
                 fecha={seriesDetail.info.info?.releaseDate || seriesDetail.info.info?.release_date}
-                duracion={seriesDetail.info.info?.episode_run_time ? `${seriesDetail.info.info.episode_run_time} min/ep` : undefined}
+                duracion={minutosDe(String(seriesDetail.info.info?.episode_run_time ?? "")).replace(/ min$/, " min/ep")}
                 nota={seriesDetail.info.info?.rating || seriesDetail.series.rating}
+                temporadas={Object.keys(seriesDetail.info.episodes || {}).length}
               />
               <p className="ficha-plot">{seriesDetail.info.info?.plot || seriesDetail.series.plot || ""}</p>
               <Reparto gente={reparto} delPanel={seriesDetail.info.info?.cast} />
@@ -3056,15 +3057,27 @@ function BotonMiLista({
   );
 }
 
-/** Chips de metadatos de la ficha (género, año, duración, nota). */
-function FichaMeta({ genero, fecha, duracion, nota }: { genero?: string; fecha?: string; duracion?: string; nota?: string }) {
+/** Chips de metadatos de la ficha (género, año, temporadas, duración, nota). */
+function FichaMeta({
+  genero,
+  fecha,
+  duracion,
+  nota,
+  temporadas,
+}: { genero?: string; fecha?: string; duracion?: string; nota?: string; temporadas?: number }) {
   const año = (fecha || "").slice(0, 4);
   const notaNum = parseFloat(nota || "");
   const chips = [
     genero,
     año && año !== "0000" ? año : "",
+    /* Cuántas temporadas, que es lo primero que se pregunta de una serie:
+       no es lo mismo empezar algo de una temporada que algo de nueve. Es lo
+       que ya dice la ficha de la tele; aquí había que contar los botones */
+    temporadas ? `${temporadas} ${temporadas === 1 ? "temporada" : "temporadas"}` : "",
     duracion,
-    Number.isFinite(notaNum) && notaNum > 0 ? `★ ${notaNum.toFixed(1)}` : "",
+    /* Con coma, que es como se escriben aquí los decimales: un «7.8» en
+       medio de una ficha en castellano se lee como un error de traducción */
+    Number.isFinite(notaNum) && notaNum > 0 ? `★ ${notaNum.toFixed(1).replace(".", ",")}` : "",
   ].filter(Boolean);
   if (!chips.length) return null;
   return (

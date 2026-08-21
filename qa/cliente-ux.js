@@ -121,7 +121,14 @@ const ck = (sc, n) => {
   );
   const fichaTxt = await p2.locator(".ficha").innerText();
   check("La película abre su ficha con sinopsis y reparto", fichaTxt.includes("thriller de prueba") && fichaTxt.includes("Ana Actriz"), "");
-  check("Con género, año y nota como chips", (await p2.locator(".ficha-chip").count()) >= 3, (await p2.locator(".ficha-chip").allInnerTexts()).join(" | "));
+  const chipsPeli = (await p2.locator(".ficha-chip").allInnerTexts()).join(" | ");
+  check("Con género, año y nota como chips", (await p2.locator(".ficha-chip").count()) >= 3, chipsPeli);
+  /* La duración en minutos y no el reloj que manda el panel: «01:52:00»
+     obliga a restar de cabeza para saber si la peli cabe antes de cenar */
+  check("Y la duración en minutos, no en reloj", chipsPeli.includes("112 min") && !chipsPeli.includes("01:52"), chipsPeli);
+  /* Con coma: un «7.8» en medio de una ficha en castellano se lee como un
+     error de traducción */
+  check("Y la nota con coma decimal", /★ \d+,\d/.test(chipsPeli), chipsPeli);
 
   /*
    * Guardarla para luego, que es la mitad de para lo que se abre una ficha.
@@ -222,6 +229,22 @@ const ck = (sc, n) => {
     (await p2.locator(".ficha-caras li").count()) === 4,
     `${await p2.locator(".ficha-caras li").count()} caras`);
   check("Y la dirección que manda el panel", fichaSerie.includes("Sergio Series"), "");
+  /* Cuántas temporadas, que es lo primero que se pregunta de una serie: en
+     la tele ya salía y aquí había que contar los botones de abajo */
+  const chipsSerie = (await p2.locator(".ficha-chip").allInnerTexts()).join(" | ");
+  check("La serie dice cuántas temporadas tiene", /\d+ temporadas?/.test(chipsSerie), chipsSerie);
+  /*
+   * Y el título del episodio, sin lo que ya dice la fila.
+   *
+   * El panel los llama «Serie Demo - S01E03 - Un título que repite el nombre
+   * entero»: dentro de la ficha de esa misma serie y con «T1: E3» al lado,
+   * las dos primeras terceras partes son ruido, y son justo las que caben
+   * antes de que se corte lo único que aporta.
+   */
+  const tercero = await p2.locator(".ficha-episodios .pa-episode").nth(2).innerText();
+  check("Los episodios no repiten el nombre de la serie ni el código",
+    tercero.includes("Un título que repite el nombre entero") && !tercero.includes("S01E03"),
+    tercero.replace(/\n/g, " ⏎ "));
   await p2.locator(".pa-episode").first().click();
   await p2.waitForFunction(() => {
     const v = document.querySelector("video");

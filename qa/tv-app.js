@@ -777,6 +777,18 @@ async function esperarCanales(tv) {
     duraciones.join(" | "));
   check("Y una línea de qué pasa en él",
     (await tv.locator(".tv-ficha-ep-p").allInnerTexts()).some((t) => t.trim().length > 10));
+  /*
+   * Y el título sin lo que ya dice la fila.
+   *
+   * El panel los llama «Serie Demo - S01E03 - Un título que repite el nombre
+   * entero». Dentro de la ficha de esa serie, y con «T1: E3» al lado, las
+   * dos primeras terceras partes son ruido —y son justo las que caben antes
+   * de que se corte lo único que aporta—.
+   */
+  check("Sin repetir el nombre de la serie ni el código en cada episodio",
+    epsFicha.some((t) => t.includes("Un título que repite el nombre entero")) &&
+      !epsFicha.some((t) => /S01E\d/i.test(t)),
+    epsFicha.join(" | "));
   /* El mando: del botón a las temporadas, y de ahí a los episodios */
   /* El ratón deja el foco donde cayera el puntero al dibujarse la ficha
      —con el mando eso no pasa—, así que la navegación se prueba con el
@@ -879,8 +891,11 @@ async function esperarCanales(tv) {
   check("Puesto el canal, se ve su guía y no un «no hay guía»",
     (await tv.locator(".tv-viendo-prog").innerText()).includes("El programa siguiente"),
     (await tv.locator(".tv-viendo-canal").innerText()).replace(/\n/g, " "));
+  /* «acaba ya» además de «quedan N min»: durante el último minuto del
+     programa, redondeando salen cero minutos, y esa línea tiene que seguir
+     ahí —era justo cuando desaparecía— */
   check("Con cuánto le queda y qué viene después",
-    (await tv.locator(".tv-viendo-queda").innerText()).includes("quedan") &&
+    /quedan|acaba ya/.test(await tv.locator(".tv-viendo-queda").innerText()) &&
       (await tv.locator(".tv-viendo-luego").innerText()).includes("Después"),
     (await tv.locator(".tv-viendo-canal").innerText()).replace(/\n/g, " "));
   check("Y una barra que dice cuánto lleva", (await tv.locator(".tv-viendo-barra span").count()) === 1);
