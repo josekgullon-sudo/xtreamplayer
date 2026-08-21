@@ -188,25 +188,22 @@ function check(name, ok, detail = "") {
    * el texto en el instante en que aparece pilla el «En directo» de relleno.
    * Se espera a la guía, que es lo que esta comprobación mira.
    */
-  /* Y si no llega, que lo diga la espera y no la comprobación de después.
-     Tragándose el fallo con un `catch` vacío, una guía que tarda demasiado
-     se leía como «el programa es "En directo"» y la prueba culpaba al
-     contenido de un problema de tiempo */
-  await page.waitForFunction(
-    () => {
-      /* Con el elemento delante, no «mientras no exista».
-         Sin dato, `?.innerText` da undefined, el `|| ""` lo vuelve cadena
-         vacía y la comprobación de «todavía pone En directo» se cumplía sola
-         antes de que la barra del título llegara a pintarse. La espera
-         terminaba en el primer intento y lo que se leía después era el
-         rótulo sin guía — que es lo que fallaba en el servidor de
-         integración y aquí no, porque aquí la guía llega antes. */
-      const donde = document.querySelector(".pa-live-titulo p");
-      return Boolean(donde) && !/^En directo\s*$/.test(donde.innerText || "");
-    },
-    { timeout: 30000 }
-  );
-  const epgText = await page.locator(".pa-live-titulo p").innerText();
+  /*
+   * Se espera a lo que se va a comprobar, y se comprueba lo último leído.
+   *
+   * Antes se esperaba a «que ya no ponga En directo» y luego se leía otra
+   * vez. Entre las dos cosas la guía puede volver a su estado de relleno —se
+   * vuelve a pedir, o llega otra respuesta— y entonces lo que se comprobaba
+   * era «En directo», que no es lo que esta prueba mira. Se lee en el propio
+   * bucle y se guarda esa lectura: la que hizo terminar la espera es la que
+   * se juzga.
+   */
+  let epgText = "";
+  for (let intento = 0; intento < 60; intento++) {
+    epgText = await page.locator(".pa-live-titulo p").innerText().catch(() => "");
+    if (epgText.includes("El programa siguiente")) break;
+    await page.waitForTimeout(500);
+  }
   /*
    * «Ahora» es el que está en antena, no el primero que manda el panel.
    *

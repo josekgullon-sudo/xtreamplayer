@@ -50,8 +50,20 @@ function timeAgo(ts: number): string {
   return new Date(ts).toLocaleDateString("es-ES");
 }
 
+/* Con el año entero: `dateStyle: "short"` lo deja en dos cifras —«21/8/26»—
+   y la lista de clientes, la caja de «Caduca» y las facturas lo escriben con
+   cuatro. Ver dos formas del mismo dato en la misma pantalla hace dudar de
+   cuál es la buena */
 function fullDate(ts: number): string {
-  return ts ? new Date(ts).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }) : "—";
+  return ts
+    ? new Date(ts).toLocaleString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
 }
 
 /** Campo con valor oculto que se revela y se copia. */
@@ -213,17 +225,15 @@ export default function CustomerDetail({
         </div>
       </div>
 
-      {/* Resumen */}
+      {/*
+        Resumen.
+
+        Sin la caja de «Estado»: lo dice la pastilla de colores que va al lado
+        del nombre, dos dedos más arriba, y lo decía además con otra palabra
+        —«Desactivado» arriba, «Inactivo» aquí—, que sobre la misma pantalla
+        y el mismo cliente invita a pensar que son dos cosas distintas.
+      */}
       <div className="detail-stats">
-        <div className="detail-stat">
-          <Icon name="shield" size={18} className="detail-stat-icon" />
-          <div>
-            <span className="detail-stat-label">Estado</span>
-            <span className="detail-stat-value" style={{ color: activo && !caducado ? "var(--success)" : "var(--warning)" }}>
-              {caducado ? "Caducado" : activo ? "Activo" : "Inactivo"}
-            </span>
-          </div>
-        </div>
         <div className="detail-stat">
           <Icon name="device" size={18} className="detail-stat-icon" />
           <div>

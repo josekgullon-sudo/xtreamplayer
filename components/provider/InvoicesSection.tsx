@@ -151,8 +151,11 @@ export default function InvoicesSection() {
       )}
 
       {datos.invoices.length === 0 ? (
-        <div className="pa-empty">
-          Aún no hay facturas. Aparecerán aquí con cada cobro de tu plan.
+        /* Dentro de una caja, como el resto de listas vacías del panel */
+        <div className="card">
+          <div className="pa-empty">
+            Aún no hay facturas. Aparecerán aquí con cada cobro de tu plan.
+          </div>
         </div>
       ) : (
         <table className="panel-table">
