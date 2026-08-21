@@ -52,6 +52,7 @@ MOCKS=(iptv webhook resend colgado lento cors cuelga tardon tmdb)
 APARTE=(dominio)
 
 TODAS=(
+  episodios
   e2e movil portada busqueda busqueda-global novedades listas-enormes atras
   parrilla-epg catchup tv tv-app descargas perfiles-tv envoltorios
   cliente-ux acceso sesiones-mezcladas recuperar alta-simple entrega-acceso
@@ -124,7 +125,9 @@ for suite in "${PEDIDAS[@]}"; do
   for a in "${APARTE[@]}"; do [ "$suite" = "$a" ] && base="http://localhost:$PUERTO2"; done
 
   printf "%-22s " "$suite"
-  salida=$(QA_BASE="$base" node "$AQUI/$suite.js" 2>&1)
+  # `--experimental-strip-types` para las suites que importan un módulo de
+  # TypeScript directamente. A las demás no les cambia nada.
+  salida=$(QA_BASE="$base" node --experimental-strip-types --no-warnings "$AQUI/$suite.js" 2>&1)
   if [ $? -eq 0 ]; then
     BIEN=$((BIEN + 1))
     echo "$(echo "$salida" | tail -1)"

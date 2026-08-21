@@ -17,6 +17,7 @@ import VideoPlayer, { PlaySource } from "@/components/player/VideoPlayer";
 import { parseM3U } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
 import { indiceEnAntena, momento } from "@/lib/epg";
+import { minutosDe } from "@/lib/episodios";
 import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
 import {
@@ -3587,7 +3588,9 @@ export default function TvApp() {
         */}
         <div className={`tv-viendo-canal ${osd ? "" : "ido"}`}>
           <p className="tv-viendo-fila">
-            <span className="tv-punto" aria-hidden="true" />
+            {/* El punto rojo es «esto se está emitiendo ahora». En una
+                película guardada en el disco no significa nada */}
+            {viendo.epgId && <span className="tv-punto" aria-hidden="true" />}
             <span className="tv-viendo-nombre">{viendo.source.name}</span>
           </p>
           {guiaDeEsto?.ahora ? (
@@ -3603,13 +3606,18 @@ export default function TvApp() {
               )}
               {guiaDeEsto.luego && <p className="tv-viendo-luego">Después · {guiaDeEsto.luego}</p>}
             </>
-          ) : (
+          ) : viendo.epgId ? (
             /* Sin guía se dice, y se dice de quién depende: el reproductor no
-               la inventa, la manda el panel del proveedor */
+               la inventa, la manda el panel del proveedor.
+
+               Y solo en un canal. Una película descargada no tiene guía ni
+               puede tenerla, así que debajo de su título salía «Tu proveedor
+               no manda la guía de este canal» — que además de no venir a
+               cuento la llamaba canal. */
             <p className="tv-viendo-prog tv-viendo-singuia">
               Tu proveedor no manda la guía de este canal
             </p>
-          )}
+          ) : null}
         </div>
         <p className={`tv-viendo-pie ${osd ? "" : "ido"}`}>Pulsa ATRÁS para volver</p>
       </div>
@@ -4713,18 +4721,6 @@ const TITULOS: Record<string, string> = {
  * cada una mide una cosa distinta. Y si no viene nada, no se pone nada: un
  * «0 min» dice algo falso, y el hueco no dice nada, que es lo correcto.
  */
-function minutosDe(bruto: string): string {
-  const t = String(bruto || "").trim();
-  if (!t) return "";
-  const reloj = t.match(/^(\d+):(\d{2}):(\d{2})$/);
-  if (reloj) {
-    const min = Number(reloj[1]) * 60 + Number(reloj[2]);
-    return min > 0 ? `${min} min` : "";
-  }
-  const n = parseInt(t, 10);
-  return Number.isFinite(n) && n > 0 ? `${n} min` : "";
-}
-
 export interface Episodio {
   id: string;
   numero: string;

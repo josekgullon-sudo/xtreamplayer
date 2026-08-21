@@ -69,7 +69,23 @@ const ENVOLTORIO = () => {
           suyo.parte = 100;
           suyo.estado = "lista";
           suyo.bytes = 1610612736;
-          suyo.url = e.url;
+          /*
+           * Y ya guardada, se sirve DESDE ESTE ORDENADOR.
+           *
+           * Aquí se devolvía la misma dirección remota del encargo, y eso no
+           * es lo que hace ningún envoltorio de verdad: el programa de
+           * Windows y las aplicaciones de Android levantan un servidor en
+           * `http://127.0.0.1:PUERTO` y sirven el fichero por ahí, porque
+           * desde una página en https un `file://` no carga.
+           *
+           * La diferencia no era un detalle: con una dirección remota el
+           * reproductor la trataba como cualquier otra y todo iba bien en la
+           * prueba, mientras que en el programa de verdad la daba por
+           * contenido mixto, se quedaba sin un solo intento que hacer y no
+           * salía del «Conectando con…». Un año de pruebas en verde para un
+           * camino que no existe.
+           */
+          suyo.url = "http://127.0.0.1:8090/media/canal1.webm";
           clearInterval(reloj);
         }
       }, 250);
@@ -195,6 +211,37 @@ const ENVOLTORIO = () => {
     () => /En este aparato/.test(document.querySelector(".tv-bajada-estado")?.innerText || ""),
     { timeout: 20000 }
   );
+  /*
+   * Y se ve, que es para lo que se guarda.
+   *
+   * Faltaba justo este paso: la descarga terminaba, la pantalla lo decía, y
+   * al darle a ver se quedaba en «Conectando con…» para siempre. El
+   * envoltorio sirve el fichero desde el propio aparato —`http://127.0.0.1`—
+   * y el reproductor daba esa dirección por contenido mixto bloqueado, así
+   * que no le quedaba ni un intento que hacer.
+   */
+  await tv.locator(".tv-bajada-txt").first().click();
+  await tv.waitForFunction(
+    () => {
+      const v = document.querySelector("video");
+      return v && v.currentTime > 0 && !v.paused;
+    },
+    { timeout: 25000 }
+  );
+  check("Y lo guardado se ve, servido desde el propio aparato", true);
+  /* Y sin la caja de la guía: una película en el disco no tiene programa
+     que anunciar, y ahí ponía «Tu proveedor no manda la guía de este canal» */
+  check("Sin hablar de guías ni de canales, que es una película",
+    !(await tv.locator(".tv-viendo-canal").innerText()).includes("guía"),
+    (await tv.locator(".tv-viendo-canal").innerText()).replace(/\n/g, " ").slice(0, 80));
+  /* ATRÁS desde el vídeo no promete devolver a Descargas —depende de por
+     dónde se entró—, así que se vuelve por la barra, que es lo que haría
+     cualquiera con el mando en la mano */
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-nav-item", { timeout: 20000 });
+  await tv.locator(".tv-nav-item:has-text('Descargas')").click();
+  await tv.waitForSelector(".tv-bajada", { timeout: 20000 });
+
   const estado = await tv.locator(".tv-bajada-estado").innerText();
   check("Al terminar lo dice, y dice cuánto ocupa",
     estado.includes("En este aparato") && /GB|MB/.test(estado), estado);
@@ -331,6 +378,27 @@ const ENVOLTORIO = () => {
     () => /En este aparato/.test(document.querySelector(".pa-bajada-estado")?.innerText || ""),
     { timeout: 20000 }
   );
+  /*
+   * Y lo guardado se reproduce, que es para lo que se guarda.
+   *
+   * Con la dirección local de verdad —la que da el envoltorio cuando el
+   * fichero está en disco—, no con una remota. Es el paso que faltaba: la
+   * descarga terminaba, la pantalla lo decía, y al darle a ver no pasaba
+   * nada de nada.
+   */
+  await m.locator(".pa-bajada-txt").first().click();
+  await m.waitForFunction(
+    () => {
+      const v = document.querySelector("video");
+      return v && v.currentTime > 0 && !v.paused;
+    },
+    { timeout: 25000 }
+  );
+  check("Y lo guardado se reproduce desde el propio aparato", true);
+  await m.goBack().catch(() => {});
+  await m.locator(".pa-bottomnav-item:has-text('Descargas')").click();
+  await m.waitForSelector(".pa-bajada", { timeout: 20000 });
+
   check("La pantalla de descargas del reproductor cuenta lo que hay",
     (await m.locator(".pa-bajada-estado").innerText()).includes("En este aparato"),
     await m.locator(".pa-bajada-estado").innerText());

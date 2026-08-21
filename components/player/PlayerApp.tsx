@@ -37,6 +37,7 @@ import { imgSrc } from "@/lib/img";
 import { indiceEnAntena, type Emision } from "@/lib/epg";
 import PortadaCatalogo from "./PortadaCatalogo";
 import { Titulo, anioDe, type Actor } from "@/lib/portada";
+import { minutosDe, tituloDeEpisodio } from "@/lib/episodios";
 import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
 import {
@@ -2093,6 +2094,37 @@ export default function PlayerApp() {
         que se hacen en esta pantalla; esconder la segunda en un menú de
         ajustes es lo que hace que un disco se llene y no se vacíe nunca.
       */
+      viendo && current ? (
+        /*
+          Viendo algo guardado, aquí mismo.
+
+          El vídeo de las películas y las series vive en la rama del
+          catálogo, y desde Descargas esa rama no se pinta: al darle a ver
+          una película descargada se encendía el reproductor y no había
+          ningún sitio donde enseñarlo. Se quedaba la lista igual que
+          estaba, como si el botón no hiciera nada — y no lo hacía.
+
+          Sin la columna de episodios: lo que se guarda se guarda de uno en
+          uno, y al lado de una película descargada no hay nada que listar.
+        */
+        <div className="pa-watch">
+          <div className="pa-watch-video">
+            <div className="pa-live-titulo">
+              <button
+                className="pa-live-atras"
+                onClick={() => { setViendo(false); setCurrent(null); }}
+                aria-label="Volver"
+              >
+                <Icon name="back" size={15} />
+              </button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h2>{current.source.name}</h2>
+              </div>
+            </div>
+            <VideoPlayer source={current.source} />
+          </div>
+        </div>
+      ) : (
       <div className="pa-bajadas">
         <h2 className="pa-bajadas-t">Descargas</h2>
         {!descargas.length ? (
@@ -2113,15 +2145,26 @@ export default function PlayerApp() {
               <button
                 className="pa-bajada-txt"
                 disabled={d.estado !== "lista"}
-                onClick={() =>
-                  d.url &&
+                onClick={() => {
+                  if (!d.url) return;
+                  /*
+                   * Y encender el reproductor, no solo elegir qué poner.
+                   *
+                   * `current` dice QUÉ suena; `viendo` dice que hay que
+                   * enseñar la pantalla del vídeo. Faltaba lo segundo, así
+                   * que al darle a ver una película descargada se guardaba
+                   * la elección y no pasaba nada más: ni vídeo, ni cambio de
+                   * pantalla, ni un aviso. El botón parecía roto porque lo
+                   * estaba.
+                   */
+                  setViendo(true);
                   setCurrent({
                     source: { url: d.url, name: d.nombre, kind: "video" },
                     logo: d.cartel,
                     playlistId: active.id,
                     kind: "vod",
-                  })
-                }
+                  });
+                }}
               >
                 <span className="pa-bajada-nombre">{d.nombre}</span>
                 {d.estado === "bajando" ? (
@@ -2155,6 +2198,7 @@ export default function PlayerApp() {
           ))
         )}
       </div>
+      )
     ) : active && (tab === "live" || tab === "favs") ? (
       <div className={`pa-live ${current ? "con-video" : ""} ${verCanales ? "con-canales" : ""}`}>
         <aside className="pa-live-cats" aria-label="Categorías">
@@ -2866,7 +2910,14 @@ export default function PlayerApp() {
             {(seriesDetail.info.episodes?.[seriesDetail.season] || []).map((ep) => {
               const id = `ep-${ep.id}`;
               const ya = descargas.find((d) => d.id === id);
-              const titulo = ep.title || `Episodio ${ep.episode_num}`;
+              /* Sin el nombre de la serie ni el «S01E03» por delante: estás
+                 dentro de esa serie y el número está en la fila, así que lo
+                 único que aporta el título es lo que viene después — y es
+                 justo lo que se corta cuando no cabe */
+              const titulo =
+                tituloDeEpisodio(ep.title || "", seriesDetail.series.name) || `Episodio ${ep.episode_num}`;
+              const foto = imgSrc(ep.info?.movie_image || "");
+              const minutos = minutosDe(ep.info?.duration);
               return (
                 <div className="pa-episode-fila" key={ep.id}>
                   <button
@@ -2875,8 +2926,31 @@ export default function PlayerApp() {
                       playEpisode(active, seriesDetail.series, ep.id, titulo, ep.container_extension)
                     }
                   >
-                    <span className="ep-num">{ep.episode_num}</span>
-                    <span className="ep-t">{titulo}</span>
+                    {/*
+                      El fotograma del episodio, como en la tele.
+                      Aquí solo había número y título: dos episodios seguidos
+                      de la misma serie se distinguen por el fotograma antes
+                      que por el nombre, sobre todo cuando el proveedor los
+                      llama «S01E03» y «S01E04».
+                    */}
+                    <span className="pa-episode-foto">
+                      {foto ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={foto} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+                      ) : (
+                        /* Sin fotograma, el número en grande: un hueco gris
+                           parece un fallo, y esto se lee como una decisión */
+                        <span className="pa-episode-n">{ep.episode_num}</span>
+                      )}
+                      {minutos && <span className="pa-episode-min">{minutos}</span>}
+                    </span>
+                    <span className="pa-episode-txt">
+                      <span className="ep-num">
+                        T{seriesDetail.season}: E{ep.episode_num}
+                      </span>
+                      <span className="ep-t">{titulo}</span>
+                      {ep.info?.plot && <span className="ep-p">{ep.info.plot}</span>}
+                    </span>
                     <Icon name="play" size={15} />
                   </button>
                   {conDescargas && (

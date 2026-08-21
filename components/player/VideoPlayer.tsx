@@ -132,7 +132,30 @@ function origenSinDirecto(url: string): boolean {
  */
 function bloqueadoPorContenidoMixto(url: string): boolean {
   if (typeof window === "undefined") return false;
-  return window.location.protocol === "https:" && url.startsWith("http://");
+  if (window.location.protocol !== "https:" || !url.startsWith("http://")) return false;
+  /*
+   * Menos lo que sale de este mismo ordenador.
+   *
+   * Una película descargada la sirve el propio programa por
+   * `http://127.0.0.1:PUERTO`, y el navegador NO trata eso como contenido
+   * mixto: la dirección de bucle local está en la lista de orígenes de
+   * confianza justo para esto. Dándola por bloqueada, no quedaba ni un
+   * intento que hacer —no hay vale ni versión TS de un fichero que está en
+   * el disco— y el reproductor se quedaba en «Conectando con…» para
+   * siempre, sin error y sin vídeo. Que es exactamente lo que pasaba al
+   * reproducir algo descargado en el programa de Windows.
+   */
+  return !esDeAqui(url);
+}
+
+/** Si la dirección sale de este mismo ordenador. */
+function esDeAqui(url: string): boolean {
+  try {
+    const donde = new URL(url, window.location.href).hostname;
+    return donde === "127.0.0.1" || donde === "localhost" || donde === "[::1]" || donde === "::1";
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -352,10 +375,22 @@ export default function VideoPlayer({
 
     let cancelled = false;
     const attempts = buildAttempts(source);
-    /* Todavía sin dirección: se queda esperando, no da error */
     if (!attempts.length) {
-      setState("loading");
-      setErrorDetail("");
+      /* Todavía sin dirección: se queda esperando, no da error. El canal se
+         pinta al pulsarlo y su dirección llega en otro viaje */
+      if (!source.url) {
+        setState("loading");
+        setErrorDetail("");
+        return;
+      }
+      /*
+       * Pero CON dirección y sin un solo intento, esto es un fallo nuestro
+       * y hay que decirlo. Estaba cayendo en la misma rama que «espera un
+       * momento», así que la pantalla se quedaba dando vueltas para
+       * siempre: ni vídeo, ni error, ni forma de saber qué pasaba.
+       */
+      setState("error");
+      setErrorDetail("No hay ninguna forma de reproducir esta dirección desde aquí");
       return;
     }
     let index = 0;
