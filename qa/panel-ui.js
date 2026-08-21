@@ -53,6 +53,43 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   const filas = await p.locator(".panel-table tbody tr").count();
   check("Los importados están en la lista de clientes", filas >= 2, `${filas} filas`);
 
+  /*
+   * Y volver a entrar, que es lo que hace un proveedor todos los días.
+   *
+   * Todas las pruebas del panel crean un proveedor nuevo por
+   * /proveedores/registro y siguen desde ahí, así que la pantalla de
+   * /proveedores/login no la abría ninguna. Es por donde entra cada mañana
+   * cualquiera que ya tenga cuenta: si ese formulario se rompe, se quedan
+   * todos fuera y no se cae una sola prueba.
+   */
+  await p.locator(".panel-nav-item:has-text('Salir')").click();
+  await p.waitForURL(/\/(proveedores|$)/, { timeout: 20000 }).catch(() => {});
+  await p.goto(BASE + "/proveedores/login", { waitUntil: "networkidle" });
+  await p.waitForSelector("#p-email", { timeout: 20000 });
+  check("Un proveedor con cuenta tiene por dónde volver a entrar",
+    (await p.locator("#p-company").count()) === 0, "sin el campo de empresa, que es del alta");
+  await p.fill("#p-email", `pui${RUN}@t.com`);
+  await p.fill("#p-pass", "supersecreta1");
+  await p.locator("button:has-text('Entrar al panel')").click();
+  await p.waitForSelector(".panel-nav", { timeout: 25000 });
+  check("Y al entrar aparece su panel, con lo suyo dentro",
+    (await p.locator(".panel-nav-item:has-text('Clientes')").count()) === 1);
+  /* Con una contraseña que no es, no se entra y se dice.
+     Se espera a que el «Salir» termine de navegar: si no, la salida y esta
+     visita salen a la vez y el navegador cancela una de las dos */
+  await p.locator(".panel-nav-item:has-text('Salir')").click();
+  await p.waitForSelector(".panel-nav", { state: "detached", timeout: 20000 }).catch(() => {});
+  await p.waitForTimeout(1200);
+  await p.goto(BASE + "/proveedores/login", { waitUntil: "networkidle" });
+  await p.waitForSelector("#p-email", { timeout: 20000 });
+  await p.fill("#p-email", `pui${RUN}@t.com`);
+  await p.fill("#p-pass", "estanoes");
+  await p.locator("button:has-text('Entrar al panel')").click();
+  await p.waitForSelector(".error-box", { timeout: 15000 }).catch(() => {});
+  check("Y con la contraseña equivocada lo dice, en vez de dejarlo en blanco",
+    (await p.locator(".error-box").count()) === 1,
+    (await p.locator(".error-box").innerText().catch(() => "sin aviso")).trim());
+
   await b.close();
   console.log(`\n${results.filter(Boolean).length}/${results.length} pruebas pasan`);
   process.exit(results.every(Boolean) ? 0 : 1);
