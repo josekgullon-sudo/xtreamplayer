@@ -32,16 +32,30 @@ async function verCarpetas(tv) {
 }
 
 /*
+ * De la portada de inicio a una sección, esperando a que la de antes se vaya.
+ *
+ * Las dos pantallas tienen filas de carátulas —`.tv-carrusel`—, así que
+ * esperar a esa clase a secas lo cumple la que YA ESTABA: el clic siguiente
+ * cae sobre una película de «Películas destacadas» del inicio en vez de
+ * sobre lo de la sección que se acaba de abrir. Aquí no pasaba nunca y en el
+ * servidor de integración pasaba siempre, que es la peor combinación: la
+ * prueba iba en rojo allí y en verde aquí, mirando pantallas distintas.
+ *
+ * `.tv-pestanas` solo existe en el inicio, así que su marcha es la señal de
+ * que ya se está en otro sitio.
+ */
+async function abrirSeccion(tv, nombre) {
+  await tv.locator(`.tv-pestana:has-text('${nombre}')`).click();
+  await tv.waitForSelector(".tv-pestanas", { state: "detached", timeout: 25000 });
+}
+
+/*
  * Del menú a los canales de la primera carpeta.
  *
- * El directo abre en la lista de carpetas —«Generalistas (12)»—, así que
- * para llegar a un canal hay que entrar en una. Se repite en media prueba.
+ * El directo abre por las carpetas —«Generalistas (12)»—, así que para
+ * llegar a un canal hay que entrar en una, que es exactamente lo que hace
+ * quien lo usa. Se repite en media prueba.
  */
-/* El directo ya no entra por un índice de categorías: al abrirlo, los
-   canales están delante. Y el puntero, a una esquina muerta, que en un
-   navegador comparte foco con el mando */
-/* El directo abre por las carpetas: para llegar a un canal hay que entrar en
-   una, que es exactamente lo que hace quien lo usa */
 async function esperarCanales(tv) {
   await tv.waitForSelector(".tv-dir-canal.es-carpeta", { timeout: 20000 });
   await tv.locator(".tv-dir-canal.es-carpeta").first().click();
@@ -397,7 +411,7 @@ async function esperarCanales(tv) {
      acción y pulsarlas no hacía absolutamente nada. Las de películas sí,
      porque el identificador es el mismo y las acababa de escribir cine. Un
      fallo redondo, de los que se ven bien y no responden. */
-  await tv.locator(".tv-pestana:has-text('Películas')").click();
+  await abrirSeccion(tv, "Películas");
   await tv.waitForSelector(".tv-carrusel", { timeout: 25000 });
   await tv.mouse.move(2, 2);
   await tv.keyboard.press("Escape");
@@ -502,7 +516,7 @@ async function esperarCanales(tv) {
   /* --- Cine y series abren en una portada, no en una lista de carpetas ---
      Entrar en «Películas» y encontrarse cuarenta nombres de carpeta obliga a
      saber en cuál buscar antes de poder mirar nada. */
-  await tv.locator(".tv-pestana:has-text('Películas')").click();
+  await abrirSeccion(tv, "Películas");
   await tv.waitForSelector(".tv-carrusel", { timeout: 25000 });
 
   const rotulos = (await tv.locator(".tv-carrusel-t").allInnerTexts()).map((s) => s.trim());
@@ -656,7 +670,7 @@ async function esperarCanales(tv) {
      —«T1 · E1», «T1 · E2»… hasta la séptima— y una película se ponía a
      reproducir en cuanto se pulsaba. En las dos faltaba lo mismo: de qué va
      el título antes de ponerlo. */
-  await tv.locator(".tv-pestana:has-text('Series')").click();
+  await abrirSeccion(tv, "Series");
   await tv.waitForSelector(".tv-carrusel", { timeout: 25000 });
   check("Las series también abren en portada", (await tv.locator(".tv-poster").count()) > 0);
   await tv.locator(".tv-carrusel .tv-poster").first().click();
