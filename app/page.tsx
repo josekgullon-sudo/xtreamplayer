@@ -188,7 +188,9 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="section" id="como-funciona">
+        {/* Bandas alternas: esta y la de preguntas van sobre plano elevado, y
+            las de en medio sobre el fondo. Ver `.section-banda` */}
+        <section className="section section-banda" id="como-funciona">
           <div className="container">
             <h2 className="section-title">Empieza a ver en 30 segundos</h2>
             <p className="section-sub">Tres pasos y estás dentro. Sin apps, sin configuraciones raras.</p>
@@ -265,7 +267,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="section" id="faq">
+        <section className="section section-banda" id="faq">
           <div className="container">
             <h2 className="section-title">Preguntas frecuentes</h2>
             <p className="section-sub">Lo que más se pregunta antes de empezar.</p>

@@ -572,50 +572,66 @@ input[type="color"]::-moz-color-swatch {
  * que llamar: el botón. Un fondo liso deja que el color de marca signifique
  * algo cuando aparece.
  */
-/*
- * El héroe, sobre el mosaico de carteles.
- *
- * Era negro liso: la primera pantalla de un producto de cine y la más callada
- * de todas. Con el mosaico detrás se sabe de qué va esto antes de leer el
- * titular.
- *
- * Muy apagado, y con dos degradados que lo apagan más donde importa: por
- * arriba, para que la barra de navegación no se apoye en un collage; por
- * abajo, para que muera en negro justo donde empieza la maqueta del
- * reproductor y no compita con ella. Encima va el titular, que es lo único
- * que tiene que leerse aquí.
- *
- * Si el fichero no está, queda el fondo de siempre y no se rompe nada: es una
- * imagen de adorno. Ver `public/LEEME-fondo.txt`.
- */
+/* El héroe. Su fondo, justo debajo. */
 .hero {
   position: relative;
   padding: 116px 0 56px;
   text-align: center;
   isolation: isolate;
 }
+/*
+ * El fondo del héroe: una sola luz, y nada más.
+ *
+ * Aquí hubo un mosaico de carteles. La idea era buena y el sitio no: en esta
+ * pantalla ya hay una imagen —la maqueta del producto, que es lo único que
+ * de verdad hay que mirar— y una pared de carátulas detrás la pone a
+ * competir con ella. Para que no compitiera había que apagarla, y apagada
+ * dejaba de ser una pared de carátulas para ser un manchón gris. Dos
+ * imágenes peleando o una imagen y barro: no había tercera.
+ *
+ * El mosaico sigue vivo donde sí manda, que son las pantallas de antes de
+ * entrar —activar la tele, entrar, elegir perfil—: ahí no hay producto que
+ * enseñar y lo que hace falta es justo decir «esto va de cine» (ver
+ * `.tv-lienzo` y `public/LEEME-fondo.txt`).
+ *
+ * Lo que queda es una fuente de luz ancha y muy floja arriba, y la sombra
+ * cayendo hacia los cantos. No es el halo de plantilla que se quitó de
+ * debajo de los botones —aquéllos eran resplandores pequeños y saturados
+ * pegados a cada elemento—: esto es la iluminación de la escena, y es la
+ * diferencia entre un fondo negro y un fondo oscuro. Sin ella la maqueta
+ * sale recortada; con ella, apoyada en algo.
+ */
 .hero::before {
   content: "";
   /* Empieza donde empieza el héroe y ni un píxel antes: subiendo por encima,
-     asomaba entre el aviso de arriba y la barra de navegación, y ahí se leía
-     como una franja de colores suelta en vez de como un fondo */
+     asomaba entre el aviso de arriba y la barra de navegación */
   position: absolute; inset: 0; z-index: -1;
-  /* Dos fondos: el del proveedor si lo ha puesto, y debajo el dibujado.
-     Un `url()` que da 404 no pinta nada y deja ver el de abajo, así que esto
-     se ve siempre y mejora solo el día que se suba una imagen de verdad */
-  background-image: url("/fondo-carteles.jpg"), url("/fondo-mosaico.svg");
-  background-size: cover, cover;
-  background-position: center top, center top;
-  opacity: 0.2;
-  /* Se desvanece por los cuatro lados: un rectángulo con canto se lee como una
-     imagen puesta encima, y esto tiene que leerse como el fondo que es */
-  -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 30%, #000 30%, transparent 100%);
-  mask-image: radial-gradient(ellipse 90% 75% at 50% 30%, #000 30%, transparent 100%);
+  background:
+    /* La luz de marca, detrás del titular */
+    radial-gradient(ellipse 46% 38% at 50% 12%, rgba(229, 25, 43, 0.20), transparent 68%),
+    /* Y una segunda, fría y más ancha, que abre la escena a lo alto: con una
+       sola el degradado se lee como una mancha; con dos, como profundidad */
+    radial-gradient(ellipse 90% 60% at 50% 30%, rgba(58, 74, 122, 0.22), transparent 72%),
+    linear-gradient(180deg, #16161c 0%, #101014 46%, var(--bg) 100%);
 }
+/*
+ * Y encima, la textura. Una retícula finísima, del tamaño de la letra.
+ *
+ * Un degradado grande y liso en una pantalla oscura le saca bandas al
+ * navegador —escalones de color donde debería haber una transición—, y esos
+ * escalones son lo que hace que un fondo cuidado parezca mal exportado. La
+ * retícula rompe la banda y de paso da la sensación de superficie: se ve
+ * cuando la buscas y no antes.
+ */
 .hero::after {
   content: "";
   position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(180deg, var(--bg) 0%, rgba(10, 10, 12, 0.55) 30%, rgba(10, 10, 12, 0.8) 70%, var(--bg) 100%);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: 46px 46px, 46px 46px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 24%, #000 10%, transparent 78%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 24%, #000 10%, transparent 78%);
 }
 .hero h1 {
   /* Sin esto el navegador parte por donde le cabe, y la primera línea acababa
@@ -688,7 +704,16 @@ input[type="color"]::-moz-color-swatch {
   content: "";
   position: absolute; left: 0; right: 0; bottom: 0;
   height: 0.075em; border-radius: 999px;
-  background: var(--accent);
+  /*
+   * Con la punta apagándose por los dos lados.
+   *
+   * De canto a canto y a un solo color, la línea tenía exactamente el mismo
+   * peso al principio, en medio y al final: eso no es un subrayado hecho a
+   * mano, es una regla. Yéndose en los extremos se lee como un trazo, que
+   * es lo que quiere parecer, y además deja de chocar contra la letra que
+   * tiene encima en los bordes.
+   */
+  background: linear-gradient(90deg, rgba(229, 25, 43, 0) 0%, var(--accent-bright) 16%, var(--accent) 50%, var(--accent-bright) 84%, rgba(229, 25, 43, 0) 100%);
   transform-origin: left center;
   animation: realce-traza 0.85s cubic-bezier(0.22, 0.8, 0.2, 1) 0.35s both;
 }
@@ -860,26 +885,47 @@ input[type="color"]::-moz-color-swatch {
 /* El banner de la portada: la mancha, el velo y el texto encima */
 .maqueta-banner {
   position: relative; flex: 1 1 auto; min-height: 0;
-  /* El banner, gris. El velo de la izquierda se queda porque no es adorno:
-     es lo que permite leer el texto que va encima */
+  /*
+   * El banner era un gris plano. Un fotograma nunca es un gris plano: tiene
+   * una fuente de luz en alguna parte y el resto cae hacia la sombra, y eso
+   * es lo que hace que se lea como una imagen y no como un hueco a medio
+   * hacer. Aquí, luz cálida por la derecha —de donde viene el tren— sobre
+   * un azul de noche.
+   *
+   * El velo de la izquierda se queda porque no es adorno: es lo que permite
+   * leer el texto que va encima.
+   */
   background:
-    linear-gradient(90deg, var(--bg) 26%, rgba(14, 14, 16, 0.55) 62%, transparent 88%),
-    #2a2a30;
+    linear-gradient(90deg, var(--bg) 24%, rgba(14, 14, 16, 0.6) 58%, rgba(14, 14, 16, 0.15) 88%),
+    radial-gradient(ellipse 70% 120% at 88% 30%, rgba(214, 138, 74, 0.55), transparent 62%),
+    linear-gradient(150deg, #24354c 0%, #131b28 55%, #0d1016 100%);
   display: flex; align-items: center;
 }
 .maqueta-banner-txt {
-  display: flex; flex-direction: column; gap: 9px; align-items: flex-start;
+  display: flex; flex-direction: column; gap: 7px; align-items: flex-start;
   padding: 0 24px; width: 56%;
 }
-.maqueta-t-grande { display: block; width: 74%; height: 15px; border-radius: 4px; background: rgba(255, 255, 255, 0.9); }
-.maqueta-t-linea { display: block; width: 92%; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.3); }
+.maqueta-t-grande {
+  display: block; font-size: 19px; font-weight: 700; line-height: 1.1;
+  letter-spacing: -0.03em; color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+.maqueta-t-meta {
+  display: block; font-size: 9px; font-weight: 600; letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.62);
+}
+.maqueta-t-meta b { color: var(--accent-contrast); font-weight: 700; }
+.maqueta-t-linea { display: block; width: 92%; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.22); }
 .maqueta-t-linea.corta { width: 62%; }
 .maqueta-boton {
   margin-top: 5px; padding: 6px 16px; border-radius: 999px;
   background: var(--accent); color: #fff; font-size: 10px; font-weight: 700;
 }
 .maqueta-fila-t { padding: 12px 16px 7px; flex: none; }
-.maqueta-t-rotulo { display: block; width: 108px; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.34); }
+.maqueta-t-rotulo {
+  display: block; font-size: 10px; font-weight: 700; letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.78);
+}
 /*
  * La fila de carátulas manda sobre el banner, no al revés.
  *
@@ -1020,15 +1066,56 @@ input[type="color"]::-moz-color-swatch {
   se consigue con menos hueco y no con más.
 */
 .section { padding: 76px 0; }
+/*
+ * Las bandas.
+ *
+ * Debajo del héroe había cuatro secciones seguidas sobre exactamente el
+ * mismo negro, todas centradas y todas con la misma separación. Leídas de
+ * corrido no eran cuatro apartados: era un scroll largo en el que nada
+ * empieza ni acaba, y ahí es donde la página se volvía interminable y sosa
+ * por mucho que cada bloque estuviera bien resuelto.
+ *
+ * Una banda no es un color nuevo —eso serían dos webs— sino el mismo negro
+ * dos escalones más arriba, con un filo de luz en el canto de arriba. Basta
+ * para que el ojo sepa que ha cambiado de tema, que es todo lo que se le
+ * pide.
+ */
+.section-banda {
+  position: relative;
+  background: linear-gradient(180deg, #131318 0%, #101014 62%, var(--bg) 100%);
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+/* Y el filo, que es lo que hace que la banda parezca un plano y no un
+   rectángulo pintado: la luz cae desde arriba y se apaga por los lados */
+.section-banda::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.13) 22%, rgba(255, 255, 255, 0.13) 78%, transparent);
+}
 .section-title { font-size: clamp(28px, 4vw, 46px); font-weight: 700; letter-spacing: -0.032em; text-align: center; margin-bottom: 16px; }
 .section-sub { text-align: center; color: var(--text-dim); font-size: 17px; max-width: 600px; margin: 0 auto 44px; }
 
 .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+/*
+ * Las tarjetas de funciones, con luz por arriba.
+ *
+ * Eran seis rectángulos de un gris plano sobre un fondo casi del mismo
+ * gris: en la foto de la página entera se leen como seis huecos, no como
+ * seis tarjetas. Lo que separa una superficie de un agujero es que tenga
+ * una cara iluminada, y aquí la luz viene de arriba como en el resto de la
+ * página —el filo claro en el canto superior y el degradado cayendo—.
+ *
+ * Son tres píxeles de diferencia en el color y cambian la lectura entera:
+ * dejan de ser una lista para ser objetos puestos sobre algo.
+ */
 .feature-card {
-  background: var(--bg-elev);
-  border: 1px solid var(--hairline);
+  position: relative;
+  background: linear-gradient(180deg, #1c1c21 0%, var(--bg-elev) 58%);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 32px 30px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 12px 30px rgba(0, 0, 0, 0.28);
   transition: background 0.25s, transform 0.25s, box-shadow 0.25s;
 }
 /*
@@ -1050,7 +1137,7 @@ input[type="color"]::-moz-color-swatch {
     box-shadow 0.24s ease;
 }
 .feature-card:hover {
-  background: var(--bg-elev-2);
+  background: linear-gradient(180deg, #26262c 0%, var(--bg-elev-2) 58%);
   transform: translateY(-4px);
   border-color: var(--accent-tint-strong);
   box-shadow: var(--shadow), 0 0 0 1px var(--accent-tint-soft);
@@ -1069,7 +1156,7 @@ input[type="color"]::-moz-color-swatch {
  */
 .feature-card.destacada {
   border-color: var(--accent-tint-strong);
-  background: var(--bg-elev-2);
+  background: linear-gradient(180deg, #2a2027 0%, var(--bg-elev-2) 62%);
 }
 .feature-card.destacada .feature-icon { background: var(--accent); color: #fff; }
 .feature-card-cab { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
@@ -1106,16 +1193,45 @@ input[type="color"]::-moz-color-swatch {
 .feature-card h3 { font-size: 18px; font-weight: 650; margin-bottom: 10px; letter-spacing: -0.02em; }
 .feature-card p { font-size: 15px; color: var(--text-dim); line-height: 1.6; }
 
-.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 44px; counter-reset: step; }
-.step { text-align: center; padding: 0 12px; }
-.step-num {
-  width: 50px; height: 50px; margin: 0 auto 22px;
-  border-radius: 50%;
-  background: var(--surface-quiet);
-  border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 19px; color: var(--text);
+/*
+ * Los tres pasos, con el hilo que los une.
+ *
+ * Eran tres circulitos grises sueltos con un párrafo debajo, separados por
+ * cuarenta y cuatro píxeles de nada: tres cosas puestas en fila, no una
+ * secuencia. Y lo que el bloque promete —«tres pasos y estás dentro»— es
+ * justo una secuencia. El hilo que pasa por detrás de los números lo dice
+ * sin una palabra más, y de paso le da a la sección algo que mirar.
+ *
+ * Se dibuja detrás y a la altura del centro del número. En una columna
+ * —móvil— desaparece: ahí los pasos van uno debajo de otro y una raya
+ * horizontal a media altura no uniría nada.
+ */
+.steps {
+  position: relative;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 44px; counter-reset: step;
 }
+.steps::before {
+  content: "";
+  position: absolute; z-index: 0;
+  left: 16%; right: 16%; top: 27px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-strong) 12%, var(--border-strong) 88%, transparent);
+}
+@media (max-width: 820px) { .steps::before { display: none; } }
+.step { position: relative; z-index: 1; text-align: center; padding: 0 12px; }
+.step-num {
+  width: 56px; height: 56px; margin: 0 auto 22px;
+  border-radius: 50%;
+  /* Opaco a propósito: el hilo pasa por detrás y tiene que quedar cortado
+     por el número, no verse a través de él */
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 0 0 7px var(--bg), 0 10px 26px rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 21px; color: var(--text);
+}
+/* Dentro de una banda, el aro de aire tiene que ser del color de la banda */
+.section-banda .step-num { box-shadow: 0 0 0 7px #121217, 0 10px 26px rgba(0, 0, 0, 0.5); }
 .step h3 { font-size: 18.5px; font-weight: 650; margin-bottom: 10px; letter-spacing: -0.02em; }
 .step p { color: var(--text-dim); font-size: 15px; line-height: 1.6; }
 
