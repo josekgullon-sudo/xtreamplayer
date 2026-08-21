@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El aro de cargando, el mismo que el de la web.
+
+  Antes era el círculo que trae Android: con el tema de esta aplicación
+  —Theme.Black, que es de las primeras versiones— sale el de entonces,
+  gordo y a trozos, y encima cada fabricante mete el suyo. En un Fire TV
+  no se parecía en nada al de la web, y es de las piezas que más se miran:
+  sale en todas las esperas.
+
+  El de la web es un aro fino gris con un cuarto encendido dando vueltas.
+  Aquí son las mismas dos capas: el aro entero en gris y encima el trozo
+  de color, que es el que gira. Las proporciones salen de la web —44 px de
+  ancho con 3 px de grosor—, y como van en razones y no en medidas, el
+  mismo dibujo vale para los de 42 y para los de 56.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape
+            android:shape="ring"
+            android:innerRadiusRatio="2.32"
+            android:thicknessRatio="14.7"
+            android:useLevel="false">
+            <solid android:color="@color/borde_fuerte" />
+        </shape>
+    </item>
+    <item>
+        <shape
+            android:shape="ring"
+            android:innerRadiusRatio="2.32"
+            android:thicknessRatio="14.7"
+            android:useLevel="false">
+            <gradient
+                android:type="sweep"
+                android:useLevel="false"
+                android:startColor="#00F5253A"
+                android:centerColor="#00F5253A"
+                android:endColor="@color/marca_viva" />
+        </shape>
+    </item>
+</layer-list>

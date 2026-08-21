@@ -58,6 +58,7 @@ public class FichaActivity extends Activity {
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         Pantalla.colocar(this);
+        Tipos.poner(this);
         setContentView(R.layout.ficha);
         if (!Guardia.haySesion(this)) return;
 

@@ -61,6 +61,7 @@ public class DirectoActivity extends Activity {
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         Pantalla.colocar(this);
+        Tipos.poner(this);
         setContentView(R.layout.directo);
         if (!Guardia.haySesion(this)) return;
 
@@ -697,6 +698,8 @@ public class DirectoActivity extends Activity {
         titulo.setMaxLines(1);
         titulo.setEllipsize(android.text.TextUtils.TruncateAt.END);
         fila.addView(titulo);
+        // Hecha a mano y no inflada: la letra de la casa se le pone aquí
+        Tipos.aplicar(fila);
         return fila;
     }
 

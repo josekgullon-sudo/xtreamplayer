@@ -1,11 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- .btn-primary: pastilla roja. En el web los botones son de radio
-     completo, no rectángulos con las esquinas limadas -->
+<!--
+  El botón de lo principal: «Ver ahora», «Entrar», «Guardar».
+  Cápsula completa, no un rectángulo con las esquinas limadas.
+
+  Con el foco puesto se enciende y se le pone el aro blanco alrededor, que
+  es como marca el foco toda la aplicación y como lo marca la web.
+
+  Antes el foco le ponía de RELLENO el blanco del foco, con la letra
+  también en blanco encima: el botón se quedaba en blanco y el texto
+  desaparecía justo al enfocarlo. Y al abrir una ficha el foco arranca ahí,
+  o sea que «Ver ahora» era un óvalo blanco y mudo la mayor parte del
+  tiempo. El foco lo dice el borde; el relleno es de la marca.
+-->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="@color/foco" />
+            <solid android:color="@color/marca_viva" />
             <stroke android:width="3dp" android:color="@color/foco" />
+            <corners android:radius="999dp" />
+        </shape>
+    </item>
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/marca_viva" />
             <corners android:radius="999dp" />
         </shape>
     </item>

@@ -472,6 +472,7 @@
         android:layout_width="46dp"
         android:layout_height="46dp"
         android:layout_gravity="center"
-        android:indeterminateTint="@color/marca"
+        android:indeterminateDrawable="@drawable/girando"
+        android:indeterminateDuration="800"
         android:visibility="gone" />
 </FrameLayout>

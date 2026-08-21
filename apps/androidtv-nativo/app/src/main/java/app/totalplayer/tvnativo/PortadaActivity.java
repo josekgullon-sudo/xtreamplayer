@@ -39,6 +39,7 @@ public class PortadaActivity extends Activity {
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         Pantalla.colocar(this);
+        Tipos.poner(this);
         setContentView(R.layout.portada);
         if (!Guardia.haySesion(this)) return;
 

@@ -230,5 +230,7 @@
         android:id="@+id/girando"
         android:layout_width="60dp"
         android:layout_height="60dp"
-        android:layout_gravity="center" />
+        android:layout_gravity="center"
+        android:indeterminateDrawable="@drawable/girando"
+        android:indeterminateDuration="800" />
 </FrameLayout>

@@ -66,6 +66,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="6dp"
                 android:max="100"
+                android:progressDrawable="@drawable/barra_bajada"
                 android:layout_marginTop="8dp"
                 android:visibility="gone" />
         </LinearLayout>

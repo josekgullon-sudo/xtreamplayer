@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Y dándole vueltas.
+
+  `<rotate>` a secas y no `<animated-rotate>`: el segundo se anima solo,
+  pero a doce saltos por vuelta —treinta grados de golpe—, y en un
+  televisor eso se ve dar tirones. Un `<rotate>` normal lo mueve la propia
+  barra de progreso, que reparte el giro entre todos los fotogramas que le
+  quepan; lo que dura la vuelta se dice en el layout con
+  `android:indeterminateDuration`, y son los 800 ms de la web.
+-->
+<rotate xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/aro_cargando"
+    android:pivotX="50%"
+    android:pivotY="50%"
+    android:fromDegrees="0"
+    android:toDegrees="360" />

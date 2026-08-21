@@ -144,7 +144,8 @@
         android:layout_width="42dp"
         android:layout_height="42dp"
         android:layout_gravity="center"
-        android:indeterminateTint="@color/marca"
+        android:indeterminateDrawable="@drawable/girando"
+        android:indeterminateDuration="800"
         android:visibility="gone" />
 
     <!-- La cápsula de secciones, flotando abajo. Va la última del

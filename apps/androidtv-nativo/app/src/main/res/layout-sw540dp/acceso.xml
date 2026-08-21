@@ -187,7 +187,8 @@
         <ProgressBar
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:indeterminateTint="@color/marca" />
+            android:indeterminateDrawable="@drawable/girando"
+            android:indeterminateDuration="800" />
 
         <TextView
             android:id="@+id/textoCargando"

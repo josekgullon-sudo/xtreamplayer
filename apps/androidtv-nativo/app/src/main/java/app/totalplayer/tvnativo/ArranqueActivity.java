@@ -37,6 +37,7 @@ public class ArranqueActivity extends Activity {
 
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
+        Tipos.poner(this);
         setContentView(R.layout.arranque);
 
         final View halo = findViewById(R.id.halo);

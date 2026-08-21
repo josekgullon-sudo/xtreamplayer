@@ -39,6 +39,7 @@ public class PerfilesActivity extends Activity {
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         Pantalla.colocar(this);
+        Tipos.poner(this);
         setContentView(R.layout.perfiles);
         if (!Guardia.haySesion(this)) return;
 
@@ -168,6 +169,9 @@ public class PerfilesActivity extends Activity {
 
         Window ventana = cuadro.getWindow();
         if (ventana != null) {
+            /* Un diálogo no infla con el inflador de la actividad, así que
+               la fábrica de la letra no lo ve: aquí se le pone a mano */
+            Tipos.aplicar(ventana.getDecorView());
             // Sin esto, el cuadro sale sobre el rectángulo blanco del sistema
             ventana.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             float porPunto = getResources().getDisplayMetrics().density;

@@ -37,6 +37,7 @@ public class VodActivity extends Activity {
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         Pantalla.colocar(this);
+        Tipos.poner(this);
         setContentView(R.layout.vod);
         if (!Guardia.haySesion(this)) return;
 

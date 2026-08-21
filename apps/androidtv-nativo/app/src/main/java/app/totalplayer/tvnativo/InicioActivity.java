@@ -34,6 +34,7 @@ public class InicioActivity extends Activity {
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         Pantalla.colocar(this);
+        Tipos.poner(this);
         setContentView(R.layout.inicio);
         if (!Guardia.haySesion(this)) return;
 

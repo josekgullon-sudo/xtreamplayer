@@ -77,6 +77,7 @@ public class ReproductorActivity extends Activity {
            dejaba las cabeceras por debajo del reloj—, así que se piden aquí,
            que es donde de verdad hacen falta */
         Pantalla.pantallaCompleta(this, true);
+        Tipos.poner(this);
         setContentView(R.layout.reproductor);
         // Ver la tele con el salvapantallas saltando a los dos minutos
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

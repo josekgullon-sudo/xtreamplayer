@@ -126,7 +126,10 @@ def ids_que_existen():
     for f in glob.glob(os.path.join(JAVA, "*.java")):
         texto = open(f, encoding="utf-8").read()
         corto = os.path.basename(f)
-        for i in re.findall(r"R\.id\.([A-Za-z_0-9]+)", texto):
+        # `android.R.id.content` no es de esta aplicación: es el hueco donde
+        # el sistema mete lo que se infla, y buscarlo en nuestros layouts
+        # daba un fallo de mentira
+        for i in re.findall(r"(?<!android\.)R\.id\.([A-Za-z_0-9]+)", texto):
             if i not in ids:
                 fallos.append("R.id.%s no está en ningún layout · %s" % (i, corto))
         for clase in hay:
