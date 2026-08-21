@@ -272,7 +272,7 @@ export default function ActivarTv() {
                 autoComplete="off"
                 placeholder="http://servidor.com:8080  o  la URL get.php completa"
               />
-              <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 6 }}>
+              <p className="pista">
                 Vale una URL M3U o un servidor Xtream. Si es Xtream, rellena también usuario y contraseña.
               </p>
             </div>

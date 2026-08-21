@@ -170,7 +170,11 @@ export default function TicketsSection() {
       </div>
 
       {tickets.length === 0 ? (
-        <div className="pa-empty">No has abierto ningún ticket todavía.</div>
+        /* Dentro de una caja, como el resto de listas vacías del panel: sola
+           en medio de la pantalla, la frase parecía un resto de carga */
+        <div className="card">
+          <div className="pa-empty">No has abierto ningún ticket todavía.</div>
+        </div>
       ) : (
         <table className="panel-table">
           <thead>

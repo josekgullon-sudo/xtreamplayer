@@ -18,8 +18,11 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
      un precio distinto del que se cobra */
   const filas = await p.locator(".compare-table tbody tr").count();
   check("Y el de proveedores, con sus tramos", filas >= 4, `${filas} tramos`);
-  const tabla = await p.locator(".compare-table").innerText();
-  check("Con precios de verdad, no inventados", tabla.includes("20 €") && tabla.includes("100"), tabla.split("\n")[1]);
+  /* El espacio entre el número y el € es el que pone `Intl` para el
+     castellano, que no es el de la barra espaciadora: se normaliza antes de
+     comparar o esto falla por un carácter invisible */
+  const tabla = (await p.locator(".compare-table").innerText()).replace(/\s/g, " ");
+  check("Con precios de verdad, no inventados", tabla.includes("20 €") && tabla.includes("100"), tabla.split(" ").slice(0, 8).join(" "));
   check("Y con salida a la prueba de proveedor", await p.locator("a[href='/proveedores/registro']").isVisible());
   check("Sin desbordar a lo ancho",
     (await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) === 0);

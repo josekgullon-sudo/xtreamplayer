@@ -63,6 +63,33 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
 
   await p.screenshot({ path: __dirname + "/92-panel-apps.png", fullPage: true });
 
+  /*
+   * Y todas las secciones del panel se titulan igual que su botón del menú.
+   *
+   * A «Aplicaciones» le faltaba la línea en la tabla de títulos: se pulsaba
+   * en el menú y la pantalla salía sin encabezado, con un hueco donde las
+   * demás llevan su nombre. Y «Mi panel XUI» se titulaba «Conexión del
+   * panel», así que se pulsaba una cosa y se llegaba a otra. Se recorre el
+   * menú entero porque el fallo no está en una pantalla: está en olvidarse
+   * de una al añadirla.
+   */
+  const menu = await p.locator(".panel-nav-item").allInnerTexts();
+  const sinTitulo = [];
+  const distinto = [];
+  for (let i = 0; i < menu.length; i++) {
+    const nombre = menu[i].replace(/\s+/g, " ").replace(/\s*\d+$/, "").trim();
+    if (!nombre || /Salir|Ver reproductor/.test(nombre)) continue;
+    await p.locator(".panel-nav-item").nth(i).click();
+    await p.waitForTimeout(500);
+    const titulo = (await p.locator(".panel-head h1").innerText().catch(() => "")).trim();
+    if (!titulo) sinTitulo.push(nombre);
+    /* «Plan» se titula «Plan y facturación»: vale que lo amplíe, no que hable
+       de otra cosa. Basta con que el nombre del menú esté dentro */
+    else if (!titulo.toLowerCase().includes(nombre.toLowerCase())) distinto.push(`${nombre} → ${titulo}`);
+  }
+  check("Ninguna sección del panel se queda sin título", sinTitulo.length === 0, sinTitulo.join(" | "));
+  check("Y ninguna se titula distinto de como se llama en el menú", distinto.length === 0, distinto.join(" | "));
+
   // Un revendedor no gestiona el plan: esto tampoco es suyo
   const rev = await ctx.newPage();
   await rev.goto(BASE + "/panel", { waitUntil: "networkidle" });

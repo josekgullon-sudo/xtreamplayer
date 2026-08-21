@@ -270,6 +270,30 @@ button { font-family: inherit; }
   font-family: inherit;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
+
+/*
+ * El selector de color, sin el marco que le pone el navegador.
+ *
+ * Un `input type=color` se dibuja como un rectángulo de color con un borde
+ * claro alrededor. Sobre fondo oscuro ese borde blanco se lee como el aro de
+ * «este campo está mal», que es justo lo contrario de lo que pasa: es el
+ * color de la marca del proveedor, y es el único campo de la pantalla que se
+ * ve bien de un vistazo.
+ */
+input[type="color"] {
+  height: 44px;
+  padding: 4px;
+  cursor: pointer;
+}
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: calc(var(--radius-sm) - 3px);
+}
+input[type="color"]::-moz-color-swatch {
+  border: none;
+  border-radius: calc(var(--radius-sm) - 3px);
+}
 .input:hover { border-color: var(--border-strong); }
 .input:focus { outline: none; border-color: var(--accent); background: var(--bg); box-shadow: 0 0 0 3.5px var(--accent-tint); }
 .input::placeholder { color: var(--text-faint); }
@@ -1161,6 +1185,16 @@ button { font-family: inherit; }
 .auth-card h1 { font-size: 26px; margin-bottom: 6px; }
 .auth-card .auth-sub { color: var(--text-dim); font-size: 14.5px; margin-bottom: 26px; }
 .auth-field { margin-bottom: 18px; }
+/*
+ * La línea de ayuda debajo de un campo.
+ *
+ * Estaba escrita a mano con estilos incrustados en cinco sitios, y en un
+ * sexto el hueco se pedía con dos clases —`field` y `hint`— que no existen
+ * en ninguna hoja: allí el texto salía del tamaño del cuerpo, del color del
+ * cuerpo y pegado a la etiqueta del campo siguiente, como si las dos frases
+ * fueran una.
+ */
+.pista { font-size: 12.5px; line-height: 1.45; color: var(--text-faint); margin-top: 6px; }
 
 /* Selector de acceso: cliente o proveedor */
 .access-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }

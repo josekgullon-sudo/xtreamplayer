@@ -5,6 +5,7 @@ import SiteFooter from "@/components/SiteFooter";
 import Icon from "@/components/Icon";
 import Aparece from "@/components/Aparece";
 import { listPlans } from "@/lib/provider";
+import { euros } from "@/lib/dinero";
 
 export const metadata: Metadata = {
   title: "Reproductor para proveedores IPTV — tu app lista para tus clientes",
@@ -170,9 +171,9 @@ export default function ProvidersPage() {
                     <tr key={p.id}>
                       <td><strong>{p.name}</strong></td>
                       <td>{p.max_customers.toLocaleString("es-ES")}</td>
-                      <td>{(p.price_month / 100).toFixed(0)} €</td>
+                      <td>{euros(p.price_month / 100, 0)}</td>
                       <td style={{ color: "var(--text-faint)" }}>
-                        {(p.price_month / 100 / p.max_customers).toFixed(2)} €
+                        {euros(p.price_month / 100 / p.max_customers)}
                       </td>
                     </tr>
                   ))}

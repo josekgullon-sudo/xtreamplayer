@@ -11,6 +11,7 @@ import PanelSection from "./PanelSection";
 import EntregaAcceso from "./EntregaAcceso";
 import Loading, { MENSAJES_PANEL } from "@/components/Loading";
 import { useCallback, useEffect, useState } from "react";
+import { euros } from "@/lib/dinero";
 
 interface Customer {
   id: number;
@@ -479,6 +480,14 @@ export default function ProviderPanel() {
 
   const pct = status && status.maxCustomers ? Math.min(100, (status.usedCustomers / status.maxCustomers) * 100) : 0;
 
+  /*
+   * El título de cada pantalla, con el mismo nombre que su botón del menú.
+   *
+   * A «Aplicaciones» le faltaba la línea: se pulsaba en el menú y la pantalla
+   * salía sin encabezado, con un hueco donde las demás llevan su nombre. Y
+   * «Mi panel XUI» se titulaba «Conexión del panel», así que se pulsaba una
+   * cosa y se llegaba a otra.
+   */
   const TITULOS: Record<string, string> = {
     clientes: "Clientes",
     revendedores: "Revendedores",
@@ -486,7 +495,8 @@ export default function ProviderPanel() {
     marca: "Mi marca",
     plan: "Plan y facturación",
     facturas: "Facturas",
-    panel: "Conexión del panel",
+    panel: "Mi panel XUI",
+    aplicaciones: "Aplicaciones",
     api: "API",
     soporte: "Soporte",
   };
@@ -607,15 +617,24 @@ export default function ProviderPanel() {
             {status?.onTrial ? " (prueba)" : ""}
           </p>
         </div>
-        <div className="panel-head-stat">
-          <span className="panel-card-label">Clientes</span>
-          <span className="panel-card-value">
-            {status?.usedCustomers} <small>/ {formatCupo(status?.maxCustomers)}</small>
-          </span>
-          <div className="panel-meter">
-            <div style={{ width: `${pct}%`, background: pct > 90 ? "var(--danger)" : "var(--accent)" }} />
+        {/*
+          El cupo, en la cabecera de todas las pantallas menos la del plan.
+
+          En «Plan y facturación» el cupo ya sale en su propia caja, en la
+          fila de tres de arriba: con este puesto, la pantalla decía «Clientes
+          0/10» dos veces seguidas —y en un móvil, una debajo de la otra—.
+        */}
+        {tab !== "plan" && (
+          <div className="panel-head-stat">
+            <span className="panel-card-label">Clientes</span>
+            <span className="panel-card-value">
+              {status?.usedCustomers} <small>/ {formatCupo(status?.maxCustomers)}</small>
+            </span>
+            <div className="panel-meter">
+              <div style={{ width: `${pct}%`, background: pct > 90 ? "var(--danger)" : "var(--accent)" }} />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {notice && (
@@ -674,10 +693,10 @@ export default function ProviderPanel() {
               >
                 <span className="plan-tile-name">{p.name}</span>
                 <span className="plan-tile-price">
-                  {p.priceMonth}€<small>/mes</small>
+                  {euros(p.priceMonth, 0)}<small>/mes</small>
                 </span>
                 <span className="plan-tile-users">{p.maxCustomers.toLocaleString("es-ES")} clientes</span>
-                <span className="plan-tile-unit">{p.pricePerCustomer.toFixed(2)}€ por cliente</span>
+                <span className="plan-tile-unit">{euros(p.pricePerCustomer)} por cliente</span>
                 {status?.planName === p.name && <span className="badge badge-success" style={{ marginTop: 8 }}>Tu plan</span>}
               </button>
             ))}
@@ -849,7 +868,6 @@ export default function ProviderPanel() {
                   className="input"
                   type="color"
                   defaultValue={branding.color || "#e5192b"}
-                  style={{ height: 44, padding: 4, cursor: "pointer" }}
                 />
               </div>
               <div className="auth-field">
@@ -862,13 +880,13 @@ export default function ProviderPanel() {
               <label className="label" htmlFor="b-logo">Logotipo (URL https)</label>
               <input id="b-logo" name="brandLogo" className="input" defaultValue={branding.logo} placeholder="https://…/logo.png" />
             </div>
-            <div className="field">
+            <div className="auth-field">
               {/* El mosaico de las pantallas de antes de entrar. Sin poner
                   nada se dibuja uno, así que esto es para quien quiera el
                   suyo — su catálogo, sus carteles */}
               <label className="label" htmlFor="b-fondo">Fondo de las pantallas de entrada (URL https)</label>
               <input id="b-fondo" name="brandFondo" className="input" defaultValue={branding.fondo} placeholder="https://…/mosaico.jpg" />
-              <p className="hint">
+              <p className="pista">
                 Un mosaico de carátulas, apaisado y grande. Se ve muy apagado detrás
                 de activar, entrar y elegir perfil. Sin poner nada, se dibuja uno.
               </p>
@@ -891,7 +909,7 @@ export default function ProviderPanel() {
                 defaultValue={branding.precioPerfil || 0}
                 placeholder="0"
               />
-              <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 6 }}>
+              <p className="pista">
                 Si lo pones, tus clientes verán el precio en su cuenta y podrán pedírtelo. Con 0 no se ofrece.
               </p>
             </div>
@@ -1349,7 +1367,7 @@ export default function ProviderPanel() {
                 placeholder={"juan21:clave123\nmaria88:otraclave  María López\nhttp://servidor.com:8080/get.php?username=pedro&password=xyz"}
                 onChange={() => setImportPreview(null)}
               />
-              <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 6 }}>
+              <p className="pista">
                 Admite <code>usuario:contraseña</code>, separado por coma, punto y coma o tabulador, y URLs get.php
                 completas. Un tercer campo se toma como nombre.
               </p>
@@ -1454,7 +1472,7 @@ export default function ProviderPanel() {
                   placeholder="servidor.com"
                   defaultValue={showDomain === "new" ? "" : (showDomain as Domain).host}
                 />
-                <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 6 }}>Sin http:// ni barras</p>
+                <p className="pista">Sin http:// ni barras</p>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div className="auth-field">
@@ -1579,7 +1597,7 @@ export default function ProviderPanel() {
                   min={0}
                   defaultValue={showReseller === "new" ? 0 : (showReseller as Reseller).maxCustomers}
                 />
-                <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 6 }}>
+                <p className="pista">
                   Sus clientes cuentan dentro del cupo de tu plan.
                 </p>
               </div>
@@ -1614,9 +1632,9 @@ export default function ProviderPanel() {
               {plans.map((p) => (
                 <button key={p.id} className="plan-tile" onClick={() => subscribe(p.id)}>
                   <span className="plan-tile-name">{p.name}</span>
-                  <span className="plan-tile-price">{p.priceMonth}€<small>/mes</small></span>
+                  <span className="plan-tile-price">{euros(p.priceMonth, 0)}<small>/mes</small></span>
                   <span className="plan-tile-users">{p.maxCustomers.toLocaleString("es-ES")} clientes</span>
-                  <span className="plan-tile-unit">{p.pricePerCustomer.toFixed(2)}€ por cliente</span>
+                  <span className="plan-tile-unit">{euros(p.pricePerCustomer)} por cliente</span>
                 </button>
               ))}
             </div>
