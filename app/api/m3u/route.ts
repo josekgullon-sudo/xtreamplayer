@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { assertPublicUrl } from "@/lib/safeFetch";
 import { origenPedido } from "@/lib/origen";
 import { enlaceDeImagen, enlaceDeVideo } from "@/lib/vale";
+import { textoComprimido } from "@/lib/comprimir";
 
 /**
  * Muchos servidores IPTV filtran por User-Agent y rechazan cualquier cliente
@@ -67,8 +68,8 @@ export async function GET(req: NextRequest) {
         { status: 422 }
       );
     }
-    return new NextResponse(sinDirecciones(texto, origen.dueño), {
-      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+    return await textoComprimido(req, sinDirecciones(texto, origen.dueño), "text/plain; charset=utf-8", {
+      headers: { "Cache-Control": "no-store" },
     });
   } catch {
     // El motivo lleva dentro el nombre del servidor: no sale de aquí

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertPublicUrl } from "@/lib/safeFetch";
 import { limpiar, origenPedido } from "@/lib/origen";
+import { jsonComprimido } from "@/lib/comprimir";
 
 /**
  * Muchos servidores IPTV filtran por User-Agent y rechazan cualquier cliente
@@ -76,14 +77,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: `Tu proveedor respondió ${arriba.status}` }, { status: 502 });
     }
     const texto = await arriba.text();
+    let datos: unknown;
     try {
-      return NextResponse.json(limpiar(JSON.parse(texto), origen.dueño));
+      datos = JSON.parse(texto);
     } catch {
       return NextResponse.json(
         { error: "Tu proveedor no ha devuelto datos válidos." },
         { status: 502 }
       );
     }
+    return await jsonComprimido(req, limpiar(datos, origen.dueño));
   } catch {
     /*
      * El motivo real no se cuenta. Un «getaddrinfo ENOTFOUND cdn.loquesea.com»

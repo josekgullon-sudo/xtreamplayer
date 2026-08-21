@@ -38,6 +38,31 @@ async function alFinal(p, selector) {
 }
 
 (async () => {
+  /*
+   * Lo primero: que el catálogo salga comprimido.
+   *
+   * Next comprime las páginas pero no las rutas de `/api`, y el catálogo de
+   * un proveedor de verdad son varios megas de JSON. Sin comprimir, abrir la
+   * aplicación en un móvil con cobertura regular es esperar mirando una
+   * pantalla en blanco. Es de las cosas que no se ven en local —aquí todo
+   * viaja por localhost— y por eso se comprueba con una prueba y no con el
+   * ojo.
+   */
+  for (const [nombre, url] of [
+    ["El catálogo de 8.000 canales", `${BASE}/api/xtream?action=get_live_streams&base=http://127.0.0.1:8090&username=enorme&password=enorme123`],
+    ["La lista M3U enorme", `${BASE}/api/m3u?url=http://127.0.0.1:8090/lista-enorme.m3u`],
+  ]) {
+    const crudo = await fetch(url, { headers: { "Accept-Encoding": "identity" } });
+    const sinApretar = (await crudo.arrayBuffer()).byteLength;
+    const apretado = await fetch(url, { headers: { "Accept-Encoding": "gzip" } });
+    const cabecera = apretado.headers.get("content-encoding") || "";
+    const bytes = Number(apretado.headers.get("content-length") || 0);
+    await apretado.arrayBuffer();
+    check(`${nombre} viaja comprimido`, cabecera.includes("gzip"), cabecera || "sin comprimir");
+    check(`${nombre} ocupa bastante menos`, bytes > 0 && bytes * 2 < sinApretar,
+      `${Math.round(sinApretar / 1024)} kB → ${Math.round(bytes / 1024)} kB`);
+  }
+
   const browser = await chromium.launch({ ...ejecutable });
   const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   p.on("pageerror", (e) => console.log("PAGEERROR:", String(e).slice(0, 200)));
