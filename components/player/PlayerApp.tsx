@@ -615,7 +615,17 @@ export default function PlayerApp() {
     return () => {
       vivo = false;
     };
-  }, [vodDetail, seriesDetail]);
+    /*
+     * Por el identificador del título, no por el objeto entero.
+     *
+     * La ficha se completa sola: se abre con lo que trae el catálogo y
+     * `get_vod_info` llega después, y eso cambia el objeto. Con el objeto en
+     * la lista, cada retoque vaciaba el reparto y lo volvía a pedir — la
+     * fila de caras desaparecía un instante y volvía, que es exactamente lo
+     * que hacía fallar la prueba una vez de cada tantas.
+     */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vodDetail?.vod?.stream_id, seriesDetail?.series?.series_id]);
 
   useEffect(() => {
     if (!active) return;

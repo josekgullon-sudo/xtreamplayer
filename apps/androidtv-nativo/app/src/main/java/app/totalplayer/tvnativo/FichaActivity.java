@@ -114,6 +114,7 @@ public class FichaActivity extends Activity {
 
         pintarNota();
         pedirReparto();
+        pedirArte();
     }
 
     /**
@@ -139,6 +140,47 @@ public class FichaActivity extends Activity {
                    llegar a ninguna pantalla */
             }
         });
+    }
+
+    /**
+     * El fondo apaisado, si nuestro servidor lo sabe.
+     *
+     * De fondo va la carátula vertical: un recorte del centro estirado a lo
+     * ancho de un televisor, que da el color del título y poco más. El
+     * apaisado lo sabe TMDB y sale de la misma fila que el reparto, así que
+     * no cuesta una petición más. Y si el panel tampoco manda carátula, la
+     * de TMDB llena ese hueco en vez de dejar el dibujo de reserva.
+     */
+    private void pedirArte() {
+        final boolean esSerie = ficha.esSerie;
+        Hilos.fuera(new Hilos.Trabajo<Catalogo.Arte>() {
+            @Override public Catalogo.Arte hacer() {
+                return Catalogo.arte(ficha.nombre, ficha.anio, esSerie);
+            }
+        }, new Hilos.Luego<Catalogo.Arte>() {
+            @Override public void listo(Catalogo.Arte suyo) {
+                pintarArte(suyo);
+            }
+            @Override public void falla(Exception e) {
+                /* Sin fondo, la ficha se queda como estaba */
+            }
+        });
+    }
+
+    private void pintarArte(Catalogo.Arte suyo) {
+        if (suyo == null) return;
+        if (!suyo.cartel.isEmpty() && ficha.imagen.isEmpty()) {
+            Imagenes.cargar((ImageView) findViewById(R.id.cartel), suyo.cartel,
+                    ficha.esSerie ? R.drawable.ic_series : R.drawable.ic_cine);
+        }
+        if (suyo.fondo.isEmpty()) return;
+        ImageView fondo = findViewById(R.id.fondo);
+        if (fondo == null) return;
+        /* Y con algo más de luz que la carátula: aquello era un trozo del
+           centro de una imagen vertical y a un 14% es solo color; esto es la
+           foto entera y a su forma, que es lo que se quiere ver detrás */
+        fondo.setAlpha(0.30f);
+        Imagenes.cargar(fondo, suyo.fondo, android.R.color.transparent);
     }
 
     private void pintarReparto(java.util.List<Catalogo.Actor> gente) {

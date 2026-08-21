@@ -937,6 +937,59 @@ public final class Catalogo {
         return lista;
     }
 
+    /* ---------------- El fondo apaisado y la carátula ---------------- */
+
+    /** Las dos imágenes de un título, tal y como se enseñan. */
+    public static class Arte {
+        /** El fondo apaisado. Vacío si no lo hay. */
+        public String fondo = "";
+        /** La carátula vertical. Vacía si no la hay. */
+        public String cartel = "";
+    }
+
+    /** Lo ya preguntado, para no repetirlo al reabrir la misma ficha. */
+    private static final Map<String, Arte> artes = new LinkedHashMap<>();
+
+    /**
+     * El fondo apaisado de un título, que el panel no manda.
+     *
+     * Un panel Xtream manda una carátula vertical y ya está. De fondo de una
+     * ficha, esa carátula es un recorte del centro estirado a lo ancho de un
+     * televisor: da el color y poco más. El apaisado lo sabe TMDB y lo sirve
+     * nuestro servidor, de la misma fila que acaba de mirar para el reparto.
+     *
+     * Devuelve las dos direcciones vacías cuando no se sabe —sin clave de
+     * TMDB, título no reconocido, o la petición falla—, y ninguna de las
+     * tres es un error: la ficha se queda como estaba.
+     */
+    public static Arte arte(String nombre, String anio, boolean serie) {
+        String llave = (serie ? "s:" : "p:") + nombre + ":" + (anio == null ? "" : anio);
+        Arte ya = artes.get(llave);
+        if (ya != null) return ya;
+
+        Arte suyo = new Arte();
+        try {
+            JSONObject uno = new JSONObject();
+            uno.put("nombre", nombre);
+            uno.put("anio", anio == null ? "" : anio);
+            uno.put("serie", serie);
+            JSONObject peticion = new JSONObject();
+            peticion.put("titulos", new JSONArray().put(uno));
+            JSONObject r = new JSONObject(Web.enCasaPost(Acceso.CASA + "/api/meta", peticion.toString()));
+            JSONArray meta = r.optJSONArray("meta");
+            JSONObject m = meta == null || meta.length() == 0 ? null : meta.optJSONObject(0);
+            if (m != null) {
+                suyo.fondo = m.optString("fondo", "");
+                suyo.cartel = m.optString("cartel", "");
+            }
+        } catch (Exception noSeSabe) {
+            /* Se guarda igual: si el servidor no lo sabe, no lo va a saber
+               por preguntárselo otra vez en la misma sesión */
+        }
+        artes.put(llave, suyo);
+        return suyo;
+    }
+
     /* ---------------- Buscar ---------------- */
 
     /**
