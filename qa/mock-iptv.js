@@ -106,6 +106,15 @@ const server = http.createServer((req, res) => {
     return res.end("<html><body><h1>Subscription expired</h1></body></html>");
   }
 
+  /* Y un CANAL que contesta 200 con la página de «suscripción caducada» en
+     vez de con vídeo, que es lo que hace un panel cuando la línea está
+     caducada, bloqueada o con el límite de conexiones lleno. Por fuera se
+     ve idéntico a un canal que funciona: 200, y datos */
+  if (p === "/media/canal-caducado.ts") {
+    res.writeHead(200, { "Content-Type": "text/html" });
+    return res.end("<html><body><h1>Subscription expired</h1></body></html>");
+  }
+
   /* Lista sucia, con lo que traen las de verdad: nombres en blanco, nombres
      larguísimos, HTML dentro del nombre, canales repetidos, sin carpeta,
      logotipos que no existen y una URL que no es una URL. */

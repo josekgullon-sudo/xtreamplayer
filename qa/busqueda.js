@@ -126,6 +126,30 @@ async function verRejilla(p) {
   const malo = await fetch(`${BASE}/api/img?v=${encodeURIComponent(tocado)}`);
   check("Un vale manipulado se rechaza", malo.status === 403, `HTTP ${malo.status}`);
 
+  /*
+   * Un canal que contesta con un mensaje en vez de con vídeo.
+   *
+   * Es lo que hace un panel con la línea caducada, bloqueada o con el
+   * límite de conexiones lleno: 200 y una página de HTML. Se pasaba tal
+   * cual al reproductor, que intentaba abrirla como vídeo y moría con
+   * «DEMUXER_ERROR_COULD_NOT_OPEN» — un mensaje que suena a códec raro y
+   * manda a buscar donde no hay nada.
+   */
+  const valeCaducado = await fetch(`${BASE}/api/tele/vale`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: "http://127.0.0.1:8090/media/canal-caducado.ts" }),
+  });
+  const vc = (await valeCaducado.json().catch(() => ({}))).vale;
+  const caducado = await fetch(`${BASE}/api/proxy?v=${encodeURIComponent(vc || "")}`);
+  const dicho = await caducado.json().catch(() => ({}));
+  check("Un canal que contesta con un mensaje y no con vídeo se rechaza",
+    caducado.status === 502, `HTTP ${caducado.status}`);
+  check("Y se dice que contestó el proveedor, no que el vídeo esté roto",
+    /no con vídeo/.test(dicho.error || ""), (dicho.error || "").slice(0, 70));
+  check("Con la pista de por qué suele pasar",
+    /caducada|bloqueada|conexiones/.test(dicho.pista || ""), (dicho.pista || "sin pista").slice(0, 70));
+
   /* ---------- Cuando no hay nada, decir qué pasa ----------
    *
    * Una lista que contesta 200 con solo la cabecera —el caso del cliente al

@@ -75,6 +75,41 @@ export async function GET(req: NextRequest) {
     const esManifiesto =
       HLS.some((t) => tipo.toLowerCase().includes(t)) || destino.pathname.endsWith(".m3u8");
 
+    /*
+     * Y si lo que llega no es vídeo, decirlo así.
+     *
+     * Un panel con la suscripción caducada, con el límite de conexiones
+     * lleno o con la línea bloqueada no contesta con un error: contesta 200
+     * con una página o con un JSON explicándolo. Eso se pasaba tal cual al
+     * reproductor, que intentaba abrirlo como vídeo y moría con
+     * «DEMUXER_ERROR_COULD_NOT_OPEN» — un mensaje que suena a códec raro y
+     * manda a buscar donde no hay nada. Una hora de la vida de cualquiera.
+     *
+     * Se mira antes de nada si el cuerpo empieza por `#EXTM3U`: hay paneles
+     * que sirven el manifiesto como texto plano, y esos SÍ son vídeo.
+     */
+    const esTexto = /^(text\/|application\/json)/i.test(tipo);
+    if (esTexto && !esManifiesto) {
+      const principio = (await arriba.text()).slice(0, 4096);
+      if (principio.trimStart().startsWith("#EXTM3U")) {
+        const finalUrl = arriba.url || destino.toString();
+        return new NextResponse(rewriteManifest(principio, finalUrl, dueño), {
+          headers: { "Content-Type": "application/vnd.apple.mpegurl", "Cache-Control": "no-store" },
+        });
+      }
+      return NextResponse.json(
+        {
+          error: "Tu proveedor ha contestado con un mensaje, no con vídeo",
+          /* Sin el texto entero ni su dirección: lo que devuelve un panel
+             ahí dentro suele llevar la línea del cliente escrita */
+          pista: /caduc|expir|ban|block|limit|conexion|connection/i.test(principio)
+            ? "Parece que la línea está caducada, bloqueada o con el límite de conexiones lleno"
+            : "",
+        },
+        { status: 502 }
+      );
+    }
+
     if (esManifiesto) {
       const texto = await arriba.text();
       // La URL final puede diferir de la original si hubo redirecciones
