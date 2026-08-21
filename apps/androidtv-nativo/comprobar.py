@@ -35,12 +35,31 @@ MANIFIESTO = os.path.join(MAIN, "AndroidManifest.xml")
 fallos = []
 
 
+def ids_que_busca_el_codigo():
+    """Los R.id.loQueSea que el Java pide de verdad."""
+    usados = set()
+    for f in glob.glob(os.path.join(JAVA, "*.java")):
+        usados |= set(re.findall(r"R\.id\.([A-Za-z_0-9]+)",
+                                open(f, encoding="utf-8").read()))
+    return usados
+
+
 def los_dos_juegos_casan():
-    """Tele y teléfono tienen que definir los mismos identificadores."""
+    """
+    Tele y teléfono tienen que definir los mismos identificadores.
+
+    Los que el código busca, se entiende. Un identificador que solo está en
+    una variante y que nadie pide desde Java no rompe nada: es un contenedor
+    con nombre, y las dos pantallas no tienen por qué estar hechas con las
+    mismas cajas. Comparándolos todos, esto sacaba avisos de cosas que
+    compilan y funcionan — y una comprobación que avisa de lo que no pasa
+    deja de leerse, que es justo lo que vino a evitar.
+    """
     tele = os.path.join(RES, "layout-sw540dp")
     movil = os.path.join(RES, "layout")
     if not os.path.isdir(tele):
         return
+    pedidos = ids_que_busca_el_codigo()
     for nombre in sorted(os.listdir(tele)):
         gemelo = os.path.join(movil, nombre)
         if not os.path.isfile(gemelo):
@@ -50,9 +69,9 @@ def los_dos_juegos_casan():
                                   open(os.path.join(tele, nombre), encoding="utf-8").read()))
         ids_movil = set(re.findall(r"@\+id/([A-Za-z_0-9]+)",
                                    open(gemelo, encoding="utf-8").read()))
-        for i in sorted(ids_tele - ids_movil):
+        for i in sorted((ids_tele - ids_movil) & pedidos):
             fallos.append("%s: la tele tiene «%s» y el teléfono no" % (nombre, i))
-        for i in sorted(ids_movil - ids_tele):
+        for i in sorted((ids_movil - ids_tele) & pedidos):
             fallos.append("%s: el teléfono tiene «%s» y la tele no" % (nombre, i))
 
 
@@ -77,6 +96,12 @@ def recursos_que_existen():
         m = re.search(r'name="([a-z_0-9]+)"', linea)
         if m:
             hay.add("@color/" + m.group(1))
+    # Un color también puede ser un fichero de `res/color/`: son las listas
+    # de estados —un tono con el foco puesto y otro sin él— y para Android
+    # valen igual que una entrada de colors.xml. Sin mirar aquí, cada
+    # `@color/` de esos salía como «no existe» y compilaba tan tranquilo.
+    for f in glob.glob(os.path.join(RES, "color*", "*.xml")):
+        hay.add("@color/" + os.path.basename(f).rsplit(".", 1)[0])
 
     ficheros = glob.glob(os.path.join(RES, "layout*", "*.xml")) \
         + glob.glob(os.path.join(RES, "drawable", "*.xml")) + [MANIFIESTO]

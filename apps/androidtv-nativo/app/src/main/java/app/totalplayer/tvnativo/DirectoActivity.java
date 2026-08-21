@@ -242,7 +242,26 @@ public class DirectoActivity extends Activity {
                 conFavoritos.addAll(lista);
                 carpetas.poner(conFavoritos);
                 pista.setText("Elige un canal de la lista");
-                abrirCarpeta(0);
+                /*
+                 * Y se abre la primera que tenga algo dentro.
+                 *
+                 * Favoritos va la primera de la tira porque es a donde se va
+                 * cuando no apetece buscar. Pero recién instalada está vacía,
+                 * y abrirla dejaba la aplicación estrenada enseñando «aún no
+                 * has marcado ningún canal» y ni un solo canal a la vista,
+                 * con los ocho mil del proveedor a una carpeta de distancia.
+                 * Quien acaba de instalar esto no lee eso como «esta carpeta
+                 * está vacía»: lo lee como «esto no funciona».
+                 *
+                 * Solo se saltan las carpetas de casa —favoritos y los que
+                 * más ves—, que se pueden contar aquí mismo. Las del
+                 * proveedor no: saber si traen canales cuesta una petición,
+                 * y para eso ya está el «esta carpeta no tiene canales».
+                 */
+                int primera = 0;
+                while (primera < conFavoritos.size() && deCasaYVacia(conFavoritos.get(primera).id)) primera++;
+                if (primera >= conFavoritos.size()) primera = 0;
+                abrirCarpeta(primera);
                 /* El foco arranca en los canales, no en las carpetas: se
                    entra a ver la tele, y la carpeta es un filtro que se pone
                    encima. Antes las carpetas eran la columna por la que había
@@ -259,6 +278,13 @@ public class DirectoActivity extends Activity {
                 findViewById(R.id.botonReintentar).requestFocus();
             }
         });
+    }
+
+    /** ¿Es una de las carpetas de casa y está vacía? Ver `cargarCarpetas`. */
+    private boolean deCasaYVacia(String id) {
+        if (Favoritos.CARPETA.equals(id)) return Favoritos.lista(this).isEmpty();
+        if (MasVistos.CARPETA.equals(id)) return MasVistos.lista(this).isEmpty();
+        return false;
     }
 
     /**
