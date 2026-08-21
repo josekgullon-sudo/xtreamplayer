@@ -7,15 +7,30 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
 /*
  * De la portada a la rejilla de siempre.
  *
- * Cine y series abren en una portada —banner arriba y filas debajo—, y la
+ * Cine y series abren en una portada —banner arriba y filas debajo— y la
  * rejilla entera está a un botón. Estas pruebas miran la rejilla, así que
  * pulsan ese botón si está.
+ *
+ * En bucle y no de una vez. Mirando UNA sola vez si el botón existe, se
+ * decide en un instante y se actúa en otro: si la portada todavía no ha
+ * llegado, no hay botón que pulsar y luego se espera cuarenta segundos a
+ * una rejilla que nadie ha pedido. Es el mismo fallo que tenían la prueba
+ * de la tele y la del móvil, y el mismo arreglo: comprobar, actuar, y
+ * volver a comprobar.
  */
 async function verRejilla(p) {
-  await p.waitForSelector(".pa-vertodo, .pa-grid .pa-card", { timeout: 60000 });
-  const boton = p.locator(".pa-vertodo");
-  if (await boton.count()) await boton.first().click();
-  await p.waitForSelector(".pa-grid .pa-card", { timeout: 40000 });
+  const tarjetas = p.locator(".pa-grid .pa-card");
+  const verTodo = p.locator(".pa-vertodo");
+  for (let intento = 0; intento < 60; intento++) {
+    if (await tarjetas.first().isVisible().catch(() => false)) return;
+    if (await verTodo.first().isVisible().catch(() => false)) {
+      await verTodo.first().click({ timeout: 4000 }).catch(() => {});
+      await tarjetas.first().waitFor({ state: "visible", timeout: 6000 }).catch(() => {});
+      if (await tarjetas.first().isVisible().catch(() => false)) return;
+    }
+    await p.waitForTimeout(400);
+  }
+  throw new Error("La rejilla de carátulas no llegó a estar a la vista");
 }
 
 async function conLista(p) {
