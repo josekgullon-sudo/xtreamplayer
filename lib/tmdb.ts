@@ -194,9 +194,22 @@ export async function repartoDe(
 ): Promise<Actor[]> {
   if (!CLAVE) return [];
   const llave = llaveDe(nombre, anio, serie);
-  const fila = guardadas([llave]).get(llave);
-  /* Sin fila no se busca aquí: lo hace `metaDe`, que es quien sabe pedir y
-     guardar el título entero. Esta función solo completa lo que falta */
+  let fila = guardadas([llave]).get(llave);
+
+  /*
+   * Y si el título no está en el caché, se busca antes.
+   *
+   * En el reproductor web y en la tele siempre está: la portada pasa por
+   * `metaDe` antes de que nadie pueda abrir una ficha. En la aplicación
+   * nativa de Fire TV no, porque esa habla con el panel directamente y no
+   * pide nada a TMDB — así que sin esto, allí no habría caras jamás y el
+   * fallo sería invisible desde aquí.
+   */
+  if (!fila) {
+    await metaDe([{ nombre, anio, serie }]);
+    fila = guardadas([llave]).get(llave);
+  }
+
   if (!fila || !fila.tmdb_id) return [];
   if (fila.reparto) return conCdn(fila.reparto);
 

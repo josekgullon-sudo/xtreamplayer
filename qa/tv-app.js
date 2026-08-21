@@ -114,6 +114,34 @@ async function esperarCanales(tv) {
   r = await call(`/api/tv/code?code=${code}`);
   check("El mismo código no sirve dos veces", r.body.estado === "caducado");
 
+  /*
+   * El reparto de un título que NO ha pasado por la portada.
+   *
+   * En el reproductor web y en la tele el título siempre está en el caché
+   * antes de que nadie pueda abrir su ficha: la portada pasa por
+   * `/api/meta`. La aplicación nativa de Fire TV no hace eso —habla con el
+   * panel directamente y no le pide nada a TMDB—, así que pide el reparto
+   * de un título del que aquí no se sabe nada. Sin buscarlo primero, allí
+   * no habría caras nunca, y el fallo no se vería desde ninguna pantalla de
+   * las que sí se prueban.
+   *
+   * «Estreno 99» existe para TMDB y no está en ningún catálogo, así que
+   * ninguna otra prueba lo ha podido dejar guardado de antes.
+   */
+  r = await call("/api/reparto", {
+    method: "POST",
+    body: JSON.stringify({ nombre: "Estreno 99", anio: String(new Date().getFullYear()), serie: false }),
+  });
+  const gente = r.body.reparto || [];
+  check("El reparto llega aunque el título no haya pasado por la portada",
+    gente.length === 4, `${gente.length} actores`);
+  check("Con su nombre, su personaje y su foto",
+    gente[0]?.nombre === "Ana Actriz" && gente[0]?.personaje === "La protagonista" && /^https?:/.test(gente[0]?.foto || ""),
+    JSON.stringify(gente[0] || {}).slice(0, 110));
+  check("Y quien no tiene retrato viene sin foto, no con una rota",
+    gente[3]?.nombre === "Sin Retrato" && gente[3]?.foto === "",
+    JSON.stringify(gente[3] || {}).slice(0, 80));
+
   // --- La tele en el navegador ---
   const b = await chromium.launch({ ...ejecutable });
   const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 } });
