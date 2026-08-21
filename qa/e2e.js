@@ -193,7 +193,17 @@ function check(name, ok, detail = "") {
      se leía como «el programa es "En directo"» y la prueba culpaba al
      contenido de un problema de tiempo */
   await page.waitForFunction(
-    () => !/^En directo\s*$/.test(document.querySelector(".pa-live-titulo p")?.innerText || ""),
+    () => {
+      /* Con el elemento delante, no «mientras no exista».
+         Sin dato, `?.innerText` da undefined, el `|| ""` lo vuelve cadena
+         vacía y la comprobación de «todavía pone En directo» se cumplía sola
+         antes de que la barra del título llegara a pintarse. La espera
+         terminaba en el primer intento y lo que se leía después era el
+         rótulo sin guía — que es lo que fallaba en el servidor de
+         integración y aquí no, porque aquí la guía llega antes. */
+      const donde = document.querySelector(".pa-live-titulo p");
+      return Boolean(donde) && !/^En directo\s*$/.test(donde.innerText || "");
+    },
     { timeout: 30000 }
   );
   const epgText = await page.locator(".pa-live-titulo p").innerText();
