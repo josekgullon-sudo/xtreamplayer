@@ -1076,7 +1076,15 @@ export default function ProviderPanel() {
                 <strong>Trae a tus clientes</strong>
                 <p>Uno a uno, o todos de golpe desde tu panel XUI.</p>
                 <div className="row-actions">
-                  <button className="btn btn-primary btn-sm" onClick={() => setShowNew(true)} disabled={!domains.length}>
+                  {/*
+                    Sin `disabled`: el alta funciona igual sin dominios —el
+                    formulario pregunta entonces el servidor a mano y lo dice
+                    él mismo—, así que apagarlo aquí era cerrar una puerta
+                    abierta. Y el mismo botón, doscientos píxeles más abajo
+                    en la barra de la tabla, nunca estuvo apagado: la misma
+                    acción se ofrecía y se negaba en la misma pantalla.
+                  */}
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowNew(true)}>
                     Nuevo cliente
                   </button>
                   {perms?.managePlan && (
@@ -1285,10 +1293,7 @@ export default function ProviderPanel() {
                 </>
               ) : (
                 <>
-                  <div
-                    className="error-box"
-                    style={{ marginBottom: 14, background: "rgba(108,92,231,0.1)", borderColor: "var(--border-strong)", color: "var(--text-dim)" }}
-                  >
+                  <div className="nota-box" style={{ marginBottom: 14 }}>
                     Consejo: añade tus dominios en la pestaña <strong>Dominios</strong> y las altas serán mucho más
                     rápidas.
                   </div>

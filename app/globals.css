@@ -313,6 +313,30 @@ input[type="color"]::-moz-color-swatch {
   box-shadow: var(--shadow-sm);
 }
 
+/*
+ * Un consejo no es un error.
+ *
+ * «Añade tus dominios y las altas serán más rápidas» iba dentro de un
+ * `.error-box` —el rojo de que algo ha salido mal— con un morado escrito a
+ * mano por encima para taparlo. El morado no está en la paleta por ningún
+ * lado, así que el aviso más amable del panel era además el único elemento
+ * de la aplicación con un color que no es de nadie.
+ *
+ * Esto es lo que era: una nota. Fondo del mismo gris de la casa, filo
+ * tranquilo y el texto en el gris de lo secundario.
+ */
+.nota-box {
+  background: var(--bg-elev-2);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-dim);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.nota-box strong { color: var(--text); }
+
 .error-box {
   background: var(--danger-tint);
   border: 1px solid var(--danger-border);

@@ -19,6 +19,30 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   await p.waitForURL("**/panel", { timeout: 15000 });
   await p.waitForSelector(".panel-nav", { timeout: 15000 });
 
+  /*
+   * Recién dado de alta y sin un solo dominio: los tres primeros pasos.
+   *
+   * El «Nuevo cliente» del paso 2 estuvo apagado hasta que hubiera dominio,
+   * y el alta funciona igual sin ninguno —el formulario pregunta entonces
+   * el servidor a mano—. O sea que apagarlo cerraba una puerta que estaba
+   * abierta, y encima el mismo botón de la barra de la tabla, doscientos
+   * píxeles más abajo, nunca estuvo apagado: la misma acción ofrecida y
+   * negada en la misma pantalla. Se comprueba aquí, que es el único momento
+   * en que un proveedor no tiene dominios.
+   */
+  await p.waitForSelector(".primeros-pasos", { timeout: 15000 });
+  const nuevoEnPaso2 = p.locator(".primeros-pasos button:has-text('Nuevo cliente')");
+  check("Sin dominios todavía, dar de alta un cliente sigue estando a mano",
+    await nuevoEnPaso2.isEnabled(), await nuevoEnPaso2.count() ? "" : "no está el botón");
+  await nuevoEnPaso2.click();
+  await p.waitForSelector(".modal", { timeout: 10000 });
+  const consejo = await p.locator(".modal .nota-box").innerText().catch(() => "");
+  check("Y el formulario explica por dónde se acorta, sin vestirlo de error",
+    /dominios/i.test(consejo) && (await p.locator(".modal .error-box").count()) === 0,
+    consejo.replace(/\n+/g, " ").slice(0, 70));
+  await p.click(".modal button:has-text('Cancelar')");
+  await p.waitForSelector(".modal-backdrop", { state: "detached", timeout: 10000 });
+
   // Dominio primero, para poder importar
   await p.click(".panel-nav-item:has-text('Dominios')");
   await p.click("button:has-text('Añadir mi primer dominio')");
