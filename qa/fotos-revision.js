@@ -10,13 +10,41 @@ const D = "/tmp/rev";
   fs.mkdirSync(D, { recursive: true });
   const nav = await chromium.launch({ ...ejecutable });
 
-  async function foto(nombre, ancho, alto, ir, antes) {
+  /*
+   * `completa` retrata la página entera y no solo la primera pantalla.
+   *
+   * Para las de venta —portada, precios, aparatos— es lo único que sirve:
+   * mirar solo el titular no dice si la tabla de tramos o las tarjetas de
+   * funciones están bien puestas, que es lo que hay debajo. Para las de la
+   * aplicación —el reproductor, la cuenta— la primera pantalla ES la
+   * pantalla, y una foto de tres metros de alto se lee peor.
+   */
+  async function foto(nombre, ancho, alto, ir, antes, completa = false) {
     const ctx = await nav.newContext({ viewport: { width: ancho, height: alto } });
     const p = await ctx.newPage();
     await p.goto(B + ir, { waitUntil: "networkidle" }).catch(() => {});
     if (antes) await antes(p).catch((e) => console.log("  aviso:", nombre, String(e).slice(0, 90)));
-    await p.waitForTimeout(700);
-    await p.screenshot({ path: `${D}/${nombre}.png` });
+    /*
+     * Se baja la página entera antes de retratarla.
+     *
+     * Media web pública aparece al llegar a ella (`components/Aparece.tsx`):
+     * nace a opacidad cero y se enciende cuando el observador la ve entrar.
+     * Sin bajar antes, lo que sale en la foto son huecos donde están las seis
+     * tarjetas de funciones o la tabla de tramos — y esto existe justamente
+     * para mirar esas pantallas, así que la foto mentía en lo único que se le
+     * pedía. Con pausas de verdad entre saltos: el observador avisa en el
+     * siguiente fotograma, y bajando de golpe no le da tiempo a ninguno.
+     */
+    await p.evaluate(async () => {
+      const paso = Math.round(window.innerHeight * 0.6);
+      for (let y = 0; y < document.documentElement.scrollHeight; y += paso) {
+        window.scrollTo(0, y);
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      window.scrollTo(0, 0);
+    });
+    await p.waitForTimeout(900);
+    await p.screenshot({ path: `${D}/${nombre}.png`, fullPage: completa });
     console.log("✓", nombre);
     await ctx.close();
   }
@@ -34,13 +62,13 @@ const D = "/tmp/rev";
     await p.waitForTimeout(1500);
   };
 
-  await foto("01-portada", 1440, 900, "/");
-  await foto("02-portada-movil", 390, 844, "/");
-  await foto("03-precios", 1440, 900, "/precios");
-  await foto("04-precios-movil", 390, 844, "/precios");
+  await foto("01-portada", 1440, 900, "/", null, true);
+  await foto("02-portada-movil", 390, 844, "/", null, true);
+  await foto("03-precios", 1440, 900, "/precios", null, true);
+  await foto("04-precios-movil", 390, 844, "/precios", null, true);
   await foto("05-panel", 1440, 900, "/", entrarProveedor);
   await foto("06-panel-movil", 390, 844, "/", entrarProveedor);
-  await foto("07-apps", 1440, 900, "/apps");
+  await foto("07-apps", 1440, 900, "/apps", null, true);
   await foto("08-player", 1440, 900, "/player");
   await foto("10-cuenta", 1440, 900, "/mi-cuenta");
 
