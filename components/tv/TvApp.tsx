@@ -1062,12 +1062,20 @@ export default function TvApp() {
    */
   const enlacesLive = useRef<Map<string, Promise<Omit<PlaySource, "name" | "kind">>>>(new Map());
 
+  /*
+   * Con qué nombre recuerda el reproductor el camino que funcionó. Es la
+   * lista, no el canal: todos los canales de un panel salen igual, así que
+   * lo que se aprende con el primero le sirve al resto. Ver `recordar` en
+   * `PlaySource`.
+   */
+  const nombreDeLista = lista ? (lista.porMac ? "mac" : `${lista.url}|${lista.usuario}`) : "";
+
   const enlaceLive = useCallback(
     (streamId: string | number) => {
       const llave = String(streamId);
       let ya = enlacesLive.current.get(llave);
       if (!ya) {
-        ya = pedirEnlace({ ...creds!, clase: "live", id: llave });
+        ya = pedirEnlace({ ...creds!, clase: "live", id: llave }).then((d) => ({ ...d, recordar: nombreDeLista }));
         /* Un fallo no se guarda: si el servidor contestó mal una vez, el
            siguiente intento vuelve a preguntar en vez de heredar el error */
         ya.catch(() => enlacesLive.current.delete(llave));
@@ -1075,7 +1083,7 @@ export default function TvApp() {
       }
       return ya;
     },
-    [creds]
+    [creds, nombreDeLista]
   );
 
   /** Se llama cuando el foco pasa por un canal: para cuando se pulse, ya está. */

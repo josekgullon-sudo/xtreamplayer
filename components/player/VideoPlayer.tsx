@@ -25,6 +25,19 @@ export interface PlaySource {
   valeTs?: string;
   /** false cuando el servidor ha decidido servir el vídeo él */
   directo?: boolean;
+  /**
+   * Con qué nombre recordar el camino que funcionó, o nada para no recordar.
+   *
+   * Se pone SOLO en los canales en directo, y vale la lista de la que salen.
+   * Los canales de una misma lista salen todos del mismo panel y por el mismo
+   * camino, así que lo que se aprende con el primero sirve para los 8.000: es
+   * la diferencia entre pagar el descubrimiento una vez o pagarlo en cada
+   * zapeo. En películas no se pone a propósito: ahí lo que funciona depende
+   * del fichero —un MKV necesita el conversor y un MP4 no—, y recordar
+   * «conversor» para toda la lista mandaría a recodificar vídeo que ya se
+   * veía bien.
+   */
+  recordar?: string;
 }
 
 function porElProxy(vale: string): string {
@@ -121,6 +134,60 @@ function origenSinDirecto(url: string): boolean {
     return Boolean(leerSinDirecto()[new URL(url, window.location.href).origin]);
   } catch {
     return false;
+  }
+}
+
+/**
+ * Memoria por lista: por qué camino salió el vídeo la última vez.
+ *
+ * La escalera de intentos está ordenada por lo que es más probable en
+ * general, pero para un cliente concreto no hay nada probable: su panel
+ * sirve TS o sirve HLS, y hace lo mismo con los 8.000 canales. Sin memoria,
+ * quien tiene un panel de solo TS paga en CADA zapeo un intento de HLS que
+ * ya se sabe que no va: unos segundos de rueda girando por canal, todo el
+ * día. Con ella, el primer canal descubre el camino y los demás van derechos.
+ *
+ * Con fecha, como la de «sin directo»: los paneles cambian de configuración
+ * y una preferencia para siempre acabaría siendo la equivocada.
+ */
+const K_CAMINO = "xp.camino.v1";
+const CADUCA_CAMINO = 7 * 24 * 3600 * 1000;
+
+function leerCaminos(): Record<string, { via: string; t: number }> {
+  try {
+    const crudo = JSON.parse(localStorage.getItem(K_CAMINO) || "{}");
+    if (!crudo || typeof crudo !== "object" || Array.isArray(crudo)) return {};
+    const ahora = Date.now();
+    const vivos: Record<string, { via: string; t: number }> = {};
+    for (const [lista, dato] of Object.entries(crudo as Record<string, { via?: unknown; t?: unknown }>)) {
+      if (dato && typeof dato.via === "string" && typeof dato.t === "number" && ahora - dato.t < CADUCA_CAMINO) {
+        vivos[lista] = { via: dato.via, t: dato.t };
+      }
+    }
+    return vivos;
+  } catch {
+    return {};
+  }
+}
+
+function caminoBueno(lista?: string): string {
+  if (!lista) return "";
+  try {
+    return leerCaminos()[lista]?.via || "";
+  } catch {
+    return "";
+  }
+}
+
+function marcarCamino(lista: string | undefined, via: string) {
+  if (!lista || !via) return;
+  try {
+    const vivos = leerCaminos();
+    if (vivos[lista]?.via === via) return; // ya estaba: no reescribir en cada canal
+    vivos[lista] = { via, t: Date.now() };
+    localStorage.setItem(K_CAMINO, JSON.stringify(vivos));
+  } catch {
+    /* Almacenamiento bloqueado: sin memoria, pero sin romper */
   }
 }
 
@@ -258,6 +325,15 @@ function buildAttempts(src: PlaySource): Attempt[] {
       direct: false,
       lento: true,
     });
+  }
+  /*
+   * Y lo aprendido manda: si de esta lista ya salió vídeo por un camino, ese
+   * va primero. Los demás se quedan detrás en el mismo orden, así que si el
+   * panel ha cambiado se sigue llegando a ellos igual que antes.
+   */
+  const bueno = caminoBueno(src.recordar);
+  if (bueno && attempts.some((a) => a.label === bueno)) {
+    return [...attempts.filter((a) => a.label === bueno), ...attempts.filter((a) => a.label !== bueno)];
   }
   return attempts;
 }
@@ -481,6 +557,9 @@ export default function VideoPlayer({
         arrancado = true;
         clearWatchdog();
         setState("playing");
+        // Esto es lo que funciona en esta casa: que el siguiente canal no
+        // vuelva a buscarlo desde el principio
+        marcarCamino(source?.recordar, attempt.label);
       };
       v.addEventListener("playing", onPlaying);
       // Cualquier señal de que están llegando datos cuenta como avance

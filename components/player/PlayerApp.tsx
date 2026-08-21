@@ -854,9 +854,9 @@ export default function PlayerApp() {
         streamId: ch.stream_id,
         favKey,
       };
-      setCurrent({ source: { url: "", name: ch.name, kind: "hls" }, ...encabezado });
+      setCurrent({ source: { url: "", name: ch.name, kind: "hls", recordar: p.id }, ...encabezado });
       const enlace = await enlaceLive(p, ch.stream_id);
-      setCurrent({ source: { ...enlace, name: ch.name, kind: "hls" }, ...encabezado });
+      setCurrent({ source: { ...enlace, name: ch.name, kind: "hls", recordar: p.id }, ...encabezado });
       setRecents(
         pushRecent({
           key: favKey,

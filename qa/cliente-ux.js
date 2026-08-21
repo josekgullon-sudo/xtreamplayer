@@ -131,6 +131,60 @@ const ck = (sc, n) => {
   check("Y al pulsarlo no se vuelve a pedir lo mismo",
     enlacesPedidos.length === antesDelClic, `${enlacesPedidos.length - antesDelClic} de más`);
 
+  /*
+   * El camino que funcionó, apuntado y usado al zapear.
+   *
+   * La escalera de intentos está ordenada por lo que es más probable en
+   * general, pero el panel de un cliente concreto sirve siempre igual: o TS
+   * o HLS, con los 8.000 canales. Sin memoria, quien tiene un panel de solo
+   * TS paga en CADA zapeo un intento de HLS que ya se sabe que no va —unos
+   * segundos de rueda girando por canal, todo el día—.
+   *
+   * Se siembra a mano el camino de una lista y se mira por dónde empieza el
+   * reproductor. Los intentos se apuntan según pasan y no se leen al final:
+   * uno que falla dura menos de un segundo, y mirando después se lee el
+   * siguiente y no el que se quería comprobar.
+   */
+  const porDondeEmpieza = async (via) => {
+    await p2.evaluate((v) => {
+      const listas = JSON.parse(localStorage.getItem("xp.playlists.v1") || "[]");
+      const camino = {};
+      for (const l of listas) camino[l.id] = { via: v, t: Date.now() };
+      localStorage.setItem("xp.camino.v1", JSON.stringify(camino));
+    }, via);
+    await p2.reload({ waitUntil: "networkidle" });
+    await p2.waitForSelector(".section-gate", { timeout: 20000 });
+    await p2.locator(".section-card:has-text('TV en directo')").click();
+    await p2.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 20000 });
+    await p2.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();
+    await p2.waitForSelector(".pa-live-chan", { timeout: 15000 });
+    await p2.evaluate(() => {
+      window.__intentos = [];
+      const mirar = () => {
+        const t = document.querySelector(".pa-video-overlay")?.innerText || "";
+        const m = t.match(/Probando (.+) \((\d+) de (\d+)\)/);
+        if (m && window.__intentos.at(-1) !== m[1]) window.__intentos.push(m[1]);
+        window.__total = m ? Number(m[3]) : window.__total;
+      };
+      new MutationObserver(mirar).observe(document.body, { subtree: true, childList: true, characterData: true });
+      mirar();
+    });
+    await p2.locator(".pa-live-chan").nth(1).click();
+    await p2.waitForTimeout(3000);
+    return p2.evaluate(() => ({ intentos: window.__intentos || [], total: window.__total || 0 }));
+  };
+
+  const conMemoria = await porDondeEmpieza("proxy en formato TS");
+  check("Lo aprendido manda: se empieza por el camino que ya funcionó",
+    conMemoria.intentos[0] === "proxy en formato TS", conMemoria.intentos.join(" → ") || "ninguno");
+
+  /* Y si el panel ha cambiado y ese camino ya no existe, se sigue llegando a
+     los demás igual que antes: aquí se apunta uno inventado */
+  const sinMemoria = await porDondeEmpieza("un camino que ya no existe");
+  check("Y si lo apuntado ya no existe, la escalera de siempre sigue entera",
+    sinMemoria.intentos[0] === "proxy de compatibilidad" && sinMemoria.total === conMemoria.total,
+    `${sinMemoria.intentos.join(" → ") || "ninguno"} · ${sinMemoria.total} intentos`);
+
   // Ponemos un canal y nos vamos a Cine: el reproductor no debe quedarse arriba
   // (el directo del mock no emite de verdad; basta con que esté seleccionado)
   await p2.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();
