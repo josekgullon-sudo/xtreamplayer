@@ -121,6 +121,11 @@ const ck = (sc, n) => {
   );
   const fichaTxt = await p2.locator(".ficha").innerText();
   check("La película abre su ficha con sinopsis y reparto", fichaTxt.includes("thriller de prueba") && fichaTxt.includes("Ana Actriz"), "");
+  /* «Película Demo» TMDB no la conoce: la ficha se queda con la carátula
+     del panel y sin fondo, que es como estaba antes de que esto existiera */
+  check("Un título que TMDB no conoce se queda sin fondo, no con un hueco",
+    (await p2.locator(".ficha-fondo").count()) === 0);
+
   const chipsPeli = (await p2.locator(".ficha-chip").allInnerTexts()).join(" | ");
   check("Con género, año y nota como chips", (await p2.locator(".ficha-chip").count()) >= 3, chipsPeli);
   /* La duración en minutos y no el reloj que manda el panel: «01:52:00»
@@ -173,6 +178,18 @@ const ck = (sc, n) => {
   await p2.waitForSelector(".ficha-caras li", { timeout: 20000 });
   const caras = await p2.locator(".ficha-caras li").count();
   check("La ficha enseña el reparto con cara y nombre", caras === 4, `${caras} caras`);
+  /*
+   * Y el fondo apaisado, detrás de la cabecera.
+   *
+   * Un panel Xtream manda una carátula vertical y ya está: la ficha se abría
+   * como una hoja de datos. Es la misma imagen que la portada usa en el
+   * banner de arriba y la tele detrás de su ficha, y sale de la misma fila
+   * guardada, así que no cuesta una petición a TMDB más.
+   */
+  await p2.waitForSelector(".ficha-fondo img", { timeout: 20000 }).catch(() => {});
+  check("Y detrás, el fondo apaisado que el panel no manda",
+    (await p2.locator(".ficha-fondo img").count()) === 1,
+    await p2.locator(".ficha-fondo img").getAttribute("src").catch(() => "sin fondo"));
   check("Con el personaje de cada uno",
     (await p2.locator(".ficha-cara-pj").first().innerText()).includes("protagonista"),
     await p2.locator(".ficha-cara-pj").first().innerText());

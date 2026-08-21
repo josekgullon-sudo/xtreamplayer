@@ -36,7 +36,7 @@ import { parseM3U, M3UChannel } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
 import { indiceEnAntena, type Emision } from "@/lib/epg";
 import PortadaCatalogo from "./PortadaCatalogo";
-import { Titulo, anioDe, type Actor } from "@/lib/portada";
+import { Titulo, anioDe, type Actor, type MetaTitulo } from "@/lib/portada";
 import { duracionDe, minutosDe, tituloDeEpisodio } from "@/lib/episodios";
 import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
@@ -286,6 +286,19 @@ export default function PlayerApp() {
    * cincuenta títulos de una portada sería pagar por lo que nadie mira.
    */
   const [reparto, setReparto] = useState<Actor[]>([]);
+  /**
+   * Y el fondo apaisado del título abierto, que el panel no manda.
+   *
+   * Un panel Xtream manda una carátula vertical y ya está. La ficha se abría
+   * como una hoja de datos: un rectángulo gris a la izquierda cuando esa
+   * carátula tampoco llegaba, y el resto texto. La portada lleva desde el
+   * principio pidiéndole a TMDB el fondo apaisado para el banner de arriba;
+   * la ficha, que es donde se decide si se pone o no, no lo usaba.
+   *
+   * Se pide en la misma tanda que el reparto y sale de la misma fila
+   * guardada, así que no cuesta una petición a TMDB más.
+   */
+  const [arte, setArte] = useState<MetaTitulo | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -572,6 +585,7 @@ export default function PlayerApp() {
           }
         : null;
     setReparto([]);
+    setArte(null);
     if (!abierto) return;
     let vivo = true;
     fetch("/api/reparto", {
@@ -585,6 +599,18 @@ export default function PlayerApp() {
       })
       /* Sin reparto de TMDB, la ficha enseña los nombres del panel. No es un
          error que deba llegar a ninguna pantalla */
+      .catch(() => {});
+    fetch("/api/meta", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ titulos: [abierto] }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (vivo && Array.isArray(d?.meta) && d.meta[0]) setArte(d.meta[0] as MetaTitulo);
+      })
+      /* Sin fondo, la ficha se queda con la carátula del panel, que es lo
+         que hacía hasta ahora */
       .catch(() => {});
     return () => {
       vivo = false;
@@ -2746,9 +2772,13 @@ export default function PlayerApp() {
           <button className="ficha-cerrar" onClick={() => setVodDetail(null)} aria-label="Cerrar">
             <Icon name="cerrar" size={18} />
           </button>
+          <FondoDeFicha arte={arte} />
           <div className="ficha-cabeza">
-            {imgSrc(vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon) && (
-              <img src={imgSrc(vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon)} alt="" />
+            {(imgSrc(vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon) || arte?.cartel) && (
+              <img
+                src={imgSrc(vodDetail.info?.info?.movie_image || vodDetail.vod.stream_icon) || arte?.cartel}
+                alt=""
+              />
             )}
             <div className="ficha-datos">
               <h2>{vodDetail.vod.name}</h2>
@@ -2837,9 +2867,13 @@ export default function PlayerApp() {
           <button className="ficha-cerrar" onClick={() => setSeriesDetail(null)} aria-label="Cerrar">
             <Icon name="cerrar" size={18} />
           </button>
+          <FondoDeFicha arte={arte} />
           <div className="ficha-cabeza">
-            {imgSrc(seriesDetail.info.info?.cover || seriesDetail.series.cover) && (
-              <img src={imgSrc(seriesDetail.info.info?.cover || seriesDetail.series.cover)} alt="" />
+            {(imgSrc(seriesDetail.info.info?.cover || seriesDetail.series.cover) || arte?.cartel) && (
+              <img
+                src={imgSrc(seriesDetail.info.info?.cover || seriesDetail.series.cover) || arte?.cartel}
+                alt=""
+              />
             )}
             <div className="ficha-datos">
               <h2>{seriesDetail.series.name}</h2>
@@ -3054,6 +3088,30 @@ function BotonMiLista({
       <Icon name="star" size={16} />
       {ya ? "En mi lista" : "Mi lista"}
     </button>
+  );
+}
+
+/**
+ * El fondo apaisado, detrás de la cabecera de la ficha.
+ *
+ * Es la misma imagen que la portada usa en el banner de arriba y la tele
+ * detrás de su ficha, y sale de la misma fila guardada. Va difuminándose
+ * hacia abajo hasta el color del panel: entero se lee como una foto pegada
+ * encima del texto, y lo que tiene que hacer es dar el tono del título sin
+ * quitarle sitio a lo que se ha venido a leer.
+ *
+ * Si TMDB no conoce el título —o esta instalación no tiene clave— no se
+ * pinta nada y la ficha queda exactamente como estaba.
+ */
+function FondoDeFicha({ arte }: { arte: MetaTitulo | null }) {
+  const [rota, setRota] = useState(false);
+  useEffect(() => setRota(false), [arte?.fondo]);
+  if (!arte?.fondo || rota) return null;
+  return (
+    <span className="ficha-fondo" aria-hidden="true">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={arte.fondo} alt="" onError={() => setRota(true)} />
+    </span>
   );
 }
 

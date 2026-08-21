@@ -607,7 +607,10 @@ async function esperarCanales(tv) {
   const sinopsis = (await tv.locator(".tv-banner-sinopsis").innerText()).trim();
   check("La sinopsis es la de TMDB, en español", sinopsis.includes("Sinopsis de TMDB"), sinopsis.slice(0, 60));
   const datos = (await tv.locator(".tv-banner-datos").innerText()).trim();
-  check("Y la nota y los géneros también", datos.includes("7.5") && datos.includes("Suspense"), datos);
+  /* Con coma: un «7.5» en medio de una línea en castellano se lee como un
+     error de traducción */
+  check("Y la nota —con coma— y los géneros también",
+    datos.includes("7,5") && datos.includes("Suspense"), datos);
 
   await tv.screenshot({ path: __dirname + "/52-tv-portada.png" });
   check("La primera fila va numerada, como cualquier ranking",

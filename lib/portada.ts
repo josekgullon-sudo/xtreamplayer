@@ -306,9 +306,11 @@ function luce(t: Titulo, hoy: number): number {
   return puntos;
 }
 
-/** «2026 · ★ 8.2 · Terror», con lo que haya. */
+/** «2026 · ★ 8,2 · Terror», con lo que haya. */
 export function datosDe(t: Titulo): string {
-  return [t.anio, comoNumero(t.nota) > 0 ? `★ ${t.nota}` : "", t.generos]
+  /* La nota con coma: un «8.2» en medio de una línea en castellano se lee
+     como un error de traducción */
+  return [t.anio, comoNumero(t.nota) > 0 ? `★ ${t.nota.replace(".", ",")}` : "", t.generos]
     .filter(Boolean)
     .join("   ·   ");
 }
