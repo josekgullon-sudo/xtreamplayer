@@ -111,6 +111,57 @@ public class FichaActivity extends Activity {
         rotulado(R.id.rotuloGeneros, R.id.generos, conPuntos(ficha.generos));
 
         pintarNota();
+        pedirReparto();
+    }
+
+    /**
+     * El reparto con la cara de cada uno, si nuestro servidor lo sabe.
+     *
+     * Fuera del hilo de la pantalla: es una petición por red y la ficha ya
+     * está pintada con lo que manda el panel. Cuando llega, las caras
+     * sustituyen a la línea de nombres; si no llega o no se sabe, esa línea
+     * se queda donde estaba y aquí no ha pasado nada.
+     */
+    private void pedirReparto() {
+        final boolean esSerie = ficha.esSerie;
+        Hilos.fuera(new Hilos.Trabajo<java.util.List<Catalogo.Actor>>() {
+            @Override public java.util.List<Catalogo.Actor> hacer() {
+                return Catalogo.reparto(ficha.nombre, ficha.anio, esSerie);
+            }
+        }, new Hilos.Luego<java.util.List<Catalogo.Actor>>() {
+            @Override public void listo(java.util.List<Catalogo.Actor> gente) {
+                pintarReparto(gente);
+            }
+            @Override public void falla(Exception e) {
+                /* Sin caras, los nombres del panel. No es un error que deba
+                   llegar a ninguna pantalla */
+            }
+        });
+    }
+
+    private void pintarReparto(java.util.List<Catalogo.Actor> gente) {
+        LinearLayout fila = findViewById(R.id.filaReparto);
+        View bloque = findViewById(R.id.bloqueReparto);
+        View rotulo = findViewById(R.id.rotuloReparto);
+        if (fila == null || bloque == null || rotulo == null || gente == null || gente.isEmpty()) return;
+
+        fila.removeAllViews();
+        LayoutInflater de = LayoutInflater.from(this);
+        for (Catalogo.Actor a : gente) {
+            View pieza = de.inflate(R.layout.pieza_actor, fila, false);
+            ((TextView) pieza.findViewById(R.id.nombreActor)).setText(a.nombre);
+            ((TextView) pieza.findViewById(R.id.personaje)).setText(a.personaje);
+            Imagenes.cargarRedonda((ImageView) pieza.findViewById(R.id.cara), a.foto, R.drawable.perfil_lleno);
+            fila.addView(pieza);
+        }
+        rotulo.setVisibility(View.VISIBLE);
+        bloque.setVisibility(View.VISIBLE);
+        /* Y la línea de nombres se va: dice lo mismo que las caras y una
+           debajo de la otra parecen dos repartos distintos */
+        View viejoRotulo = findViewById(R.id.rotuloElenco);
+        View viejoTexto = findViewById(R.id.elenco);
+        if (viejoRotulo != null) viejoRotulo.setVisibility(View.GONE);
+        if (viejoTexto != null) viejoTexto.setVisibility(View.GONE);
     }
 
     /**

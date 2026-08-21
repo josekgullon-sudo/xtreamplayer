@@ -1,5 +1,5 @@
 import { getDb } from "./db";
-import { llaveDeTitulo } from "./portada";
+import { llaveDeTitulo, type Actor } from "./portada";
 
 /**
  * Lo que TMDB sabe de una película o una serie.
@@ -54,6 +54,15 @@ export interface Meta {
   votos: number;
   generos: string;
   anio: string;
+  /**
+   * El reparto con cara y nombre. Solo cuando se pide, y solo de a uno.
+   *
+   * No viene con las filas de la portada: son ciento cincuenta títulos y
+   * cada reparto es una petición más a TMDB para enseñar algo que en una
+   * fila de carátulas no se ve. Se pide al abrir una ficha, que es donde se
+   * mira. Ver `repartoDe`.
+   */
+  reparto?: Actor[];
 }
 
 export function hayTmdb(): boolean {
@@ -96,6 +105,8 @@ interface Fila {
   votos: number;
   generos: string;
   anio: string;
+  /** El reparto en JSON, o vacío mientras nadie lo haya pedido. */
+  reparto: string;
   pedido_en: number;
 }
 
@@ -109,11 +120,19 @@ function guardadas(llaves: string[]): Map<string, Fila> {
   return new Map(filas.map((f) => [f.llave, f]));
 }
 
+/*
+ * Guarda lo que se sabe de un título.
+ *
+ * El reparto se escribe en el INSERT pero NO en el UPDATE: lo rellena
+ * `repartoDe` por su cuenta, y desde aquí siempre llega vacío. Pisándolo,
+ * cualquier refresco del resto de la ficha borraría un reparto ya
+ * conseguido y habría que volver a pedirlo.
+ */
 function guardar(f: Fila) {
   getDb()
     .prepare(
-      `INSERT INTO tmdb_cache (llave, tmdb_id, titulo, anio, fondo, cartel, sinopsis, nota, votos, generos, pedido_en)
-       VALUES (@llave, @tmdb_id, @titulo, @anio, @fondo, @cartel, @sinopsis, @nota, @votos, @generos, @pedido_en)
+      `INSERT INTO tmdb_cache (llave, tmdb_id, titulo, anio, fondo, cartel, sinopsis, nota, votos, generos, reparto, pedido_en)
+       VALUES (@llave, @tmdb_id, @titulo, @anio, @fondo, @cartel, @sinopsis, @nota, @votos, @generos, @reparto, @pedido_en)
        ON CONFLICT(llave) DO UPDATE SET
          tmdb_id = excluded.tmdb_id, titulo = excluded.titulo, anio = excluded.anio,
          fondo = excluded.fondo, cartel = excluded.cartel, sinopsis = excluded.sinopsis,
@@ -138,6 +157,95 @@ function deFila(f: Fila): Meta | null {
     generos: f.generos,
     anio: f.anio,
   };
+}
+
+/**
+ * Cuántos actores se guardan de cada título.
+ *
+ * Un reparto de TMDB trae ochenta nombres, y del octavo en adelante son
+ * papeles de una frase. Doce es lo que se lee de un vistazo y lo que cabe
+ * en una fila sin obligar a arrastrar, que es de lo que va esta pantalla.
+ */
+const CUANTOS_ACTORES = 12;
+
+/**
+ * El reparto de un título, con foto y personaje.
+ *
+ * Va aparte de `metaDe` porque tiene otro coste y otro momento. `metaDe` lo
+ * llama la portada con ciento cincuenta títulos de golpe: pedir ahí un
+ * reparto por cada uno serían ciento cincuenta peticiones más a TMDB para
+ * enseñar algo que en una carátula no se ve. Esto lo llama una ficha, con
+ * un título, cuando alguien ha entrado a mirarlo.
+ *
+ * Se guarda en la misma fila del caché y no se vuelve a pedir. La columna
+ * vacía significa «todavía no se ha preguntado», así que los títulos que ya
+ * estaban en el caché antes de que esto existiera se rellenan solos según
+ * se van abriendo, sin tener que volver a recorrer el catálogo.
+ *
+ * Devuelve lista vacía cuando TMDB no conoce el título, cuando no hay clave
+ * configurada o cuando la petición falla. Ninguna de las tres es un error
+ * que deba llegar a una pantalla: la ficha se apaña con los nombres que
+ * manda el panel, que es lo que hacía hasta ahora.
+ */
+export async function repartoDe(
+  nombre: string,
+  anio: string,
+  serie: boolean
+): Promise<Actor[]> {
+  if (!CLAVE) return [];
+  const llave = llaveDe(nombre, anio, serie);
+  const fila = guardadas([llave]).get(llave);
+  /* Sin fila no se busca aquí: lo hace `metaDe`, que es quien sabe pedir y
+     guardar el título entero. Esta función solo completa lo que falta */
+  if (!fila || !fila.tmdb_id) return [];
+  if (fila.reparto) return conCdn(fila.reparto);
+
+  try {
+    const res = await fetch(
+      `${API}/${serie ? "tv" : "movie"}/${fila.tmdb_id}/credits?api_key=${CLAVE}&language=${IDIOMA}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (!res.ok) throw new Error(`TMDB ${res.status}`);
+    const datos = (await res.json()) as {
+      cast?: { name?: string; character?: string; profile_path?: string | null }[];
+    };
+    const gente = (datos.cast || [])
+      .filter((a) => (a.name || "").trim())
+      .slice(0, CUANTOS_ACTORES)
+      .map((a) => ({
+        n: String(a.name).trim(),
+        pj: (a.character || "").trim(),
+        /* Solo la ruta, como el cartel y el fondo: la sirve el CDN de TMDB
+           y por este servidor no pasa ni un byte de imagen */
+        p: a.profile_path || "",
+      }));
+    /* Se guarda aunque venga vacío, con una marca: sin ella, un título sin
+       reparto en TMDB se preguntaría otra vez cada vez que alguien abre su
+       ficha, y la respuesta siempre sería la misma */
+    const texto = JSON.stringify(gente);
+    getDb().prepare("UPDATE tmdb_cache SET reparto = ? WHERE llave = ?").run(texto, llave);
+    return conCdn(texto);
+  } catch {
+    return [];
+  }
+}
+
+/** Del JSON guardado a lo que se enseña, con las fotos ya en su CDN. */
+function conCdn(texto: string): Actor[] {
+  try {
+    const crudo = JSON.parse(texto) as { n?: string; pj?: string; p?: string }[];
+    if (!Array.isArray(crudo)) return [];
+    return crudo
+      .filter((a) => a && typeof a.n === "string" && a.n.trim())
+      .map((a) => ({
+        nombre: String(a.n).trim(),
+        personaje: String(a.pj || "").trim(),
+        foto: a.p ? `${IMAGENES}/w185${a.p}` : "",
+      }));
+  } catch {
+    /* Un JSON tocado no puede dejar la ficha sin pintar */
+    return [];
+  }
 }
 
 /**
@@ -205,6 +313,9 @@ async function preguntar(nombre: string, anio: string, serie: boolean): Promise<
     votos: Number(uno.vote_count) || 0,
     generos: generosDe(uno.genre_ids || []),
     anio: (uno.release_date || uno.first_air_date || "").slice(0, 4),
+    /* Vacío a propósito: el reparto es otra petición y solo se pide cuando
+       alguien abre la ficha. Ver `repartoDe` */
+    reparto: "",
     pedido_en: Date.now(),
   };
 }
@@ -267,6 +378,7 @@ export async function metaDe(
                 votos: 0,
                 generos: "",
                 anio: "",
+                reparto: "",
                 pedido_en: Date.now(),
               };
           guardar(guardable);

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Un actor del reparto: su cara, su nombre y a quién hace.
+
+  Una lista de nombres separados por comas —que es lo único que manda el
+  panel— se lee como una ficha técnica: no dice nada hasta que reconoces uno,
+  y para reconocerlo hay que leerlos todos. A tres metros de una tele, eso es
+  no leerlo. Con la cara delante se reconoce sin leer.
+
+  No coge el foco: aquí no hay nada que pulsar. Un actor no lleva a ninguna
+  parte —no tenemos una pantalla suya— y hacerlo enfocable sería meter cuatro
+  paradas del mando en el camino hacia los episodios.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:layout_marginEnd="18dp"
+    android:focusable="false">
+
+    <ImageView
+        android:id="@+id/cara"
+        android:layout_width="92dp"
+        android:layout_height="92dp"
+        android:scaleType="centerCrop"
+        android:background="@drawable/hueco_logo"
+        android:contentDescription="@null" />
+
+    <!-- Con sitio para dos renglones aunque solo ocupe uno: un nombre largo
+         parte en dos y sin reservar el hueco, el personaje de unos queda a
+         una altura y el de otros a otra -->
+    <TextView
+        android:id="@+id/nombreActor"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:minLines="2"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/texto"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/personaje"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:gravity="center_horizontal"
+        android:textColor="@color/tenue"
+        android:textSize="12sp" />
+</LinearLayout>

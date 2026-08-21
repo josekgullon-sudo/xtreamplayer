@@ -152,6 +152,30 @@ const ck = (sc, n) => {
   await p2.locator(".ficha-cerrar").click();
   await p2.click('.pa-rail-item:has-text("Cine")');
   await p2.waitForSelector(".pa-card", { timeout: 20000 });
+
+  /*
+   * El reparto, con la cara de cada uno.
+   *
+   * En un título que TMDB reconoce —«Estreno 1»; «Película Demo» no lo
+   * es—, porque las caras las sabe TMDB y no el panel. Se comprueba
+   * también el actor SIN retrato: es el caso de verdad —TMDB conoce a los
+   * tres primeros y del cuarto solo tiene el nombre— y es donde se rompe
+   * una fila de caras si nadie lo ha probado.
+   */
+  await p2.locator(".pa-card:has-text('Estreno 1')").first().click();
+  await p2.waitForSelector(".ficha-caras li", { timeout: 20000 });
+  const caras = await p2.locator(".ficha-caras li").count();
+  check("La ficha enseña el reparto con cara y nombre", caras === 4, `${caras} caras`);
+  check("Con el personaje de cada uno",
+    (await p2.locator(".ficha-cara-pj").first().innerText()).includes("protagonista"),
+    await p2.locator(".ficha-cara-pj").first().innerText());
+  check("Y quien no tiene retrato sale con sus iniciales, no con un hueco",
+    (await p2.locator(".ficha-cara-ph").count()) === 1 &&
+      (await p2.locator(".ficha-cara-ph").innerText()).trim() === "SR",
+    await p2.locator(".ficha-cara-ph").innerText().catch(() => "ninguna"));
+  await p2.locator(".ficha-cerrar").click();
+  await p2.waitForSelector(".pa-card", { timeout: 10000 });
+
   await p2.locator(".pa-card:has-text('Película Demo')").first().click();
   await p2.waitForSelector(".ficha button:has-text('Reproducir')", { timeout: 15000 });
 
@@ -185,7 +209,19 @@ const ck = (sc, n) => {
   await p2.waitForSelector(".pa-episode", { timeout: 20000 });
   check("La ficha de la serie ocupa la pantalla, sin vídeo encima", (await p2.locator("video").count()) === 0);
   const fichaSerie = await p2.locator(".ficha").innerText();
-  check("La serie enseña reparto y dirección", fichaSerie.includes("Luisa Lista") && fichaSerie.includes("Sergio Series"), "");
+  /*
+   * El reparto de la serie, también con cara.
+   *
+   * Antes se comprobaba que salieran los nombres que manda el panel
+   * —«Luisa Lista»—, y ahora manda TMDB cuando conoce el título: la fila de
+   * caras SUSTITUYE a la línea de nombres, porque una debajo de la otra
+   * parecen dos repartos distintos. La dirección sigue siendo la del panel,
+   * que eso TMDB no lo da por esta vía.
+   */
+  check("La serie enseña su reparto con cara y nombre",
+    (await p2.locator(".ficha-caras li").count()) === 4,
+    `${await p2.locator(".ficha-caras li").count()} caras`);
+  check("Y la dirección que manda el panel", fichaSerie.includes("Sergio Series"), "");
   await p2.locator(".pa-episode").first().click();
   await p2.waitForFunction(() => {
     const v = document.querySelector("video");

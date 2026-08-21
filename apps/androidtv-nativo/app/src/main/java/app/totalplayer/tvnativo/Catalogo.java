@@ -761,6 +761,65 @@ public final class Catalogo {
         try { return Integer.parseInt(s.trim()); } catch (Exception e) { return 0; }
     }
 
+    /* ---------------- El reparto, con cara y nombre ---------------- */
+
+    /** Un actor, tal y como se enseña en la ficha. */
+    public static class Actor {
+        public String nombre = "";
+        /** El personaje que hace. Vacío si no se sabe. */
+        public String personaje = "";
+        /** Su foto, ya como dirección entera. Vacía si no la hay. */
+        public String foto = "";
+    }
+
+    /** Lo ya preguntado, para no repetirlo al reabrir la misma ficha. */
+    private static final Map<String, List<Actor>> repartos = new LinkedHashMap<>();
+
+    /**
+     * El reparto de un título, con la cara de cada uno.
+     *
+     * El panel manda una lista de nombres separados por comas y nada más;
+     * las caras las sabe TMDB y las sirve nuestro servidor, que además las
+     * guarda para todos los clientes de todos los proveedores. Así que esto
+     * es una petición nuestra, no del panel.
+     *
+     * Devuelve lista vacía cuando no se sabe: sin clave de TMDB configurada,
+     * cuando el título no se reconoce, o cuando la petición falla. Ninguna
+     * de las tres es un error que deba llegar a una pantalla — la ficha se
+     * queda con los nombres del panel, que es lo que enseñaba hasta ahora.
+     */
+    public static List<Actor> reparto(String nombre, String anio, boolean serie) {
+        String llave = (serie ? "s:" : "p:") + nombre + ":" + (anio == null ? "" : anio);
+        List<Actor> ya = repartos.get(llave);
+        if (ya != null) return ya;
+
+        List<Actor> lista = new ArrayList<>();
+        try {
+            JSONObject peticion = new JSONObject();
+            peticion.put("nombre", nombre);
+            peticion.put("anio", anio == null ? "" : anio);
+            peticion.put("serie", serie);
+            JSONObject r = new JSONObject(Web.enCasaPost(Acceso.CASA + "/api/reparto", peticion.toString()));
+            JSONArray gente = r.optJSONArray("reparto");
+            for (int i = 0; gente != null && i < gente.length(); i++) {
+                JSONObject a = gente.optJSONObject(i);
+                if (a == null) continue;
+                String suNombre = a.optString("nombre", "").trim();
+                if (suNombre.isEmpty()) continue;
+                Actor actor = new Actor();
+                actor.nombre = suNombre;
+                actor.personaje = a.optString("personaje", "");
+                actor.foto = a.optString("foto", "");
+                lista.add(actor);
+            }
+        } catch (Exception noSeSabe) {
+            /* Se guarda la lista vacía igual: si el servidor no lo sabe, no
+               lo va a saber por preguntárselo otra vez en la misma sesión */
+        }
+        repartos.put(llave, lista);
+        return lista;
+    }
+
     /* ---------------- Buscar ---------------- */
 
     /**

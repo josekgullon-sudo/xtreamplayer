@@ -185,6 +185,40 @@
                         android:layout_marginTop="18dp" />
 
 
+                    <!--
+                         El reparto con la cara de cada uno, cuando se sabe.
+
+                         Nace escondido: solo hay caras si nuestro servidor reconoce el título.
+                         Cuando no las hay se queda el «Elenco» de siempre, que son los nombres
+                         que manda el panel en una línea.
+                    -->
+                    <TextView
+                        android:id="@+id/rotuloReparto"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Reparto"
+                        android:textColor="@color/marca_viva"
+                        android:textSize="17sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="18dp"
+                        android:visibility="gone" />
+
+                    <HorizontalScrollView
+                        android:id="@+id/bloqueReparto"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:scrollbars="none"
+                        android:clipToPadding="false"
+                        android:layout_marginTop="10dp"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:id="@+id/filaReparto"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal" />
+                    </HorizontalScrollView>
+
                     <!-- Elenco y géneros, con su etiqueta en color: son dos
                          listas de nombres y sin rótulo se leen como una -->
                     <TextView

@@ -36,7 +36,7 @@ import { parseM3U, M3UChannel } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
 import { indiceEnAntena, type Emision } from "@/lib/epg";
 import PortadaCatalogo from "./PortadaCatalogo";
-import { Titulo, anioDe } from "@/lib/portada";
+import { Titulo, anioDe, type Actor } from "@/lib/portada";
 import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
 import {
@@ -275,6 +275,16 @@ export default function PlayerApp() {
   const [recents, setRecents] = useState<RecentItem[]>([]);
   const [seriesDetail, setSeriesDetail] = useState<{ series: XtreamSeries; info: XtreamSeriesInfo; season: string } | null>(null);
   const [vodDetail, setVodDetail] = useState<{ vod: XtreamVodStream; info: XtreamVodInfo | null } | null>(null);
+  /**
+   * El reparto con cara y nombre, del título que esté abierto.
+   *
+   * El panel manda una lista de nombres separados por comas y nada más. Las
+   * caras las sabe TMDB, y se piden al abrir la ficha —una petición, y la
+   * respuesta se guarda en el servidor para todos—: en una fila de
+   * carátulas el reparto no se ve, así que pedirlo para los ciento
+   * cincuenta títulos de una portada sería pagar por lo que nadie mira.
+   */
+  const [reparto, setReparto] = useState<Actor[]>([]);
 
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -535,6 +545,50 @@ export default function PlayerApp() {
     setVodDetail(null);
     setSeriesDetail(null);
   }, [activeId]);
+
+  /*
+   * Y al abrir una ficha, sus caras.
+   *
+   * Se vacía primero: sin eso, al abrir la segunda película se quedaría un
+   * instante el reparto de la primera, que es peor que no tener ninguno.
+   */
+  useEffect(() => {
+    /* El año, exactamente igual que en `titulosPortada`: la llave del caché
+       lo lleva dentro —«Alien (1979)» y «Alien (2017)» no son la misma
+       película— y si aquí se calculara de otra manera se preguntaría por un
+       título que no está guardado y no habría reparto nunca */
+    const abierto = vodDetail
+      ? {
+          nombre: vodDetail.vod.name,
+          anio: anioDe(vodDetail.vod.year ?? vodDetail.vod.releasedate),
+          serie: false,
+        }
+      : seriesDetail
+        ? {
+            nombre: seriesDetail.series.name,
+            anio: anioDe(seriesDetail.series.releaseDate ?? seriesDetail.series.release_date),
+            serie: true,
+          }
+        : null;
+    setReparto([]);
+    if (!abierto) return;
+    let vivo = true;
+    fetch("/api/reparto", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(abierto),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (vivo && Array.isArray(d?.reparto)) setReparto(d.reparto);
+      })
+      /* Sin reparto de TMDB, la ficha enseña los nombres del panel. No es un
+         error que deba llegar a ninguna pantalla */
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [vodDetail, seriesDetail]);
 
   useEffect(() => {
     if (!active) return;
@@ -2667,7 +2721,10 @@ export default function PlayerApp() {
                   {(vodDetail.info.info?.plot || vodDetail.info.info?.description) && (
                     <p className="ficha-plot">{vodDetail.info.info?.plot || vodDetail.info.info?.description}</p>
                   )}
-                  <FichaCredito etiqueta="Reparto" valor={vodDetail.info.info?.cast || vodDetail.info.info?.actors} />
+                  <Reparto
+                    gente={reparto}
+                    delPanel={vodDetail.info.info?.cast || vodDetail.info.info?.actors}
+                  />
                   <FichaCredito etiqueta="Dirección" valor={vodDetail.info.info?.director} />
                 </>
               )}
@@ -2749,7 +2806,7 @@ export default function PlayerApp() {
                 nota={seriesDetail.info.info?.rating || seriesDetail.series.rating}
               />
               <p className="ficha-plot">{seriesDetail.info.info?.plot || seriesDetail.series.plot || ""}</p>
-              <FichaCredito etiqueta="Reparto" valor={seriesDetail.info.info?.cast} />
+              <Reparto gente={reparto} delPanel={seriesDetail.info.info?.cast} />
               <FichaCredito etiqueta="Dirección" valor={seriesDetail.info.info?.director} />
               <div className="ficha-acciones">
                 {/*
@@ -2941,6 +2998,52 @@ function FichaMeta({ genero, fecha, duracion, nota }: { genero?: string; fecha?:
       {chips.map((c) => (
         <span className="ficha-chip" key={c}>{c}</span>
       ))}
+    </div>
+  );
+}
+
+/**
+ * El reparto, con la cara de cada uno.
+ *
+ * Una lista de nombres separados por comas —que es lo que manda el panel—
+ * se lee como una ficha técnica: no dice nada hasta que reconoces uno, y
+ * para reconocerlo hay que leerlos todos. Con la cara delante se reconoce
+ * sin leer, que es como se decide de verdad si una película apetece.
+ *
+ * Cuando TMDB no conoce el título no hay caras, y entonces se enseñan los
+ * nombres del panel en una línea, como se hacía antes. Es peor, pero es lo
+ * que hay, y no enseñar nada sería peor todavía.
+ */
+function Reparto({ gente, delPanel }: { gente: Actor[]; delPanel?: string }) {
+  if (!gente.length) return <FichaCredito etiqueta="Reparto" valor={delPanel} />;
+  return (
+    <div className="ficha-reparto">
+      <p className="ficha-reparto-t">Reparto</p>
+      <ul className="ficha-caras">
+        {gente.map((a) => (
+          <li key={`${a.nombre}-${a.personaje}`}>
+            <span className="ficha-cara">
+              {a.foto ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={a.foto} alt="" loading="lazy" />
+              ) : (
+                /* Sin foto, sus iniciales. Un hueco gris en medio de una
+                   fila de caras se lee como una imagen que no ha cargado */
+                <span className="ficha-cara-ph">
+                  {a.nombre
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map((p) => p[0])
+                    .join("")
+                    .toUpperCase()}
+                </span>
+              )}
+            </span>
+            <span className="ficha-cara-n">{a.nombre}</span>
+            {a.personaje && <span className="ficha-cara-pj">{a.personaje}</span>}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

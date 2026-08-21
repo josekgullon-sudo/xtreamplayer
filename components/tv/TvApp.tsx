@@ -20,6 +20,7 @@ import { indiceEnAntena, momento } from "@/lib/epg";
 import { iconoDeCategoria } from "@/lib/categorias";
 import { enCristiano } from "@/lib/errores";
 import {
+  type Actor,
   FilaPortada,
   MetaTitulo,
   Titulo,
@@ -1556,6 +1557,41 @@ export default function TvApp() {
     setFichaEp(0);
     setPantalla("ficha");
   }, []);
+
+  /*
+   * El reparto con cara y nombre, del título abierto.
+   *
+   * El panel manda una lista de nombres separados por comas; las caras las
+   * sabe TMDB. Se piden al abrir la ficha —una petición, y la respuesta se
+   * guarda en el servidor para todos los clientes de todos los proveedores—
+   * porque es la única pantalla donde el reparto se mira: en una fila de
+   * carátulas no se ve, y pedirlo para los ciento cincuenta títulos de una
+   * portada sería pagar por lo que nadie mira.
+   *
+   * Se vacía al cambiar de ficha: sin eso, al abrir la segunda película se
+   * quedaría un instante el reparto de la primera.
+   */
+  const [repartoTmdb, setRepartoTmdb] = useState<Actor[]>([]);
+  useEffect(() => {
+    setRepartoTmdb([]);
+    if (!ficha) return;
+    let vivo = true;
+    fetch(`/api/reparto?mac=${encodeURIComponent(macDelAparato())}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre: ficha.nombre, anio: ficha.anio, serie: ficha.temporadas.length > 0 }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (vivo && Array.isArray(d?.reparto)) setRepartoTmdb(d.reparto);
+      })
+      /* Sin caras, los nombres del panel. Nunca es motivo para dejar una
+         pantalla a medias */
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [ficha]);
 
   /* La carpeta llega como parámetro porque aquí no hay categorías: se
      conocen en la carga de la sección, que es quien monta los abridores */
@@ -3408,10 +3444,49 @@ export default function TvApp() {
                 <span>Dirección</span> <b>{ficha.direccion}</b>
               </p>
             )}
-            {ficha.reparto && (
-              <p className="tv-ficha-credito">
-                <span>Reparto</span> <b>{ficha.reparto}</b>
-              </p>
+            {/*
+              El reparto con la cara de cada uno, y si TMDB no conoce el
+              título, los nombres del panel en una línea como hasta ahora.
+              Una lista de nombres se lee como una ficha técnica: no dice
+              nada hasta que reconoces uno, y para reconocerlo hay que
+              leerlos todos. Desde el sofá, eso es no leerlo.
+            */}
+            {repartoTmdb.length > 0 ? (
+              <div className="tv-ficha-reparto">
+                <p className="tv-ficha-reparto-t">Reparto</p>
+                <ul className="tv-ficha-caras">
+                  {repartoTmdb.map((a) => (
+                    <li key={`${a.nombre}-${a.personaje}`}>
+                      <span className="tv-ficha-cara">
+                        {a.foto ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={a.foto} alt="" loading="lazy" />
+                        ) : (
+                          /* Sin retrato, sus iniciales: un círculo vacío en
+                             medio de una fila de caras se lee como una
+                             imagen que no ha cargado */
+                          <span className="tv-ficha-cara-ph">
+                            {a.nombre
+                              .split(/\s+/)
+                              .slice(0, 2)
+                              .map((x: string) => x[0])
+                              .join("")
+                              .toUpperCase()}
+                          </span>
+                        )}
+                      </span>
+                      <span className="tv-ficha-cara-n">{a.nombre}</span>
+                      {a.personaje && <span className="tv-ficha-cara-pj">{a.personaje}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              ficha.reparto && (
+                <p className="tv-ficha-credito">
+                  <span>Reparto</span> <b>{ficha.reparto}</b>
+                </p>
+              )
             )}
             {ficha.genero && (
               <p className="tv-ficha-credito">

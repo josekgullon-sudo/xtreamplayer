@@ -147,6 +147,53 @@ public final class Imagenes {
         });
     }
 
+    /**
+     * Lo mismo, pero recortado en círculo. Para las caras del reparto.
+     *
+     * Recortado a mano con un `BitmapShader` y no con la utilidad de
+     * androidx: son quince líneas de `android.graphics`, que está en todos
+     * los aparatos desde siempre, y así esto no depende de que una librería
+     * transitiva siga estando ahí mañana.
+     *
+     * El recorte se hace al pintar y no al guardar: la memoria de imágenes
+     * es común con el resto de la aplicación y no tiene sentido tener el
+     * mismo retrato dos veces, entero y redondo.
+     */
+    public static void cargarRedonda(final ImageView donde, final String url, final int deReserva) {
+        if (donde == null) return;
+        cargar(donde, url, deReserva);
+        /* Y cuando la imagen esté, se redondea. Va en un `post` porque
+           `cargar` puede pintarla ya —si estaba en memoria— o dentro de un
+           rato, y aquí lo único que se sabe es que hay que mirar después */
+        donde.post(new Runnable() {
+            @Override public void run() { redondear(donde); }
+        });
+    }
+
+    private static void redondear(ImageView donde) {
+        android.graphics.drawable.Drawable d = donde.getDrawable();
+        if (!(d instanceof android.graphics.drawable.BitmapDrawable)) return;
+        Bitmap b = ((android.graphics.drawable.BitmapDrawable) d).getBitmap();
+        if (b == null || b.getWidth() <= 0 || b.getHeight() <= 0) return;
+
+        int lado = Math.min(b.getWidth(), b.getHeight());
+        Bitmap fuera = Bitmap.createBitmap(lado, lado, Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas lienzo = new android.graphics.Canvas(fuera);
+        android.graphics.Paint pincel =
+                new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        android.graphics.BitmapShader relleno = new android.graphics.BitmapShader(
+                b, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP);
+        /* Centrado y un poco por encima: en un retrato la cara está en el
+           tercio de arriba, y recortando por el centro geométrico se pierde
+           media frente y sobra media camisa */
+        android.graphics.Matrix donde2 = new android.graphics.Matrix();
+        donde2.setTranslate(-(b.getWidth() - lado) / 2f, -(b.getHeight() - lado) * 0.25f);
+        relleno.setLocalMatrix(donde2);
+        pincel.setShader(relleno);
+        lienzo.drawCircle(lado / 2f, lado / 2f, lado / 2f, pincel);
+        donde.setImageBitmap(fuera);
+    }
+
     /** Para cuando lo que hace falta es la imagen, no pintarla en un hueco. */
     public interface Traida { void llega(Bitmap b); }
 

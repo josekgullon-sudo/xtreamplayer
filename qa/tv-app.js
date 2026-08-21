@@ -699,6 +699,21 @@ async function esperarCanales(tv) {
   check("Con el año y las temporadas, cada dato en su caja",
     cajas.some((t) => /\d{4}/.test(t)) && cajas.some((t) => /temporada/i.test(t)),
     cajas.join(" | "));
+  /*
+   * El reparto, con la cara de cada uno.
+   *
+   * El panel manda una lista de nombres separados por comas: a tres metros
+   * de una tele eso no lo lee nadie. Las caras las sabe TMDB, y con ellas
+   * delante se reconoce a alguien sin leer. Se comprueba también el que NO
+   * tiene retrato —TMDB conoce a unos y de otros solo tiene el nombre—, que
+   * es donde se rompe una fila de caras si nadie lo ha probado.
+   */
+  await tv.waitForSelector(".tv-ficha-caras li", { timeout: 20000 });
+  const caras = await tv.locator(".tv-ficha-caras li").count();
+  check("La ficha enseña el reparto con cara y nombre", caras === 4, `${caras} caras`);
+  check("Y quien no tiene retrato sale con sus iniciales, no con un hueco",
+    (await tv.locator(".tv-ficha-cara-ph").count()) === 1,
+    (await tv.locator(".tv-ficha-caras").innerText()).replace(/\n/g, " ").slice(0, 90));
   check("Y la nota aparte, que no es un dato de catálogo sino un juicio",
     (await tv.locator(".tv-ficha-nota").innerText()).trim().length > 0,
     (await tv.locator(".tv-ficha-nota").innerText()).replace(/\n/g, " "));

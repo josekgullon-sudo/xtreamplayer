@@ -52,6 +52,21 @@ export interface Titulo {
 }
 
 /** Lo que TMDB añade a un título. Ver `lib/tmdb.ts` y `/api/meta`. */
+/**
+ * Un actor del reparto, tal y como se enseña.
+ *
+ * Vive aquí y no en `lib/tmdb.ts` porque esto lo leen las pantallas, y
+ * `tmdb.ts` arrastra la base de datos: importarlo desde un componente de
+ * cliente mete el servidor entero en el paquete del navegador.
+ */
+export interface Actor {
+  nombre: string;
+  /** El personaje que hace. Vacío si TMDB no lo dice. */
+  personaje: string;
+  /** Su foto, ya como dirección entera del CDN. Vacía si no la hay. */
+  foto: string;
+}
+
 export interface MetaTitulo {
   llave: string;
   fondo: string;
