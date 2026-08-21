@@ -322,6 +322,15 @@ input[type="color"]::-moz-color-swatch {
   font-size: 14px;
 }
 
+/*
+ * La pastilla de estado. Sin variante, gris.
+ *
+ * Antes `badge` a secas no ponía ni fondo ni color: tenía la forma de una
+ * pastilla y se pintaba como texto en negrita. Y a secas es justo lo que se
+ * usa para el estado apagado —«anulada», «cerrado», «inactivo»—, así que en
+ * la misma columna convivían una pastilla verde y un texto suelto para dos
+ * valores del mismo campo, y el segundo no parecía un estado sino una nota.
+ */
 .badge {
   display: inline-block;
   padding: 3px 10px;
@@ -329,6 +338,8 @@ input[type="color"]::-moz-color-swatch {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.3px;
+  background: var(--bg-elev-2);
+  color: var(--text-dim);
 }
 .badge-accent { background: var(--accent-tint); color: var(--accent-bright); }
 .badge-success { background: var(--success-tint); color: var(--success); }
