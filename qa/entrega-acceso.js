@@ -67,6 +67,43 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
   check("Con la contraseña real de ese cliente", decodeURIComponent(wa2).includes("clave1234"));
   check("Y sin repetir el mensaje entero en pantalla", (await p.locator(".entrega.compacta").count()) === 1);
 
+  /*
+   * Y el enlace que se le entrega, abierto de verdad.
+   *
+   * Todo lo de arriba comprueba que el mensaje lleva la dirección
+   * `/m/{marca}`. Pero esa página no la abría ninguna prueba: se daba por
+   * hecho que si el enlace está bien escrito, lo que hay al otro lado
+   * también. Es la pantalla que ve TODO cliente de TODO proveedor —la razón
+   * de ser de la marca blanca—, y si sale con nuestro nombre o no deja
+   * entrar, el proveedor se entera por sus clientes.
+   */
+  {
+    const ctx = await b.newContext({ viewport: { width: 1280, height: 950 } });
+    const suya = await ctx.newPage();
+    const fallos = [];
+    suya.on("pageerror", (e) => fallos.push(String(e).slice(0, 160)));
+    await suya.goto(`${BASE}/m/marca${RUN}`, { waitUntil: "networkidle" });
+    const cabecera = await suya.locator(".site-header").innerText();
+    check("El enlace de marca abre una página con SU nombre",
+      cabecera.includes(`MiMarca${RUN}`) && !cabecera.includes("TOTALplayer"), cabecera.trim());
+    /* Y sin nuestro menú: ahí no pintamos nada, y llevaría a su cliente a
+       nuestra web en vez de a la suya */
+    check("Y sin nuestro menú ni nuestros enlaces",
+      (await suya.locator(".site-header a[href='/precios']").count()) === 0);
+    /* Entrar desde ahí es lo único que se hace en esta página */
+    await suya.fill("#cu-user", `cli${RUN}`);
+    await suya.fill("#cu-pass", "clave1234");
+    await suya.locator("button:has-text('Entrar')").first().click();
+    await suya.waitForFunction(() => !document.querySelector("#cu-user"), { timeout: 30000 }).catch(() => {});
+    check("Y desde ella se entra con el usuario que le dio su proveedor",
+      (await suya.locator("#cu-user").count()) === 0, suya.url());
+    check("Sin errores de JavaScript por el camino", fallos.length === 0, fallos[0] || "");
+    /* Una marca que no existe no enseña una página en blanco ni la de otro */
+    const perdida = await suya.goto(`${BASE}/m/estamarcanoexiste`, { waitUntil: "networkidle" });
+    check("Una marca que no existe contesta 404", perdida.status() === 404, String(perdida.status()));
+    await ctx.close();
+  }
+
   await b.close();
   console.log(`\n${results.filter(Boolean).length}/${results.length} pruebas de entrega de acceso OK`);
   process.exit(results.every(Boolean) ? 0 : 1);
