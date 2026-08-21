@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Icon from "@/components/Icon";
 import { imgSrc } from "@/lib/img";
 import {
@@ -161,7 +161,7 @@ export default function PortadaCatalogo({ titulos, categorias, alAbrir, alVerTod
       {filas.map((f, i) => (
         <section className="pa-carrusel" key={`${f.titulo}-${i}`}>
           <h3 className="pa-carrusel-t">{f.titulo}</h3>
-          <div className={`pa-carrusel-tira ${f.numerada ? "numerada" : ""}`}>
+          <Tira numerada={f.numerada}>
             {f.items.map((t, n) => (
               <button className="pa-card" key={t.id} onClick={() => alAbrir(t.id)} title={t.nombre}>
                 <span className="pa-card-marco">
@@ -185,7 +185,7 @@ export default function PortadaCatalogo({ titulos, categorias, alAbrir, alVerTod
                 </div>
               </button>
             ))}
-          </div>
+          </Tira>
         </section>
       ))}
 
@@ -199,6 +199,71 @@ export default function PortadaCatalogo({ titulos, categorias, alAbrir, alVerTod
           Fichas e imágenes de TMDB. Este producto usa la API de TMDB pero no está avalado
           ni certificado por TMDB.
         </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Una fila de carátulas, con sus flechas.
+ *
+ * En la tele la fila se recorre con el mando y se ve que sigue porque el
+ * foco la va empujando. Con un ratón no: la última carátula sale cortada
+ * por el borde y ahí se acaba la pista. Quien no tenga rueda horizontal
+ * —que es casi todo el mundo con un ratón normal— no llega al resto del
+ * catálogo, y la fila parece tener seis títulos en vez de cincuenta.
+ *
+ * Así que las flechas, y solo cuando sirven de algo: aparecen si hay algo
+ * fuera de la vista, y cada una desaparece al llegar a su punta. Una flecha
+ * que no lleva a ninguna parte es un botón que enseña a no pulsar botones.
+ */
+function Tira({ numerada, children }: { numerada?: boolean; children: React.ReactNode }) {
+  const tira = useRef<HTMLDivElement>(null);
+  const [puedeIzq, setPuedeIzq] = useState(false);
+  const [puedeDer, setPuedeDer] = useState(false);
+
+  const mirar = useCallback(() => {
+    const e = tira.current;
+    if (!e) return;
+    /* Un punto de margen: los anchos de desplazamiento son decimales y el
+       final exacto casi nunca cae redondo, así que sin holgura la flecha
+       derecha se queda encendida para siempre en la última carátula */
+    setPuedeIzq(e.scrollLeft > 1);
+    setPuedeDer(e.scrollLeft + e.clientWidth < e.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    mirar();
+    const e = tira.current;
+    if (!e) return;
+    /* Y al cambiar de tamaño: la fila cabe entera en una ventana ancha y
+       deja de caber al estrecharla, y las flechas tienen que enterarse */
+    const ojo = new ResizeObserver(mirar);
+    ojo.observe(e);
+    return () => ojo.disconnect();
+  }, [mirar, children]);
+
+  /* Casi una pantalla, no una entera: dejando una carátula a la vista se
+     sabe por dónde se iba, que es lo que evita perder el sitio */
+  const correr = (hacia: 1 | -1) => {
+    const e = tira.current;
+    if (e) e.scrollBy({ left: hacia * Math.round(e.clientWidth * 0.85), behavior: "smooth" });
+  };
+
+  return (
+    <div className="pa-fila">
+      {puedeIzq && (
+        <button className="pa-fila-flecha izq" onClick={() => correr(-1)} aria-label="Ver lo anterior">
+          <Icon name="chevronRight" size={20} />
+        </button>
+      )}
+      <div className={`pa-carrusel-tira ${numerada ? "numerada" : ""}`} ref={tira} onScroll={mirar}>
+        {children}
+      </div>
+      {puedeDer && (
+        <button className="pa-fila-flecha der" onClick={() => correr(1)} aria-label="Ver lo siguiente">
+          <Icon name="chevronRight" size={20} />
+        </button>
       )}
     </div>
   );

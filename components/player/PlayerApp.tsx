@@ -535,6 +535,49 @@ export default function PlayerApp() {
     loadTab(active, effective);
   }, [active, tab, loadTab]);
 
+  /*
+   * Lo guardado del catálogo, en Favoritos.
+   *
+   * Favoritos pedía solo los canales, así que una película guardada no
+   * tenía dónde salir. Ahora se piden también cine y series, pero SOLO si
+   * hay algo suyo en la lista: en un proveedor grande son treinta mil
+   * títulos, y traerlos para enseñar un hueco vacío es la peor manera de
+   * abrir una pantalla.
+   */
+  const hayGuardadoDelCatalogo = useMemo(
+    () => Object.keys(favorites).some((k) => k.includes(":vod:") || k.includes(":serie:")),
+    [favorites]
+  );
+
+  useEffect(() => {
+    if (!active || tab !== "favs" || active.type !== "xtream" || !hayGuardadoDelCatalogo) return;
+    loadTab(active, "vod");
+    loadTab(active, "series");
+  }, [active, tab, hayGuardadoDelCatalogo, loadTab]);
+
+  /** Las películas y las series de la lista, resueltas contra el catálogo. */
+  const miListaCatalogo = useMemo(() => {
+    if (!active || active.type !== "xtream") return [];
+    const datos = xtreamData[active.id] || {};
+    const pelis = (datos.vodStreams || [])
+      .filter((v) => favorites[`${active.id}:vod:${v.stream_id}`])
+      .map((v) => ({
+        llave: `${active.id}:vod:${v.stream_id}`,
+        nombre: v.name,
+        cartel: v.stream_icon || "",
+        abrir: () => openVod(active, v),
+      }));
+    const series = (datos.seriesList || [])
+      .filter((s) => favorites[`${active.id}:serie:${s.series_id}`])
+      .map((s) => ({
+        llave: `${active.id}:serie:${s.series_id}`,
+        nombre: s.name,
+        cartel: s.cover || "",
+        abrir: () => openSeries(active, s),
+      }));
+    return [...pelis, ...series];
+  }, [active, xtreamData, favorites]);
+
   /* ---------- EPG del canal en reproducción ---------- */
 
   useEffect(() => {
@@ -2075,7 +2118,7 @@ export default function PlayerApp() {
             {!liveGroups.length && !loading && (
               <p className="pa-empty">
                 {tab === "favs"
-                  ? "Aún no tienes favoritos."
+                  ? "Aún no tienes canales en favoritos."
                   : q
                     ? "Nada con ese nombre en esta lista."
                     : /* Sin buscar nada y sin un solo canal, la lista viene
@@ -2228,10 +2271,40 @@ export default function PlayerApp() {
               </div>
               <VideoPlayer source={current.source} />
             </>
+          ) : tab === "favs" && miListaCatalogo.length ? (
+            /*
+             * En Favoritos, el hueco del vídeo es la lista.
+             *
+             * Ahí ponía «Elige un canal y empieza a verlo aquí» ocupando dos
+             * tercios de la pantalla sin decir nada: es el sitio más grande
+             * que hay, y lo que le corresponde es lo que se ha guardado.
+             */
+            <div className="pa-milista">
+              <h3 className="pa-milista-t">Películas y series guardadas</h3>
+              <div className="pa-grid">
+                {miListaCatalogo.map((it) => (
+                  <button className="pa-card" key={it.llave} onClick={it.abrir} title={it.nombre}>
+                    {imgSrc(it.cartel) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img className="poster" src={imgSrc(it.cartel)} alt="" loading="lazy" />
+                    ) : (
+                      <div className="poster-ph">{it.nombre}</div>
+                    )}
+                    <div className="meta">
+                      <div className="title">{it.nombre}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : (
             <div className="pa-live-vacio">
               <Icon name="tv" size={44} />
-              <p>Elige un canal y empieza a verlo aquí.</p>
+              <p>
+                {tab === "favs"
+                  ? "Aquí sale lo que guardes. La estrella está en cada canal, y «Mi lista» en la ficha de cada película y de cada serie."
+                  : "Elige un canal y empieza a verlo aquí."}
+              </p>
             </div>
           )}
         </main>
@@ -2534,6 +2607,11 @@ export default function PlayerApp() {
                 >
                   <Icon name="play" size={16} /> Reproducir
                 </button>
+                <BotonMiLista
+                  llave={`${active.id}:vod:${vodDetail.vod.stream_id}`}
+                  puesto={favorites}
+                  alPulsar={onToggleFav}
+                />
                 {/* Y guardarla, donde se pueda. En el navegador este botón no
                     existe: lo que hay ahí es almacenamiento del sitio, que se
                     borra solo cuando hace falta espacio */}
@@ -2599,6 +2677,13 @@ export default function PlayerApp() {
               <p className="ficha-plot">{seriesDetail.info.info?.plot || seriesDetail.series.plot || ""}</p>
               <FichaCredito etiqueta="Reparto" valor={seriesDetail.info.info?.cast} />
               <FichaCredito etiqueta="Dirección" valor={seriesDetail.info.info?.director} />
+              <div className="ficha-acciones">
+                <BotonMiLista
+                  llave={`${active.id}:serie:${seriesDetail.series.series_id}`}
+                  puesto={favorites}
+                  alPulsar={onToggleFav}
+                />
+              </div>
             </div>
           </div>
 
@@ -2707,6 +2792,38 @@ export default function PlayerApp() {
       {showAdd && <AddPlaylistModal loggedIn={!!user} onAdd={handleAddPlaylist} onClose={() => setShowAdd(false)} />}
     </div>
     </>
+  );
+}
+
+/**
+ * «Mi lista», en la ficha de una película o de una serie.
+ *
+ * La estrella de los canales existía desde el principio; el catálogo no
+ * tenía nada. O sea que en el reproductor web se podía guardar el canal de
+ * deportes y no se podía guardar una película para verla el sábado, que es
+ * exactamente para lo que sirve una lista. En la tele ya está, y lo que se
+ * guarda es lo mismo: el almacén de favoritos es uno solo y la llave lleva
+ * dentro de qué es cada cosa.
+ */
+function BotonMiLista({
+  llave,
+  puesto,
+  alPulsar,
+}: {
+  llave: string;
+  puesto: Record<string, true>;
+  alPulsar: (llave: string) => void;
+}) {
+  const ya = Boolean(puesto[llave]);
+  return (
+    <button
+      className={`btn btn-ghost ${ya ? "puesto" : ""}`}
+      onClick={() => alPulsar(llave)}
+      aria-pressed={ya}
+    >
+      <Icon name="star" size={16} />
+      {ya ? "En mi lista" : "Mi lista"}
+    </button>
   );
 }
 

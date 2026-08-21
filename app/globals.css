@@ -3025,6 +3025,40 @@ select.input { appearance: none; cursor: pointer; }
 
 .pa-carrusel { padding-top: 18px; }
 .pa-carrusel-t { font-size: 17px; font-weight: 750; margin-bottom: 8px; }
+/*
+ * Las flechas de la fila, encima de las puntas.
+ *
+ * Van dentro de un envoltorio en posición relativa y flotando sobre la
+ * primera y la última carátula, no al lado: puestas fuera se comerían
+ * cuarenta píxeles de ancho por cada lado en TODAS las filas para algo que
+ * la mitad del tiempo no hace falta.
+ */
+.pa-fila { position: relative; }
+.pa-fila-flecha {
+  position: absolute; top: 0; bottom: 14px; width: 52px; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  border: none; cursor: pointer; color: var(--text);
+  background: linear-gradient(to right, transparent, var(--bg) 72%);
+  opacity: 0; transition: opacity 0.15s ease;
+}
+/* El icono dentro de su círculo: sobre una carátula, una flecha suelta se
+   pierde entre la imagen y no se ve que es un botón */
+.pa-fila-flecha svg {
+  width: 34px; height: 34px; padding: 7px; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.62); border: 1px solid var(--hairline);
+}
+.pa-fila-flecha.izq { left: 0; transform: scaleX(-1); }
+.pa-fila-flecha.der { right: 0; }
+/* Aparecen al acercarse a la fila, y siempre con el teclado: una flecha que
+   solo responde al ratón deja fuera a quien navega tabulando */
+.pa-fila:hover .pa-fila-flecha,
+.pa-fila-flecha:focus-visible { opacity: 1; }
+.pa-fila-flecha:hover svg { background: var(--accent); border-color: var(--accent); }
+/* En una pantalla táctil no hay «pasar por encima» y se arrastra con el
+   dedo, así que las flechas sobran y además tapan carátulas */
+@media (hover: none) {
+  .pa-fila-flecha { display: none; }
+}
 .pa-carrusel-tira {
   display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden;
   padding-bottom: 6px; scrollbar-width: thin;
@@ -3050,6 +3084,21 @@ select.input { appearance: none; cursor: pointer; }
   font-size: 54px; font-weight: 800; line-height: 0.85; color: #fff;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85); pointer-events: none;
 }
+
+/*
+ * Lo guardado del catálogo, en el hueco grande de Favoritos.
+ *
+ * Con su propio desplazamiento: la columna de canales de la izquierda ya
+ * tiene el suyo, y una sola barra para las dos cosas obligaba a bajar la
+ * lista de canales para llegar a las carátulas.
+ */
+.pa-milista { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 22px 28px; }
+.pa-milista-t { font-size: 17px; font-weight: 750; margin-bottom: 14px; }
+
+/* Puesto en la lista: la estrella se enciende. Con el mismo botón gris en
+   los dos estados, la única diferencia era leer el rótulo */
+.btn.puesto { color: var(--accent-bright); border-color: var(--accent-tint-strong); }
+.btn.puesto svg { fill: currentColor; }
 
 .pa-vertodo { margin-top: 20px; }
 /* El aviso que exige TMDB por usar su API */
