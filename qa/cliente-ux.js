@@ -176,6 +176,12 @@ const ck = (sc, n) => {
   await p2.waitForSelector(".pa-card", { timeout: 20000 });
   check("Series también navega a pantalla completa", (await p2.locator("video").count()) === 0);
   await p2.locator(".pa-card").first().click();
+  await p2.waitForSelector(".ficha-episodios .pa-episode", { timeout: 20000 });
+  /* Empezar por el principio sin tener que buscarlo: quien llega a una serie
+     que no ha visto no debería tener que bajar la vista, encontrar el 1 y
+     pulsarlo. En la tele ese botón ya estaba */
+  check("La ficha de una serie ofrece ver el primer episodio",
+    (await p2.locator(".ficha-acciones button:has-text('Ver el primer episodio')").count()) === 1);
   await p2.waitForSelector(".pa-episode", { timeout: 20000 });
   check("La ficha de la serie ocupa la pantalla, sin vídeo encima", (await p2.locator("video").count()) === 0);
   const fichaSerie = await p2.locator(".ficha").innerText();

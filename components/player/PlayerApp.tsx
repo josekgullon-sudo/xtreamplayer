@@ -2752,6 +2752,30 @@ export default function PlayerApp() {
               <FichaCredito etiqueta="Reparto" valor={seriesDetail.info.info?.cast} />
               <FichaCredito etiqueta="Dirección" valor={seriesDetail.info.info?.director} />
               <div className="ficha-acciones">
+                {/*
+                  Empezar por el principio, en un botón.
+                  La ficha de una serie abría con las temporadas y la lista de
+                  episodios, y ninguna forma de decir «ponme el primero» sin
+                  buscarlo: quien llega a una serie que no ha visto tiene que
+                  bajar la vista, encontrar el 1 y pulsarlo. En la tele ese
+                  botón ya estaba.
+                */}
+                {(() => {
+                  const primeraTemporada = Object.keys(seriesDetail.info.episodes || {})[0];
+                  const primero = seriesDetail.info.episodes?.[primeraTemporada]?.[0];
+                  if (!primero) return null;
+                  const comoSeLlama = primero.title || `Episodio ${primero.episode_num}`;
+                  return (
+                    <button
+                      className="btn btn-primary"
+                      onClick={() =>
+                        playEpisode(active, seriesDetail.series, primero.id, comoSeLlama, primero.container_extension)
+                      }
+                    >
+                      <Icon name="play" size={16} /> Ver el primer episodio
+                    </button>
+                  );
+                })()}
                 <BotonMiLista
                   llave={`${active.id}:serie:${seriesDetail.series.series_id}`}
                   puesto={favorites}
