@@ -1211,7 +1211,6 @@ select.input { appearance: none; cursor: pointer; }
 }
 .pa-icon-btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--border-strong); }
 .pa-icon-btn:active { transform: scale(0.93); }
-.pa-icon-btn-danger:hover { background: var(--danger-tint); color: var(--danger); border-color: var(--danger-border); }
 
 .pa-empty { padding: 30px 16px; text-align: center; color: var(--text-faint); font-size: 14px; }
 
@@ -2352,24 +2351,6 @@ select.input { appearance: none; cursor: pointer; }
  * foco salte de sitio al cambiar de fila.
  */
 .tv-portada .tv-marca { font-size: 1.7vw; margin-bottom: 4vh; }
-/*
- * Salir, aparte y sin peso.
- *
- * Sigue en el mismo recorrido del mando —es el último—, pero ya no compite
- * con los destinos: es lo único de la pantalla que no lleva a ver nada.
- */
-.tv-salir {
-  display: flex; align-items: center; justify-content: center;
-  gap: 0.7vw; width: fit-content; margin: 0 auto;
-  padding: 1.1vh 1.6vw; border-radius: 999px;
-  background: none; border: 0.15vw solid transparent;
-  color: var(--text-faint); font-size: 1.15vw; font-weight: 650; cursor: pointer;
-  transition: color 0.14s, background 0.14s, border-color 0.14s;
-}
-.tv-salir.foco {
-  border-color: rgba(255, 255, 255, 0.85); color: #fff;
-  background: rgba(255, 255, 255, 0.08);
-}
 .tv-portada .tv-pie { text-align: center; }
 .tv-portada .tv-pie:first-of-type { margin-top: 3vh; }
 
@@ -3502,35 +3483,6 @@ select.input { appearance: none; cursor: pointer; }
    sobre su propia mancha en vez de estirado: ver `.tv-tarjeta` */
 .tv-tarjeta-canal .tv-tarjeta-t { font-weight: 750; }
 
-/*
- * Y debajo, la tarde entera.
- *
- * «Después · Cine de sobremesa» contesta a la mitad de la pregunta: con el
- * mando en la mano lo que se decide es si quedarse ahora o volver a las
- * diez, y para eso hace falta ver a qué hora empieza cada cosa. La hora va
- * en su columna, alineada, porque lo que se recorre con la vista es esa
- * columna y no los títulos.
- */
-.tv-parrilla {
-  display: flex; flex-direction: column; gap: 0.9vh;
-  width: 100%; margin-top: 0.6vh;
-  padding-top: 1.4vh; border-top: 1px solid var(--border);
-}
-.tv-parrilla-t {
-  font-size: 0.95vw; font-weight: 750; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--text-faint);
-}
-.tv-parrilla-fila {
-  display: flex; align-items: baseline; gap: 1vw;
-  font-size: 1.15vw; color: var(--text-dim);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.tv-parrilla-hora {
-  flex: none; min-width: 4vw;
-  font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums;
-}
-.tv-parrilla-tit { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-
 /* ---- La portada de cine y de series ---- */
 
 /*
@@ -3973,7 +3925,6 @@ select.input { appearance: none; cursor: pointer; }
   margin-left: 0.3vw; font-size: 0.95vw; font-weight: 600; color: var(--text-faint);
 }
 
-.tv-ficha-datos { font-size: 1.25vw; font-weight: 650; color: var(--text-dim); }
 .tv-ficha-sinopsis {
   font-size: 1.3vw; line-height: 1.55; color: var(--text-dim);
   /* Tres líneas: una sinopsis de TMDB puede traer doce, y en una tele eso se
@@ -4712,8 +4663,6 @@ select.input { appearance: none; cursor: pointer; }
  */
 .pa-rail-item.activo { color: var(--text); }
 .pa-rail-item.activo .pa-rail-icono { background: var(--bg-hover); color: var(--text); }
-.pa-rail-borrar:hover { color: var(--danger); }
-.pa-rail-borrar:hover .pa-rail-icono { background: var(--danger-tint); }
 
 /* Con el carril al lado, las columnas llegan de arriba abajo */
 .pa-live { height: calc(100vh - var(--header-h) - var(--tira)); }
