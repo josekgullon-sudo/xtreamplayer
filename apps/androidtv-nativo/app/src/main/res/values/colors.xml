@@ -59,6 +59,19 @@
          estante de la tele van sobre negro de verdad, y ahí un gris se nota -->
     <color name="negro_marca">#0A0A0B</color>
 
+    <!--
+      El velo de «espera un momento», que tapa la pantalla entera mientras
+      se comprueba algo. Es el fondo de la aplicación al 90 %: se ve lo que
+      hay detrás lo justo para saber que sigue ahí, y nada más.
+
+      Estaba escrito a pelo en los dos layouts de acceso y cada uno decía
+      una cosa: el de teléfono el gris de la casa y el de televisor
+      #201F28, que es justo el gris con violeta que se quitó de toda la
+      aplicación porque una tele lo satura y lo saca azul eléctrico. O sea
+      que el único sitio donde salía era el único donde no podía salir.
+    -->
+    <color name="velo_espera">#E6101012</color>
+
     <color name="texto">#F4F4F5</color>
     <color name="apagado">#A1A1AA</color>
     <color name="tenue">#84848D</color>

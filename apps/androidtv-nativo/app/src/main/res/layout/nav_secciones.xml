@@ -198,7 +198,7 @@
             android:id="@+id/navBajadasTexto"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Bajadas"
+            android:text="Descargas"
             android:textColor="@color/apagado"
             android:textSize="11sp"
             android:textStyle="bold"

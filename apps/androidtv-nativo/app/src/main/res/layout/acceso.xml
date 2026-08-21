@@ -162,7 +162,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="center"
-        android:background="#E6101012"
+        android:background="@color/velo_espera"
         android:visibility="gone">
 
         <ProgressBar
