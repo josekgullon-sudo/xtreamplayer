@@ -105,6 +105,35 @@ function envoltorio(cual, destino) {
     (primera.match(/[0-9A-F:]{17}/) || [])[0]);
   await ctxTv.close();
 
+  /*
+   * Y las dos puertas que usa la aplicación nativa del Fire TV.
+   *
+   * `Catalogo.reparto()` y `Catalogo.arte()` piden a nuestro servidor las
+   * caras y el fondo apaisado del título abierto — sin cookie de sesión y con
+   * este cuerpo exacto. Es el único cliente que no se prueba en un navegador,
+   * así que si alguien aprieta la autenticación de estas rutas o les cambia
+   * la forma de la respuesta, en el televisor se dejan de ver las caras y el
+   * fondo y aquí no se entera nadie. El aparato no se puede abrir desde una
+   * prueba; su conversación con el servidor, sí.
+   */
+  const comoElAparato = async (ruta, cuerpo) => {
+    const r = await fetch(BASE + ruta, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cuerpo),
+    });
+    return { estado: r.status, cuerpo: await r.json().catch(() => ({})) };
+  };
+  const suArte = await comoElAparato("/api/meta", { titulos: [{ nombre: "Estreno 1", anio: "2026", serie: false }] });
+  check("Fire TV nativo: el servidor le da el fondo apaisado sin sesión",
+    suArte.estado === 200 && Boolean(suArte.cuerpo.meta?.[0]?.fondo),
+    `${suArte.estado} · ${suArte.cuerpo.meta?.[0]?.fondo || "sin fondo"}`);
+  const suReparto = await comoElAparato("/api/reparto", { nombre: "Estreno 1", anio: "2026", serie: false });
+  check("Fire TV nativo: y el reparto con sus caras",
+    suReparto.estado === 200 && (suReparto.cuerpo.reparto || []).length > 0 &&
+      Boolean(suReparto.cuerpo.reparto[0].nombre),
+    `${suReparto.estado} · ${(suReparto.cuerpo.reparto || []).length} caras`);
+
   await b.close();
   console.log(`\n${results.filter(Boolean).length}/${results.length} pruebas de los envoltorios OK`);
   process.exit(results.every(Boolean) ? 0 : 1);
