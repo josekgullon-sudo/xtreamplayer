@@ -46,7 +46,10 @@ export default function PricingPage() {
             <Aparece className="price-card" retraso={0} etiqueta="div">
               <div className="plan-name">Gratis</div>
               <div className="price">
-                0€<span>/siempre</span>
+                {/* Con espacio antes del €, como lo escribe el resto de la
+                    página —la tabla de tramos lo saca de `Intl`— y como se
+                    escribe en castellano */}
+                0&nbsp;€<span>/siempre</span>
               </div>
               <ul>
                 <li>Reproductor completo: directo, películas y series</li>
@@ -70,7 +73,7 @@ export default function PricingPage() {
               </span>
               <div className="plan-name">Premium</div>
               <div className="price">
-                2,99€<span>/mes</span>
+                2,99&nbsp;€<span>/mes</span>
               </div>
               <ul>
                 <li>Todo lo del plan Gratis</li>
