@@ -1050,6 +1050,43 @@ export default function TvApp() {
    * que está pasando, y ese es justo el trozo de espera que se sentía como
    * «no funciona» en vez de como «está cargando».
    */
+  /*
+   * Los enlaces de directo ya resueltos, para no volver a pedirlos.
+   *
+   * Poner un canal son tres viajes seguidos: pedirle al servidor la
+   * dirección, bajar el manifiesto y bajar el primer trozo. El primero no
+   * depende del proveedor, solo de nosotros, y su respuesta vale doce horas
+   * (lo que dura el vale). Pidiéndolo mientras el foco pasa por encima —que
+   * con un mando es justo lo que se hace antes de pulsar— cuando llega el OK
+   * ya está resuelto, y zapear deja de tener ese tirón.
+   */
+  const enlacesLive = useRef<Map<string, Promise<Omit<PlaySource, "name" | "kind">>>>(new Map());
+
+  const enlaceLive = useCallback(
+    (streamId: string | number) => {
+      const llave = String(streamId);
+      let ya = enlacesLive.current.get(llave);
+      if (!ya) {
+        ya = pedirEnlace({ ...creds!, clase: "live", id: llave });
+        /* Un fallo no se guarda: si el servidor contestó mal una vez, el
+           siguiente intento vuelve a preguntar en vez de heredar el error */
+        ya.catch(() => enlacesLive.current.delete(llave));
+        enlacesLive.current.set(llave, ya);
+      }
+      return ya;
+    },
+    [creds]
+  );
+
+  /** Se llama cuando el foco pasa por un canal: para cuando se pulse, ya está. */
+  const precargarLive = useCallback(
+    (streamId?: string) => {
+      if (!streamId || !creds) return;
+      enlaceLive(streamId).catch(() => {});
+    },
+    [creds, enlaceLive]
+  );
+
   const verEsto = useCallback(
     (
       nombre: string,
@@ -1355,7 +1392,7 @@ export default function TvApp() {
             verEsto(
               c.name,
               "hls",
-              () => pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) }),
+              () => enlaceLive(c.stream_id),
               String(c.stream_id)
             );
           const aFila = (c: XtreamLiveStream): Fila => ({
@@ -1718,7 +1755,7 @@ export default function TvApp() {
           verEsto(
             c.name,
             "hls",
-            () => pedirEnlace({ ...creds, clase: "live", id: String(c.stream_id) }),
+            () => enlaceLive(c.stream_id),
             String(c.stream_id)
           )
         );
@@ -2454,6 +2491,22 @@ export default function TvApp() {
       : canalesVista[foco]
     : undefined;
   const guiaMirada = canalMirado?.epgId ? epgAhora[canalMirado.epgId] : undefined;
+
+  /*
+   * Y en cuanto el foco se posa en un canal, se le pide su dirección.
+   *
+   * Con un mando, entre que el foco llega a un canal y se pulsa OK pasa
+   * siempre algo de tiempo —se lee el nombre, se mira qué echan—. Ese rato
+   * estaba desaprovechado y es justo lo que dura el viaje que hace falta
+   * hacer antes de poder empezar. La guía de ese canal ya se pide así.
+   */
+  useEffect(() => {
+    /* `canalMirado` ya resuelve los dos casos —dentro de una carpeta, el
+       canal enfocado; fuera, el primero de la carpeta enfocada—, así que no
+       hace falta distinguirlos aquí. Sin `epgId` no es un canal de directo */
+    if (!enDirecto) return;
+    precargarLive(canalMirado?.epgId);
+  }, [enDirecto, canalMirado?.epgId, precargarLive]);
 
   /*
    * Cuánto lleva y cuánto le queda.

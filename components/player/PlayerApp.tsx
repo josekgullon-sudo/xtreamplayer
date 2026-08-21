@@ -43,6 +43,7 @@ import { enCristiano } from "@/lib/errores";
 import {
   Fuente,
   pedirEnlace,
+  type Enlace,
   momentoDeArchivo,
   valeDe,
   XtreamCategory,
@@ -798,6 +799,42 @@ export default function PlayerApp() {
     if (current?.playlistId === p.id) setCurrent(null);
   }
 
+  /*
+   * Los enlaces ya resueltos, para no volver a pedirlos.
+   *
+   * Poner un canal son tres viajes seguidos: pedirle al servidor la dirección
+   * —eso es este—, bajar el manifiesto y bajar el primer trozo. El primero no
+   * depende del proveedor, solo de nosotros, y su respuesta vale doce horas
+   * (lo que dura el vale). O sea que es puro tiempo de espera que se puede
+   * quitar del camino: pidiéndolo antes de que haga falta, y no volviéndolo a
+   * pedir para un canal que ya se ha puesto en esta sesión.
+   *
+   * En un mando esto es la diferencia entre zapear y esperar.
+   */
+  const enlacesLive = useRef<Map<string, Promise<Enlace>>>(new Map());
+
+  const enlaceLive = useCallback((p: StoredPlaylist, streamId: number | string) => {
+    const llave = `${p.id}:${streamId}`;
+    let ya = enlacesLive.current.get(llave);
+    if (!ya) {
+      ya = pedirEnlace({ ...credsOf(p), clase: "live", id: String(streamId) });
+      /* Un fallo no se guarda: si el servidor contestó mal una vez, el
+         siguiente intento tiene que volver a preguntarle y no heredar el
+         error para toda la sesión */
+      ya.catch(() => enlacesLive.current.delete(llave));
+      enlacesLive.current.set(llave, ya);
+    }
+    return ya;
+  }, []);
+
+  /** Se llama al pasar por encima o al enfocar: para cuando se pulse, ya está. */
+  const precargarLive = useCallback(
+    (p: StoredPlaylist, streamId: number | string) => {
+      enlaceLive(p, streamId).catch(() => {});
+    },
+    [enlaceLive]
+  );
+
   const playLive = useCallback(
     async (p: StoredPlaylist, ch: XtreamLiveStream) => {
       const favKey = `${p.id}:live:${ch.stream_id}`;
@@ -818,7 +855,7 @@ export default function PlayerApp() {
         favKey,
       };
       setCurrent({ source: { url: "", name: ch.name, kind: "hls" }, ...encabezado });
-      const enlace = await pedirEnlace({ ...credsOf(p), clase: "live", id: String(ch.stream_id) });
+      const enlace = await enlaceLive(p, ch.stream_id);
       setCurrent({ source: { ...enlace, name: ch.name, kind: "hls" }, ...encabezado });
       setRecents(
         pushRecent({
@@ -831,7 +868,7 @@ export default function PlayerApp() {
         })
       );
     },
-    []
+    [enlaceLive]
   );
 
   /**
@@ -1003,6 +1040,8 @@ export default function PlayerApp() {
     type Canal = {
       id: string; name: string; logo?: string; favKey: string; archivo: boolean;
       play: () => void;
+      /** Adelanta el trabajo que no depende del proveedor. Ver `enlaceLive`. */
+      precargar?: () => void;
       /** La carpeta de la que sale, para decirlo en «Todos los canales» */
       grupo: string;
       /** El nombre ya en minúsculas: buscar no puede rebajar 8.000 cadenas en cada tecla */
@@ -1059,6 +1098,7 @@ export default function PlayerApp() {
         favKey: `${active.id}:live:${ch.stream_id}`,
         archivo: Number(ch.tv_archive) > 0,
         play: () => playLive(active, ch),
+        precargar: () => precargarLive(active, ch.stream_id),
         grupo: name,
         busca: (ch.name || "").toLowerCase(),
       })),
@@ -1550,6 +1590,8 @@ export default function PlayerApp() {
     favKey: string;
     archivo: boolean;
     play: () => void;
+    /** Adelanta el trabajo que no depende del proveedor. Ver `enlaceLive`. */
+    precargar?: () => void;
     /** De qué categoría es, para decirlo en «Todos los canales» */
     grupo?: string;
   }[] = useMemo(() => {
@@ -2359,8 +2401,8 @@ export default function PlayerApp() {
                       key={ch.favKey}
                       className={`pa-canal-tarjeta ${current?.favKey === ch.favKey ? "activo" : ""}`}
                       onClick={ch.play}
-                      onMouseEnter={() => setCanalMirado(ch.favKey)}
-                      onFocus={() => setCanalMirado(ch.favKey)}
+                      onMouseEnter={() => { setCanalMirado(ch.favKey); ch.precargar?.(); }}
+                      onFocus={() => { setCanalMirado(ch.favKey); ch.precargar?.(); }}
                       title={ahora ? `${ch.name} — ${ahora}` : ch.name}
                     >
                       <span className="pa-canal-logo">
@@ -2397,8 +2439,8 @@ export default function PlayerApp() {
                     key={ch.favKey}
                     className={`pa-live-chan ${current?.favKey === ch.favKey ? "activo" : ""}`}
                     onClick={ch.play}
-                    onMouseEnter={() => setCanalMirado(ch.favKey)}
-                    onFocus={() => setCanalMirado(ch.favKey)}
+                    onMouseEnter={() => { setCanalMirado(ch.favKey); ch.precargar?.(); }}
+                    onFocus={() => { setCanalMirado(ch.favKey); ch.precargar?.(); }}
                     title={ahora ? `${ch.name} — ${ahora}` : ch.name}
                   >
                     <span className="pa-live-num">{i + 1}</span>

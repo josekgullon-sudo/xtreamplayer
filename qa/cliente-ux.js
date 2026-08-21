@@ -105,6 +105,32 @@ const ck = (sc, n) => {
     nombresCanales.every((n) => n.trim()) && nombresCanales.some((n) => n.includes("sin nombre")),
     nombresCanales.join(" | "));
 
+  /*
+   * Al pasar por encima de un canal se adelanta su enlace.
+   *
+   * Poner un canal son tres viajes seguidos: pedirle al servidor la
+   * dirección, bajar el manifiesto y bajar el primer trozo. El primero no
+   * depende del proveedor y su respuesta vale doce horas, así que se pide
+   * mientras el ratón está encima —que es justo el rato que alguien tarda en
+   * decidir— y al pulsar ya está. Medido con 150 ms de latencia: de 205 ms a
+   * 40 ms hasta la primera petición de vídeo.
+   *
+   * Es de las cosas que se caen sin que nadie se entere —todo sigue
+   * funcionando, solo que más despacio—, así que se comprueba.
+   */
+  const enlacesPedidos = [];
+  p2.on("request", (r) => { if (r.url().includes("/api/tele/ver")) enlacesPedidos.push(Date.now()); });
+  await p2.locator(".pa-live-chan").nth(1).hover();
+  await p2.waitForTimeout(1200);
+  check("Pasar por encima de un canal ya le pide su enlace, sin esperar al clic",
+    enlacesPedidos.length >= 1, `${enlacesPedidos.length} peticiones`);
+  const antesDelClic = enlacesPedidos.length;
+  await p2.locator(".pa-live-chan").nth(1).click();
+  await p2.waitForTimeout(1500);
+  /* Y al pulsar no se vuelve a pedir: ya está resuelto y el vale dura horas */
+  check("Y al pulsarlo no se vuelve a pedir lo mismo",
+    enlacesPedidos.length === antesDelClic, `${enlacesPedidos.length - antesDelClic} de más`);
+
   // Ponemos un canal y nos vamos a Cine: el reproductor no debe quedarse arriba
   // (el directo del mock no emite de verdad; basta con que esté seleccionado)
   await p2.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();
