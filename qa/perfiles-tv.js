@@ -154,8 +154,58 @@ async function entrar(ctx, U) {
   const activo = (guardado.profiles || []).find((p) => p.id === guardado.activeId);
   check("Y el servidor sabe quién está viendo", Boolean(activo), activo?.name || "ninguno");
 
+  /*
+   * Y la misma pregunta en el navegador, que no la miraba nadie.
+   *
+   * El reproductor web tiene su propia pantalla de «quién está viendo»
+   * —`components/player/ProfileGate.tsx`— y no había una sola comprobación
+   * sobre ella. Es la puerta de entrada de una casa con varios perfiles: si
+   * se rompe, no es que se vea mal, es que no se entra.
+   *
+   * Con una cuenta de TOTALplayer y no con el cliente de arriba: a un
+   * cliente cuyo proveedor sirve por aplicación el navegador no le abre el
+   * reproductor, así que por ahí esta pantalla no se llega a ver nunca.
+   */
+  {
+    const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+    const web = await ctx.newPage();
+    const fallos = [];
+    web.on("pageerror", (e) => fallos.push(String(e).slice(0, 160)));
+    await web.goto(BASE + "/registro", { waitUntil: "networkidle" });
+    await web.fill("#email", `perfweb${RUN}@t.com`);
+    await web.fill("#password", "supersecreta1");
+    await web.locator("button[type=submit], button:has-text('Crear')").first().click();
+    await web.waitForTimeout(2500);
+    for (const nombre of ["Ana", "Luis", "Peques"]) {
+      await web.evaluate(async (n) => {
+        await fetch("/api/profiles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: n, kids: n === "Peques" }),
+        });
+      }, nombre);
+    }
+    await web.goto(BASE + "/player", { waitUntil: "networkidle" });
+    await web.waitForSelector(".profile-gate", { timeout: 30000 }).catch(() => {});
+    const hayPuerta = (await web.locator(".profile-gate").count()) === 1;
+    check("En el navegador también se pregunta quién está viendo", hayPuerta,
+      hayPuerta ? "" : "no salió la pantalla");
+    if (hayPuerta) {
+      const nombres = await web.locator(".profile-name").allInnerTexts();
+      check("Con los mismos perfiles que en la tele", nombres.length >= 3, nombres.join(" | "));
+      /* Lo que de verdad se comprueba: que de esta pantalla se sale hacia
+         dentro. Es una puerta, y una puerta que no abre no es un defecto de
+         aspecto */
+      await web.locator(".profile-item").first().click();
+      await web.waitForTimeout(2000);
+      check("Y al elegir uno se entra", (await web.locator(".profile-gate").count()) === 0);
+    }
+    check("Sin errores de JavaScript por el camino", fallos.length === 0, fallos[0] || "");
+    await ctx.close();
+  }
+
   await b.close();
 
-  console.log(`\n${bien}/${bien + mal} pruebas de perfiles en la tele OK`);
+  console.log(`\n${bien}/${bien + mal} pruebas de perfiles OK`);
   process.exit(mal ? 1 : 0);
 })().catch((e) => { console.log("FATAL", e); process.exit(1); });
