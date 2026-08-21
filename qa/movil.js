@@ -9,43 +9,44 @@ const check = (n, ok, d = "") => {
   console.log(`${ok ? "✅" : "❌"} ${n}${d ? " — " + d : ""}`);
 };
 
-/* En el móvil el directo enseña una cosa a la vez: carpetas o canales. Esto
-   deja siempre canales a la vista, venga de donde venga. */
+/*
+ * En el móvil el directo enseña una cosa a la vez: carpetas o canales.
+ *
+ * Y cuál de las dos no lo decide esta prueba: depende de por dónde se venía,
+ * de si había algo puesto y de lo que tarde en llegar la lista. Esto deja
+ * canales a la vista venga de donde venga.
+ *
+ * Mirando UNA VEZ cuál hay y actuando después, la pantalla podía cambiar en
+ * medio: se decidía «hay carpetas, pulso una» y para cuando llegaba el clic
+ * la aplicación ya estaba enseñando canales —con lo cual las carpetas pasan
+ * a `display: none`— y Playwright se quedaba treinta segundos esperando a
+ * que se hiciera visible algo que ya no iba a estarlo. Así que se mira en
+ * bucle y se vuelve a mirar después de cada intento.
+ */
 async function abrirCanales(p) {
   // Al añadir una lista se vuelve a preguntar qué ver: se contesta y se sigue
   if (await p.locator(".section-gate").isVisible().catch(() => false)) {
     await p.locator(".section-card").first().click();
   }
   await p.waitForSelector(".pa-live", { timeout: 20000 });
-  /* En el móvil se ve una cosa u otra, nunca las dos, y cuál de ellas depende
-     de por dónde se venía. Esperamos a que haya algo a la vista y decidimos
-     entonces; mirar solo una de las dos hacía fallar la prueba a ratos. */
-  await p.waitForFunction(() => {
-    const visible = (el) => el && el.getClientRects().length > 0;
-    return (
-      visible(document.querySelector(".pa-live-chan")) ||
-      visible(document.querySelector(".pa-live-cat:not(.pa-live-reciente)"))
-    );
-  }, { timeout: 25000 });
-  if (await p.locator(".pa-live-chan").first().isVisible().catch(() => false)) return;
-  /* Y a que la lista deje de crecer antes de pulsar nada.
-     La columna se va rellenando mientras llegan los datos —lo último visto
-     se mete por arriba y las carpetas por abajo—, así que el botón se
-     desplaza mientras se intenta hacer clic sobre él. Playwright espera a
-     que lo que va a pulsar esté quieto, y si no se queda quieto agota los
-     treinta segundos y falla sin que nada esté roto. */
-  await p.waitForFunction(() => {
-    /* Y a que se haya ido el esqueleto de carga, que va JUSTO ENCIMA de la
-       lista: mientras está, ocupa ocho filas que empujan las carpetas hacia
-       abajo, y al irse todas suben de golpe */
-    if (document.querySelector(".skeleton-list")) return false;
-    const cuantos = document.querySelectorAll(".pa-live-cat").length;
-    const antes = window.__qaCat;
-    window.__qaCat = cuantos;
-    return cuantos > 0 && antes === cuantos;
-  }, { timeout: 25000, polling: 400 });
-  await p.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();
-  await p.waitForSelector(".pa-live-chan", { timeout: 20000 });
+
+  const seVe = (loc) => loc.first().isVisible().catch(() => false);
+  const canales = p.locator(".pa-live-chan");
+  const carpetas = p.locator(".pa-live-cat:not(.pa-live-reciente)");
+
+  for (let intento = 0; intento < 50; intento++) {
+    if (await seVe(canales)) return;
+    if (await seVe(carpetas)) {
+      /* Con su propio plazo, corto: si la carpeta se esconde mientras se
+         pulsa, no hay que esperar treinta segundos para enterarse — se
+         vuelve a mirar qué hay ahora */
+      await carpetas.first().click({ timeout: 4000 }).catch(() => {});
+      await canales.first().waitFor({ state: "visible", timeout: 6000 }).catch(() => {});
+      if (await seVe(canales)) return;
+    }
+    await p.waitForTimeout(400);
+  }
+  throw new Error("Ni carpetas ni canales llegaron a estar a la vista en el directo");
 }
 
 (async () => {

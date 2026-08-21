@@ -681,8 +681,20 @@ async function esperarCanales(tv) {
   check("Con su sinopsis, para saber de qué va antes de ponerla",
     (await tv.locator(".tv-ficha-sinopsis").innerText()).trim().length > 0,
     (await tv.locator(".tv-ficha-sinopsis").innerText()).replace(/\n/g, " "));
-  /* La ficha técnica, cada dato en su caja. En una línea con puntos todo
-     pesa igual y no se distingue el año de la nota ni del género */
+  /*
+   * La ficha técnica, cada dato en su caja. En una línea con puntos todo
+   * pesa igual y no se distingue el año de la nota ni del género.
+   *
+   * Y antes, a que se sepa que es una serie. La ficha se pinta con lo que ya
+   * trae el catálogo —nombre, año y sinopsis, que el panel manda en
+   * `get_series`— y las temporadas llegan en una segunda petición,
+   * `get_series_info`. Hasta que llega, la ficha de una serie es idéntica a
+   * la de una película: sin caja de temporadas y con «Reproducir» en el
+   * botón. Leyendo las cajas en ese instante se comprobaba una pantalla a
+   * medio hacer, y eso es lo que llevaba días en rojo en el servidor de
+   * integración y en verde aquí.
+   */
+  await tv.waitForSelector(".tv-ficha.con-episodios", { timeout: 20000 });
   const cajas = await tv.locator(".tv-ficha-dato").allInnerTexts();
   check("Con el año y las temporadas, cada dato en su caja",
     cajas.some((t) => /\d{4}/.test(t)) && cajas.some((t) => /temporada/i.test(t)),
