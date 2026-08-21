@@ -650,13 +650,43 @@ async function esperarCanales(tv) {
   await tv.waitForSelector(".tv-fila.tv-carpeta", { timeout: 20000 });
   check("«Ver todas las carpetas» lleva al catálogo entero",
     (await tv.locator(".tv-fila.tv-carpeta").count()) > 0);
-  await tv.locator(".tv-fila.tv-carpeta").first().click();
+  /* La de los estrenos, que es donde están los títulos que TMDB conoce */
+  await tv.locator(".tv-fila.tv-carpeta").filter({ hasText: "Estrenos" }).first().click();
   await tv.waitForSelector(".tv-rejilla .tv-poster", { timeout: 20000 });
   check("Las películas salen en carátulas, no en lista", (await tv.locator(".tv-poster").count()) > 0);
 
   const caja = await tv.locator(".tv-poster-marco").first().boundingBox();
   check("Y la carátula es grande de verdad, y no un iconito",
     caja.height > 200 && caja.height > caja.width, `${Math.round(caja.width)}×${Math.round(caja.height)} px`);
+
+  /*
+   * Y desde la rejilla, la ficha sale igual de completa que desde la portada.
+   *
+   * Lo que sabe TMDB —el fondo apaisado, la sinopsis en español, la nota de
+   * verdad— se pedía solo para los títulos de la portada, y el abridor de
+   * cada carátula se monta con lo que se supiera en ese momento. La misma
+   * película abierta desde su carpeta salía con otra ficha: fondo negro,
+   * sinopsis del panel y la nota que el proveedor haya puesto a mano. Dos
+   * fichas distintas de lo mismo según por dónde se llegara.
+   */
+  /* En «Estreno 1», que es de los que TMDB conoce: la primera carpeta trae
+     «Película Demo», que no lo es, y ahí lo correcto es no enseñar fondo */
+  await tv.locator(".tv-rejilla .tv-poster").filter({ hasText: "Estreno 1" }).first().click();
+  await tv.waitForSelector(".tv-ficha", { timeout: 20000 });
+  await tv.waitForSelector(".tv-ficha-fondo", { timeout: 20000 }).catch(() => {});
+  check("Desde la rejilla, la ficha también trae el fondo apaisado de TMDB",
+    (await tv.locator(".tv-ficha-fondo").count()) === 1,
+    await tv.locator(".tv-ficha-fondo").getAttribute("src").catch(() => "sin fondo"));
+  check("Y ese fondo carga de verdad",
+    await tv.evaluate(() => {
+      const i = document.querySelector(".tv-ficha-fondo");
+      return Boolean(i && i.naturalWidth > 0);
+    }));
+  check("Y la nota de TMDB, con cuánta gente la ha votado",
+    (await tv.locator(".tv-ficha-nota").innerText()).includes("valoraciones"),
+    (await tv.locator(".tv-ficha-nota").innerText()).replace(/\n/g, " "));
+  await tv.keyboard.press("Escape");
+  await tv.waitForSelector(".tv-rejilla .tv-poster", { timeout: 20000 });
 
   const enRejilla = await tv.evaluate(() => {
     const cel = [...document.querySelectorAll(".tv-rejilla [data-i]")];

@@ -1426,6 +1426,7 @@ export default function TvApp() {
               id: `vod-${v.stream_id}`,
               nombre: v.name,
               volverA: "cine",
+              esSerie: false,
               cartel: imgSrc(suyo.imagen) || "",
               fondo: suyo.fondo || "",
               sinopsis: suyo.sinopsis || "",
@@ -1580,7 +1581,7 @@ export default function TvApp() {
     fetch(`/api/reparto?mac=${encodeURIComponent(macDelAparato())}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre: ficha.nombre, anio: ficha.anio, serie: ficha.temporadas.length > 0 }),
+      body: JSON.stringify({ nombre: ficha.nombre, anio: ficha.anio, serie: ficha.esSerie }),
     })
       .then((r) => r.json())
       .then((d) => {
@@ -1592,7 +1593,73 @@ export default function TvApp() {
     return () => {
       vivo = false;
     };
-  }, [ficha]);
+    /* Por identificador y no por el objeto entero: la ficha se completa sola
+       —con los episodios, y con lo que sepa TMDB— y con el objeto en la
+       lista el reparto se volvería a pedir en cada retoque, vaciando la fila
+       de caras por el camino */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ficha?.id]);
+
+  /*
+   * Y el fondo apaisado, la sinopsis en español y la nota de verdad.
+   *
+   * Se pedían solo para los títulos de la portada, y el abridor de cada
+   * carátula se monta con lo que se supiera en ese momento: la misma
+   * película abierta desde su carpeta, desde la rejilla o desde una búsqueda
+   * salía con otra ficha —sin fondo, con la sinopsis del panel y con la nota
+   * que el proveedor haya puesto a mano—. Dos fichas distintas de lo mismo
+   * según por dónde se llegara.
+   *
+   * Si ya se sabe, se pone; y si no, se pregunta por esa sola. Es una fila
+   * que el servidor tiene guardada —la misma que acaba de mirar para el
+   * reparto—, así que no cuesta una petición a TMDB más.
+   */
+  useEffect(() => {
+    if (!ficha) return;
+    const abierta = ficha.id;
+    const ponerlo = (m: MetaTitulo) =>
+      setFicha((antes) =>
+        antes && antes.id === abierta
+          ? {
+              ...antes,
+              cartel: antes.cartel || m.cartel,
+              fondo: antes.fondo || m.fondo,
+              sinopsis: antes.sinopsis || m.sinopsis,
+              genero: antes.genero || m.generos,
+              nota: m.nota > 0 ? String(Math.round(m.nota * 10) / 10) : antes.nota,
+              votos: m.votos || antes.votos,
+              anio: antes.anio || m.anio,
+            }
+          : antes
+      );
+
+    const quien = { nombre: ficha.nombre, anio: ficha.anio, serie: ficha.esSerie };
+    const sabido = meta[llaveTmdb({ nombre: ficha.nombre, anio: ficha.anio, esSerie: ficha.esSerie })];
+    if (sabido) {
+      ponerlo(sabido);
+      return;
+    }
+
+    let vivo = true;
+    fetch(`/api/meta?mac=${encodeURIComponent(macDelAparato())}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ titulos: [quien] }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        const m = Array.isArray(d?.meta) ? (d.meta[0] as MetaTitulo | undefined) : undefined;
+        if (!vivo || !m) return;
+        setMeta((antes) => (antes[m.llave] ? antes : { ...antes, [m.llave]: m }));
+        ponerlo(m);
+      })
+      /* Sin TMDB, la ficha se queda con lo del panel, que es lo que hacía */
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ficha?.id, meta]);
 
   /* La carpeta llega como parámetro porque aquí no hay categorías: se
      conocen en la carga de la sección, que es quien monta los abridores */
@@ -1759,6 +1826,7 @@ export default function TvApp() {
       id: `vod-${v.stream_id}`,
       nombre: v.name,
       volverA: "cine",
+      esSerie: false,
       cartel: imgSrc(suyo.imagen) || "",
       fondo: suyo.fondo || "",
       sinopsis: suyo.sinopsis || "",
@@ -1820,6 +1888,7 @@ export default function TvApp() {
       id: `serie-${s.series_id}`,
       nombre: s.name,
       volverA: "series",
+      esSerie: true,
       cartel: imgSrc(suyo.imagen) || "",
       fondo: suyo.fondo || "",
       sinopsis: suyo.sinopsis || "",
@@ -4840,6 +4909,15 @@ export interface Ficha {
   nota: string;
   /** Cuánta gente la ha votado, si viene de TMDB. Cero si no se sabe */
   votos: number;
+  /*
+   * Si es una serie, dicho desde el primer momento.
+   *
+   * Se sabía mirando si `temporadas` tenía algo, pero eso llega con
+   * `get_series_info`, que es otra petición: hasta entonces una serie se
+   * preguntaba a TMDB como si fuera una película —y ahí no está—, y había
+   * que volver a preguntar cuando llegaban los episodios.
+   */
+  esSerie: boolean;
   /** La carpeta del panel de la que viene, para el camino de arriba */
   categoria: string;
   reparto: string;

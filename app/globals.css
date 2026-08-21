@@ -2967,9 +2967,20 @@ select.input { appearance: none; cursor: pointer; }
   display: flex; align-items: center; overflow: hidden;
   border-radius: 16px; margin-bottom: 8px;
 }
+/*
+ * A media luz, siempre.
+ *
+ * El velo está pensado para el lado del texto; el otro lado queda al
+ * descubierto porque ahí va el cartel cuando no hay fondo apaisado. Con un
+ * fondo de verdad, ese lado es la foto entera a plena luz, y una foto clara
+ * —un cielo, una playa, un plano de día— acaba siendo más brillante que la
+ * interfaz que va encima. Un fondo es decoración detrás de lo que se lee:
+ * nunca debería pesar más que ello.
+ */
 .pa-banner-fondo {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; object-position: center 22%;
+  opacity: 0.72;
 }
 /* Sin fondo apaisado hay que apañarse con la carátula vertical: ampliada y
    desenfocada de fondo, y entera a la derecha. Lo que lo arregla de verdad
@@ -3572,9 +3583,20 @@ select.input { appearance: none; cursor: pointer; }
  * eso `lib/tmdb.ts` existe: un panel Xtream no manda fondos, solo carátulas
  * verticales.
  */
+/*
+ * A media luz, siempre.
+ *
+ * El velo está pensado para el lado del texto; el otro lado queda al
+ * descubierto porque ahí va el cartel cuando no hay fondo apaisado. Con un
+ * fondo de verdad, ese lado es la foto entera a plena luz, y una foto clara
+ * —un cielo, una playa, un plano de día— acaba siendo más brillante que la
+ * interfaz que va encima. Un fondo es decoración detrás de lo que se lee:
+ * nunca debería pesar más que ello.
+ */
 .tv-banner-fondo {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; object-position: center 22%;
+  opacity: 0.62;
 }
 .tv-banner-velo {
   position: absolute; inset: 0;
@@ -3815,10 +3837,22 @@ select.input { appearance: none; cursor: pointer; }
   position: relative; overflow: hidden;
   height: 100vh; width: 100%;
 }
-/* El caso bueno: fondo apaisado de TMDB, que un panel Xtream no manda */
+/*
+ * El caso bueno: fondo apaisado de TMDB, que un panel Xtream no manda.
+ *
+ * A media luz, siempre.
+ *
+ * El velo está pensado para el lado del texto; el otro lado queda al
+ * descubierto porque ahí va el cartel cuando no hay fondo apaisado. Con un
+ * fondo de verdad, ese lado es la foto entera a plena luz, y una foto clara
+ * —un cielo, una playa, un plano de día— acaba siendo más brillante que la
+ * interfaz que va encima. Un fondo es decoración detrás de lo que se lee:
+ * nunca debería pesar más que ello.
+ */
 .tv-ficha-fondo {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; object-position: center 20%;
+  opacity: 0.58;
 }
 /*
  * Y el normal: solo hay carátula vertical.

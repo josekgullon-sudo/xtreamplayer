@@ -85,7 +85,7 @@ export interface MetaTitulo {
  * Tiene que dar exactamente lo mismo aquí y en el servidor (`lib/tmdb.ts`),
  * porque es con lo que se emparejan la pregunta y la respuesta.
  */
-export function llaveTmdb(t: Titulo): string {
+export function llaveTmdb(t: Pick<Titulo, "nombre" | "anio" | "esSerie">): string {
   return `${t.esSerie ? "s" : "p"}:${llaveDeTitulo(t.nombre)}:${t.anio || ""}`;
 }
 
