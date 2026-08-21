@@ -1066,6 +1066,42 @@ input[type="color"]::-moz-color-swatch {
   se consigue con menos hueco y no con más.
 */
 .section { padding: 76px 0; }
+
+/*
+ * La cabecera de las páginas públicas.
+ *
+ * La portada abre sobre una escena iluminada y precios, funciones, aparatos
+ * y preguntas abrían sobre negro liso: el titular pegado debajo de la barra
+ * de navegación, sin nada detrás. Puestas una detrás de otra no parecían la
+ * misma web, y la que salía perdiendo era siempre la segunda que se
+ * visitaba.
+ *
+ * Es la misma luz del héroe y la mitad de alta: entra por arriba, envuelve
+ * el titular y se ha apagado antes de llegar al contenido, que es donde hay
+ * que leer. Va en `<main>` y no en una sección, para que ninguna página
+ * tenga que acordarse de dónde ponerla.
+ */
+.pagina { position: relative; isolation: isolate; }
+.pagina::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 560px; z-index: -1;
+  background:
+    radial-gradient(ellipse 42% 62% at 50% 0%, rgba(229, 25, 43, 0.16), transparent 70%),
+    radial-gradient(ellipse 86% 88% at 50% 8%, rgba(58, 74, 122, 0.18), transparent 72%),
+    linear-gradient(180deg, #15151b 0%, #101014 52%, var(--bg) 100%);
+}
+/* Y la misma retícula, por el mismo motivo: sin ella el degradado le saca
+   bandas al navegador y un fondo cuidado parece mal exportado */
+.pagina::after {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 560px; z-index: -1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.026) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+  background-size: 46px 46px, 46px 46px;
+  -webkit-mask-image: radial-gradient(ellipse 68% 80% at 50% 6%, #000 8%, transparent 76%);
+  mask-image: radial-gradient(ellipse 68% 80% at 50% 6%, #000 8%, transparent 76%);
+}
 /*
  * Las bandas.
  *
@@ -1281,13 +1317,24 @@ input[type="color"]::-moz-color-swatch {
 
 /* ============ Pricing ============ */
 
+/*
+ * Cada tarjeta, de su alto.
+ *
+ * Estuvieron estiradas a la misma altura para que los dos botones quedaran
+ * a la misma línea, y el precio de eso era un palmo de hueco vacío DENTRO
+ * de la tarjeta de Premium: el plan gratis enumera ocho cosas y Premium
+ * cuatro más «todo lo del plan Gratis», que es la forma corta de decir las
+ * mismas ocho. Un hueco debajo de una tarjeta corta se lee como «esta es
+ * más corta»; el mismo hueco dentro, encima del botón, se lee como «aquí
+ * falta algo». Y lo que falta es justamente lo que no queremos decir.
+ *
+ * Así que se dejan crecer con lo que tienen. Dos tarjetas de distinto alto
+ * en una tabla de precios no llama la atención de nadie.
+ */
 .pricing-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 340px));
-  gap: 24px; justify-content: center; align-items: stretch;
+  gap: 24px; justify-content: center; align-items: start;
 }
-/* En columna y con el botón abajo del todo: con dos planes de distinto
-   número de líneas, el de la derecha dejaba un palmo de hueco debajo del
-   botón y las dos tarjetas parecían mal alineadas */
 .price-card {
   background: var(--bg-elev); border: 1px solid var(--border);
   border-radius: 16px; padding: 32px; position: relative;

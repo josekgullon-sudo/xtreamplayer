@@ -24,7 +24,7 @@ export default function AppsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="section">
+      <main className="section pagina">
         <div className="container">
           <h1 className="section-title">En qué aparatos se ve</h1>
           <p className="section-sub">
