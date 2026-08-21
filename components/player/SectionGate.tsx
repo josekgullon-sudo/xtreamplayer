@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Icon, { IconName } from "@/components/Icon";
+import Tira from "./Tira";
 
 export type Seccion = "live" | "vod" | "series" | "favs";
 
@@ -212,7 +213,7 @@ function PortadaRail({ titulo, titulos, verTodo }: { titulo: string; titulos: Po
           Ver todo <Icon name="chevronRight" size={13} />
         </button>
       </div>
-      <div className="portada-posters">
+      <Tira clase="portada-posters">
         {titulos.map((t) => (
           <button key={t.key} className="portada-poster" onClick={t.abrir} title={t.nombre}>
             {t.poster ? (
@@ -228,7 +229,7 @@ function PortadaRail({ titulo, titulos, verTodo }: { titulo: string; titulos: Po
             <span className="portada-poster-nombre">{t.nombre}</span>
           </button>
         ))}
-      </div>
+      </Tira>
     </section>
   );
 }
