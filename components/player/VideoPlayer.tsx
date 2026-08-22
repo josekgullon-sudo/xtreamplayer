@@ -164,7 +164,18 @@ function origenSinDirecto(url: string): boolean {
  * Con fecha, como la de «sin directo»: los paneles cambian de configuración
  * y una preferencia para siempre acabaría siendo la equivocada.
  */
-const K_CAMINO = "xp.camino.v1";
+/*
+ * La versión sube con la escalera, y esto no es un detalle.
+ *
+ * Lo apuntado es «por aquí salió el vídeo la última vez», y eso solo vale
+ * mientras la escalera sea la misma. Al poner el TS por delante, todo el que
+ * ya tuviera apuntado «proxy de compatibilidad» —que es lo que aprendió con
+ * la escalera vieja— habría seguido entrando por HLS una semana entera, que
+ * es lo que dura la nota: justo los clientes que ya usan esto, y justo los
+ * que se quejaban de que tarda. La lección hay que volver a aprenderla
+ * cuando cambia el temario.
+ */
+const K_CAMINO = "xp.camino.v2";
 const CADUCA_CAMINO = 7 * 24 * 3600 * 1000;
 
 function leerCaminos(): Record<string, { via: string; t: number }> {
@@ -202,6 +213,24 @@ function marcarCamino(lista: string | undefined, via: string) {
     localStorage.setItem(K_CAMINO, JSON.stringify(vivos));
   } catch {
     /* Almacenamiento bloqueado: sin memoria, pero sin romper */
+  }
+}
+
+/**
+ * ¿Sabe este navegador reproducir HLS él solo?
+ *
+ * Safari y todo lo que corre en un iPhone o un iPad sí: lo hace el sistema,
+ * fuera del JavaScript, y arranca rápido. Cualquier otro navegador necesita
+ * hls.js, que baja el manifiesto, lo mastica y luego baja un trozo entero de
+ * vídeo antes de enseñar el primer fotograma. Esa diferencia decide por qué
+ * camino conviene empezar en un canal en directo.
+ */
+function hlsDeFabrica(): boolean {
+  if (typeof document === "undefined") return false;
+  try {
+    return document.createElement("video").canPlayType("application/vnd.apple.mpegurl") !== "";
+  } catch {
+    return false;
   }
 }
 
@@ -340,6 +369,44 @@ function buildAttempts(src: PlaySource): Attempt[] {
       lento: true,
     });
   }
+  /*
+   * En directo, el TS por delante. Y esto es lo que hace que un canal tarde
+   * un segundo en abrir en vez de cinco.
+   *
+   * Los reproductores con los que compite esto —MaxPlayer, TiviMate y el
+   * resto— piden el canal en TS y se lo dan a un decodificador del sistema:
+   * los primeros paquetes que llegan ya son imagen. Nosotros pedíamos el
+   * .m3u8, y por ahí el camino es baja el manifiesto, léelo, baja un TROZO
+   * ENTERO de vídeo —seis o diez segundos de emisión, varios megas— y solo
+   * entonces enseña el primer fotograma. Con el panel al otro lado del
+   * charco y pasando por nuestro proxy, eso son los tres a cinco segundos
+   * que se notan al zapear.
+   *
+   * El TS no tiene manifiesto ni trozos: es un chorro, y mpegts.js le pasa
+   * al vídeo lo que va llegando. Se empieza a ver casi al momento.
+   *
+   * La excepción es Safari y todo lo del iPhone, que reproducen HLS de
+   * fábrica —sin bajar el trozo entero, porque lo hace el sistema— y ahí
+   * cambiar de camino sería perder. Ver `hlsDeFabrica`.
+   *
+   * Y si el panel resulta no servir TS, detrás sigue la escalera entera: se
+   * cae al HLS de siempre y la memoria del camino se acuerda para la
+   * próxima vez.
+   */
+  const conTs = attempts.some((a) => a.engine === "mpegts");
+  if (conTs && !hlsDeFabrica()) {
+    /* Primero por formato y, dentro de cada formato, lo directo antes que el
+       proxy: seguimos prefiriendo no pagar el viaje por nuestro servidor
+       cuando el del proveedor deja entrar al navegador. Los intentos
+       directos contra un servidor que ya nos rechazó no llegan hasta aquí
+       —los quita `sinDirecto`— así que esto no reabre esa puerta. */
+    attempts.sort(
+      (a, b) =>
+        Number(b.engine === "mpegts") - Number(a.engine === "mpegts") ||
+        Number(b.direct) - Number(a.direct)
+    );
+  }
+
   /*
    * Y lo aprendido manda: si de esta lista ya salió vídeo por un camino, ese
    * va primero. Los demás se quedan detrás en el mismo orden, así que si el

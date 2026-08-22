@@ -132,58 +132,57 @@ const ck = (sc, n) => {
     enlacesPedidos.length === antesDelClic, `${enlacesPedidos.length - antesDelClic} de más`);
 
   /*
-   * El camino que funcionó, apuntado y usado al zapear.
+   * Un canal en directo se prueba en TS antes que en HLS.
    *
-   * La escalera de intentos está ordenada por lo que es más probable en
-   * general, pero el panel de un cliente concreto sirve siempre igual: o TS
-   * o HLS, con los 8.000 canales. Sin memoria, quien tiene un panel de solo
-   * TS paga en CADA zapeo un intento de HLS que ya se sabe que no va —unos
-   * segundos de rueda girando por canal, todo el día—.
+   * Es lo que hace que abra en un segundo y no en cinco. Por HLS el camino
+   * es: baja el manifiesto, léelo, baja un TROZO ENTERO de vídeo —seis o
+   * diez segundos de emisión, varios megas— y solo entonces enseña el
+   * primer fotograma. El TS es un chorro: los primeros paquetes ya son
+   * imagen. Es lo que hacen los reproductores con los que esto compite.
    *
-   * Se siembra a mano el camino de una lista y se mira por dónde empieza el
-   * reproductor. Los intentos se apuntan según pasan y no se leen al final:
-   * uno que falla dura menos de un segundo, y mirando después se lee el
-   * siguiente y no el que se quería comprobar.
+   * Se comprueba en una ventana recién abierta, y por el rótulo de la
+   * espera. Las dos cosas tienen su motivo:
+   *
+   * · Recién abierta, porque lo aprendido manda sobre el orden de partida
+   *   —y con razón—, así que en una ventana que ya ha visto canales lo que
+   *   se estaría comprobando es la memoria y no la escalera.
+   *
+   * · Por el rótulo y no por lo que pide, porque el navegador de las
+   *   pruebas no trae los códecs de pago: mpegts.js se declara incompatible
+   *   antes de pedir nada, así que por red el intento en TS no deja rastro.
+   *   En un navegador de verdad sí lo deja, y es el que abre el canal.
    */
-  const porDondeEmpieza = async (via) => {
-    await p2.evaluate((v) => {
-      const listas = JSON.parse(localStorage.getItem("xp.playlists.v1") || "[]");
-      const camino = {};
-      for (const l of listas) camino[l.id] = { via: v, t: Date.now() };
-      localStorage.setItem("xp.camino.v1", JSON.stringify(camino));
-    }, via);
-    await p2.reload({ waitUntil: "networkidle" });
-    await p2.waitForSelector(".section-gate", { timeout: 20000 });
-    await p2.locator(".section-card:has-text('TV en directo')").click();
-    await p2.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 20000 });
-    await p2.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();
-    await p2.waitForSelector(".pa-live-chan", { timeout: 15000 });
-    await p2.evaluate(() => {
-      window.__intentos = [];
-      const mirar = () => {
-        const t = document.querySelector(".pa-video-overlay")?.innerText || "";
-        const m = t.match(/Probando (.+) \((\d+) de (\d+)\)/);
-        if (m && window.__intentos.at(-1) !== m[1]) window.__intentos.push(m[1]);
-        window.__total = m ? Number(m[3]) : window.__total;
-      };
-      new MutationObserver(mirar).observe(document.body, { subtree: true, childList: true, characterData: true });
-      mirar();
-    });
-    await p2.locator(".pa-live-chan").nth(1).click();
-    await p2.waitForTimeout(3000);
-    return p2.evaluate(() => ({ intentos: window.__intentos || [], total: window.__total || 0 }));
-  };
-
-  const conMemoria = await porDondeEmpieza("proxy en formato TS");
-  check("Lo aprendido manda: se empieza por el camino que ya funcionó",
-    conMemoria.intentos[0] === "proxy en formato TS", conMemoria.intentos.join(" → ") || "ninguno");
-
-  /* Y si el panel ha cambiado y ese camino ya no existe, se sigue llegando a
-     los demás igual que antes: aquí se apunta uno inventado */
-  const sinMemoria = await porDondeEmpieza("un camino que ya no existe");
-  check("Y si lo apuntado ya no existe, la escalera de siempre sigue entera",
-    sinMemoria.intentos[0] === "proxy de compatibilidad" && sinMemoria.total === conMemoria.total,
-    `${sinMemoria.intentos.join(" → ") || "ninguno"} · ${sinMemoria.total} intentos`);
+  const ctxTs = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const pTs = await ctxTs.newPage();
+  await pTs.goto(BASE + "/player", { waitUntil: "networkidle" });
+  await pTs.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
+  await pTs.waitForSelector(".modal");
+  await pTs.fill("#pl-name", "Formato");
+  await pTs.fill("#pl-host", "127.0.0.1:8090");
+  await pTs.fill("#pl-user", "demo");
+  await pTs.fill("#pl-pass", "demo123");
+  await pTs.click(".modal button[type=submit]");
+  await pTs.waitForSelector(".section-gate", { timeout: 20000 });
+  await pTs.locator(".section-card:has-text('TV en directo')").click();
+  await pTs.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 20000 });
+  await pTs.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();
+  await pTs.waitForSelector(".pa-live-chan", { timeout: 15000 });
+  await pTs.evaluate(() => {
+    window.__orden = [];
+    const mirar = () => {
+      const t = document.querySelector(".pa-video-overlay")?.innerText || "";
+      const m = t.match(/Probando (.+) \(\d+ de \d+\)/);
+      if (m && window.__orden.at(-1) !== m[1]) window.__orden.push(m[1]);
+      requestAnimationFrame(mirar);
+    };
+    requestAnimationFrame(mirar);
+  });
+  await pTs.locator(".pa-live-chan").first().click();
+  await pTs.waitForTimeout(3500);
+  const orden = await pTs.evaluate(() => window.__orden || []);
+  check("Un canal en directo se prueba primero en TS, que es lo que abre rápido",
+    /TS/.test(orden[0] || ""), orden.join(" → ") || "no llegó a probar nada");
+  await ctxTs.close();
 
   /*
    * Y si pedir la dirección del canal falla, se dice.
@@ -199,6 +198,13 @@ const ck = (sc, n) => {
    * El motivo más normal es de los que se arreglan solos volviendo a
    * entrar: la sesión caducada. Aquí se simula cortando la petición.
    */
+  /* Recargando primero: el enlace de un canal se guarda en memoria al
+     pasarle el ratón por encima, y con el guardado no habría petición que
+     cortar —la prueba pasaría sin probar nada */
+  await p2.reload({ waitUntil: "networkidle" });
+  await p2.waitForSelector(".section-gate", { timeout: 20000 });
+  await p2.locator(".section-card:has-text('TV en directo')").click();
+  await p2.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 20000 });
   await p2.route("**/api/tele/ver", (r) =>
     r.fulfill({
       status: 502,
