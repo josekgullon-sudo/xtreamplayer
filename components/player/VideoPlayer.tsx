@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 
 export interface PlaySource {
@@ -450,7 +450,7 @@ export default function VideoPlayer({
    * iguales: proveedor que bloquea IPs de servidores, y formato que este
    * navegador no sabe decodificar.
    */
-  async function diagnosticar() {
+  const diagnosticar = useCallback(async function diagnosticar() {
     if (!source) return;
     setDiagnosticando(true);
     setDiag(null);
@@ -524,7 +524,28 @@ export default function VideoPlayer({
     } finally {
       setDiagnosticando(false);
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source]);
+
+  /*
+   * Cuando se acaban los intentos, preguntar por qué. Sin que nadie pulse.
+   *
+   * El veredicto —«tu proveedor no responde a nuestro servidor», «entrega el
+   * vídeo pero este aparato no sabe con el códec»— estaba a un botón de
+   * distancia, y un botón que hay que descubrir es un botón que casi nadie
+   * pulsa: quien se queda mirando un «no se pudo reproducir» cierra y lo
+   * cuenta como «no funciona», que es exactamente lo que no se puede
+   * arreglar. Es una petición corta contra nuestro propio servidor y solo
+   * ocurre cuando ya ha fallado todo, así que no le quita tiempo a ningún
+   * intento.
+   *
+   * El botón se queda: sirve para repetirlo si la primera vez no concluyó.
+   */
+  useEffect(() => {
+    if (state !== "error" || !source?.vale || diag || diagnosticando) return;
+    diagnosticar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, source?.vale]);
 
   useEffect(() => {
     const video = videoRef.current;

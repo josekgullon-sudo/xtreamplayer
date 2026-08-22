@@ -185,6 +185,46 @@ const ck = (sc, n) => {
   await ctxTs.close();
 
   /*
+   * Y cuando se acaban los intentos, el veredicto sale solo.
+   *
+   * El diagnóstico —«tu proveedor no responde a nuestro servidor», «entrega
+   * el vídeo pero este aparato no puede con el códec»— estaba a un botón de
+   * distancia, y un botón que hay que descubrir es un botón que casi nadie
+   * pulsa: quien se queda mirando un «no se pudo reproducir» cierra y lo
+   * cuenta como «no funciona», que es justo lo que no se puede arreglar.
+   *
+   * Se prueba con la lista cuyo canal apunta a un servidor que no contesta
+   * nunca, que es el caso de verdad: agota la escalera entera.
+   */
+  const ctxMuerto = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const pM = await ctxMuerto.newPage();
+  await pM.goto(BASE + "/player", { waitUntil: "networkidle" });
+  await pM.locator(".pa-welcome button:has-text('Tengo mi propia lista')").click();
+  await pM.waitForSelector(".modal");
+  await pM.click(".modal .pa-tab:has-text('URL M3U')");
+  await pM.fill("#pl-name", "Muerto");
+  await pM.fill("#pl-m3u", "http://127.0.0.1:8090/lista-directo-muerto.m3u");
+  await pM.click(".modal button[type=submit]");
+  await pM.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 20000 });
+  await pM.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();
+  await pM.locator(".pa-live-chan").first().click();
+  const solo = await pM
+    .waitForFunction(
+      () => {
+        const t = document.querySelector(".pa-video-overlay")?.innerText || "";
+        return /No se pudo reproducir/.test(t) && /\[web .*servidor/.test(t);
+      },
+      null,
+      { timeout: 90000 }
+    )
+    .then(() => true)
+    .catch(() => false);
+  const veredicto = (await pM.locator('[role="status"]').innerText().catch(() => "")).trim();
+  check("Agotados los intentos, el veredicto sale solo, sin pulsar nada",
+    solo, veredicto.replace(/\n+/g, " ").slice(0, 100) || "no salió ninguno");
+  await ctxMuerto.close();
+
+  /*
    * Y si pedir la dirección del canal falla, se dice.
    *
    * Poner un canal son dos pasos —pedirle al servidor por dónde sale el
