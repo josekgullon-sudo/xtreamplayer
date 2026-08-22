@@ -185,6 +185,48 @@ const ck = (sc, n) => {
     sinMemoria.intentos[0] === "proxy de compatibilidad" && sinMemoria.total === conMemoria.total,
     `${sinMemoria.intentos.join(" → ") || "ninguno"} · ${sinMemoria.total} intentos`);
 
+  /*
+   * Y si pedir la dirección del canal falla, se dice.
+   *
+   * Poner un canal son dos pasos —pedirle al servidor por dónde sale el
+   * vídeo, y reproducirlo—, y el reproductor solo sabía contar lo que pasa
+   * en el segundo. Cuando fallaba el primero, la excepción se perdía por el
+   * camino: el canal se quedaba con la dirección vacía que se le pone al
+   * pulsarlo y la pantalla giraba en «Conectando con…» PARA SIEMPRE. Ni
+   * vídeo, ni error, ni forma de saber qué pasaba, que es el peor final
+   * posible porque el que mira no puede ni contarlo.
+   *
+   * El motivo más normal es de los que se arreglan solos volviendo a
+   * entrar: la sesión caducada. Aquí se simula cortando la petición.
+   */
+  await p2.route("**/api/tele/ver", (r) =>
+    r.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "Tu proveedor no responde ahora mismo" }),
+    })
+  );
+  await p2.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();
+  await p2.locator(".pa-live-chan").nth(2).click();
+  const seRindio = await p2
+    .waitForFunction(
+      () => /No se pudo reproducir/.test(document.querySelector(".pa-video-overlay")?.innerText || ""),
+      null,
+      { timeout: 12000 }
+    )
+    .then(() => true)
+    .catch(() => false);
+  const textoFallo = await p2.locator(".pa-video-overlay").innerText().catch(() => "");
+  check("Un canal que no se puede ni pedir lo dice, en vez de girar para siempre",
+    seRindio, textoFallo.replace(/\n+/g, " · ").slice(0, 80) || "seguía girando");
+  /* Y con el motivo de verdad, no con el de los intentos de reproducción:
+     contar «probamos conexión directa» cuando lo que falló fue pedir la
+     dirección manda a buscar donde no hay nada */
+  check("Y con el motivo que es, no con el de los intentos de vídeo",
+    /no responde|sesión|proveedor/i.test(textoFallo) && !/conexión directa/i.test(textoFallo),
+    textoFallo.replace(/\n+/g, " · ").slice(0, 90));
+  await p2.unroute("**/api/tele/ver");
+
   // Ponemos un canal y nos vamos a Cine: el reproductor no debe quedarse arriba
   // (el directo del mock no emite de verdad; basta con que esté seleccionado)
   await p2.locator(".pa-live-cat:not(.pa-live-reciente)").first().click();

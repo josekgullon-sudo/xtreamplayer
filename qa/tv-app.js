@@ -374,6 +374,31 @@ async function esperarCanales(tv) {
       (await tv.locator(".tv-guia-canal").first().innerText()).trim().length > 0,
     `${await tv.locator(".tv-guia-t").first().innerText()} · ${(await tv.locator(".tv-guia-canal").first().innerText()).replace(/\n/g, " ")}`);
 
+  /*
+   * Y el rótulo dice de qué carpeta habla.
+   *
+   * Va justo debajo de una cabecera que es toda del canal señalado —su
+   * logo, lo que dan ahora, lo que viene después—, así que un «Empieza
+   * ahora» a secas se lee como «en este canal», y no lo es: es de toda la
+   * carpeta. Con el nombre detrás no hay nada que malinterpretar, igual que
+   * en la fila de destacados que tiene debajo.
+   */
+  check("Y el rótulo dice de qué carpeta habla, no solo «Empieza ahora»",
+    /empieza ahora en .+/i.test(filasDir[0]), filasDir[0]);
+
+  /*
+   * Cada programa una vez, no una por cada calidad del canal.
+   *
+   * Media lista IPTV trae el mismo canal en 4K, FHD, HD y SD, y los cuatro
+   * dan lo mismo a la misma hora. Sin quitar repetidos, la fila gastaba sus
+   * huecos en enseñar el mismo título cuatro veces: promete «lo que empieza
+   * ahora» y contesta lo mismo cuatro veces, que es no contestar.
+   */
+  const guiaCanales = (await tv.locator(".tv-guia-canal").allInnerTexts())
+    .map((t) => t.trim().toLowerCase().replace(/\b(4k|uhd|fhd|hd|sd)\b/g, "").replace(/[^a-z0-9]+/g, ""));
+  check("Y cada canal sale una vez, no una por cada calidad suya",
+    new Set(guiaCanales).size === guiaCanales.length, guiaCanales.join(" · ").slice(0, 90));
+
   /* --- Y de vuelta al piso de arriba ---
      ATRÁS sube un piso, igual que en el resto de la aplicación, y sin volver
      a pedirle el catálogo entero al panel. */

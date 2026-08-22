@@ -30,6 +30,7 @@ import {
   candidatosDestacado,
   conMeta,
   datosDe,
+  llaveDeTitulo,
   llaveTmdb,
   sinRepetir,
 } from "@/lib/portada";
@@ -2623,11 +2624,50 @@ export default function TvApp() {
       })
       .filter((x): x is NonNullable<typeof x> => Boolean(x))
       .filter((x) => x.empieza > cuando && x.empieza - cuando <= VENTANA_GUIA)
-      .sort((a, b) => a.empieza - b.empieza)
-      .slice(0, 14);
-    return { titulo: "Empieza ahora", chips: false, carpetas: false, guia: true, items };
+      .sort((a, b) => a.empieza - b.empieza);
+    /*
+     * Y una vez cada canal, no una por cada calidad suya.
+     *
+     * Media lista IPTV trae el mismo canal en 4K, FHD, HD y SD, y los cuatro
+     * dan lo mismo a la misma hora. Sin quitar repetidos, cuatro de los
+     * catorce huecos de la fila —o los catorce, en una carpeta con muchas
+     * calidades— se iban en enseñar el mismo título cuatro veces. Una fila
+     * que promete «lo que empieza ahora» y contesta lo mismo cuatro veces no
+     * está contestando.
+     *
+     * La llave es el NOMBRE DEL CANAL sin la calidad, no el del programa:
+     * juntando por programa se caían también dos canales distintos que dan
+     * cosas con el mismo nombre —«Noticias» a las tres lo dan cuatro
+     * cadenas— y eso sí es información, no repetición. `llaveDeTitulo` es
+     * la que ya usa el catálogo para lo mismo: quita 4K, FHD, HD, SD y
+     * compañía, así que «DMAX FHD», «DMAX HD» y «DMAX SD» acaban las tres
+     * en «dmax».
+     *
+     * Se queda con el primero, que al venir ya ordenados por reloj es el que
+     * antes empieza.
+     */
+    const yaSalio = new Set<string>();
+    const unicos = items.filter((x) => {
+      const llave = `${llaveDeTitulo(x.canal)}|${Math.round(x.empieza / 60000)}`;
+      if (yaSalio.has(llave)) return false;
+      yaSalio.add(llave);
+      return true;
+    }).slice(0, 14);
+    /*
+     * Y el rótulo dice de qué carpeta habla, como el de los destacados.
+     *
+     * Debajo de una cabecera que va entera del canal señalado —su logo, lo
+     * que dan ahora, lo que viene después—, un «Empieza ahora» a secas se
+     * lee como «en este canal». Y no: es de toda la carpeta. Con el nombre
+     * detrás deja de haber nada que malinterpretar, que es exactamente lo
+     * que ya hacía la fila de abajo.
+     */
+    return {
+      titulo: nombreDeLaVista ? `Empieza ahora en ${nombreDeLaVista}` : "Empieza ahora",
+      chips: false, carpetas: false, guia: true, items: unicos,
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canalesDeLaVista, epgAhora, ahoraMismo]);
+  }, [canalesDeLaVista, nombreDeLaVista, epgAhora, ahoraMismo]);
 
   /* Y los destacados, de la carpeta en la que estés: puesto en «Deportes», lo
      que se quiere de un vistazo son los suyos, no los de todo el catálogo */

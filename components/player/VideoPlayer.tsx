@@ -26,6 +26,17 @@ export interface PlaySource {
   /** false cuando el servidor ha decidido servir el vídeo él */
   directo?: boolean;
   /**
+   * Lo que ha fallado ANTES de que hubiera nada que reproducir.
+   *
+   * Poner un canal son dos pasos: pedirle al servidor la dirección y luego
+   * reproducirla. Este reproductor solo sabía contar lo que pasa en el
+   * segundo; si el primero fallaba —sesión caducada, proveedor que no
+   * contesta— quien lo hubiera pedido se quedaba con la dirección vacía en
+   * la mano y aquí no llegaba nada, así que la pantalla se quedaba en
+   * «Conectando con…» para siempre. Con esto, el motivo llega y se enseña.
+   */
+  fallo?: string;
+  /**
    * Con qué nombre recordar el camino que funcionó, o nada para no recordar.
    *
    * Se pone SOLO en los canales en directo, y vale la lista de la que salen.
@@ -81,6 +92,9 @@ const SIN_AVANCE_DIRECTO_MS = 5000;
 /* El último intento espera más sin señales: si falla, ya no hay nada detrás,
    y un VOD pesado puede tardar en soltar el primer byte. */
 const SIN_AVANCE_ULTIMO_MS = 15000;
+/* Lo que se espera a que el servidor diga por dónde sale el vídeo. Ver el
+   plazo de la dirección que no llega, más abajo. */
+const SIN_ENLACE_MS = 30000;
 const TECHO_INTENTO_MS = 40000;
 
 /**
@@ -450,6 +464,15 @@ export default function VideoPlayer({
     if (!video || !source) return;
 
     let cancelled = false;
+
+    /* Lo que falló antes de llegar aquí se enseña tal cual: es la única
+       pantalla que hay, y sin esto el motivo se perdía por el camino */
+    if (source.fallo) {
+      setState("error");
+      setErrorDetail(source.fallo);
+      return;
+    }
+
     const attempts = buildAttempts(source);
     if (!attempts.length) {
       /* Todavía sin dirección: se queda esperando, no da error. El canal se
@@ -457,7 +480,24 @@ export default function VideoPlayer({
       if (!source.url) {
         setState("loading");
         setErrorDetail("");
-        return;
+        /*
+         * Pero esperando con un plazo.
+         *
+         * Sin él, cualquier camino que se olvide de contar su fallo —y hubo
+         * dos— deja la rueda girando para siempre: ni vídeo, ni error, ni
+         * manera de saber qué ha pasado. Es el peor final posible, porque el
+         * que mira no puede ni contarlo. Treinta segundos es más de lo que
+         * tarda cualquier respuesta y menos de lo que nadie aguanta.
+         */
+        const plazo = setTimeout(() => {
+          if (cancelled) return;
+          setState("error");
+          setErrorDetail("no ha llegado la dirección de este canal");
+        }, SIN_ENLACE_MS);
+        return () => {
+          cancelled = true;
+          clearTimeout(plazo);
+        };
       }
       /*
        * Pero CON dirección y sin un solo intento, esto es un fallo nuestro
@@ -827,12 +867,16 @@ export default function VideoPlayer({
       {source && state === "error" && (
         <div className="pa-video-overlay">
           <h2>No se pudo reproducir</h2>
+          {/* Y el porqué, según dónde se haya roto: contar «probamos
+              conexión directa y el motor de compatibilidad» cuando lo que
+              falló fue pedir la dirección manda a buscar donde no hay nada */}
           <p>
-            Probamos conexión directa y nuestro motor de compatibilidad sin éxito. Suele deberse a: suscripción
-            caducada, límite de conexiones alcanzado, canal caído o proveedor que bloquea la reproducción web.
+            {source.fallo
+              ? "No hemos podido preparar este canal. Suele ser la sesión caducada o el proveedor sin responder."
+              : "Probamos conexión directa y nuestro motor de compatibilidad sin éxito. Suele deberse a: suscripción caducada, límite de conexiones alcanzado, canal caído o proveedor que bloquea la reproducción web."}
           </p>
           <p style={{ fontSize: 12.5, color: "var(--text-faint)", maxWidth: 560 }}>
-            Intentos realizados — {errorDetail}
+            {source.fallo ? errorDetail : `Intentos realizados — ${errorDetail}`}
           </p>
           {diag && (
             <p style={{ fontSize: 13.5, maxWidth: 560, color: "var(--warning)", pointerEvents: "auto" }} role="status">

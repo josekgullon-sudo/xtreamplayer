@@ -855,7 +855,26 @@ export default function PlayerApp() {
         favKey,
       };
       setCurrent({ source: { url: "", name: ch.name, kind: "hls", recordar: p.id }, ...encabezado });
-      const enlace = await enlaceLive(p, ch.stream_id);
+      /*
+       * Y si pedir la dirección falla, se dice.
+       *
+       * Sin esto la excepción se perdía aquí mismo: el `setCurrent` de
+       * debajo no llegaba a ejecutarse nunca, el reproductor se quedaba con
+       * la dirección vacía que se le puso arriba y la pantalla giraba para
+       * siempre en «Conectando con…». Ni vídeo, ni error, ni forma de saber
+       * qué pasaba — y el motivo casi siempre es de los que se arreglan
+       * solos volviendo a entrar, porque es la sesión caducada.
+       */
+      let enlace;
+      try {
+        enlace = await enlaceLive(p, ch.stream_id);
+      } catch (e) {
+        setCurrent({
+          source: { url: "", name: ch.name, kind: "hls", fallo: enCristiano(e, "No hemos podido abrir este canal") },
+          ...encabezado,
+        });
+        return;
+      }
       setCurrent({ source: { ...enlace, name: ch.name, kind: "hls", recordar: p.id }, ...encabezado });
       setRecents(
         pushRecent({
@@ -880,13 +899,24 @@ export default function PlayerApp() {
     async (p: StoredPlaylist, streamId: number, logo: string | undefined, titulo: string, ini: number, fin: number) => {
       const minutos = Math.max(1, Math.round((fin - ini) / 60000));
       setViendo(true);
-      const enlace = await pedirEnlace({
-        ...credsOf(p),
-        clase: "timeshift",
-        id: String(streamId),
-        inicio: momentoDeArchivo(new Date(ini)),
-        minutos,
-      });
+      /* Mismo cuidado que en `playLive`: una grabación que no se puede pedir
+         tiene que decirlo, no dejar la rueda girando */
+      let enlace;
+      try {
+        enlace = await pedirEnlace({
+          ...credsOf(p),
+          clase: "timeshift",
+          id: String(streamId),
+          inicio: momentoDeArchivo(new Date(ini)),
+          minutos,
+        });
+      } catch (e) {
+        setCurrent({
+          source: { url: "", name: titulo, kind: "hls", fallo: enCristiano(e, "No hemos podido abrir esta grabación") },
+          logo, playlistId: p.id, kind: "live", streamId, favKey: "",
+        });
+        return;
+      }
       setCurrent({
         source: { ...enlace, name: titulo, kind: "hls" },
         logo,
