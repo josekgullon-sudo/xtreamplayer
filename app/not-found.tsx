@@ -16,7 +16,7 @@ export const metadata = { title: "Página no encontrada · TOTALplayer" };
 
 export default function NoEncontrada() {
   return (
-    <div className="auth-wrap">
+    <div className="auth-wrap escena">
       <div className="card auth-card" style={{ textAlign: "center" }}>
         <h1>Aquí no hay nada</h1>
         <p className="auth-sub">

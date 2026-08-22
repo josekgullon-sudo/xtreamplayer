@@ -87,7 +87,7 @@ export default function FuncionesPage() {
   return (
     <>
       <SiteHeader />
-      <main className="section pagina">
+      <main className="section pagina escena">
         <div className="container">
           <h1 className="section-title">Todo lo que hace</h1>
           {/*

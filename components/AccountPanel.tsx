@@ -56,11 +56,11 @@ export default function AccountPanel() {
     }
   }
 
-  if (!loaded) return <div className="auth-wrap"><Loading messages={MENSAJES_CUENTA} /></div>;
+  if (!loaded) return <div className="auth-wrap escena"><Loading messages={MENSAJES_CUENTA} /></div>;
 
   if (!email) {
     return (
-      <div className="auth-wrap">
+      <div className="auth-wrap escena">
         <div className="card auth-card" style={{ textAlign: "center" }}>
           <h1>Tu cuenta</h1>
           <p className="auth-sub">Inicia sesión para ver tu plan y tus listas sincronizadas.</p>
@@ -83,7 +83,7 @@ export default function AccountPanel() {
         : "Gratis";
 
   return (
-    <div className="auth-wrap">
+    <div className="auth-wrap escena">
       <div className="card auth-card">
         <h1>Tu cuenta</h1>
         <p className="auth-sub">{email}</p>

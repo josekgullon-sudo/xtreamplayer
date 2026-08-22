@@ -83,7 +83,7 @@ export default function AdminTickets({ embedded = false }: { embedded?: boolean 
 
   if (denegado) {
     return (
-      <div className="auth-wrap">
+      <div className="auth-wrap escena">
         <div className="card auth-card" style={{ textAlign: "center" }}>
           <h1>Solo administración</h1>
           <p className="auth-sub">Entra con una cuenta de administrador para atender el soporte.</p>
@@ -95,7 +95,7 @@ export default function AdminTickets({ embedded = false }: { embedded?: boolean 
     );
   }
 
-  if (tickets === null) return <div className="auth-wrap"><Loading messages={["Cargando la bandeja de soporte…"]} /></div>;
+  if (tickets === null) return <div className="auth-wrap escena"><Loading messages={["Cargando la bandeja de soporte…"]} /></div>;
 
   return (
     <div className={embedded ? "" : "container"} style={embedded ? undefined : { padding: "34px 24px 60px" }}>

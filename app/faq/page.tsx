@@ -193,7 +193,7 @@ export default function FaqPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <SiteHeader />
-      <main className="section pagina">
+      <main className="section pagina escena">
         <div className="container">
           <h1 className="section-title">Preguntas frecuentes</h1>
           <p className="section-sub">Si no encuentras tu respuesta, escríbenos.</p>

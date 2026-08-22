@@ -31,6 +31,45 @@ const ck = (sc, n) => {
   const errores = [];
   page.on("pageerror", (e) => errores.push(String(e).slice(0, 160)));
 
+  /*
+   * ---------- La hoja de estilos, entera ----------
+   *
+   * Un descuido editando `globals.css` —un recorte que se lleva por delante
+   * las reglas de en medio— deja la página maquetada como en 1995: el texto
+   * sigue ahí, los enlaces funcionan, no salta ningún error en consola y
+   * ninguna prueba de las que había se entera. Lo caza una foto, y las
+   * fotos las mira alguien cuando se acuerda.
+   *
+   * Esto pregunta por unas cuantas reglas estructurales repartidas por toda
+   * la hoja —de las primeras, de en medio y de las últimas— y comprueba que
+   * de verdad llegan a pintar algo. Si un tramo se cae, alguna de ellas
+   * deja de tener estilo y esto falla en el acto.
+   */
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(BASE + "/", { waitUntil: "networkidle" });
+  const sinEstilo = await page.evaluate(() => {
+    const pide = [
+      [".hero", "isolation", "isolate"],
+      [".escena", "position", "relative"],
+      [".section-banda", "borderTopStyle", "solid"],
+      [".feature-card", "borderRadius", /\d/],
+      [".steps", "display", "grid"],
+      [".btn-primary", "borderRadius", /\d/],
+      [".site-footer, footer", "display", /\S/],
+    ];
+    const rotas = [];
+    for (const [sel, prop, esperado] of pide) {
+      const el = document.querySelector(sel);
+      if (!el) { rotas.push(`${sel}: no está en la página`); continue; }
+      const v = getComputedStyle(el)[prop];
+      const bien = esperado instanceof RegExp ? esperado.test(v) : v === esperado;
+      if (!bien) rotas.push(`${sel} ${prop}=${v}`);
+    }
+    return rotas;
+  });
+  check("Las reglas de toda la hoja llegan a la página, no solo las primeras",
+    sinEstilo.length === 0, sinEstilo.join(" | ") || "7 reglas de punta a punta");
+
   // ---------- Nada desborda a lo ancho ----------
   const desbordes = [];
   for (const ancho of ANCHOS) {

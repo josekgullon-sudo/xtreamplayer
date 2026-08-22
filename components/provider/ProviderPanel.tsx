@@ -471,7 +471,7 @@ export default function ProviderPanel() {
 
   if (!loaded) {
     return (
-      <div className="auth-wrap">
+      <div className="auth-wrap escena">
         <Loading messages={MENSAJES_PANEL} />
       </div>
     );

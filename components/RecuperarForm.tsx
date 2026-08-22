@@ -51,7 +51,7 @@ function RecuperarFormInner() {
 
   if (estado === "enviado") {
     return (
-      <div className="auth-wrap">
+      <div className="auth-wrap escena">
         <div className="card auth-card">
           <div className="activar-ok" aria-hidden="true">
             <Icon name="check" size={30} />
@@ -71,7 +71,7 @@ function RecuperarFormInner() {
   }
 
   return (
-    <div className="auth-wrap">
+    <div className="auth-wrap escena">
       <div className="card auth-card">
         <h1>¿Has olvidado la contraseña?</h1>
         <p className="auth-sub">Escribe tu correo y te mandamos un enlace para elegir otra.</p>

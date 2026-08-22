@@ -117,5 +117,5 @@ export default function CustomerLoginForm({
     </div>
   );
 
-  return embedded ? content : <div className="auth-wrap">{content}</div>;
+  return embedded ? content : <div className="auth-wrap escena">{content}</div>;
 }

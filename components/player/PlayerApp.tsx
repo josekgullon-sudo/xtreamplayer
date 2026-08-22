@@ -2663,7 +2663,7 @@ export default function PlayerApp() {
         )}
 
         {!active && (
-          <div className="pa-welcome">
+          <div className="pa-welcome escena">
             <h2>Bienvenido a TOTALplayer</h2>
             <p>
               Hay dos formas de empezar: con el usuario que te dio tu proveedor, o con tu propia lista M3U o

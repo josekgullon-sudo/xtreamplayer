@@ -604,59 +604,16 @@ input[type="color"]::-moz-color-swatch {
   isolation: isolate;
 }
 /*
- * El fondo del héroe: una sola luz, y nada más.
+ * El fondo del héroe lo pone `.escena`; aquí solo dónde cae la luz.
  *
- * Aquí hubo un mosaico de carteles. La idea era buena y el sitio no: en esta
- * pantalla ya hay una imagen —la maqueta del producto, que es lo único que
- * de verdad hay que mirar— y una pared de carátulas detrás la pone a
- * competir con ella. Para que no compitiera había que apagarla, y apagada
- * dejaba de ser una pared de carátulas para ser un manchón gris. Dos
- * imágenes peleando o una imagen y barro: no había tercera.
- *
- * El mosaico sigue vivo donde sí manda, que son las pantallas de antes de
- * entrar —activar la tele, entrar, elegir perfil—: ahí no hay producto que
- * enseñar y lo que hace falta es justo decir «esto va de cine» (ver
- * `.tv-lienzo` y `public/LEEME-fondo.txt`).
- *
- * Lo que queda es una fuente de luz ancha y muy floja arriba, y la sombra
- * cayendo hacia los cantos. No es el halo de plantilla que se quitó de
- * debajo de los botones —aquéllos eran resplandores pequeños y saturados
- * pegados a cada elemento—: esto es la iluminación de la escena, y es la
- * diferencia entre un fondo negro y un fondo oscuro. Sin ella la maqueta
- * sale recortada; con ella, apoyada en algo.
+ * Vivió aquí un mosaico de carteles y se fue: en esta pantalla ya hay una
+ * imagen —la maqueta del producto, que es lo único que de verdad hay que
+ * mirar— y una pared de carátulas detrás la ponía a competir. Para que no
+ * compitiera había que apagarla, y apagada dejaba de ser una pared de
+ * carátulas para ser un manchón gris. El mosaico sigue donde sí manda, en
+ * las pantallas de antes de entrar (ver `.tv-lienzo`).
  */
-.hero::before {
-  content: "";
-  /* Empieza donde empieza el héroe y ni un píxel antes: subiendo por encima,
-     asomaba entre el aviso de arriba y la barra de navegación */
-  position: absolute; inset: 0; z-index: -1;
-  background:
-    /* La luz de marca, detrás del titular */
-    radial-gradient(ellipse 46% 38% at 50% 12%, rgba(229, 25, 43, 0.20), transparent 68%),
-    /* Y una segunda, fría y más ancha, que abre la escena a lo alto: con una
-       sola el degradado se lee como una mancha; con dos, como profundidad */
-    radial-gradient(ellipse 90% 60% at 50% 30%, rgba(58, 74, 122, 0.22), transparent 72%),
-    linear-gradient(180deg, #16161c 0%, #101014 46%, var(--bg) 100%);
-}
-/*
- * Y encima, la textura. Una retícula finísima, del tamaño de la letra.
- *
- * Un degradado grande y liso en una pantalla oscura le saca bandas al
- * navegador —escalones de color donde debería haber una transición—, y esos
- * escalones son lo que hace que un fondo cuidado parezca mal exportado. La
- * retícula rompe la banda y de paso da la sensación de superficie: se ve
- * cuando la buscas y no antes.
- */
-.hero::after {
-  content: "";
-  position: absolute; inset: 0; z-index: -1;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
-  background-size: 46px 46px, 46px 46px;
-  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 24%, #000 10%, transparent 78%);
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 24%, #000 10%, transparent 78%);
-}
+.hero { --escena-y: 12%; }
 .hero h1 {
   /* Sin esto el navegador parte por donde le cabe, y la primera línea acababa
      en un «al» rojo suelto con «instante» en la siguiente: el acento de color
@@ -1089,43 +1046,77 @@ input[type="color"]::-moz-color-swatch {
   de la sección esté más cerca de su contenido que del bloque anterior, y eso
   se consigue con menos hueco y no con más.
 */
+/*
+ * La escena: el fondo de las pantallas que no traen nada detrás.
+ *
+ * La portada, las cabeceras de las páginas públicas, la bienvenida del
+ * reproductor y las de entrar y crear cuenta tienen todas el mismo
+ * problema y por tanto la misma solución: son un bloque de texto en medio
+ * de una pantalla vacía, y sobre negro liso eso se lee como una página que
+ * no ha terminado de cargar.
+ *
+ * Lo que las salva no es color: es que haya una fuente de luz. Aquí son
+ * dos —una del rojo de la marca, otra fría y más abierta— y la sombra
+ * cayendo hacia los cantos. No es el halo de plantilla que se quitó de
+ * debajo de los botones, que eran resplandores pequeños y saturados
+ * pegados a cada elemento: esto es la iluminación de la escena, y es la
+ * diferencia entre un fondo negro y un fondo oscuro.
+ *
+ * Va en una clase y no copiada en cada sitio porque llegó a estar copiada
+ * en cuatro, y cuatro copias de un degradado son cuatro degradados
+ * distintos dentro de un mes. Lo que cambia de una pantalla a otra es
+ * dónde cae la luz y hasta dónde llega, y eso son dos variables:
+ *
+ *   --escena-y     altura del foco (0% arriba del todo, 50% en el centro)
+ *   --escena-alto  hasta dónde baja el fondo (100% toda la caja)
+ */
+.escena { position: relative; isolation: isolate; }
+.escena::before,
+.escena::after {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0;
+  height: var(--escena-alto, 100%); z-index: -1;
+  pointer-events: none;
+}
+.escena::before {
+  background:
+    radial-gradient(ellipse 44% 40% at 50% var(--escena-y, 14%), rgba(229, 25, 43, 0.17), transparent 70%),
+    radial-gradient(ellipse 88% 68% at 50% calc(var(--escena-y, 14%) + 16%), rgba(58, 74, 122, 0.20), transparent 72%),
+    linear-gradient(180deg, #15151b 0%, #101014 50%, var(--bg) 100%);
+}
+/*
+ * Y encima, la textura: una retícula finísima del tamaño de la letra.
+ *
+ * Un degradado grande y liso en una pantalla oscura le saca bandas al
+ * navegador —escalones de color donde debería haber una transición—, y esos
+ * escalones son lo que hace que un fondo cuidado parezca mal exportado. La
+ * retícula rompe la banda y de paso da sensación de superficie: se ve
+ * cuando la buscas y no antes.
+ */
+.escena::after {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.026) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+  background-size: 46px 46px, 46px 46px;
+  -webkit-mask-image: radial-gradient(ellipse 68% 62% at 50% var(--escena-y, 14%), #000 8%, transparent 78%);
+  mask-image: radial-gradient(ellipse 68% 62% at 50% var(--escena-y, 14%), #000 8%, transparent 78%);
+}
+
 .section { padding: 76px 0; }
 
 /*
  * La cabecera de las páginas públicas.
  *
- * La portada abre sobre una escena iluminada y precios, funciones, aparatos
- * y preguntas abrían sobre negro liso: el titular pegado debajo de la barra
- * de navegación, sin nada detrás. Puestas una detrás de otra no parecían la
- * misma web, y la que salía perdiendo era siempre la segunda que se
- * visitaba.
+ * La portada abre sobre una escena iluminada y precios, funciones,
+ * aparatos y preguntas abrían sobre negro liso, con el titular pegado
+ * debajo de la barra de navegación. Puestas una detrás de otra no parecían
+ * la misma web, y la que salía perdiendo era siempre la segunda.
  *
- * Es la misma luz del héroe y la mitad de alta: entra por arriba, envuelve
- * el titular y se ha apagado antes de llegar al contenido, que es donde hay
- * que leer. Va en `<main>` y no en una sección, para que ninguna página
- * tenga que acordarse de dónde ponerla.
+ * La misma luz y la mitad de alta: envuelve el titular y se ha apagado
+ * antes de llegar al contenido, que es donde hay que leer. Va en `<main>`
+ * para que ninguna página tenga que acordarse de dónde ponerla.
  */
-.pagina { position: relative; isolation: isolate; }
-.pagina::before {
-  content: "";
-  position: absolute; left: 0; right: 0; top: 0; height: 560px; z-index: -1;
-  background:
-    radial-gradient(ellipse 42% 62% at 50% 0%, rgba(229, 25, 43, 0.16), transparent 70%),
-    radial-gradient(ellipse 86% 88% at 50% 8%, rgba(58, 74, 122, 0.18), transparent 72%),
-    linear-gradient(180deg, #15151b 0%, #101014 52%, var(--bg) 100%);
-}
-/* Y la misma retícula, por el mismo motivo: sin ella el degradado le saca
-   bandas al navegador y un fondo cuidado parece mal exportado */
-.pagina::after {
-  content: "";
-  position: absolute; left: 0; right: 0; top: 0; height: 560px; z-index: -1;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.026) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
-  background-size: 46px 46px, 46px 46px;
-  -webkit-mask-image: radial-gradient(ellipse 68% 80% at 50% 6%, #000 8%, transparent 76%);
-  mask-image: radial-gradient(ellipse 68% 80% at 50% 6%, #000 8%, transparent 76%);
-}
+.pagina { --escena-y: 0%; --escena-alto: 560px; }
 /*
  * Las bandas.
  *
@@ -1378,7 +1369,17 @@ input[type="color"]::-moz-color-swatch {
 
 /* ============ Auth ============ */
 
-.auth-wrap { min-height: calc(100vh - var(--header-h)); display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+/*
+ * Entrar, crear cuenta, recuperar la contraseña y el 404: una tarjeta sola
+ * en medio de la pantalla. Es donde más se notaba el negro liso —un cliente
+ * de un proveedor entra por aquí y esto es todo lo que ve de nosotros—, así
+ * que llevan la misma luz, centrada como la de la bienvenida.
+ */
+.auth-wrap {
+  --escena-y: 46%;
+  min-height: calc(100vh - var(--header-h));
+  display: flex; align-items: center; justify-content: center; padding: 40px 20px;
+}
 .auth-card { width: 100%; max-width: 420px; }
 .auth-card h1 { font-size: 26px; margin-bottom: 6px; }
 .auth-card .auth-sub { color: var(--text-dim); font-size: 14.5px; margin-bottom: 26px; }
@@ -1562,40 +1563,17 @@ select.input { appearance: none; cursor: pointer; }
 .pa-card .title { font-size: 13.5px; font-weight: 600; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.35; }
 
 /*
- * La bienvenida del reproductor: la misma luz que la portada.
+ * La bienvenida del reproductor.
  *
  * Es la pantalla a la que lleva el botón grande de la portada, o sea la
- * segunda que ve cualquiera que llega — y era un negro liso de lado a lado
- * con un bloque pequeño en medio. Viniendo de una portada iluminada, el
- * salto se lee como que se ha roto algo.
- *
- * Misma receta que el héroe: una fuente de marca arriba, otra fría más
- * abierta, y la retícula que evita que el degradado bandee. Aquí la luz va
- * centrada y no arriba, porque lo que hay que iluminar está en el medio de
- * la pantalla y no debajo de una barra.
+ * segunda que ve cualquiera que llega. La luz va centrada y no arriba,
+ * porque lo que hay que iluminar está en medio de la pantalla y no debajo
+ * de una barra.
  */
 .pa-welcome {
-  position: relative; isolation: isolate;
+  --escena-y: 42%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   height: 100%; gap: 18px; text-align: center; padding: 40px 24px;
-}
-.pa-welcome::before {
-  content: "";
-  position: absolute; inset: 0; z-index: -1;
-  background:
-    radial-gradient(ellipse 40% 44% at 50% 42%, rgba(229, 25, 43, 0.17), transparent 70%),
-    radial-gradient(ellipse 88% 74% at 50% 52%, rgba(58, 74, 122, 0.20), transparent 72%),
-    linear-gradient(180deg, #131319 0%, #101014 50%, var(--bg) 100%);
-}
-.pa-welcome::after {
-  content: "";
-  position: absolute; inset: 0; z-index: -1;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.026) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
-  background-size: 46px 46px, 46px 46px;
-  -webkit-mask-image: radial-gradient(ellipse 62% 56% at 50% 46%, #000 8%, transparent 78%);
-  mask-image: radial-gradient(ellipse 62% 56% at 50% 46%, #000 8%, transparent 78%);
 }
 /* El titular, con el peso que pide una pantalla entera para él solo */
 .pa-welcome h2 { font-size: clamp(28px, 3.4vw, 40px); font-weight: 800; letter-spacing: -0.03em; }

@@ -387,7 +387,7 @@ export default function AdminPanel() {
 
   if (denegado) {
     return (
-      <div className="auth-wrap">
+      <div className="auth-wrap escena">
         <div className="card auth-card" style={{ textAlign: "center" }}>
           <h1>Solo administración</h1>
           <p className="auth-sub">Entra con una cuenta de administrador para atender la plataforma.</p>

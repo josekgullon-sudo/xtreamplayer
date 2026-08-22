@@ -130,11 +130,11 @@ export default function ActivarTv() {
     await cargarListas(mac);
   }
 
-  if (sesion === "cargando") return <main className="auth-wrap" />;
+  if (sesion === "cargando") return <main className="auth-wrap escena" />;
 
   if (hecho) {
     return (
-      <main className="auth-wrap">
+      <main className="auth-wrap escena">
         <div className="auth-card" style={{ textAlign: "center" }}>
           <span className="activar-ok"><Icon name="tv" size={34} /></span>
           <h1>{hecho === "codigo" ? "Tele activada" : "Lista cargada"}</h1>
@@ -150,7 +150,7 @@ export default function ActivarTv() {
   }
 
   return (
-    <main className="auth-wrap">
+    <main className="auth-wrap escena">
       <div className="auth-card">
         <h1>Activar mi tele</h1>
         <p className="auth-sub">Elige cómo prefieres hacerlo. Con una de las tres basta.</p>

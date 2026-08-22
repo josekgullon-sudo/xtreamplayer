@@ -112,5 +112,5 @@ export default function ProviderAuthForm({
     </div>
   );
 
-  return embedded ? content : <div className="auth-wrap">{content}</div>;
+  return embedded ? content : <div className="auth-wrap escena">{content}</div>;
 }

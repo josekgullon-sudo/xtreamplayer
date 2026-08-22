@@ -31,7 +31,7 @@ export default function PricingPage() {
   return (
     <>
       <SiteHeader />
-      <main className="section pagina">
+      <main className="section pagina escena">
         <div className="container">
           <h1 className="section-title">Precios</h1>
           <p className="section-sub">

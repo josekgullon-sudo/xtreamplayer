@@ -104,7 +104,7 @@ export default function CustomerAccount() {
 
   if (error) {
     return (
-      <main className="auth-wrap">
+      <main className="auth-wrap escena">
         <div className="card" style={{ textAlign: "center", maxWidth: 420 }}>
           <p style={{ marginBottom: 16 }}>{error}</p>
           <Link href="/acceso" className="btn btn-primary">Entrar</Link>
@@ -114,7 +114,7 @@ export default function CustomerAccount() {
   }
   if (!datos) {
     return (
-      <main className="auth-wrap">
+      <main className="auth-wrap escena">
         <Loading messages={["Consultando tu cuenta…"]} />
       </main>
     );

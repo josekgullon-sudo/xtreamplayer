@@ -15,7 +15,7 @@ export default function AccessChooser({ initial = "cliente" }: { initial?: "clie
   const [tab, setTab] = useState<"cliente" | "proveedor">(initial);
 
   return (
-    <div className="auth-wrap">
+    <div className="auth-wrap escena">
       <div style={{ width: "100%", maxWidth: 460 }}>
         <div className="access-tabs" role="tablist">
           <button

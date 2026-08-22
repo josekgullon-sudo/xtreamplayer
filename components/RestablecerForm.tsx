@@ -60,7 +60,7 @@ function RestablecerFormInner() {
 
   if (estado === "mirando") {
     return (
-      <div className="auth-wrap">
+      <div className="auth-wrap escena">
         <div className="card auth-card">
           <p className="auth-sub">Comprobando el enlace…</p>
         </div>
@@ -70,7 +70,7 @@ function RestablecerFormInner() {
 
   if (estado === "caducado") {
     return (
-      <div className="auth-wrap">
+      <div className="auth-wrap escena">
         <div className="card auth-card">
           <h1>Este enlace ya no vale</h1>
           <p className="auth-sub">
@@ -87,7 +87,7 @@ function RestablecerFormInner() {
 
   if (estado === "hecho") {
     return (
-      <div className="auth-wrap">
+      <div className="auth-wrap escena">
         <div className="card auth-card">
           <div className="activar-ok" aria-hidden="true">
             <Icon name="check" size={30} />
@@ -100,7 +100,7 @@ function RestablecerFormInner() {
   }
 
   return (
-    <div className="auth-wrap">
+    <div className="auth-wrap escena">
       <div className="card auth-card">
         <h1>Elige una contraseña nueva</h1>
         <p className="auth-sub">

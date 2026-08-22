@@ -37,7 +37,7 @@ function AuthFormInner({ mode }: { mode: "login" | "register" }) {
   }
 
   return (
-    <div className="auth-wrap">
+    <div className="auth-wrap escena">
       <div className="card auth-card">
         <h1>{mode === "login" ? "Inicia sesión" : "Crea tu cuenta gratis"}</h1>
         <p className="auth-sub">

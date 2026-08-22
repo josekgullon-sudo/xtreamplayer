@@ -91,7 +91,7 @@ export default function HomePage() {
           —titular, promesa, producto— y medio segundo de diferencia entre
           uno y otro basta para que la mirada los recorra en ese orden.
         */}
-        <section className="hero">
+        <section className="hero escena">
           <div className="container">
             <h1 className="entra-ya">
               Tu lista IPTV, en <span className="realce">todas tus pantallas</span>

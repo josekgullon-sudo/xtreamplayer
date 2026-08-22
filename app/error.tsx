@@ -7,7 +7,7 @@
  */
 export default function Error({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <div className="auth-wrap">
+    <div className="auth-wrap escena">
       <div className="card auth-card" style={{ textAlign: "center" }}>
         <h1>Algo ha fallado</h1>
         <p className="auth-sub">
