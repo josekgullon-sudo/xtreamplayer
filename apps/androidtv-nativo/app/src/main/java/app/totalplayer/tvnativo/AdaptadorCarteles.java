@@ -29,6 +29,8 @@ public class AdaptadorCarteles extends RecyclerView.Adapter<AdaptadorCarteles.Ce
      * las cosas dos veces.
      */
     private boolean numerada = false;
+    /** Ver `canales`. */
+    private boolean deCanales = false;
 
     public AdaptadorCarteles(AlElegir alElegir) { this.alElegir = alElegir; }
 
@@ -43,6 +45,16 @@ public class AdaptadorCarteles extends RecyclerView.Adapter<AdaptadorCarteles.Ce
     public void ancho(int px) { ancho = px; }
 
     public void numerada(boolean si) { numerada = si; }
+
+    /**
+     * Si lo que hay en la fila son canales y no películas.
+     *
+     * Cambia la forma de la celda, y no es un detalle: un logotipo de canal
+     * metido en un cartel de 2:3 y recortado al centro se convierte en un
+     * «1» de un palmo que ocupa media pantalla. Los canales son apaisados y
+     * su logotipo tiene que caber entero, no llenar el hueco.
+     */
+    public void canales(boolean si) { deCanales = si; }
 
     public void poner(List<Catalogo.Item> nuevos) {
         datos.clear();
@@ -72,7 +84,9 @@ public class AdaptadorCarteles extends RecyclerView.Adapter<AdaptadorCarteles.Ce
     @NonNull
     @Override public Celda onCreateViewHolder(@NonNull ViewGroup padre, int tipo) {
         View v = LayoutInflater.from(padre.getContext())
-                .inflate(numerada ? R.layout.pieza_poster_num : R.layout.pieza_poster, padre, false);
+                .inflate(deCanales ? R.layout.pieza_canal_tira
+                        : numerada ? R.layout.pieza_poster_num
+                        : R.layout.pieza_poster, padre, false);
         Foco.agrandar(v, 1.08f);
         return new Celda(v);
     }

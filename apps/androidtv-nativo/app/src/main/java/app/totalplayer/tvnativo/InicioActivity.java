@@ -139,6 +139,16 @@ public class InicioActivity extends Activity {
      * escaparate, así que aquí no se inventa ningún criterio nuevo. Si una
      * sección no la sirve el proveedor, su fila simplemente no aparece.
      */
+    /**
+     * El rótulo de la fila del directo, escrito una vez.
+     *
+     * Lo usan dos sitios: el que arma la fila y el que decide que sus celdas
+     * son de canal y no de cartel. Escrito dos veces, el día que alguien
+     * cambie el texto la fila se queda con las celdas del otro y nadie
+     * relaciona una cosa con la otra.
+     */
+    private static final String EN_DIRECTO = "En directo ahora";
+
     private void cargarFilas() {
         final LinearLayout donde = findViewById(R.id.filas);
         if (donde == null) return;
@@ -151,7 +161,7 @@ public class InicioActivity extends Activity {
                 try {
                     List<Catalogo.Item> canales = Catalogo.todoElDirecto();
                     if (!canales.isEmpty()) {
-                        salen.add(new Catalogo.Fila("En directo ahora",
+                        salen.add(new Catalogo.Fila(EN_DIRECTO,
                                 canales.subList(0, Math.min(14, canales.size())), false, "", false));
                     }
                 } catch (Exception niIdea) { /* sin directo, las otras dos siguen */ }
@@ -193,6 +203,10 @@ public class InicioActivity extends Activity {
                     if (posicion >= 0 && posicion < deLaFila.size()) abrirDesdeElInicio(deLaFila, posicion);
                 }
             });
+            /* La fila del directo lleva canales, y un canal no es un cartel:
+               su celda es apaisada y su logotipo cabe entero. Ver
+               `AdaptadorCarteles.canales` */
+            carteles.canales(EN_DIRECTO.equals(f.titulo));
             carteles.poner(deLaFila);
 
             RecyclerView tira = fila.findViewById(R.id.carteles);
