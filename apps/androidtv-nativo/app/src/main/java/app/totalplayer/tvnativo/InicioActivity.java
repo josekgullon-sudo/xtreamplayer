@@ -153,34 +153,82 @@ public class InicioActivity extends Activity {
         final LinearLayout donde = findViewById(R.id.filas);
         if (donde == null) return;
         donde.removeAllViews();
-        Hilos.fuera(new Hilos.Trabajo<List<Catalogo.Fila>>() {
-            @Override public List<Catalogo.Fila> hacer() throws Exception {
-                List<Catalogo.Fila> salen = new ArrayList<>();
-                /* En directo primero: es lo que se pone nueve de cada diez
-                   veces que se enciende una televisión */
-                try {
-                    List<Catalogo.Item> canales = Catalogo.todoElDirecto();
-                    if (!canales.isEmpty()) {
-                        salen.add(new Catalogo.Fila(EN_DIRECTO,
-                                canales.subList(0, Math.min(14, canales.size())), false, "", false));
-                    }
-                } catch (Exception niIdea) { /* sin directo, las otras dos siguen */ }
-                for (String seccion : new String[] { Catalogo.SERIES, Catalogo.PELIS }) {
-                    try {
-                        List<Catalogo.Fila> suyas = Catalogo.portada(seccion);
-                        if (!suyas.isEmpty()) {
-                            Catalogo.Fila f = suyas.get(0);
-                            salen.add(new Catalogo.Fila(
-                                    Catalogo.SERIES.equals(seccion) ? "Series destacadas" : "Películas destacadas",
-                                    f.items, false, "", true));
-                        }
-                    } catch (Exception niIdea) { /* ídem */ }
-                }
-                return salen;
+
+        /*
+         * Las tres filas se piden a la vez y cada una se pinta cuando llega.
+         *
+         * Antes se pedían las tres seguidas en el mismo trabajo y no se
+         * pintaba NADA hasta tenerlas las tres: el directo entero —ocho mil
+         * canales—, más la portada de series, más la de películas. Con un
+         * catálogo de verdad eso son minutos de pantalla con las pestañas y
+         * debajo el vacío, y quien enciende la tele no está esperando a que
+         * cargue: está pensando que no funciona.
+         *
+         * Ahora son tres trabajos sueltos. El directo suele ser el primero
+         * en volver, que además es el que se quiere nueve de cada diez
+         * veces, y aparece él solo sin esperar a las otras dos. Si una falla,
+         * las demás salen igual.
+         *
+         * Cada una sabe en qué puesto va y se mete ahí, no al final: lleguen
+         * en el orden que lleguen, la pantalla queda siempre igual. Y se
+         * INSERTA, sin tocar las que ya estén, para no tirar el foco de
+         * quien ya esté recorriendo la primera fila cuando llegue la
+         * segunda.
+         */
+        final int[] puestos = new int[FILAS_DEL_INICIO];
+        pedirFila(donde, puestos, 0, new Hilos.Trabajo<Catalogo.Fila>() {
+            @Override public Catalogo.Fila hacer() throws Exception {
+                List<Catalogo.Item> canales = Catalogo.todoElDirecto();
+                if (canales.isEmpty()) return null;
+                return new Catalogo.Fila(EN_DIRECTO,
+                        canales.subList(0, Math.min(14, canales.size())), false, "", false);
             }
-        }, new Hilos.Luego<List<Catalogo.Fila>>() {
-            @Override public void listo(List<Catalogo.Fila> lista) { pintarFilas(donde, lista); }
+        });
+        pedirFila(donde, puestos, 1, new Hilos.Trabajo<Catalogo.Fila>() {
+            @Override public Catalogo.Fila hacer() throws Exception {
+                return destacados(Catalogo.SERIES, "Series destacadas");
+            }
+        });
+        pedirFila(donde, puestos, 2, new Hilos.Trabajo<Catalogo.Fila>() {
+            @Override public Catalogo.Fila hacer() throws Exception {
+                return destacados(Catalogo.PELIS, "Películas destacadas");
+            }
+        });
+    }
+
+    /** Cuántas filas puede haber en el inicio. Ver `cargarFilas`. */
+    private static final int FILAS_DEL_INICIO = 3;
+
+    /** La primera fila de la portada de una sección, con su rótulo. */
+    private Catalogo.Fila destacados(String seccion, String rotulo) throws Exception {
+        List<Catalogo.Fila> suyas = Catalogo.portada(seccion);
+        if (suyas.isEmpty()) return null;
+        return new Catalogo.Fila(rotulo, suyas.get(0).items, false, "", true);
+    }
+
+    /**
+     * Pide una fila y la coloca en su puesto en cuanto llega.
+     *
+     * `puestos` lleva un 1 en las que ya están, y de ahí sale en qué posición
+     * hay que insertar: tantas como puestos anteriores ocupados. Así el orden
+     * de la pantalla no depende de cuál conteste antes.
+     */
+    private void pedirFila(final LinearLayout donde, final int[] puestos, final int puesto,
+                           Hilos.Trabajo<Catalogo.Fila> trabajo) {
+        Hilos.fuera(trabajo, new Hilos.Luego<Catalogo.Fila>() {
+            @Override public void listo(Catalogo.Fila f) {
+                if (f == null || f.items.isEmpty()) return;
+                int donde_va = 0;
+                for (int i = 0; i < puesto; i++) donde_va += puestos[i];
+                puestos[puesto] = 1;
+                donde.addView(pintarFila(donde, f), donde_va);
+            }
             @Override public void falla(Exception e) {
+                /* Una sección que no sirve el proveedor no impide las otras.
+                   El aviso solo si no ha llegado ninguna */
+                boolean alguna = false;
+                for (int x : puestos) alguna = alguna || x == 1;
+                if (alguna) return;
                 TextView aviso = findViewById(R.id.aviso);
                 if (aviso != null) {
                     aviso.setText("No se ha podido cargar lo que hay. Elige una sección arriba.");
@@ -190,33 +238,31 @@ public class InicioActivity extends Activity {
         });
     }
 
-    private void pintarFilas(LinearLayout donde, List<Catalogo.Fila> lista) {
+    /** Arma una fila. Quien la llama decide dónde va. Ver `pedirFila`. */
+    private View pintarFila(LinearLayout donde, Catalogo.Fila f) {
         LayoutInflater molde = LayoutInflater.from(this);
-        for (Catalogo.Fila f : lista) {
-            if (f.items.isEmpty()) continue;
-            View fila = molde.inflate(R.layout.pieza_fila, donde, false);
-            ((TextView) fila.findViewById(R.id.rotulo)).setText(f.titulo);
+        View fila = molde.inflate(R.layout.pieza_fila, donde, false);
+        ((TextView) fila.findViewById(R.id.rotulo)).setText(f.titulo);
 
-            final List<Catalogo.Item> deLaFila = f.items;
-            AdaptadorCarteles carteles = new AdaptadorCarteles(new AdaptadorCarteles.AlElegir() {
-                @Override public void ficha(int posicion) {
-                    if (posicion >= 0 && posicion < deLaFila.size()) abrirDesdeElInicio(deLaFila, posicion);
-                }
-            });
-            /* La fila del directo lleva canales, y un canal no es un cartel:
-               su celda es apaisada y su logotipo cabe entero. Ver
-               `AdaptadorCarteles.canales` */
-            carteles.canales(EN_DIRECTO.equals(f.titulo));
-            carteles.poner(deLaFila);
+        final List<Catalogo.Item> deLaFila = f.items;
+        AdaptadorCarteles carteles = new AdaptadorCarteles(new AdaptadorCarteles.AlElegir() {
+            @Override public void ficha(int posicion) {
+                if (posicion >= 0 && posicion < deLaFila.size()) abrirDesdeElInicio(deLaFila, posicion);
+            }
+        });
+        /* La fila del directo lleva canales, y un canal no es un cartel:
+           su celda es apaisada y su logotipo cabe entero. Ver
+           `AdaptadorCarteles.canales` */
+        carteles.canales(EN_DIRECTO.equals(f.titulo));
+        carteles.poner(deLaFila);
 
-            RecyclerView tira = fila.findViewById(R.id.carteles);
-            tira.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-            tira.setAdapter(carteles);
-            /* Sin esto, al llegar al final de una fila el foco salta a la
-               siguiente por dentro del RecyclerView y se pierde el sitio */
-            tira.setFocusable(false);
-            donde.addView(fila);
-        }
+        RecyclerView tira = fila.findViewById(R.id.carteles);
+        tira.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        tira.setAdapter(carteles);
+        /* Sin esto, al llegar al final de una fila el foco salta a la
+           siguiente por dentro del RecyclerView y se pierde el sitio */
+        tira.setFocusable(false);
+        return fila;
     }
 
     /**
