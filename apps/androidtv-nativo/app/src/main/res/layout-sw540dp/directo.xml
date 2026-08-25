@@ -183,11 +183,27 @@
                 android:visibility="gone" />
         </FrameLayout>
 
-        <!-- Todo lo que se esconde al pasar a pantalla completa -->
+        <!--
+          Todo lo que se esconde al pasar a pantalla completa.
+
+          Y lo que sobra en la columna se lo queda ESTO, no la tira de
+          carpetas. Debajo del vídeo van tres cosas: lo que se está viendo,
+          la pista de cómo ampliar y la tira de carpetas. Con las tres a
+          `wrap_content`, el bloque de en medio crece con la guía —lo de
+          ahora, lo de luego, cinco o seis renglones— y empuja la tira fuera
+          de la pantalla por abajo. Desde el sofá eso no se lee como «se ha
+          salido»: se lee como que la aplicación no tiene carpetas, y sin
+          ellas no hay manera de llegar a los otros ocho mil canales.
+
+          Dándole el hueco sobrante a este bloque, la tira se queda siempre a
+          la vista y lo que se recorta, si algo se recorta, es el último
+          renglón de la guía. Que es lo que se puede perder.
+        -->
         <LinearLayout
             android:id="@+id/bloqueInfo"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:orientation="vertical">
 
             <!-- Qué se está viendo -->
