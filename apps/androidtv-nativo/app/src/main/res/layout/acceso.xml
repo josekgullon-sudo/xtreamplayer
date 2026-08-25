@@ -118,6 +118,7 @@
                 android:textColor="@color/apagado"
                 android:textSize="14sp"
                 android:textAllCaps="false"
+                android:gravity="center"
                 android:background="@drawable/pastilla"
                 android:layout_marginTop="14dp" />
 

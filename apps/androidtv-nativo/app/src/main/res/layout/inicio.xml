@@ -12,13 +12,24 @@
     android:orientation="vertical"
     android:background="@color/fondo">
 
+<!--
+      Y esto SIN `clipChildren="false"`, que es lo que hacía que al bajar se
+      viera todo junto.
+
+      Un ScrollView con los hijos sin recortar no recorta su contenido a su
+      propio hueco: las filas se pintan fuera, encima del menú, de la
+      cabecera y de la versión, y la pantalla pasa a ser un amasijo en el que
+      no se distingue dónde acaba una cosa y empieza otra. El
+      `clipToPadding` sí se queda —es para que la última fila respire por
+      abajo— y lo de no recortar, donde de verdad hace falta: en las filas de
+      dentro, para que el aro del foco de una carátula no salga cortado.
+    -->
     <ScrollView
         android:id="@+id/scroll"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:clipToPadding="false"
-        android:clipChildren="false">
+        android:clipToPadding="false">
 
         <LinearLayout
             android:layout_width="match_parent"

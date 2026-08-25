@@ -138,6 +138,57 @@ def ids_que_existen():
                     fallos.append("R.%s.%s no existe · %s" % (clase, i, corto))
 
 
+def botones_con_el_texto_centrado():
+    """
+    Un TextView con fondo de botón tiene que centrar su texto.
+
+    Los botones de esta aplicación son TextView y no Button: un Button hereda
+    el estilo del tema, y el tema de un televisor lo pone el fabricante —Fire
+    OS incluido—, así que el fondo rojo del layout no llegaba a pintarse en
+    algunos aparatos. El precio de ese cambio es este: un Button centra su
+    texto él solo y un TextView no, así que sin `gravity` la palabra se va a
+    la esquina de arriba a la izquierda de la pastilla. Pasó en diecisiete
+    sitios —«Cancelar» y «Crear» del diálogo de perfiles entre ellos— y desde
+    fuera se lee como que la pantalla está rota.
+
+    No compila mal, no avisa nadie y solo se ve mirando la tele.
+    """
+    fondos = r'@drawable/(boton|pastilla|capsula|tecla|circulo_accion|chip_\w+|carril_item)'
+    for f in sorted(glob.glob(os.path.join(RES, "layout*", "*.xml"))):
+        texto = open(f, encoding="utf-8").read()
+        for m in re.finditer(r"<TextView\b[^>]*/?>", texto, re.S):
+            b = m.group(0)
+            if not re.search(r'android:background="%s"' % fondos, b):
+                continue
+            if "android:gravity=" in b:
+                continue
+            ident = re.search(r'android:id="@\+id/(\w+)"', b)
+            fallos.append("%s: «%s» tiene fondo de botón y no centra su texto"
+                          % (os.path.relpath(f, AQUI), ident.group(1) if ident else "sin id"))
+
+
+def los_scroll_recortan_lo_suyo():
+    """
+    Un ScrollView tiene que recortar su contenido a su propio hueco.
+
+    Con `clipChildren="false"` no lo hace: al bajar, sus filas se pintan
+    fuera —encima del menú, de la cabecera, de todo— y la pantalla pasa a ser
+    un amasijo donde no se distingue dónde acaba una cosa y empieza otra.
+    Pasó en el inicio de la tele y en el del teléfono.
+
+    Se pone para que el aro del foco de una carátula no salga cortado, y ahí
+    tiene sentido: en la fila de dentro. En el que hace el scroll, no.
+    """
+    for f in sorted(glob.glob(os.path.join(RES, "layout*", "*.xml"))):
+        texto = open(f, encoding="utf-8").read()
+        for m in re.finditer(r"<(ScrollView|HorizontalScrollView)\b[^>]*>", texto, re.S):
+            if 'android:clipChildren="false"' not in m.group(0):
+                continue
+            ident = re.search(r'android:id="@\+id/(\w+)"', m.group(0))
+            fallos.append("%s: el ScrollView «%s» no recorta su contenido"
+                          % (os.path.relpath(f, AQUI), ident.group(1) if ident else "sin id"))
+
+
 def clases_del_manifiesto():
     clases = {os.path.basename(f)[:-5] for f in glob.glob(os.path.join(JAVA, "*.java"))}
     nombradas = set(re.findall(r'android:name="\.([A-Za-z_0-9]+)"',
@@ -150,6 +201,8 @@ xml_bien_formado()
 los_dos_juegos_casan()
 recursos_que_existen()
 ids_que_existen()
+botones_con_el_texto_centrado()
+los_scroll_recortan_lo_suyo()
 clases_del_manifiesto()
 
 if fallos:

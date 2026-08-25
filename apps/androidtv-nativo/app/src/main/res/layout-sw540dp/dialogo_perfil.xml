@@ -67,6 +67,7 @@
             android:textColor="@color/apagado"
             android:textSize="18sp"
             android:textAllCaps="false"
+            android:gravity="center"
             android:background="@drawable/pastilla"
             android:focusable="true"
             android:nextFocusRight="@+id/botonCrear" />
@@ -82,6 +83,7 @@
             android:textSize="18sp"
             android:textStyle="bold"
             android:textAllCaps="false"
+            android:gravity="center"
             android:background="@drawable/boton"
             android:focusable="true"
             android:nextFocusLeft="@+id/botonCancelar" />
