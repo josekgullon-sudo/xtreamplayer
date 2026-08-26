@@ -102,7 +102,17 @@ public class AdaptadorCarteles extends RecyclerView.Adapter<AdaptadorCarteles.Ce
         celda.nombre.setText(it.nombre);
         celda.extra.setText(it.extra);
         if (celda.puesto != null) celda.puesto.setText(String.valueOf(posicion + 1));
-        celda.extra.setVisibility(it.extra.isEmpty() ? View.INVISIBLE : View.VISIBLE);
+        /*
+         * Vacío: invisible en un cartel, fuera en un canal.
+         *
+         * En una fila de películas, `INVISIBLE` guarda el renglón para que
+         * los títulos de todas las celdas queden a la misma altura aunque a
+         * unas les falte el año. En una fila de canales no hay segundo
+         * renglón que alinear —ninguno lo lleva— y lo único que hace es
+         * dejar un palmo de hueco muerto debajo del nombre.
+         */
+        celda.extra.setVisibility(!it.extra.isEmpty() ? View.VISIBLE
+                : deCanales ? View.GONE : View.INVISIBLE);
         /*
          * El título detrás del hueco, y la carátula encima cuando llega.
          *
@@ -114,7 +124,21 @@ public class AdaptadorCarteles extends RecyclerView.Adapter<AdaptadorCarteles.Ce
          * llegaba a leer. Ahora, mientras no haya imagen, el hueco es el
          * título.
          */
-        if (celda.sinCartel != null) celda.sinCartel.setText(it.nombre);
+        if (celda.sinCartel != null) {
+            celda.sinCartel.setText(it.nombre);
+            /*
+             * Y en un canal, solo si NO hay logotipo.
+             *
+             * El truco del título detrás funciona con una carátula, que es
+             * opaca y lo tapa. Un logotipo de canal casi siempre es un PNG
+             * con el fondo transparente, así que el nombre se lee A TRAVÉS
+             * de él: el número del canal y su nombre encima, superpuestos y
+             * los dos ilegibles. Y encima sobra, porque el nombre ya está
+             * escrito justo debajo.
+             */
+            celda.sinCartel.setVisibility(
+                    deCanales && !it.imagen.trim().isEmpty() ? View.GONE : View.VISIBLE);
+        }
         Imagenes.cargar(celda.cartel, it.imagen,
                 celda.sinCartel != null ? android.R.color.transparent
                         : (it.esSerie ? R.drawable.ic_series : R.drawable.ic_cine));

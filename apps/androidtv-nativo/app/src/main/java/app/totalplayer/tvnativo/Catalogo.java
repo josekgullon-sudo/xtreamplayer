@@ -181,6 +181,22 @@ public final class Catalogo {
         if (ya != null) return ya;
 
         List<Carpeta> lista = new ArrayList<>();
+        /*
+         * «Todos los canales», siempre y la primera del proveedor.
+         *
+         * Las carpetas del directo salen de `get_live_categories`, y eso es
+         * una llamada que puede volver corta o vacía —hay paneles que
+         * devuelven una sola categoría, o ninguna, teniendo miles de canales
+         * dentro—. Cuando pasa, la aplicación se queda enseñando una carpeta
+         * con un canal de contacto y el cliente ve un servicio vacío,
+         * teniendo los ciento y pico suyos ahí mismo.
+         *
+         * Esta no depende de esa llamada: son los canales que ya se han
+         * pedido en `todoElDirecto`. Pase lo que pase con las categorías del
+         * panel, todo lo que el proveedor sirve se puede alcanzar. Es lo
+         * mismo que hace el reproductor del navegador y por lo mismo.
+         */
+        if (DIRECTO.equals(seccion)) lista.add(new Carpeta(TODAS, "Todos los canales"));
         if (Sesion.actual().esXtream()) {
             String accion = DIRECTO.equals(seccion) ? "get_live_categories"
                     : PELIS.equals(seccion) ? "get_vod_categories" : "get_series_categories";
@@ -497,10 +513,13 @@ public final class Catalogo {
 
         List<Item> lista;
         if (Sesion.actual().esXtream()) {
-            lista = DIRECTO.equals(seccion) ? directoXtream(carpetaId)
+            lista = DIRECTO.equals(seccion) && TODAS.equals(carpetaId) ? todoElDirecto()
+                    : DIRECTO.equals(seccion) ? directoXtream(carpetaId)
                     : PELIS.equals(seccion) ? pelisXtream(carpetaId) : seriesXtream(carpetaId);
         } else if (SERIES.equals(seccion)) {
             lista = seriesDeM3u();
+        } else if (DIRECTO.equals(seccion) && TODAS.equals(carpetaId)) {
+            lista = todoElDirecto();
         } else {
             List<Item> deLaLista = m3u().get(seccion).get(carpetaId);
             lista = deLaLista == null ? new ArrayList<Item>() : deLaLista;
