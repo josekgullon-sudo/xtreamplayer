@@ -18,10 +18,20 @@ public class AdaptadorCanales extends RecyclerView.Adapter<AdaptadorCanales.Celd
     public interface AlElegir { void canal(int posicion); }
     /** Mantener pulsado marca o desmarca. */
     public interface AlMarcar { void favorito(int posicion); }
+    /**
+     * Posarse encima de un canal, sin pulsar.
+     *
+     * Sirve para enseñar SU guía debajo del vídeo mientras se baja por la
+     * lista, que es lo que se hace de verdad al zapear: mirar qué dan antes
+     * de poner nada. Hasta ahora la guía era la del canal que sonaba, así
+     * que para ver qué echaban en otro había que ponerlo.
+     */
+    public interface AlPosarse { void en(int posicion); }
 
     private final List<Catalogo.Item> datos = new ArrayList<>();
     private final AlElegir alElegir;
     private AlMarcar alMarcar;
+    private AlPosarse alPosarse;
     private java.util.Set<String> favoritos = new java.util.HashSet<>();
     /** El identificador del que se está viendo, para marcarlo. */
     private String sonando = "";
@@ -41,6 +51,8 @@ public class AdaptadorCanales extends RecyclerView.Adapter<AdaptadorCanales.Celd
     public AdaptadorCanales(AlElegir alElegir) { this.alElegir = alElegir; }
 
     public void alMarcar(AlMarcar quien) { this.alMarcar = quien; }
+
+    public void alPosarse(AlPosarse quien) { this.alPosarse = quien; }
 
     public void favoritos(java.util.Set<String> ids) {
         favoritos = ids == null ? new java.util.HashSet<String>() : ids;
@@ -130,6 +142,11 @@ public class AdaptadorCanales extends RecyclerView.Adapter<AdaptadorCanales.Celd
         Imagenes.cargar(celda.logo, c.imagen, R.drawable.ic_tv);
         celda.itemView.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { alElegir.canal(celda.getAdapterPosition()); }
+        });
+        celda.itemView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override public void onFocusChange(View v, boolean tiene) {
+                if (tiene && alPosarse != null) alPosarse.en(celda.getAdapterPosition());
+            }
         });
         celda.itemView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override public boolean onLongClick(View v) {

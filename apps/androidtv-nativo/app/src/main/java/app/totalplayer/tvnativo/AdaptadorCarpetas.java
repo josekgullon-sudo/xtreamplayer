@@ -13,21 +13,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * La columna de carpetas.
+ * La lista de carpetas.
  *
- * Cambia de lista al mover el foco, no al pulsar OK: en una tele bajar por
- * las carpetas y tener que confirmar cada una para ver qué hay dentro es un
- * botón de más en cada paso.
+ * Donde la carpeta y su contenido se ven a la vez —cine y series, con la
+ * columna a un lado y los carteles al otro— se entra al posarse encima:
+ * moverse por la columna es ir viendo lo que hay en cada una.
+ *
+ * Donde comparten sitio —en directo, primero las carpetas y dentro los
+ * canales— hay que pulsar OK. Con el foco abriendo carpetas bastaba rozar
+ * la lista para que la de canales se vaciara, y no había manera de
+ * recuperarla sin salir de la pantalla y volver a entrar.
  */
 public class AdaptadorCarpetas extends RecyclerView.Adapter<AdaptadorCarpetas.Celda> {
 
-    public interface AlPosarse { void en(int posicion); }
+    /** Abrir una carpeta: con OK siempre, y al posarse si se pide. */
+    public interface AlEntrar { void en(int posicion); }
 
     private final List<Catalogo.Carpeta> datos = new ArrayList<>();
-    private final AlPosarse alPosarse;
+    private final AlEntrar alEntrar;
     private int elegida = 0;
 
-    public AdaptadorCarpetas(AlPosarse alPosarse) { this.alPosarse = alPosarse; }
+    /** Ver arriba: en cine y series, posarse encima ya abre la carpeta. */
+    private boolean alPosarseTambien = false;
+
+    public AdaptadorCarpetas(AlEntrar alEntrar) { this.alEntrar = alEntrar; }
+
+    public void alPosarseTambien(boolean si) { this.alPosarseTambien = si; }
 
     public void poner(List<Catalogo.Carpeta> nuevas) {
         datos.clear();
@@ -39,6 +50,9 @@ public class AdaptadorCarpetas extends RecyclerView.Adapter<AdaptadorCarpetas.Ce
     public Catalogo.Carpeta cual(int posicion) {
         return posicion >= 0 && posicion < datos.size() ? datos.get(posicion) : null;
     }
+
+    /** Cuál está abierta: al volver de sus canales, el foco vuelve a ella. */
+    public int elegida() { return elegida; }
 
     /**
      * Marca la carpeta abierta SIN avisar al RecyclerView.
@@ -90,14 +104,11 @@ public class AdaptadorCarpetas extends RecyclerView.Adapter<AdaptadorCarpetas.Ce
         /* Cuántos hay dentro, cuando el panel lo dice. No siempre lo dice:
            entonces se calla en vez de poner un cero que no es verdad */
         if (c.cuantos > 0) {
-            /* En la tele la carpeta es una pastilla en fila y el número va en
-               su contador al lado: ahí «12 canales» estira la pastilla al
-               doble para decir lo mismo que «12». En el teléfono es una fila
-               de lado a lado y sí cabe la palabra */
-            boolean enTele = celda.itemView.getResources().getBoolean(R.bool.carril_en_columna);
-            celda.cuantos.setText(enTele
-                    ? String.valueOf(c.cuantos)
-                    : c.cuantos + (c.cuantos == 1 ? " canal" : " canales"));
+            /* Con la palabra, que la carpeta es una fila de lado a lado y
+               cabe. Estuvo puesto el número a secas mientras en la tele las
+               carpetas eran pastillas en fila y «12 canales» estiraba la
+               pastilla al doble para decir lo mismo */
+            celda.cuantos.setText(c.cuantos + (c.cuantos == 1 ? " canal" : " canales"));
             celda.cuantos.setVisibility(View.VISIBLE);
         } else {
             celda.cuantos.setVisibility(View.GONE);
@@ -107,11 +118,11 @@ public class AdaptadorCarpetas extends RecyclerView.Adapter<AdaptadorCarpetas.Ce
         celda.itemView.setActivated(posicion == elegida);
         celda.itemView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override public void onFocusChange(View v, boolean tiene) {
-                if (tiene) alPosarse.en(celda.getAdapterPosition());
+                if (tiene && alPosarseTambien) alEntrar.en(celda.getAdapterPosition());
             }
         });
         celda.itemView.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) { alPosarse.en(celda.getAdapterPosition()); }
+            @Override public void onClick(View v) { alEntrar.en(celda.getAdapterPosition()); }
         });
     }
 

@@ -77,9 +77,12 @@ public class VodActivity extends Activity {
         // Lo enfocado crece: sin esto, la rejilla le recorta el borde
         rejilla.setClipChildren(false);
 
-        carpetas = new AdaptadorCarpetas(new AdaptadorCarpetas.AlPosarse() {
+        carpetas = new AdaptadorCarpetas(new AdaptadorCarpetas.AlEntrar() {
             @Override public void en(int posicion) { abrirCarpeta(posicion); }
         });
+        /* Aquí la columna y los carteles se ven a la vez: bajar por las
+           carpetas es ir viendo lo que hay en cada una, sin pulsar */
+        carpetas.alPosarseTambien(true);
         carteles = new AdaptadorCarteles(new AdaptadorCarteles.AlElegir() {
             @Override public void ficha(int posicion) { abrirFicha(posicion); }
         });

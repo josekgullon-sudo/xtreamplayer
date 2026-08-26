@@ -28,7 +28,14 @@
     android:paddingTop="64dp">
 
 
-    <!-- Canales -->
+    <!--
+      La columna: primero las carpetas y, dentro de una, sus canales.
+
+      Es una sola lista que cambia de adaptador —ver DirectoActivity—, no
+      dos columnas. Con veinte carpetas de ciento y pico canales, enseñarlos
+      todos de golpe no es una lista: es un pozo. Y `tituloCarpeta` dice en
+      cuál de los dos niveles se está.
+    -->
     <LinearLayout
         android:id="@+id/columnaCanales"
         android:layout_width="320dp"
@@ -284,14 +291,14 @@
             android:visibility="gone" />
 
         <!--
-          Y las carpetas, en fila y al final.
+          La tira de carpetas, escondida desde el código en la tele.
 
-          Estuvieron en una columna propia a la izquierda, 256 puntos de los
-          960 de una tele para enseñar una lista de nombres. Esos 256 salían
-          del vídeo, que es lo que se ha venido a ver. En fila ocupan el alto
-          de una pastilla, se recorren de lado con el mando y dejan la
-          pantalla entera para el canal. Es lo mismo que hace la versión de
-          ordenador y por el mismo motivo.
+          Estuvo aquí mientras la columna de la izquierda enseñaba de una vez
+          todos los canales del proveedor. Con las carpetas en los dos sitios
+          bastaba rozar esta tira con el foco para que la columna se vaciara,
+          y no había manera de recuperarla sin salir de la pantalla. Las
+          vistas se quedan declaradas porque el teléfono sí las usa: allí
+          esta es la lista por la que se entra.
         -->
         <LinearLayout
             android:id="@+id/columnaCarpetas"

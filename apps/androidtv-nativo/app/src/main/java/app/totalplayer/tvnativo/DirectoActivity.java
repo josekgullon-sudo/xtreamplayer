@@ -26,6 +26,12 @@ import java.util.List;
  * El primer OK pone el canal en la ventana; el segundo, sobre el mismo
  * canal, lo lleva a pantalla completa. Así se puede ir mirando qué dan sin
  * perder la lista, que es lo que se hace de verdad al zapear.
+ *
+ * En la tele la columna de la izquierda tiene dos niveles: las carpetas, y
+ * dentro de cada una sus canales. ATRÁS vuelve a las carpetas. Antes las
+ * carpetas eran una tira debajo del vídeo y la columna enseñaba de golpe
+ * los ocho mil canales del proveedor: con veinte carpetas de ciento y pico
+ * canales eso no es una lista, es un pozo.
  */
 public class DirectoActivity extends Activity {
 
@@ -57,6 +63,21 @@ public class DirectoActivity extends Activity {
     private boolean yaHuboUnaCarpeta = false;
     /** Cuál está pintada ya en la columna de canales. */
     private String carpetaPintada = "";
+    /**
+     * En la tele, carpetas y canales comparten la columna de la izquierda.
+     *
+     * En el teléfono no: allí las tres partes están apiladas y se navega
+     * hacia dentro con `irAlPaso`, que ya hacía esto mismo.
+     */
+    private boolean dosNiveles = false;
+    /** Qué enseña la columna: 0 las carpetas, 1 los canales de una. */
+    private int nivel = 0;
+    /** El canal cuya guía se está enseñando debajo del vídeo. */
+    private String mirando = "";
+    private Runnable pendienteGuia;
+    private Runnable pendienteFoco;
+    /** Lo que tarda la columna en tener filas donde poner el foco. */
+    private static final int ESPERA_DEL_FOCO = 90;
 
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
@@ -100,6 +121,7 @@ public class DirectoActivity extends Activity {
         vista = findViewById(R.id.vista);
         vista.setUseController(false);
         enMovil = Pantalla.esMovil(this);
+        dosNiveles = !enMovil;
 
         // Ver la tele con la pantalla apagándose a los treinta segundos
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -108,16 +130,17 @@ public class DirectoActivity extends Activity {
             @Override public void run() { medirCaja(); }
         });
 
-        /* Las carpetas van en fila en la tele y en columna en el teléfono: en
-           la tele son una tira de pastillas debajo del vídeo —ver el layout—
-           y en el teléfono, la lista por la que se entra */
-        listaCarpetas.setLayoutManager(new LinearLayoutManager(this,
-                enMovil ? LinearLayoutManager.VERTICAL : LinearLayoutManager.HORIZONTAL, false));
+        /* La tira de carpetas de debajo del vídeo solo se usa ya en el
+           teléfono, donde es la lista por la que se entra. En la tele las
+           carpetas están en la columna de la izquierda y esta tira se
+           esconde —más abajo—, pero se le pone su gestor igual: la vista
+           existe en las dos variantes del layout */
+        listaCarpetas.setLayoutManager(new LinearLayoutManager(this));
         listaCanales.setLayoutManager(new LinearLayoutManager(this));
         listaCarpetas.setItemAnimator(null);
         listaCanales.setItemAnimator(null);
 
-        carpetas = new AdaptadorCarpetas(new AdaptadorCarpetas.AlPosarse() {
+        carpetas = new AdaptadorCarpetas(new AdaptadorCarpetas.AlEntrar() {
             @Override public void en(int posicion) { abrirCarpeta(posicion); }
         });
         canales = new AdaptadorCanales(new AdaptadorCanales.AlElegir() {
@@ -126,9 +149,21 @@ public class DirectoActivity extends Activity {
         canales.alMarcar(new AdaptadorCanales.AlMarcar() {
             @Override public void favorito(int posicion) { marcarFavorito(posicion); }
         });
+        canales.alPosarse(new AdaptadorCanales.AlPosarse() {
+            @Override public void en(int posicion) { asomarse(posicion); }
+        });
         canales.favoritos(Favoritos.marcados(this));
-        listaCarpetas.setAdapter(carpetas);
-        listaCanales.setAdapter(canales);
+
+        if (dosNiveles) {
+            /* La tira de carpetas de debajo del vídeo se va: sus carpetas
+               están ahora en la columna, y estando en los dos sitios rozarla
+               con el foco vaciaba la columna sin manera de recuperarla */
+            columnaCarpetas.setVisibility(View.GONE);
+            listaCanales.setAdapter(carpetas);
+        } else {
+            listaCarpetas.setAdapter(carpetas);
+            listaCanales.setAdapter(canales);
+        }
 
         if (enMovil) {
             irAlPaso(0);
@@ -200,6 +235,7 @@ public class DirectoActivity extends Activity {
             reproductor.clearMediaItems();
         }
         sonando = "";
+        mirando = "";
         reintentos = 0;
         canales.sonando(listaCanales, "", null);
         nombreCanal.setText("");
@@ -243,6 +279,13 @@ public class DirectoActivity extends Activity {
                 conFavoritos.addAll(lista);
                 carpetas.poner(conFavoritos);
                 pista.setText("Elige un canal de la lista");
+                /* En la tele la columna arranca por las carpetas: es la
+                   pantalla que se ha pedido, la lista de las veinte carpetas
+                   del proveedor y no los ocho mil canales de dentro */
+                if (dosNiveles) {
+                    verCarpetas();
+                    return;
+                }
                 /*
                  * Y se abre la primera que tenga algo dentro.
                  *
@@ -262,12 +305,8 @@ public class DirectoActivity extends Activity {
                 int primera = 0;
                 while (primera < conFavoritos.size() && deCasaYVacia(conFavoritos.get(primera).id)) primera++;
                 if (primera >= conFavoritos.size()) primera = 0;
+                // Y en el teléfono se entra ya en la primera con algo dentro
                 abrirCarpeta(primera);
-                /* El foco arranca en los canales, no en las carpetas: se
-                   entra a ver la tele, y la carpeta es un filtro que se pone
-                   encima. Antes las carpetas eran la columna por la que había
-                   que pasar; ahora están al otro lado de la pantalla */
-                if (!enMovil) listaCanales.requestFocus();
             }
             @Override public void falla(Exception e) {
                 girando.setVisibility(View.GONE);
@@ -289,14 +328,18 @@ public class DirectoActivity extends Activity {
     }
 
     /**
-     * Cambiar de carpeta al mover el foco, pero no en el acto: bajando
-     * deprisa por veinte carpetas se dispararían veinte peticiones y solo
-     * importa la última.
+     * Abrir una carpeta: pedir sus canales y enseñarlos.
+     *
+     * En la tele la columna se queda en las carpetas mientras llegan y solo
+     * cambia de nivel cuando hay algo que enseñar —ver más abajo—; en el
+     * teléfono esto se llama al posarse encima, y por eso la petición espera
+     * un poco: bajando deprisa por veinte carpetas se dispararían veinte
+     * peticiones y solo importa la última.
      */
     private void abrirCarpeta(final int cual) {
         final Catalogo.Carpeta carpeta = carpetas.cual(cual);
         if (carpeta == null) return;
-        carpetas.marcar(listaCarpetas, cual);
+        carpetas.marcar(dosNiveles ? listaCanales : listaCarpetas, cual);
         carpetaAbierta = carpeta;
         tituloCarpeta.setText(carpeta.nombre);
 
@@ -316,9 +359,21 @@ public class DirectoActivity extends Activity {
          */
         if (carpeta.id.equals(carpetaPintada)) {
             if (pendiente != null) Hilos.olvidar(pendiente);
+            // Ya están: se entra en el acto
+            if (dosNiveles) verCanales();
             return;
         }
-        cuantos.setText("");
+        /*
+         * Y mientras llegan, la columna sigue enseñando las carpetas.
+         *
+         * Cambiar de nivel al pulsar y llenarlo después dejaba un momento
+         * —el que tarde el proveedor— con los canales de la carpeta anterior
+         * debajo del nombre de la nueva, o con la columna en blanco y el
+         * mando sin ninguna fila donde estar. Lo que cambia al pulsar es el
+         * encabezado, que ya dice que se ha entrado; el nivel cambia cuando
+         * hay algo que enseñar. Ver `verCanales`.
+         */
+        cuantos.setText(dosNiveles ? "…" : "");
 
         /*
          * «Los que más ves», que como favoritos está en casa y no se pide.
@@ -335,7 +390,8 @@ public class DirectoActivity extends Activity {
                     boolean estabaEnLosCanales = listaCanales.hasFocus();
                     carpetaPintada = MasVistos.CARPETA;
                     canales.poner(suyos);
-                    if (estabaEnLosCanales) listaCanales.requestFocus();
+                    if (dosNiveles) verCanales();
+                    focoEnLosCanales(estabaEnLosCanales || dosNiveles);
                     canales.sonando(listaCanales, sonando, null);
                     cuantos.setText(String.valueOf(suyos.size()));
                     listaCanales.scrollToPosition(0);
@@ -343,7 +399,7 @@ public class DirectoActivity extends Activity {
                     bloqueVacio.setVisibility(suyos.isEmpty() ? View.VISIBLE : View.GONE);
                 }
             };
-            Hilos.enPantallaDentroDe(pendiente, 120);
+            Hilos.enPantallaDentroDe(pendiente, dosNiveles ? 0 : 120);
             return;
         }
 
@@ -361,7 +417,8 @@ public class DirectoActivity extends Activity {
                     carpetaPintada = Favoritos.CARPETA;
                     canales.favoritos(Favoritos.marcados(DirectoActivity.this));
                     canales.poner(suyos);
-                    if (estabaEnLosCanales) listaCanales.requestFocus();
+                    if (dosNiveles) verCanales();
+                    focoEnLosCanales(estabaEnLosCanales || dosNiveles);
                     canales.sonando(listaCanales, sonando, null);
                     cuantos.setText(String.valueOf(suyos.size()));
                     listaCanales.scrollToPosition(0);
@@ -369,7 +426,7 @@ public class DirectoActivity extends Activity {
                     bloqueVacio.setVisibility(suyos.isEmpty() ? View.VISIBLE : View.GONE);
                 }
             };
-            Hilos.enPantallaDentroDe(pendiente, 120);
+            Hilos.enPantallaDentroDe(pendiente, dosNiveles ? 0 : 120);
             return;
         }
 
@@ -387,8 +444,9 @@ public class DirectoActivity extends Activity {
                         boolean estabaEnLosCanales = listaCanales.hasFocus();
                         carpetaPintada = carpeta.id;
                         canales.poner(lista);
+                        if (dosNiveles) verCanales();
                         // Rehacer la lista tira el foco: se le devuelve
-                        if (estabaEnLosCanales) listaCanales.requestFocus();
+                        focoEnLosCanales(estabaEnLosCanales || dosNiveles);
                         canales.sonando(listaCanales, sonando, null);
                         cuantos.setText(String.valueOf(lista.size()));
                         vacio.setText("Esta carpeta no tiene canales.");
@@ -398,14 +456,94 @@ public class DirectoActivity extends Activity {
                     @Override public void falla(Exception e) {
                         /* Sin tocar lo que ya estuviera puesto: vaciar la
                            lista por un corte de un segundo deja al que mira
-                           peor que antes de pulsar */
+                           peor que antes de pulsar. La columna se queda en
+                           las carpetas, que es donde estaba */
+                        cuantos.setText("");
                         vacio.setText(Hilos.enCristiano(e));
                         bloqueVacio.setVisibility(View.VISIBLE);
                     }
                 });
             }
         };
-        Hilos.enPantallaDentroDe(pendiente, 220);
+        /* La espera es para no disparar veinte peticiones bajando deprisa
+           por las carpetas, y eso solo pasa donde la carpeta se abre al
+           posarse. En la tele hay un OK de por medio: no hay nada que
+           amortiguar y esperar solo es tardar */
+        Hilos.enPantallaDentroDe(pendiente, dosNiveles ? 0 : 220);
+    }
+
+    /**
+     * La columna, enseñando las carpetas.
+     *
+     * Es el nivel de arriba: la lista de carpetas del proveedor. Se entra en
+     * una con OK y se vuelve aquí con ATRÁS, y al volver el foco cae en la
+     * carpeta de la que se salió y no en lo primero de la lista.
+     */
+    private void verCarpetas() {
+        nivel = 0;
+        if (pendiente != null) Hilos.olvidar(pendiente);
+        bloqueVacio.setVisibility(View.GONE);
+        tituloCarpeta.setText("Carpetas");
+        cuantos.setText(String.valueOf(carpetas.getItemCount()));
+        if (listaCanales.getAdapter() != carpetas) listaCanales.setAdapter(carpetas);
+        final int donde = carpetas.elegida();
+        listaCanales.scrollToPosition(donde);
+        if (pendienteFoco != null) Hilos.olvidar(pendienteFoco);
+        pendienteFoco = new Runnable() {
+            @Override public void run() {
+                RecyclerView.ViewHolder vh = listaCanales.findViewHolderForAdapterPosition(donde);
+                if (vh != null) vh.itemView.requestFocus();
+                else listaCanales.requestFocus();
+            }
+        };
+        /* Y el foco, un momento después: cambiar de adaptador no pinta las
+           filas al momento, y sobre una lista todavía vacía el foco no se
+           engancha en ninguna */
+        Hilos.enPantallaDentroDe(pendienteFoco, ESPERA_DEL_FOCO);
+    }
+
+    /**
+     * La columna, enseñando los canales de la carpeta abierta.
+     *
+     * Se llama cuando ya están pintados, no al pulsar: ver `abrirCarpeta`.
+     */
+    private void verCanales() {
+        nivel = 1;
+        cuantos.setText(String.valueOf(canales.getItemCount()));
+        if (listaCanales.getAdapter() != canales) listaCanales.setAdapter(canales);
+        // El foco va detrás de los canales: ver `focoEnLosCanales`
+        focoEnLosCanales(true);
+    }
+
+    /**
+     * El foco, dentro de la columna, cuando acaba de repintarse.
+     *
+     * Rehacer una lista destruye la fila que lo tenía y Android lo manda a
+     * lo primero que encuentre, que aquí es el carril de secciones: la
+     * pantalla se quedaba con el mando en «Inicio · Directo · Cine» sin
+     * haberse movido nadie. Y con la carpeta vacía no hay ni una fila que
+     * enfocar, así que va al botón de volver a cargar, que es la única
+     * salida que hay a la vista.
+     *
+     * Se hace en el turno siguiente porque el RecyclerView todavía no ha
+     * pintado nada: pedírselo ahora mismo no engancha en ninguna fila.
+     */
+    private void focoEnLosCanales(boolean siNoLoTiene) {
+        if (!siNoLoTiene) return;
+        if (pendienteFoco != null) Hilos.olvidar(pendienteFoco);
+        pendienteFoco = new Runnable() {
+            @Override public void run() {
+                if (dosNiveles && nivel != 1) return;
+                if (listaCanales.getAdapter() == canales && canales.getItemCount() == 0) {
+                    if (bloqueVacio.getVisibility() == View.VISIBLE) {
+                        findViewById(R.id.botonReintentar).requestFocus();
+                    }
+                    return;
+                }
+                listaCanales.requestFocus();
+            }
+        };
+        Hilos.enPantallaDentroDe(pendienteFoco, ESPERA_DEL_FOCO);
     }
 
     /** Mantener pulsado un canal lo marca o lo desmarca. */
@@ -438,6 +576,35 @@ public class DirectoActivity extends Activity {
         return carpetaAbierta == null ? "" : carpetaAbierta.id;
     }
 
+    /**
+     * Posarse sobre un canal enseña SU guía debajo del vídeo.
+     *
+     * Es lo que hace la versión de ordenador y es lo que se busca al zapear:
+     * bajar por la lista viendo qué dan en cada uno antes de poner ninguno.
+     * Hasta ahora ahí solo salía la guía del canal que ya estaba puesto, así
+     * que para saber qué echaban en otro había que ponerlo.
+     *
+     * La petición espera un cuarto de segundo: bajando deprisa por ciento y
+     * pico canales se pedirían ciento y pico guías y solo importa la última.
+     */
+    private void asomarse(int posicion) {
+        List<Catalogo.Item> lista = canales.datos();
+        if (posicion < 0 || posicion >= lista.size()) return;
+        final Catalogo.Item canal = lista.get(posicion);
+        if (canal.id.equals(mirando)) return;
+        mirando = canal.id;
+        nombreCanal.setText(canal.nombre);
+        ahora.setText("");
+        luegoLista.removeAllViews();
+        etiquetaAhora.setVisibility(View.GONE);
+        etiquetaLuego.setVisibility(View.GONE);
+        if (pendienteGuia != null) Hilos.olvidar(pendienteGuia);
+        pendienteGuia = new Runnable() {
+            @Override public void run() { pedirGuia(canal); }
+        };
+        Hilos.enPantallaDentroDe(pendienteGuia, 260);
+    }
+
     private void elegir(int posicion) {
         List<Catalogo.Item> lista = canales.datos();
         if (posicion < 0 || posicion >= lista.size()) return;
@@ -452,6 +619,8 @@ public class DirectoActivity extends Activity {
         if (enMovil) irAlPaso(2);
 
         sonando = canal.id;
+        mirando = canal.id;
+        if (pendienteGuia != null) Hilos.olvidar(pendienteGuia);
         /* Una raya en la pared, que es lo que llena «Los que más ves». Se
            apunta al ponerlo y no al terminarlo: en la tele no se «termina»
            un canal, se deja puesto */
@@ -525,7 +694,7 @@ public class DirectoActivity extends Activity {
             });
             return;
         }
-        columnaCarpetas.setVisibility(View.VISIBLE);
+        if (!dosNiveles) columnaCarpetas.setVisibility(View.VISIBLE);
         columnaCanales.setVisibility(View.VISIBLE);
         bloqueInfo.setVisibility(View.VISIBLE);
         conCarril(true);
@@ -646,7 +815,8 @@ public class DirectoActivity extends Activity {
             @Override public java.util.List<Catalogo.Programa> hacer() { return Catalogo.guia(canal.id); }
         }, new Hilos.Luego<java.util.List<Catalogo.Programa>>() {
             @Override public void listo(java.util.List<Catalogo.Programa> parrilla) {
-                if (parrilla == null || parrilla.isEmpty() || !canal.id.equals(sonando)) return;
+                // Se puede haber seguido bajando mientras llegaba
+                if (parrilla == null || parrilla.isEmpty() || !canal.id.equals(mirando)) return;
                 Catalogo.Programa enAntena = parrilla.get(0);
                 etiquetaAhora.setVisibility(View.VISIBLE);
                 ahora.setText(enAntena.hora.isEmpty()
@@ -665,8 +835,12 @@ public class DirectoActivity extends Activity {
                 }
                 etiquetaLuego.setVisibility(puestos > 0 ? View.VISIBLE : View.GONE);
 
-                // Y en la lista, debajo del nombre del canal que suena
-                canales.sonando(listaCanales, sonando, enAntena.titulo);
+                /* Y en la lista, debajo del nombre del canal que suena. Solo
+                   si la guía es la suya: la de un canal por el que se está
+                   pasando no dice nada de lo que se está viendo */
+                if (canal.id.equals(sonando)) {
+                    canales.sonando(listaCanales, sonando, enAntena.titulo);
+                }
             }
             @Override public void falla(Exception e) { /* la guía es un extra */ }
         });
@@ -739,6 +913,8 @@ public class DirectoActivity extends Activity {
         Catalogo.Item siguiente = lista.get(((donde + aDonde) % cuantos + cuantos) % cuantos);
 
         sonando = siguiente.id;
+        mirando = siguiente.id;
+        if (pendienteGuia != null) Hilos.olvidar(pendienteGuia);
         // Zapear también es poner un canal, y para el ranking cuenta igual
         MasVistos.apuntar(this, siguiente);
         canales.sonando(listaCanales, sonando, "");
@@ -758,12 +934,10 @@ public class DirectoActivity extends Activity {
             irAlPaso(paso - 1);
             return;
         }
-        /* Desde las carpetas, ATRÁS vuelve a los canales, que es de donde se
-           vino; desde los canales, sale de la sección. Con las carpetas en
-           una tira al otro lado, hacerlo al revés dejaba ATRÁS llevando a un
-           sitio que no está en el camino de ida */
-        if (!enMovil && listaCarpetas.hasFocus()) {
-            listaCanales.requestFocus();
+        /* Desde los canales de una carpeta, ATRÁS vuelve a las carpetas, que
+           es de donde se vino; desde las carpetas, sale de la sección */
+        if (dosNiveles && nivel == 1) {
+            verCarpetas();
             return;
         }
         super.onBackPressed();
@@ -807,6 +981,8 @@ public class DirectoActivity extends Activity {
     @Override protected void onDestroy() {
         super.onDestroy();
         if (pendiente != null) Hilos.olvidar(pendiente);
+        if (pendienteGuia != null) Hilos.olvidar(pendienteGuia);
+        if (pendienteFoco != null) Hilos.olvidar(pendienteFoco);
         if (reenganche != null) Hilos.olvidar(reenganche);
         if (reproductor != null) {
             reproductor.release();
