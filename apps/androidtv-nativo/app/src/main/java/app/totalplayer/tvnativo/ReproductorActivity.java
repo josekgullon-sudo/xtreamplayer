@@ -114,7 +114,9 @@ public class ReproductorActivity extends Activity {
             }
             @Override public void onPlayerError(PlaybackException fallo) {
                 girando.setVisibility(View.GONE);
-                error.setText(Reproduccion.porQue(fallo));
+                /* Dicho para lo que se está intentando poner: «este canal» en
+                   una película se lee como que ni sabemos qué estamos abriendo */
+                error.setText(Reproduccion.porQue(fallo, queEs()));
                 error.setVisibility(View.VISIBLE);
             }
         });
@@ -210,6 +212,12 @@ public class ReproductorActivity extends Activity {
         });
 
         if (Traspaso.esDirecto && Traspaso.cola != null) pedirGuia();
+    }
+
+    /** Cómo se llama lo que se está intentando poner. Ver `Reproduccion.porQue`. */
+    private String queEs() {
+        if (Traspaso.esDirecto) return "canal";
+        return Enlaces.EPISODIO.equals(Traspaso.clase) ? "episodio" : "película";
     }
 
     private void pedirGuia() {
