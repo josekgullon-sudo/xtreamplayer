@@ -26,6 +26,20 @@ on:
 permissions:
   contents: write
 
+# De uno en uno.
+#
+# El mismo commit se empuja a las dos ramas de trabajo con segundos de
+# diferencia, así que arrancaban dos publicaciones a la vez sobre la MISMA
+# etiqueta: una borraba y creaba, la otra borraba lo que ya no estaba y al
+# crear se encontraba la etiqueta recién puesta por su gemela —«Release.
+# tag_name already exists»— y salía en rojo. El APK publicado era el bueno
+# en los dos casos, pero un rojo que no significa nada es un rojo que
+# enseña a no mirar los rojos. Sin cancelar: la segunda espera y vuelve a
+# publicar, que no cuesta nada y deja el enlace apuntando a lo último.
+concurrency:
+  group: publicar-apk
+  cancel-in-progress: false
+
 jobs:
   publicar:
     runs-on: ubuntu-latest
