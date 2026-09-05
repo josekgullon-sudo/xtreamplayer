@@ -1466,6 +1466,167 @@ select.input { appearance: none; cursor: pointer; }
 .pa-video-zone { position: relative; background: #000; aspect-ratio: 16/9; max-height: 62vh; width: 100%; }
 .pa-video-zone video { width: 100%; height: 100%; display: block; }
 
+/* ---------------- Los mandos del reproductor ---------------- */
+
+/*
+ * La capa de abajo, la de siempre en cualquier reproductor.
+ *
+ * Aquí estuvo la barra gris del navegador, que es la de un ratón: sin
+ * título, sin saltos de diez segundos, sin idiomas y sin manera de usarla
+ * con un mando. Esta se dibuja encima del vídeo, aparece al tocar y se va
+ * sola; con el vídeo parado o un menú abierto se queda.
+ *
+ * Los dos velos —arriba y abajo— existen para que el texto se lea sobre lo
+ * que sea que esté pasando en la imagen. Sin ellos, un plano nevado deja
+ * los botones blancos invisibles.
+ */
+.pa-video-zone.con-mandos { cursor: default; }
+.pa-video-zone.con-mandos.sin-mandos { cursor: none; }
+
+.pa-osd {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; flex-direction: column; justify-content: space-between;
+  opacity: 1; transition: opacity 0.2s ease;
+  /* Los huecos de en medio dejan pasar el clic al vídeo, que es lo que
+     pausa: solo las dos franjas con botones lo recogen */
+  pointer-events: none;
+}
+.pa-video-zone.sin-mandos .pa-osd { opacity: 0; }
+
+.pa-osd-arriba, .pa-osd-abajo { pointer-events: auto; }
+.pa-osd-arriba {
+  display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px 34px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.45) 55%, transparent 100%);
+}
+.pa-osd-que { flex: 1; min-width: 0; }
+.pa-osd-titulo {
+  margin: 0; font-size: 17px; font-weight: 700; color: #fff;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.pa-osd-detalle {
+  margin: 2px 0 0; font-size: 13px; color: rgba(255, 255, 255, 0.72);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pa-osd-vivo {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  background: var(--accent); color: #fff; font-size: 11.5px; font-weight: 800;
+  letter-spacing: 0.08em; padding: 4px 10px; border-radius: var(--radius-pill);
+}
+.pa-osd-vivo .pa-punto {
+  width: 6px; height: 6px; border-radius: 50%; background: #fff;
+}
+
+.pa-osd-abajo {
+  display: flex; flex-direction: column; gap: 8px; padding: 44px 14px 12px;
+  /* Tres paradas y no dos: con un degradado recto, la mitad de arriba de la
+     franja apenas oscurece y los botones caían sobre lo que pintase el
+     vídeo —que en una película es cualquier cosa— */
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.6) 45%, transparent 100%);
+}
+
+/* La barra: la hora que llevas, el recorrido y lo que queda */
+.pa-osd-barra { display: flex; align-items: center; gap: 12px; }
+.pa-osd-t {
+  font-size: 12.5px; color: rgba(255, 255, 255, 0.85); font-variant-numeric: tabular-nums;
+  min-width: 44px; text-align: center; flex: none;
+}
+.pa-osd-slider {
+  flex: 1; min-width: 0; height: 20px; margin: 0; padding: 0;
+  background: none; appearance: none; -webkit-appearance: none; cursor: pointer;
+}
+.pa-osd-slider::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.28);
+}
+.pa-osd-slider::-moz-range-track {
+  height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.28);
+}
+/* El tirador, grande de verdad: en un móvil, cuatro píxeles no se cogen */
+.pa-osd-slider::-webkit-slider-thumb {
+  appearance: none; -webkit-appearance: none; margin-top: -5px;
+  width: 14px; height: 14px; border-radius: 50%; background: var(--accent-bright);
+  box-shadow: 0 0 0 3px rgba(229, 25, 43, 0.28);
+}
+.pa-osd-slider::-moz-range-thumb {
+  width: 14px; height: 14px; border: none; border-radius: 50%;
+  background: var(--accent-bright); box-shadow: 0 0 0 3px rgba(229, 25, 43, 0.28);
+}
+
+.pa-osd-botones { display: flex; align-items: center; gap: 4px; }
+.pa-osd-hueco { flex: 1; }
+.pa-osd-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-width: 40px; height: 40px; padding: 0 9px; border-radius: 11px;
+  background: none; border: none; cursor: pointer;
+  color: rgba(255, 255, 255, 0.88);
+  transition: background 0.14s, color 0.14s;
+}
+.pa-osd-btn:hover, .pa-osd-btn:focus-visible { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.pa-osd-btn.activo { background: rgba(255, 255, 255, 0.2); color: #fff; }
+.pa-osd-btn.grande { min-width: 46px; height: 46px; }
+.pa-osd-btn-txt { font-size: 13px; font-weight: 600; }
+
+.pa-osd-siguiente {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 38px; padding: 0 15px; border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.92); color: #111; border: none; cursor: pointer;
+  font-size: 13.5px; font-weight: 700;
+}
+.pa-osd-siguiente:hover { background: #fff; }
+
+/* El menú de idiomas sale hacia arriba: abajo está el borde de la pantalla */
+.pa-osd-pistas { position: relative; display: flex; align-items: center; gap: 4px; }
+.pa-osd-menu {
+  position: absolute; bottom: calc(100% + 8px); right: 0; z-index: 4;
+  min-width: 190px; max-height: 46vh; overflow-y: auto;
+  background: rgba(20, 20, 24, 0.96);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: var(--radius-sm);
+  padding: 6px; box-shadow: var(--shadow);
+}
+.pa-osd-menu-t {
+  margin: 4px 8px 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; color: rgba(255, 255, 255, 0.5);
+}
+.pa-osd-opcion {
+  display: block; width: 100%; text-align: left;
+  padding: 9px 10px; border-radius: 8px; border: none; background: none; cursor: pointer;
+  color: rgba(255, 255, 255, 0.88); font-size: 14px;
+}
+.pa-osd-opcion:hover, .pa-osd-opcion:focus-visible { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.pa-osd-opcion.activa { color: var(--accent-bright); font-weight: 700; }
+
+/*
+ * En el móvil no cabe todo, así que se cae lo que menos falta.
+ *
+ * El nombre del botón de idiomas —queda el icono—, y el silencio, que en un
+ * teléfono se pone con los botones del lado. Lo que no se toca es el tamaño
+ * de los botones: son los que se pulsan con el dedo.
+ */
+@media (max-width: 640px) {
+  .pa-osd-btn-txt { display: none; }
+  .pa-osd-arriba { padding: 10px 12px 28px; }
+  .pa-osd-abajo { padding: 34px 10px 10px; }
+  .pa-osd-titulo { font-size: 15.5px; }
+  .pa-osd-t { min-width: 38px; font-size: 11.5px; }
+  .pa-osd-siguiente { padding: 0 12px; font-size: 12.5px; }
+}
+
+/*
+ * En la tele todo más grande, que se mira a tres metros.
+ *
+ * Y el foco, visible: con un mando no hay puntero, así que el único modo de
+ * saber sobre qué botón se está es que se vea.
+ */
+.tv-mode .pa-osd-titulo { font-size: 2vw; }
+.tv-mode .pa-osd-detalle { font-size: 1.3vw; }
+.tv-mode .pa-osd-btn { min-width: 3.4vw; height: 3.4vw; border-radius: 0.7vw; }
+.tv-mode .pa-osd-btn.grande { min-width: 4vw; height: 4vw; }
+.tv-mode .pa-osd-t { font-size: 1.2vw; min-width: 4vw; }
+.tv-mode .pa-osd-arriba { padding: 2vh 2.5vw 5vh; }
+.tv-mode .pa-osd-abajo { padding: 6vh 2.5vw 2.5vh; }
+
+
 .pa-video-overlay {
   position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px;
@@ -5452,7 +5613,36 @@ select.input { appearance: none; cursor: pointer; }
   .pa-cat-layout { grid-template-columns: 1fr; height: calc(100vh - var(--header-h) - var(--tira)); }
   .pa-cat-layout .pa-live-cats { display: none; }
   .pa-watch.con-episodios { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-  .pa-watch-video .pa-video-zone { flex: none; aspect-ratio: 16/9; }
+  /*
+   * Una película, en el móvil, ocupa lo que hay.
+   *
+   * Salía en una caja de 16:9 pegada arriba y debajo quedaba media pantalla
+   * en negro sin nada —el hueco donde en una serie van los episodios—. Con
+   * el vídeo centrado y estirado a lo que queda, el teléfono se comporta
+   * como cualquier reproductor: la imagen es la pantalla.
+   *
+   * En una serie no, que ahí abajo sí hay episodios que elegir.
+   */
+  /*
+   * Viendo una película, la pantalla es del vídeo.
+   *
+   * Se van la cápsula de secciones, la cabecera de la web y la tira de la
+   * lista: las tres son de moverse por la aplicación, y viendo algo no se
+   * está moviendo uno por nada. Volver está en la flecha del propio
+   * reproductor, que es donde se busca.
+   *
+   * En el directo no: allí debajo del vídeo está la lista con la que se
+   * zapea, y quitarle la navegación dejaría al que mira sin salida.
+   */
+  .pa-flotantes.viendo-vod .pa-bottomnav { display: none; }
+  body.viendo-vod .site-header,
+  body.viendo-vod .pa-tira { display: none; }
+  body.viendo-vod { --header-h: 0px; --tira: 0px; }
+  .pa-watch:not(.con-episodios) .pa-watch-video { justify-content: center; }
+  .pa-watch:not(.con-episodios) .pa-video-zone {
+    flex: none; max-height: none; aspect-ratio: auto; height: 100%;
+  }
+  .pa-watch.con-episodios .pa-watch-video .pa-video-zone { flex: none; aspect-ratio: 16/9; }
   .pa-watch-eps { border-left: none; border-top: 1px solid var(--hairline); }
   .ficha { padding: 20px; width: 96vw; }
   /*

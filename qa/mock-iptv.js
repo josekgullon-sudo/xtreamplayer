@@ -4,6 +4,41 @@ const fs = require("fs");
 const path = require("path");
 
 const WEBM = fs.readFileSync(path.join(__dirname, "test.webm"));
+
+/**
+ * Servir un fichero entendiendo «Range», como cualquier servidor de VOD.
+ *
+ * Sin esto, `video.seekable` sale vacío y el navegador no deja mover el
+ * punto de reproducción ni un segundo: no se podía probar ni el salto de
+ * diez segundos ni reanudar por donde ibas, que es justo lo que hay que
+ * probar. Un panel de verdad contesta 206 con su trozo; el que no lo hace
+ * tiene el mismo problema en casa del cliente, así que esto también sirve
+ * para no inventarnos un servidor más amable que los reales.
+ *
+ * `Accept-Ranges` no es opcional: es lo que le dice al navegador que puede
+ * pedir trozos, y sin la cabecera ni lo intenta.
+ */
+function servirMedio(req, res, cuerpo, tipo) {
+  const rango = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || "");
+  const comunes = { "Content-Type": tipo, "Accept-Ranges": "bytes" };
+  if (!rango) {
+    res.writeHead(200, { ...comunes, "Content-Length": cuerpo.length });
+    return res.end(cuerpo);
+  }
+  const desde = rango[1] ? Number(rango[1]) : 0;
+  const hasta = rango[2] ? Math.min(Number(rango[2]), cuerpo.length - 1) : cuerpo.length - 1;
+  if (desde >= cuerpo.length || desde > hasta) {
+    res.writeHead(416, { ...comunes, "Content-Range": `bytes */${cuerpo.length}` });
+    return res.end();
+  }
+  const trozo = cuerpo.subarray(desde, hasta + 1);
+  res.writeHead(206, {
+    ...comunes,
+    "Content-Range": `bytes ${desde}-${hasta}/${cuerpo.length}`,
+    "Content-Length": trozo.length,
+  });
+  return res.end(trozo);
+}
 const MKV = fs.readFileSync(path.join(__dirname, "pelicula.mkv"));
 const MKV_REAL = fs.readFileSync(path.join(__dirname, "pelicula-real.mkv"));
 const MKV_HEVC = fs.readFileSync(path.join(__dirname, "pelicula-hevc.mkv"));
@@ -153,20 +188,9 @@ const server = http.createServer((req, res) => {
     return res.end(CARATULA);
   }
 
-  if (p === "/media/pelicula-hevc.mkv") {
-    res.writeHead(200, { "Content-Type": "video/x-matroska", "Content-Length": MKV_HEVC.length });
-    return res.end(MKV_HEVC);
-  }
-
-  if (p === "/media/pelicula-real.mkv") {
-    res.writeHead(200, { "Content-Type": "video/x-matroska", "Content-Length": MKV_REAL.length });
-    return res.end(MKV_REAL);
-  }
-
-  if (p === "/media/pelicula.mkv") {
-    res.writeHead(200, { "Content-Type": "video/x-matroska", "Content-Length": MKV.length });
-    return res.end(MKV);
-  }
+  if (p === "/media/pelicula-hevc.mkv") return servirMedio(req, res, MKV_HEVC, "video/x-matroska");
+  if (p === "/media/pelicula-real.mkv") return servirMedio(req, res, MKV_REAL, "video/x-matroska");
+  if (p === "/media/pelicula.mkv") return servirMedio(req, res, MKV, "video/x-matroska");
 
   if (p === "/lista.m3u") {
     res.writeHead(200, { "Content-Type": "audio/x-mpegurl" });
@@ -456,15 +480,11 @@ const server = http.createServer((req, res) => {
       res.writeHead(400, { "Content-Type": "text/plain" });
       return res.end("start o duration mal formados");
     }
-    res.writeHead(200, { "Content-Type": "video/webm", "Content-Length": WEBM.length });
-    return res.end(WEBM);
+    return servirMedio(req, res, WEBM, "video/webm");
   }
 
   // Streams: /live/u/p/1.m3u8|.ts, /movie/u/p/100.webm, /series/u/p/300.webm, /media/*.webm
-  if (/\.webm$/.test(p)) {
-    res.writeHead(200, { "Content-Type": "video/webm", "Content-Length": WEBM.length });
-    return res.end(WEBM);
-  }
+  if (/\.webm$/.test(p)) return servirMedio(req, res, WEBM, "video/webm");
   if (/\.m3u8$/.test(p)) {
     res.writeHead(200, { "Content-Type": "application/vnd.apple.mpegurl" });
     return res.end("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:4\n#EXTINF:4.0,\nseg0.ts\n#EXT-X-ENDLIST\n");

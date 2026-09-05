@@ -54,7 +54,18 @@ export type IconName =
   | "rejilla"
   | "chart"
   | "bajar"
-  | "papelera";
+  | "papelera"
+  /* Los del reproductor: pausa, los saltos de diez segundos, el sonido, los
+     subtítulos y la pantalla completa */
+  | "pause"
+  | "atras10"
+  | "alante10"
+  | "alante"
+  | "sonido"
+  | "sinsonido"
+  | "subtitulos"
+  | "expandir"
+  | "encoger";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   users: (
@@ -90,6 +101,50 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   play: <path d="M6 4.5v15l13-7.5-13-7.5Z" />,
+  pause: (
+    <>
+      <rect x="6.5" y="4.5" width="3.5" height="15" rx="1" />
+      <rect x="14" y="4.5" width="3.5" height="15" rx="1" />
+    </>
+  ),
+  /* La flecha que da la vuelta y el número dentro: es como lo dibujan todos
+     y por eso se entiende sin leerlo */
+  atras10: (
+    <>
+      <path d="M11.5 5.5a7.5 7.5 0 1 1-7.2 9.6" />
+      <path d="M11.5 2.5 8 5.5l3.5 3" />
+      <text x="12" y="15.6" textAnchor="middle" fontSize="7.5" fontWeight="700" fill="currentColor" stroke="none">10</text>
+    </>
+  ),
+  alante10: (
+    <>
+      <path d="M12.5 5.5a7.5 7.5 0 1 0 7.2 9.6" />
+      <path d="M12.5 2.5 16 5.5l-3.5 3" />
+      <text x="12" y="15.6" textAnchor="middle" fontSize="7.5" fontWeight="700" fill="currentColor" stroke="none">10</text>
+    </>
+  ),
+  alante: <path d="M5 4.5v15l11-7.5-11-7.5Z M18 4.5v15" />,
+  sonido: (
+    <>
+      <path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4Z" />
+      <path d="M16 9.2a4 4 0 0 1 0 5.6" />
+      <path d="M18.6 6.6a7.5 7.5 0 0 1 0 10.8" />
+    </>
+  ),
+  sinsonido: (
+    <>
+      <path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4Z" />
+      <path d="m16.5 9.5 5 5M21.5 9.5l-5 5" />
+    </>
+  ),
+  subtitulos: (
+    <>
+      <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+      <path d="M6 11.5h5M6 15h9M14 11.5h4" />
+    </>
+  ),
+  expandir: <path d="M9 3.5H3.5V9M15 3.5h5.5V9M9 20.5H3.5V15M15 20.5h5.5V15" />,
+  encoger: <path d="M3.5 9H9V3.5M20.5 9H15V3.5M3.5 15H9v5.5M20.5 15H15v5.5" />,
   power: (
     <>
       <path d="M12 3v9" />

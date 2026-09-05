@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
+import Icon from "../Icon";
 
 export interface PlaySource {
   /**
@@ -49,6 +50,18 @@ export interface PlaySource {
    * veía bien.
    */
   recordar?: string;
+}
+
+/** 7:04, o 1:23:45 cuando pasa de la hora. Sin horas a cero por delante. */
+function reloj(seg: number): string {
+  if (!Number.isFinite(seg) || seg < 0) return "0:00";
+  const t = Math.floor(seg);
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const s2 = t % 60;
+  return h > 0
+    ? `${h}:${String(m).padStart(2, "0")}:${String(s2).padStart(2, "0")}`
+    : `${m}:${String(s2).padStart(2, "0")}`;
 }
 
 function porElProxy(vale: string): string {
@@ -421,19 +434,42 @@ function buildAttempts(src: PlaySource): Attempt[] {
 
 export default function VideoPlayer({
   source,
-  controles = true,
+  mandos = "propios",
+  titulo,
+  detalle,
+  enVivo = false,
+  siguiente,
+  alSalir,
   onEnded,
 }: {
   source: PlaySource | null;
   /**
-   * Los mandos del navegador: la barra con play, tiempo y volumen.
+   * Quién pone los mandos.
    *
-   * En el reproductor web valen; en un televisor, no. Ahí salía la barra
-   * gris de Chrome —pensada para un ratón— encima del vídeo, con su botón
-   * de pantalla completa y sus tres puntitos. Con un mando no se puede
-   * usar y afea lo único que se ha venido a ver.
+   * `propios` es la capa de abajo: título, barra de avance, ±10 s, pistas
+   * de audio y subtítulos, pantalla completa. Aparece al tocar o al mover
+   * el mando y se va sola.
+   *
+   * Estuvo puesta la barra gris del navegador, que es la de un ratón: sin
+   * título, sin saltos, sin idiomas y sin manera de usarla con un mando. En
+   * el móvil, además, dejaba el vídeo metido en su recuadro con media
+   * pantalla negra debajo. Es la pantalla donde el cliente pasa el rato y
+   * era la más pobre de todas.
+   *
+   * `ninguno` es para el directo de la aplicación de tele, que pinta su
+   * propia capa con la guía del canal.
    */
-  controles?: boolean;
+  mandos?: "propios" | "ninguno";
+  /** Qué se está viendo. Sin barra de título ni pestaña, es lo único que lo dice. */
+  titulo?: string;
+  /** La segunda línea: el episodio, o qué están echando. */
+  detalle?: string;
+  /** En directo no hay a dónde saltar: en vez de la barra, «EN VIVO». */
+  enVivo?: boolean;
+  /** El episodio siguiente, para no volver a la lista al acabar uno. */
+  siguiente?: { texto: string; ir: () => void };
+  /** Volver a lo de antes. En el móvil, la única salida de la pantalla completa. */
+  alSalir?: () => void;
   onEnded?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -443,6 +479,48 @@ export default function VideoPlayer({
   const [progress, setProgress] = useState<{ step: number; total: number; label: string } | null>(null);
   const [diag, setDiag] = useState<string | null>(null);
   const [diagnosticando, setDiagnosticando] = useState(false);
+
+  /* ---------- Los mandos ---------- */
+
+  /**
+   * hls.js, a mano: es quien sabe qué pistas de audio y de subtítulos trae.
+   *
+   * Un canal español va en dual la mitad de las veces y una película de un
+   * panel suele traer dos o tres audios. Sin esto no había forma de
+   * cambiarlos: se oía lo que viniera primero.
+   */
+  const hlsRef = useRef<InstanceType<typeof Hls> | null>(null);
+  const cajaRef = useRef<HTMLDivElement>(null);
+  const [pausado, setPausado] = useState(false);
+  const [tiempo, setTiempo] = useState(0);
+  const [duracion, setDuracion] = useState(0);
+  const [silencio, setSilencio] = useState(false);
+  const [volumen, setVolumen] = useState(1);
+  const [completa, setCompleta] = useState(false);
+  /** La capa se ve o no. Con el vídeo parado se queda: nadie busca a ciegas. */
+  const [aVerse, setAVerse] = useState(true);
+  const [menu, setMenu] = useState<"audio" | "subs" | null>(null);
+  const [audios, setAudios] = useState<{ id: number; nombre: string }[]>([]);
+  const [audio, setAudio] = useState(-1);
+  const [subs, setSubs] = useState<{ id: number; nombre: string }[]>([]);
+  const [sub, setSub] = useState(-1);
+  const plazoOsd = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const conMandos = mandos === "propios";
+
+  /**
+   * Enseñar la capa y volver a contar.
+   *
+   * Tres segundos es lo que tarda en leerse el título y mirar la barra. Con
+   * el vídeo en pausa o el menú de idiomas abierto no se va: quien ha
+   * parado está mirando algo, y quien tiene un menú abierto lo está usando.
+   */
+  const asomar = useCallback(() => {
+    if (!conMandos) return;
+    setAVerse(true);
+    if (plazoOsd.current) clearTimeout(plazoOsd.current);
+    plazoOsd.current = setTimeout(() => setAVerse(false), 3000);
+  }, [conMandos]);
 
   /**
    * Pregunta al servidor qué le respondió el proveedor y lo traduce a un
@@ -859,6 +937,7 @@ export default function VideoPlayer({
               fail(`HLS: ${data.details}`, data.type === Hls.ErrorTypes.NETWORK_ERROR);
             }
           });
+          hlsRef.current = hls;
           hls.loadSource(attempt.url);
           hls.attachMedia(v);
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -866,6 +945,7 @@ export default function VideoPlayer({
           });
           cleanupRef.current = () => {
             soltarEventos();
+            hlsRef.current = null;
             hls.destroy();
           };
         } else {
@@ -926,13 +1006,175 @@ export default function VideoPlayer({
     };
   }, [source]);
 
+  /*
+   * El vídeo cuenta y la capa escucha.
+   *
+   * Se enganchan los eventos del elemento en vez de preguntar cada décima
+   * con un temporizador: así la barra no se mueve cuando no pasa nada, que
+   * es lo que hace que un reproductor se sienta pesado.
+   */
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !conMandos) return;
+    const tic = () => setTiempo(v.currentTime || 0);
+    const dura = () => setDuracion(Number.isFinite(v.duration) ? v.duration : 0);
+    const estado = () => setPausado(v.paused);
+    const sonido = () => { setSilencio(v.muted); setVolumen(v.volume); };
+    v.addEventListener("timeupdate", tic);
+    v.addEventListener("durationchange", dura);
+    v.addEventListener("loadedmetadata", dura);
+    v.addEventListener("play", estado);
+    v.addEventListener("pause", estado);
+    v.addEventListener("volumechange", sonido);
+    dura(); estado(); sonido();
+    return () => {
+      v.removeEventListener("timeupdate", tic);
+      v.removeEventListener("durationchange", dura);
+      v.removeEventListener("loadedmetadata", dura);
+      v.removeEventListener("play", estado);
+      v.removeEventListener("pause", estado);
+      v.removeEventListener("volumechange", sonido);
+    };
+  }, [conMandos, source]);
+
+  /*
+   * Qué idiomas trae esto.
+   *
+   * Se pregunta cuando ya está sonando, no al pedirlo: las pistas llegan con
+   * el manifiesto y antes de eso las listas están vacías. hls.js las sabe
+   * todas; con el reproductor del navegador —Safari— los subtítulos salen
+   * en `textTracks` y el audio no sale, que es lo que hay.
+   */
+  useEffect(() => {
+    if (!conMandos || state !== "playing") return;
+    const v = videoRef.current;
+    const hls = hlsRef.current;
+    const nombre = (t: { name?: string; lang?: string }, i: number) =>
+      t.name || t.lang || `Pista ${i + 1}`;
+    if (hls) {
+      setAudios(hls.audioTracks.map((t, i) => ({ id: i, nombre: nombre(t, i) })));
+      setAudio(hls.audioTrack);
+      setSubs(hls.subtitleTracks.map((t, i) => ({ id: i, nombre: nombre(t, i) })));
+      setSub(hls.subtitleTrack);
+      return;
+    }
+    setAudios([]);
+    const pistas = v ? Array.from(v.textTracks) : [];
+    setSubs(pistas.map((t, i) => ({ id: i, nombre: t.label || t.language || `Subtítulos ${i + 1}` })));
+    setSub(pistas.findIndex((t) => t.mode === "showing"));
+  }, [conMandos, state, source]);
+
+  /* Pantalla completa: la lleva el navegador y hay que preguntarle, porque
+     también se sale con Escape sin pasar por nuestro botón */
+  useEffect(() => {
+    const mirar = () => setCompleta(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", mirar);
+    return () => document.removeEventListener("fullscreenchange", mirar);
+  }, []);
+
+  const pausarOSeguir = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) v.play().catch(() => {}); else v.pause();
+    asomar();
+  }, [asomar]);
+
+  /** Diez segundos, que es lo que dura la frase que no se ha entendido. */
+  const saltar = useCallback((cuanto: number) => {
+    const v = videoRef.current;
+    if (!v || enVivo || !Number.isFinite(v.duration)) return;
+    v.currentTime = Math.min(Math.max(0, v.currentTime + cuanto), v.duration - 0.5);
+    asomar();
+  }, [asomar, enVivo]);
+
+  const pantallaCompleta = useCallback(() => {
+    const caja = cajaRef.current;
+    if (!caja) return;
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else caja.requestFullscreen?.().catch(() => {});
+  }, []);
+
+  const ponerAudio = useCallback((i: number) => {
+    if (hlsRef.current) hlsRef.current.audioTrack = i;
+    setAudio(i);
+    setMenu(null);
+  }, []);
+
+  /** −1 es «sin subtítulos», que es una opción y tiene que estar en la lista. */
+  const ponerSub = useCallback((i: number) => {
+    const v = videoRef.current;
+    if (hlsRef.current) hlsRef.current.subtitleTrack = i;
+    else if (v) Array.from(v.textTracks).forEach((t, j) => { t.mode = j === i ? "showing" : "disabled"; });
+    setSub(i);
+    setMenu(null);
+  }, []);
+
+  /*
+   * El teclado y el mando, mientras haya algo puesto.
+   *
+   * Va en `window` y no en la caja porque el foco, después de pulsar en una
+   * lista, está en cualquier sitio menos aquí, y nadie va a pulsar en el
+   * vídeo antes de darle a la barra espaciadora. Se dejan pasar las teclas
+   * cuando se está escribiendo en algún sitio, que si no el buscador se
+   * queda sin espacios.
+   */
+  useEffect(() => {
+    if (!conMandos || !source) return;
+    const alPulsar = (e: KeyboardEvent) => {
+      const donde = document.activeElement;
+      if (donde instanceof HTMLInputElement || donde instanceof HTMLTextAreaElement) return;
+      switch (e.key) {
+        case " ":
+        case "Enter":
+        case "MediaPlayPause":
+          e.preventDefault(); pausarOSeguir(); break;
+        case "ArrowLeft": if (!enVivo) { e.preventDefault(); saltar(-10); } break;
+        case "ArrowRight": if (!enVivo) { e.preventDefault(); saltar(10); } break;
+        case "ArrowUp":
+        case "ArrowDown": asomar(); break;
+        case "f": case "F": pantallaCompleta(); break;
+        case "m": case "M": {
+          const v = videoRef.current;
+          if (v) v.muted = !v.muted;
+          asomar();
+          break;
+        }
+        /*
+         * ESCAPE no se toca aquí.
+         *
+         * La aplicación tiene su propia pila de «atrás» —el buscador, el
+         * panel de listas, el vídeo, la ficha— y sabe en qué orden hay que
+         * deshacerlos. Cerrando el vídeo desde aquí, salir del buscador con
+         * ESCAPE cerraba también el canal que se estaba viendo: dos cosas
+         * por una tecla, y la que no se pedía.
+         */
+        default: break;
+      }
+    };
+    window.addEventListener("keydown", alPulsar);
+    return () => window.removeEventListener("keydown", alPulsar);
+  }, [conMandos, source, enVivo, pausarOSeguir, saltar, asomar, pantallaCompleta]);
+
+  /* Al cambiar de canal o de película, la capa se enseña otra vez: es el
+     momento en que hace falta saber qué se ha puesto */
+  useEffect(() => { asomar(); setMenu(null); }, [source, asomar]);
+
+  useEffect(() => () => { if (plazoOsd.current) clearTimeout(plazoOsd.current); }, []);
+
+  const quieta = aVerse || pausado || Boolean(menu) || state !== "playing";
+
   return (
-    <div className="pa-video-zone">
+    <div
+      className={`pa-video-zone ${conMandos ? "con-mandos" : ""} ${quieta ? "" : "sin-mandos"}`}
+      ref={cajaRef}
+      onMouseMove={asomar}
+      onTouchStart={asomar}
+    >
       <video
         ref={videoRef}
-        controls={controles}
         playsInline
         onEnded={onEnded}
+        onClick={conMandos ? pausarOSeguir : undefined}
         aria-label={source ? `Reproduciendo ${source.name}` : "Reproductor de vídeo"}
       />
       {!source && (
@@ -998,6 +1240,139 @@ export default function VideoPlayer({
             <button className="btn btn-ghost btn-sm" onClick={() => navigator.clipboard?.writeText(source.url)}>
               Copiar URL (para VLC)
             </button>
+          </div>
+        </div>
+      )}
+
+      {/*
+        Los mandos.
+
+        Todo lo de una sola pantalla: qué es esto, por dónde va, atrás y
+        adelante diez segundos, el idioma, y salir. Aparece al tocar o al
+        mover el mando y se va sola a los tres segundos; con el vídeo parado
+        o un menú abierto se queda.
+      */}
+      {conMandos && source && state !== "error" && (
+        <div className="pa-osd" aria-hidden={!quieta}>
+          <div className="pa-osd-arriba">
+            {alSalir && (
+              <button className="pa-osd-btn" onClick={alSalir} aria-label="Volver">
+                <Icon name="back" size={20} />
+              </button>
+            )}
+            <div className="pa-osd-que">
+              <p className="pa-osd-titulo">{titulo || source.name}</p>
+              {detalle && <p className="pa-osd-detalle">{detalle}</p>}
+            </div>
+            {enVivo && <span className="pa-osd-vivo"><span className="pa-punto" aria-hidden="true" />EN VIVO</span>}
+          </div>
+
+          <div className="pa-osd-abajo">
+            {/* En directo no hay a dónde saltar: la barra sería un adorno que
+                además miente sobre cuánto queda */}
+            {!enVivo && duracion > 0 && (
+              <div className="pa-osd-barra">
+                <span className="pa-osd-t">{reloj(tiempo)}</span>
+                <input
+                  className="pa-osd-slider"
+                  type="range"
+                  min={0}
+                  max={Math.max(duracion, 1)}
+                  step={1}
+                  value={Math.min(tiempo, duracion)}
+                  onChange={(e) => {
+                    const v = videoRef.current;
+                    if (v) v.currentTime = Number(e.target.value);
+                    asomar();
+                  }}
+                  aria-label="Punto de la reproducción"
+                />
+                {/* Lo que queda, no lo que dura: es lo que se mira para
+                    decidir si da tiempo antes de cenar */}
+                <span className="pa-osd-t">−{reloj(Math.max(0, duracion - tiempo))}</span>
+              </div>
+            )}
+
+            <div className="pa-osd-botones">
+              <button className="pa-osd-btn grande" onClick={pausarOSeguir} aria-label={pausado ? "Reproducir" : "Pausa"}>
+                <Icon name={pausado ? "play" : "pause"} size={22} />
+              </button>
+              {!enVivo && (
+                <>
+                  <button className="pa-osd-btn" onClick={() => saltar(-10)} aria-label="Atrás 10 segundos">
+                    <Icon name="atras10" size={20} />
+                  </button>
+                  <button className="pa-osd-btn" onClick={() => saltar(10)} aria-label="Adelante 10 segundos">
+                    <Icon name="alante10" size={20} />
+                  </button>
+                </>
+              )}
+              <button
+                className="pa-osd-btn"
+                onClick={() => { const v = videoRef.current; if (v) v.muted = !v.muted; asomar(); }}
+                aria-label={silencio ? "Quitar el silencio" : "Silenciar"}
+              >
+                <Icon name={silencio || volumen === 0 ? "sinsonido" : "sonido"} size={20} />
+              </button>
+
+              <span className="pa-osd-hueco" />
+
+              {siguiente && (
+                <button className="pa-osd-siguiente" onClick={siguiente.ir}>
+                  <Icon name="alante" size={15} />
+                  {siguiente.texto}
+                </button>
+              )}
+              {/* Los idiomas, solo si los hay: un botón que abre una lista
+                  con una sola cosa dentro es un botón que estorba */}
+              {(audios.length > 1 || subs.length > 0) && (
+                <div className="pa-osd-pistas">
+                  {audios.length > 1 && (
+                    <button
+                      className={`pa-osd-btn ${menu === "audio" ? "activo" : ""}`}
+                      onClick={() => setMenu(menu === "audio" ? null : "audio")}
+                      aria-label="Idioma del audio"
+                    >
+                      <Icon name="sonido" size={18} />
+                      <span className="pa-osd-btn-txt">Audio</span>
+                    </button>
+                  )}
+                  {subs.length > 0 && (
+                    <button
+                      className={`pa-osd-btn ${menu === "subs" ? "activo" : ""}`}
+                      onClick={() => setMenu(menu === "subs" ? null : "subs")}
+                      aria-label="Subtítulos"
+                    >
+                      <Icon name="subtitulos" size={18} />
+                      <span className="pa-osd-btn-txt">Subtítulos</span>
+                    </button>
+                  )}
+                  {menu && (
+                    <div className="pa-osd-menu" role="menu">
+                      <p className="pa-osd-menu-t">{menu === "audio" ? "Audio" : "Subtítulos"}</p>
+                      {menu === "subs" && (
+                        <button className={`pa-osd-opcion ${sub < 0 ? "activa" : ""}`} onClick={() => ponerSub(-1)} role="menuitem">
+                          Sin subtítulos
+                        </button>
+                      )}
+                      {(menu === "audio" ? audios : subs).map((t) => (
+                        <button
+                          key={t.id}
+                          className={`pa-osd-opcion ${(menu === "audio" ? audio : sub) === t.id ? "activa" : ""}`}
+                          onClick={() => (menu === "audio" ? ponerAudio(t.id) : ponerSub(t.id))}
+                          role="menuitem"
+                        >
+                          {t.nombre}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <button className="pa-osd-btn" onClick={pantallaCompleta} aria-label={completa ? "Salir de pantalla completa" : "Pantalla completa"}>
+                <Icon name={completa ? "encoger" : "expandir"} size={20} />
+              </button>
+            </div>
           </div>
         </div>
       )}

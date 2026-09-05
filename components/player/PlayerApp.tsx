@@ -1590,17 +1590,47 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
     [seriesDetail]
   );
 
-  /** Al acabar un episodio, encadena con el siguiente de la temporada */
-  function siguienteEpisodio() {
-    if (!active || !seriesDetail || !current) return;
+  /**
+   * Cuál es el siguiente de la temporada, si es que hay.
+   *
+   * Se calcula aparte de encadenarlo porque el reproductor lo ofrece en un
+   * botón antes de que acabe: quien ya sabe cómo termina el capítulo no
+   * espera a los créditos para pasar al otro.
+   */
+  const elSiguiente = useMemo(() => {
+    if (!seriesDetail || !current) return null;
     const i = episodiosDeLaSerie.findIndex((ep) =>
       current.source.name.includes(ep.title || `Episodio ${ep.episode_num}`)
     );
-    const sig = episodiosDeLaSerie[i + 1];
-    if (sig) {
-      playEpisode(active, seriesDetail.series, sig.id, sig.title || `Episodio ${sig.episode_num}`, sig.container_extension);
-    }
+    return i >= 0 ? episodiosDeLaSerie[i + 1] || null : null;
+  }, [seriesDetail, current, episodiosDeLaSerie]);
+
+  /** Al acabar un episodio, encadena con el siguiente de la temporada */
+  function siguienteEpisodio() {
+    if (!active || !seriesDetail || !elSiguiente) return;
+    playEpisode(
+      active,
+      seriesDetail.series,
+      elSiguiente.id,
+      elSiguiente.title || `Episodio ${elSiguiente.episode_num}`,
+      elSiguiente.container_extension
+    );
   }
+
+  /*
+   * Viendo una película en el móvil, el vídeo se queda con la pantalla.
+   *
+   * La cabecera de la web y la tira de la lista son de moverse por la
+   * aplicación, y viendo algo no se está moviendo uno por nada: entre las
+   * dos se llevaban ciento treinta puntos de los ochocientos que tiene un
+   * teléfono, con el vídeo encajado en lo que sobraba. Se marca en el
+   * `body` porque la cabecera la pinta la página, fuera de este componente.
+   */
+  useEffect(() => {
+    const puesto = viendo && tab !== "live";
+    document.body.classList.toggle("viendo-vod", puesto);
+    return () => document.body.classList.remove("viendo-vod");
+  }, [viendo, tab]);
 
   /* «Atrás» cierra lo de encima, no la aplicación. De fuera adentro: la
      ficha está debajo del vídeo, porque al salir del vídeo se vuelve a la
@@ -2211,19 +2241,15 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
         */
         <div className="pa-watch">
           <div className="pa-watch-video">
-            <div className="pa-live-titulo">
-              <button
-                className="pa-live-atras"
-                onClick={() => { setViendo(false); setCurrent(null); }}
-                aria-label="Volver"
-              >
-                <Icon name="back" size={15} />
-              </button>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <h2>{current.source.name}</h2>
-              </div>
-            </div>
-            <VideoPlayer source={current.source} />
+            {/* Sin barra de título encima: el reproductor ya lleva el
+                nombre y la flecha de volver en su propia capa, y tenerlo
+                dos veces —una fija y otra sobre el vídeo— además de repetir
+                le quitaba alto a la imagen */}
+            <VideoPlayer
+              source={current.source}
+              titulo={current.source.name}
+              alSalir={() => { setViendo(false); setCurrent(null); }}
+            />
           </div>
         </div>
       ) : (
@@ -2558,7 +2584,13 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
                   </button>
                 )}
               </div>
-              <VideoPlayer source={current.source} />
+              <VideoPlayer
+                source={current.source}
+                titulo={current.source.name}
+                detalle={epg?.now ? `Ahora · ${epg.now}` : undefined}
+                enVivo
+                alSalir={() => { setCurrent(null); setViendo(false); }}
+              />
             </>
           ) : canalEnGrande ? (
             <div className="pa-avance">
@@ -2737,19 +2769,22 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
         {active && viendo && current && (
           <div className={`pa-watch ${episodiosDeLaSerie.length ? "con-episodios" : ""}`}>
             <div className="pa-watch-video">
-              <div className="pa-live-titulo">
-                <button
-                  className="pa-live-atras"
-                  onClick={() => { setViendo(false); setCurrent(null); }}
-                  aria-label="Volver"
-                >
-                  <Icon name="back" size={15} />
-                </button>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h2>{current.source.name}</h2>
-                </div>
-              </div>
-              <VideoPlayer source={current.source} onEnded={siguienteEpisodio} />
+              {/* Ver arriba: el título y el «atrás» los pone el reproductor */}
+              <VideoPlayer
+                source={current.source}
+                titulo={seriesDetail?.series.name || current.source.name}
+                detalle={seriesDetail ? current.source.name : undefined}
+                siguiente={
+                  elSiguiente
+                    ? {
+                        texto: "Siguiente episodio",
+                        ir: siguienteEpisodio,
+                      }
+                    : undefined
+                }
+                alSalir={() => { setViendo(false); setCurrent(null); }}
+                onEnded={siguienteEpisodio}
+              />
             </div>
             {episodiosDeLaSerie.length > 0 && (
               <aside className="pa-watch-eps" aria-label="Episodios">
@@ -3130,7 +3165,13 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
       </div>
     )}
 
-    <div className="pa-flotantes">
+    {/*
+      Viendo una película, la cápsula de secciones se va en el móvil: es una
+      pantalla completa y no una sección más, y con ella puesta los mandos
+      del reproductor caían justo debajo. En el directo se queda, que ahí
+      debajo del vídeo está la lista con la que se zapea.
+    */}
+    <div className={`pa-flotantes ${viendo && tab !== "live" ? "viendo-vod" : ""}`}>
       {/* La cápsula: los mismos destinos que el carril, tumbados y al
           alcance del pulgar. El icono va dentro de una pastilla que se
           enciende, para que la sección activa se vea sin leer */}

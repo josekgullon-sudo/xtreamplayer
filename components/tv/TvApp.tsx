@@ -3772,7 +3772,19 @@ export default function TvApp() {
     const quedaDeEsto = quedaDe(guiaDeEsto);
     return (
       <div className="tv-app tv-viendo">
-        <VideoPlayer source={viendo.source} controles={false} />
+        {/*
+          En el directo, la capa la pinta esta pantalla —con la guía del
+          canal, que es lo que se quiere saber— y el reproductor no pone
+          nada. En una película no había guía ni capa: se quedaba el vídeo
+          solo, sin título, sin saber por dónde iba y sin manera de saltar
+          diez segundos con el mando. Ahí manda el reproductor.
+        */}
+        <VideoPlayer
+          source={viendo.source}
+          mandos={viendo.epgId ? "ninguno" : "propios"}
+          titulo={viendo.source.name}
+          alSalir={() => { setViendo(null); setPantalla(ficha ? "ficha" : filas.length ? ultimaLista.current : "portada"); }}
+        />
         {/*
           La guía del canal que suena, no solo su nombre.
 
@@ -3822,7 +3834,10 @@ export default function TvApp() {
             </p>
           ) : null}
         </div>
-        <p className={`tv-viendo-pie ${osd ? "" : "ido"}`}>Pulsa ATRÁS para volver</p>
+        {/* El recordatorio, solo cuando la capa del reproductor no está: con
+            ella puesta ya hay una flecha de volver a la vista, y el aviso
+            se cruzaba con los botones */}
+        {viendo.epgId && <p className={`tv-viendo-pie ${osd ? "" : "ido"}`}>Pulsa ATRÁS para volver</p>}
       </div>
     );
   }
