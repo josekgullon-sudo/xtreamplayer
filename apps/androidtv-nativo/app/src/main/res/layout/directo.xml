@@ -289,6 +289,27 @@
                 android:orientation="vertical"
                 android:layout_marginTop="3dp" />
 
+            <!-- Lo ya emitido, en los canales que lo guardan. Ver la
+                 variante de televisor -->
+            <TextView
+                android:id="@+id/etiquetaAntes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LO QUE YA SE EMITIÓ"
+                android:textColor="@color/tenue"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.14"
+                android:layout_marginTop="10dp"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/antesLista"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="3dp" />
+
             <TextView
                 android:id="@+id/comoAmpliar"
                 android:layout_width="match_parent"

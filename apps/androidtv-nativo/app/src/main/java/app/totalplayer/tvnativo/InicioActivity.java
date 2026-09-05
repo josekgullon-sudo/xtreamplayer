@@ -70,6 +70,13 @@ public class InicioActivity extends Activity {
                 Toast.makeText(InicioActivity.this, "Actualizando tus listas…", Toast.LENGTH_SHORT).show();
             }
         });
+        /* Ajustes: el idioma, los aparatos de la cuenta y quién falla cuando
+           algo no se ve. Ver AjustesActivity */
+        findViewById(R.id.botonAjustes).setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                startActivity(new Intent(InicioActivity.this, AjustesActivity.class));
+            }
+        });
         findViewById(R.id.botonSalir).setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 Sesion s = Sesion.actual();
@@ -102,7 +109,8 @@ public class InicioActivity extends Activity {
         encadenar(R.id.tarjetaPelis, R.id.tarjetaSeries);
         encadenar(R.id.tarjetaSeries, R.id.tarjetaBajadas);
         encadenar(R.id.botonBuscar, R.id.botonActualizar);
-        encadenar(R.id.botonActualizar, R.id.botonSalir);
+        encadenar(R.id.botonActualizar, R.id.botonAjustes);
+        encadenar(R.id.botonAjustes, R.id.botonSalir);
         findViewById(R.id.tarjetaBajadas).setNextFocusRightId(R.id.tarjetaBajadas);
         findViewById(R.id.tarjetaDirecto).setNextFocusLeftId(R.id.tarjetaDirecto);
 

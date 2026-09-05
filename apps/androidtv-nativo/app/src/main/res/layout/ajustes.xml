@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ajustes.
+
+  Uno solo para el televisor y para el teléfono: es una columna de bloques
+  que se mide sola y no hay nada que colocar distinto en una pantalla
+  grande. Los márgenes los pone el código, que es quien sabe en qué aparato
+  está. Ver AjustesActivity.
+
+  Cuatro bloques y ni un interruptor de adorno: cada uno está porque hoy
+  acaba en una llamada al proveedor.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/fondo">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/barra"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Ajustes"
+            android:textColor="@color/texto"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/versionAjustes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/tenue"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <ScrollView
+        android:id="@+id/scrollAjustes"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="20dp"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Idioma -->
+            <TextView
+                android:id="@+id/rotuloIdioma"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="IDIOMA"
+                android:textColor="@color/tenue"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
+
+            <TextView
+                android:id="@+id/idiomaAhora"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="@color/apagado"
+                android:textSize="15sp"
+                android:lineSpacingExtra="4dp" />
+
+            <TextView
+                android:id="@+id/botonOlvidarIdioma"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:gravity="center"
+                android:text="Olvidar y volver a preguntar"
+                android:textColor="@color/texto"
+                android:textSize="15sp"
+                android:background="@drawable/tecla"
+                android:focusable="true"
+                android:clickable="true" />
+
+            <!-- Aparatos -->
+            <TextView
+                android:id="@+id/rotuloAparatos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="26dp"
+                android:text="APARATOS"
+                android:textColor="@color/tenue"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
+
+            <TextView
+                android:id="@+id/pieAparatos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Cerrar uno libera su sitio. Si cierras este, tendrás que volver a entrar."
+                android:textColor="@color/apagado"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp" />
+
+            <LinearLayout
+                android:id="@+id/listaAparatos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="10dp" />
+
+            <!-- Conexión -->
+            <TextView
+                android:id="@+id/rotuloConexion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="26dp"
+                android:text="CONEXIÓN"
+                android:textColor="@color/tenue"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Si algo no se ve, esto dice quién falla: tu proveedor o este aparato."
+                android:textColor="@color/apagado"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp" />
+
+            <TextView
+                android:id="@+id/botonProbar"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:gravity="center"
+                android:text="Comprobar mi conexión"
+                android:textColor="@color/texto"
+                android:textSize="15sp"
+                android:background="@drawable/tecla"
+                android:focusable="true"
+                android:clickable="true" />
+
+            <TextView
+                android:id="@+id/veredicto"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:padding="14dp"
+                android:background="@drawable/tarjeta"
+                android:textColor="@color/texto"
+                android:textSize="15sp"
+                android:lineSpacingExtra="5dp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

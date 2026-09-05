@@ -90,6 +90,33 @@ const ESCRITORIO = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
   check("Quien trae su propia lista reproduce en el navegador, como siempre",
     (await queVe("/player", ESCRITORIO, false)) === "aplicación");
 
+  /*
+   * Y entrar no es lo mismo que poder ver algo.
+   *
+   * Esto es lo que faltaba comprobar: el cliente pasaba la puerta —el
+   * cartel no le salía— y se encontraba la pantalla de bienvenida
+   * pidiéndole que pegara una lista M3U, que es exactamente lo que un
+   * cliente de proveedor no tiene ni tiene por qué saber qué es. Su lista
+   * se la da el servidor con la galleta: ver `/api/customer/me` y la carga
+   * inicial de components/player/PlayerApp.tsx.
+   */
+  {
+    const ctx = await b.newContext({ viewport: { width: 1280, height: 800 }, userAgent: MOVIL });
+    await ctx.addCookies([{ name: "xp_customer", value: cli, domain: "localhost", path: "/" }]);
+    const p = await ctx.newPage();
+    await p.goto(BASE + "/player?app=1", { waitUntil: "networkidle" });
+    await p.waitForSelector(".profile-item, .pa-rail, .section-gate, .pa-welcome", { timeout: 30000 });
+    if (await p.locator(".profile-item").count()) {
+      await p.locator(".profile-item").first().click();
+    }
+    await p.waitForSelector(".pa-rail, .section-gate", { timeout: 30000 }).catch(() => {});
+    check("Dentro de la aplicación, el cliente encuentra SU lista puesta",
+      (await p.locator(".pa-welcome").count()) === 0);
+    check("Y con ella, sus secciones",
+      (await p.locator(".pa-rail, .section-gate").count()) > 0);
+    await ctx.close();
+  }
+
   await b.close();
   console.log(`\n${results.filter(Boolean).length}/${results.length} pruebas de los envoltorios OK`);
   process.exit(results.every(Boolean) ? 0 : 1);

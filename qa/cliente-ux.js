@@ -245,8 +245,8 @@ const ck = (sc, n) => {
      pasarle el ratón por encima, y con el guardado no habría petición que
      cortar —la prueba pasaría sin probar nada */
   await p2.reload({ waitUntil: "networkidle" });
-  await p2.waitForSelector(".section-gate", { timeout: 20000 });
-  await p2.locator(".section-card:has-text('TV en directo')").click();
+  /* Al volver ya no se pregunta: se entra por donde se salió, que aquí era
+     el directo. Ver K_ULTIMA_SECCION en components/player/PlayerApp.tsx */
   await p2.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 20000 });
   await p2.route("**/api/tele/ver", (r) =>
     r.fulfill({

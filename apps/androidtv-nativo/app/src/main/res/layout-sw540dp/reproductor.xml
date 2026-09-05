@@ -179,6 +179,30 @@
                 android:background="@drawable/tecla"
                 android:focusable="true"
                 android:contentDescription="@null" />
+
+            <!--
+              El idioma, cuando lo hay.
+
+              Media parrilla española va en dual y una película de un panel
+              suele traer dos o tres audios: se oía el que viniera primero y
+              no había forma de cambiarlo. Nace escondido y solo sale si
+              este fichero trae algo que elegir — ver ReproductorActivity.
+            -->
+            <TextView
+                android:id="@+id/teclaIdioma"
+                android:layout_width="wrap_content"
+                android:layout_height="58dp"
+                android:layout_marginStart="26dp"
+                android:paddingStart="22dp"
+                android:paddingEnd="22dp"
+                android:gravity="center"
+                android:text="Idioma"
+                android:textColor="@color/texto"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:background="@drawable/tecla"
+                android:focusable="true"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 

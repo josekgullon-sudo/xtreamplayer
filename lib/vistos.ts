@@ -206,3 +206,18 @@ export function olvidar(owner: ProfileOwner, profileId: number, llave: string) {
     )
     .run(customerId, userId, profileId, llave);
 }
+
+/**
+ * Borrar el historial entero de este perfil.
+ *
+ * Va en ajustes y no escondido: «seguir viendo» es una lista de lo que uno
+ * ha estado viendo, y en una casa con la tele compartida hay quien no
+ * quiere que eso se quede puesto en la pantalla de inicio. Poder borrarlo
+ * es parte de tenerlo.
+ */
+export function olvidarTodo(owner: ProfileOwner, profileId: number) {
+  const { customerId, userId } = deQuien(owner);
+  getDb()
+    .prepare("DELETE FROM vistos WHERE customer_id = ? AND user_id = ? AND profile_id = ?")
+    .run(customerId, userId, profileId);
+}

@@ -272,6 +272,15 @@ directo también. El arranque con porcentaje es lo único suelto —no
 pertenece a ninguno de los nueve— y es media tarde: se puede colar donde
 convenga.
 
+Al día de hoy quedan por hacer el **8** —descargas, que en la nativa sí
+están— y el **9**, que es un proyecto aparte. Los otros siete están, y el
+**7** en los dos sitios: `components/player/Ajustes.tsx` en la web y
+`AjustesActivity` en la nativa. Los dos dicen lo mismo y por el mismo
+motivo: el idioma que se eligió mal, los aparatos que ocupan el cupo y
+quién falla cuando algo no se ve —que lo sabe el servidor y no el aparato,
+`app/api/diag/proveedor`—. Son las tres llamadas al proveedor que se
+ahorran.
+
 Y los puntos **1 y 3 están hechos en los tres sitios**: el reproductor web, la
 aplicación de televisión —la que se empaqueta para Samsung, LG y Windows— y la
 nativa de Android. Las tres comparten criterio: `lib/portada.ts` y

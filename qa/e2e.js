@@ -93,12 +93,26 @@ function check(name, ok, detail = "") {
 
   // Persistencia tras recargar (invitado)
   await page.reload({ waitUntil: "networkidle" });
-  // Al volver a entrar se pregunta qué ver, porque ya hay favoritos que ofrecer
+  /*
+   * Y se entra por donde se salió, sin volver a preguntar.
+   *
+   * «¿Qué te apetece ver?» está para el primer día: enseña que la
+   * suscripción trae cine y series. A partir del segundo no enseña nada y
+   * es un clic diario entre el cliente y su canal. Ver K_ULTIMA_SECCION en
+   * components/player/PlayerApp.tsx.
+   */
+  await page.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 20000 });
+  check("Al volver a entrar no pregunta otra vez: entra por donde se salió",
+    (await page.locator(".section-gate").count()) === 0);
+  check("Lista persiste tras recargar (localStorage)", true);
+
+  /* Pero la portada no se pierde: sigue a un clic en «Inicio», que es donde
+     están «seguir viendo» y las novedades */
+  await page.locator('.pa-rail-item:has-text("Inicio")').click();
   await page.waitForSelector(".section-gate", { timeout: 15000 });
-  check("Al volver a entrar vuelve a preguntar qué ver", true);
+  check("Y la portada sigue estando, en «Inicio»", true);
   await page.locator(".section-card:has-text('TV en directo')").click();
   await page.waitForSelector(".pa-live-cat:not(.pa-live-reciente)", { timeout: 15000 });
-  check("Lista persiste tras recargar (localStorage)", true);
 
   // ---------- Xtream ----------
   await page.locator('[aria-label="Listas"]:visible').click();
@@ -249,11 +263,13 @@ function check(name, ok, detail = "") {
   await page.locator('[aria-label="Listas"]:visible').click();
   const before = await page.locator(".pa-listas-item").count();
   await page.locator('[aria-label="Eliminar esta lista"]:visible').click();
-  /* Al quedarse con otra lista, el reproductor vuelve a preguntar qué ver:
-     lo que ofrece cada lista no tiene por qué ser lo mismo. Se elige, y ya
-     desde dentro se mira cuántas quedan */
-  await page.waitForSelector(".section-gate", { timeout: 15000 });
-  await page.locator(".section-card").first().click();
+  /* Al quedarse con otra lista se entra en ella. Si por esa lista ya se
+     había pasado, se entra por donde se salió; si es nueva, se pregunta.
+     Aquí ya se había pasado, así que lo que se espera es el reproductor */
+  await page.waitForSelector(".section-gate, .pa-rail", { timeout: 15000 });
+  if (await page.locator(".section-gate").isVisible().catch(() => false)) {
+    await page.locator(".section-card").first().click();
+  }
   await page.locator('[aria-label="Listas"]:visible').click();
   const after = await page.locator(".pa-listas-item").count();
   check("Eliminar lista funciona", after === before - 1, `${before} → ${after}`);

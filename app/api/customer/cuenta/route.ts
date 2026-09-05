@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getDb, ProviderRow, DeviceRow } from "@/lib/db";
-import { getCurrentCustomer } from "@/lib/provider";
+import { getCurrentCustomer, liberarDispositivo } from "@/lib/provider";
 import { brandingOf } from "@/lib/branding";
 import { listProfiles } from "@/lib/profiles";
 import { encryptSecret } from "@/lib/secretBox";
@@ -51,6 +51,9 @@ export async function GET() {
     },
     dispositivos: dispositivos.map((d) => ({
       id: d.id,
+      /* La llave es lo que hay que mandar para cerrarlo. No dice nada de
+         nadie: se la inventa el propio aparato — ver lib/device.ts */
+      llave: d.device_key,
       nombre: d.name || d.platform || "Dispositivo",
       plataforma: d.platform,
       alta: d.first_seen,
@@ -89,5 +92,28 @@ export async function PUT(req: NextRequest) {
     .prepare("UPDATE customers SET password_hash = ?, password_box = ? WHERE id = ?")
     .run(await bcrypt.hash(nueva, 10), encryptSecret(nueva), customer.id);
 
+  return NextResponse.json({ ok: true });
+}
+
+/**
+ * Cerrar la sesión de uno de sus aparatos.
+ *
+ * Aquí ponía «pídeselo a tu proveedor», que para el cliente significa una
+ * llamada de teléfono por su propia tele: la que se dejó encendida en la
+ * casa del pueblo, o la del móvil que cambió el mes pasado. Son sus
+ * aparatos y es su cupo; cerrarlos es cosa suya.
+ *
+ * Solo los suyos: `liberarDispositivo` devuelve `false` si esa llave es de
+ * otro cliente, que es lo que pasaría si alguien lo probara a mano.
+ */
+export async function DELETE(req: NextRequest) {
+  const customer = await getCurrentCustomer();
+  if (!customer) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+
+  const llave = new URL(req.url).searchParams.get("llave") || "";
+  if (!llave) return NextResponse.json({ error: "Falta el aparato" }, { status: 400 });
+  if (!liberarDispositivo(customer.id, llave)) {
+    return NextResponse.json({ error: "Ese aparato no es de esta cuenta" }, { status: 403 });
+  }
   return NextResponse.json({ ok: true });
 }

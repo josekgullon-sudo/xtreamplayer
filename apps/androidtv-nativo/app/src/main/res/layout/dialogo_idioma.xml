@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Elegir el audio y los subtítulos.
+
+  Uno solo para el televisor y para el teléfono: es una lista de renglones
+  que se mide sola, y no hay nada que colocar distinto en una pantalla
+  grande. El ancho lo pone el código, que es quien sabe en qué aparato está.
+
+  Las filas se hacen en Java con `pieza_idioma`, porque cuántas hay depende
+  de lo que traiga el fichero.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/cuadro_dialogo"
+    android:paddingTop="22dp"
+    android:paddingBottom="16dp"
+    android:paddingStart="18dp"
+    android:paddingEnd="18dp">
+
+    <TextView
+        android:id="@+id/tituloIdioma"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Audio y subtítulos"
+        android:textColor="@color/texto"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/listaIdioma"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+</LinearLayout>

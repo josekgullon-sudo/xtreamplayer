@@ -103,6 +103,37 @@
 
         <Space android:layout_width="10dp" android:layout_height="1dp" />
 
+        <!-- Ajustes: el idioma, los aparatos de la cuenta y si el que falla
+             es el proveedor o esta tele. Ver AjustesActivity -->
+        <LinearLayout
+            android:id="@+id/botonAjustes"
+            android:layout_width="wrap_content"
+            android:layout_height="42dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/pastilla"
+            android:focusable="true"
+            android:paddingStart="16dp"
+            android:paddingEnd="18dp">
+
+            <ImageView
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:src="@drawable/ic_ajustes"
+                android:tint="@color/tenue"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Ajustes"
+                android:textColor="@color/tenue"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <Space android:layout_width="10dp" android:layout_height="1dp" />
+
         <LinearLayout
             android:id="@+id/botonSalir"
             android:layout_width="wrap_content"

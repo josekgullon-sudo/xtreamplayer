@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Un renglón de la lista de idiomas.
+
+  La marca de la izquierda ocupa su sitio siempre —aunque esté vacía— para
+  que los nombres queden alineados y la lista no baile al cambiar de pista.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/carril_item"
+    android:paddingStart="14dp"
+    android:paddingEnd="14dp"
+    android:focusable="true"
+    android:clickable="true">
+
+    <TextView
+        android:id="@+id/idiomaMarca"
+        android:layout_width="26dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/marca_viva"
+        android:textSize="17sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/idiomaNombre"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/texto"
+        android:textSize="17sp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+</LinearLayout>

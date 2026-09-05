@@ -13,6 +13,7 @@ import android.widget.TextView;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.common.Tracks;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -39,8 +40,8 @@ public class DirectoActivity extends Activity {
     private AdaptadorCarpetas carpetas;
     private AdaptadorCanales canales;
     private TextView tituloCarpeta, nombreCanal, ahora, pista, comoAmpliar, vacio;
-    private android.widget.LinearLayout luegoLista;
-    private TextView etiquetaAhora, etiquetaLuego, cuantos;
+    private android.widget.LinearLayout luegoLista, antesLista;
+    private TextView etiquetaAhora, etiquetaLuego, etiquetaAntes, cuantos;
     private View bloqueVacio, columnaCarpetas, columnaCanales, columnaVideo, bloqueInfo;
     /** A pantalla completa se esconde todo menos el vídeo. */
     private boolean aPantallaCompleta = false;
@@ -52,6 +53,14 @@ public class DirectoActivity extends Activity {
     private ProgressBar girando;
     private PlayerView vista;
     private ExoPlayer reproductor;
+
+    /** Si el canal que suena trae más de un audio o algún subtítulo. */
+    private boolean hayIdiomas = false;
+    /** Que el idioma guardado se ponga una vez por canal. Ver ReproductorActivity. */
+    private boolean idiomaPuesto = false;
+
+    /** Lo que dice la pista de debajo del vídeo antes de añadirle nada. */
+    private String pistaDelLayout = "";
 
     private String sonando = "";
     private Runnable pendiente;
@@ -96,8 +105,13 @@ public class DirectoActivity extends Activity {
         nombreCanal = findViewById(R.id.nombreCanal);
         ahora = findViewById(R.id.ahora);
         luegoLista = findViewById(R.id.luegoLista);
+        antesLista = findViewById(R.id.antesLista);
         pista = findViewById(R.id.pista);
         comoAmpliar = findViewById(R.id.comoAmpliar);
+        /* La del televisor habla de OK y la del teléfono de tocar la
+           imagen: se guarda la que traiga esta pantalla y se le añade lo
+           del idioma encima, en vez de escribir aquí una de las dos */
+        pistaDelLayout = comoAmpliar.getText().toString();
         vacio = findViewById(R.id.vacio);
         bloqueVacio = findViewById(R.id.bloqueVacio);
         columnaCarpetas = findViewById(R.id.columnaCarpetas);
@@ -117,6 +131,7 @@ public class DirectoActivity extends Activity {
         cuantos = findViewById(R.id.cuantos);
         etiquetaAhora = findViewById(R.id.etiquetaAhora);
         etiquetaLuego = findViewById(R.id.etiquetaLuego);
+        etiquetaAntes = findViewById(R.id.etiquetaAntes);
         caja = findViewById(R.id.caja);
         vista = findViewById(R.id.vista);
         vista.setUseController(false);
@@ -164,6 +179,23 @@ public class DirectoActivity extends Activity {
             listaCarpetas.setAdapter(carpetas);
             listaCanales.setAdapter(canales);
         }
+
+        /*
+         * Mantener pulsado la imagen abre el audio.
+         *
+         * En el teléfono es el único camino —no hay flechas—, y en la tele
+         * no estorba: el OK largo del mando ya sirve para los favoritos,
+         * pero eso es en la lista de canales, no encima del vídeo.
+         */
+        View.OnLongClickListener manteniendo = new View.OnLongClickListener() {
+            @Override public boolean onLongClick(View v) {
+                if (!hayIdiomas || reproductor == null) return false;
+                SelectorIdioma.abrir(DirectoActivity.this, reproductor);
+                return true;
+            }
+        };
+        caja.setOnLongClickListener(manteniendo);
+        vista.setOnLongClickListener(manteniendo);
 
         if (enMovil) {
             irAlPaso(0);
@@ -241,8 +273,10 @@ public class DirectoActivity extends Activity {
         nombreCanal.setText("");
         ahora.setText("");
         luegoLista.removeAllViews();
+        antesLista.removeAllViews();
         etiquetaAhora.setVisibility(View.GONE);
         etiquetaLuego.setVisibility(View.GONE);
+        etiquetaAntes.setVisibility(View.GONE);
         comoAmpliar.setVisibility(View.GONE);
         girando.setVisibility(View.GONE);
         pista.setText("Elige un canal de la lista");
@@ -596,8 +630,10 @@ public class DirectoActivity extends Activity {
         nombreCanal.setText(canal.nombre);
         ahora.setText("");
         luegoLista.removeAllViews();
+        antesLista.removeAllViews();
         etiquetaAhora.setVisibility(View.GONE);
         etiquetaLuego.setVisibility(View.GONE);
+        etiquetaAntes.setVisibility(View.GONE);
         if (pendienteGuia != null) Hilos.olvidar(pendienteGuia);
         pendienteGuia = new Runnable() {
             @Override public void run() { pedirGuia(canal); }
@@ -629,9 +665,12 @@ public class DirectoActivity extends Activity {
         nombreCanal.setText(canal.nombre);
         ahora.setText("");
         luegoLista.removeAllViews();
+        antesLista.removeAllViews();
         etiquetaAhora.setVisibility(View.GONE);
         etiquetaLuego.setVisibility(View.GONE);
+        etiquetaAntes.setVisibility(View.GONE);
         pista.setVisibility(View.GONE);
+        decirComoSeAmplia();
         comoAmpliar.setVisibility(View.VISIBLE);
         girando.setVisibility(View.VISIBLE);
         ponerEnLaVentana(canal);
@@ -650,6 +689,7 @@ public class DirectoActivity extends Activity {
      */
     private void expandir() {
         aPantallaCompleta = true;
+        avisarDelIdioma();
         columnaCarpetas.setVisibility(View.GONE);
         columnaCanales.setVisibility(View.GONE);
         bloqueInfo.setVisibility(View.GONE);
@@ -678,6 +718,24 @@ public class DirectoActivity extends Activity {
         // Que el mando no se quede sin sitio donde estar
         columnaVideo.setFocusable(true);
         columnaVideo.requestFocus();
+    }
+
+    /**
+     * Que existe la flecha derecha, dicho una vez en la vida.
+     *
+     * Debajo del vídeo ya está escrito, pero a pantalla completa no se ve
+     * nada de eso: se esconde todo menos la imagen. Y una función que nadie
+     * sabe que está es una función que no está. Una vez y no más: repetirlo
+     * en cada canal sería un cartel encima del partido cada dos minutos.
+     */
+    private void avisarDelIdioma() {
+        if (!hayIdiomas) return;
+        if (Sesion.ajustes(this).getBoolean("aviso_idioma", false)) return;
+        Sesion.ajustes(this).edit().putBoolean("aviso_idioma", true).apply();
+        android.widget.Toast.makeText(this, enMovil
+                        ? "Mantén pulsado el vídeo para cambiar el audio o los subtítulos"
+                        : "Pulsa la flecha derecha para cambiar el audio o los subtítulos",
+                android.widget.Toast.LENGTH_LONG).show();
     }
 
     private void encoger() {
@@ -733,25 +791,51 @@ public class DirectoActivity extends Activity {
         }
     }
 
+    /** El reproductor de la ventana, una sola vez. Ver `ponerEnLaVentana`. */
+    private void prepararReproductor() {
+        if (reproductor != null) return;
+        reproductor = Reproduccion.nuevo(this);
+        vista.setPlayer(reproductor);
+        reproductor.addListener(new Player.Listener() {
+            @Override public void onPlaybackStateChanged(int estado) {
+                girando.setVisibility(estado == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
+                // Si ha arrancado, los intentos gastados ya no cuentan
+                if (estado == Player.STATE_READY) reintentos = 0;
+            }
+            /**
+             * Qué trae el canal dentro.
+             *
+             * En directo esto importa más que en una película: media
+             * parrilla va en dual, y el partido con el narrador de la otra
+             * cadena era exactamente lo que no se podía cambiar.
+             */
+            @Override public void onTracksChanged(Tracks pistas) {
+                if (reproductor == null) return;
+                if (!idiomaPuesto) {
+                    idiomaPuesto = true;
+                    SelectorIdioma.aplicarLoGuardado(DirectoActivity.this, reproductor);
+                }
+                hayIdiomas = SelectorIdioma.hayDondeElegir(reproductor);
+                decirComoSeAmplia();
+                // Las pistas llegan un segundo después de arrancar: si para
+                // entonces ya se había ampliado, el aviso no ha salido
+                if (aPantallaCompleta) avisarDelIdioma();
+            }
+            @Override public void onPlayerError(PlaybackException error) {
+                if (volverAEngancharse()) return;
+                girando.setVisibility(View.GONE);
+                pista.setText(Reproduccion.porQue(error));
+                pista.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
     private void ponerEnLaVentana(final Catalogo.Item canal) {
-        if (reproductor == null) {
-            reproductor = Reproduccion.nuevo(this);
-            vista.setPlayer(reproductor);
-            reproductor.addListener(new Player.Listener() {
-                @Override public void onPlaybackStateChanged(int estado) {
-                    girando.setVisibility(estado == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
-                    // Si ha arrancado, los intentos gastados ya no cuentan
-                    if (estado == Player.STATE_READY) reintentos = 0;
-                }
-                @Override public void onPlayerError(PlaybackException error) {
-                    if (volverAEngancharse()) return;
-                    girando.setVisibility(View.GONE);
-                    pista.setText(Reproduccion.porQue(error));
-                    pista.setVisibility(View.VISIBLE);
-                }
-            });
-        }
+        prepararReproductor();
         reintentos = 0;
+        // Otro canal, otras pistas: lo que traía el anterior no vale
+        idiomaPuesto = false;
+        hayIdiomas = false;
         /*
          * La dirección se pide al pulsar, no al pintar la lista.
          *
@@ -809,6 +893,8 @@ public class DirectoActivity extends Activity {
 
     /** Cuántos programas se enseñan detrás del que está en antena. */
     private static final int CUANTOS_DESPUES = 5;
+    /** Y cuántos de los ya emitidos, para los canales que los guardan. */
+    private static final int CUANTOS_ANTES = 4;
 
     private void pedirGuia(final Catalogo.Item canal) {
         Hilos.fuera(new Hilos.Trabajo<java.util.List<Catalogo.Programa>>() {
@@ -831,9 +917,30 @@ public class DirectoActivity extends Activity {
                 luegoLista.removeAllViews();
                 int puestos = 0;
                 for (int i = 1; i < parrilla.size() && puestos < CUANTOS_DESPUES; i++, puestos++) {
-                    luegoLista.addView(filaDeGuia(parrilla.get(i)));
+                    luegoLista.addView(filaDeGuia(canal, parrilla.get(i)));
                 }
                 etiquetaLuego.setVisibility(puestos > 0 ? View.VISIBLE : View.GONE);
+
+                /*
+                 * Y lo de antes, cuando el canal lo guarda.
+                 *
+                 * La mitad de las listas traen archivo —`tv_archive`— y no
+                 * había por dónde pedirlo: el programa de las siete se
+                 * perdía a las siete y cinco. Aquí se ofrece lo que ya se
+                 * emitió, del más reciente al más viejo, que es lo que se
+                 * busca cuando se llega tarde a algo.
+                 */
+                antesLista.removeAllViews();
+                int recuperables = 0;
+                if (canal.diasGuardados > 0) {
+                    for (int i = 1; i < parrilla.size() && recuperables < CUANTOS_ANTES; i++) {
+                        Catalogo.Programa p = parrilla.get(i);
+                        if (!p.yaPaso()) continue;
+                        antesLista.addView(filaDeGuia(canal, p));
+                        recuperables++;
+                    }
+                }
+                etiquetaAntes.setVisibility(recuperables > 0 ? View.VISIBLE : View.GONE);
 
                 /* Y en la lista, debajo del nombre del canal que suena. Solo
                    si la guía es la suya: la de un canal por el que se está
@@ -853,10 +960,10 @@ public class DirectoActivity extends Activity {
      * leen de un barrido, y sin ellas la lista es un montón de títulos sin
      * decir cuándo es ninguno.
      */
-    private View filaDeGuia(Catalogo.Programa p) {
+    private View filaDeGuia(final Catalogo.Item canal, final Catalogo.Programa p) {
         android.widget.LinearLayout fila = new android.widget.LinearLayout(this);
         fila.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-        fila.setPadding(0, dp(3), 0, dp(3));
+        fila.setPadding(dp(6), dp(5), dp(6), dp(5));
 
         TextView hora = new TextView(this);
         hora.setText(p.hora);
@@ -872,9 +979,87 @@ public class DirectoActivity extends Activity {
         titulo.setMaxLines(1);
         titulo.setEllipsize(android.text.TextUtils.TruncateAt.END);
         fila.addView(titulo);
+
+        /*
+         * Lo ya emitido se puede poner, si el canal lo guarda.
+         *
+         * Solo entonces la fila se vuelve un botón: hacer que se enfoque
+         * todo lo que hay en la guía obligaría a recorrer diez renglones
+         * con el mando para llegar a la lista de canales, y nueve de ellos
+         * no harían nada al pulsar.
+         */
+        if (canal.diasGuardados > 0 && p.yaPaso() && !p.momento().isEmpty()) {
+            fila.setBackgroundResource(R.drawable.pastilla);
+            fila.setFocusable(true);
+            fila.setClickable(true);
+            TextView marca = new TextView(this);
+            marca.setText("VER");
+            marca.setTextSize(11);
+            marca.setTextColor(getResources().getColor(R.color.marca_viva));
+            marca.setPadding(dp(10), 0, 0, 0);
+            fila.addView(marca);
+            fila.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { verLoDeAntes(canal, p); }
+            });
+        }
         // Hecha a mano y no inflada: la letra de la casa se le pone aquí
         Tipos.aplicar(fila);
         return fila;
+    }
+
+    /**
+     * Poner un programa que ya se emitió.
+     *
+     * Es el mismo camino que un canal —la ventana de la derecha, y con otro
+     * OK a pantalla completa—, solo que la dirección se pide con la hora y
+     * la duración en vez de con el canal a secas.
+     */
+    private void verLoDeAntes(final Catalogo.Item canal, final Catalogo.Programa p) {
+        sonando = "";
+        mirando = canal.id;
+        nombreCanal.setText(p.titulo);
+        ahora.setText(canal.nombre + "  ·  " + p.hora);
+        pista.setVisibility(View.GONE);
+        decirComoSeAmplia();
+        comoAmpliar.setVisibility(View.VISIBLE);
+        girando.setVisibility(View.VISIBLE);
+        if (reproductor == null) prepararReproductor();
+        reintentos = 0;
+        idiomaPuesto = false;
+        hayIdiomas = false;
+        Hilos.fuera(new Hilos.Trabajo<String>() {
+            @Override public String hacer() throws Exception {
+                return Enlaces.paraVerLoDeAntes(canal.id, p.momento(), p.minutos());
+            }
+        }, new Hilos.Luego<String>() {
+            @Override public void listo(String direccion) {
+                if (reproductor == null) return;
+                reproductor.setMediaItem(MediaItem.fromUri(direccion));
+                reproductor.prepare();
+                reproductor.play();
+            }
+            @Override public void falla(Exception e) {
+                girando.setVisibility(View.GONE);
+                pista.setText(Hilos.enCristiano(e));
+                pista.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
+    /**
+     * Lo que se puede hacer con este canal, escrito debajo del vídeo.
+     *
+     * El idioma solo se nombra cuando el canal trae algo que elegir: una
+     * pista que ofrece lo que no existe es peor que ninguna pista.
+     */
+    private void decirComoSeAmplia() {
+        if (!hayIdiomas) {
+            comoAmpliar.setText(pistaDelLayout);
+            return;
+        }
+        comoAmpliar.setText(pistaDelLayout + (enMovil
+                ? " · Mantén pulsado el vídeo para el audio"
+                : " · A pantalla completa, derecha para el audio"));
     }
 
     private int dp(int v) {
@@ -892,6 +1077,14 @@ public class DirectoActivity extends Activity {
                 case KeyEvent.KEYCODE_DPAD_DOWN:
                 case KeyEvent.KEYCODE_CHANNEL_DOWN:
                     zapear(1);
+                    return true;
+                /* Aquí no hay mandos donde poner un botón —pantalla completa
+                   es el vídeo y nada más—, así que el idioma se abre con la
+                   flecha, que a lo ancho no hace nada más */
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                case KeyEvent.KEYCODE_MEDIA_AUDIO_TRACK:
+                    if (!hayIdiomas) break;
+                    SelectorIdioma.abrir(this, reproductor);
                     return true;
                 default:
                     break;

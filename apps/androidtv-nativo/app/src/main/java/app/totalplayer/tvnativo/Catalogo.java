@@ -88,6 +88,15 @@ public final class Catalogo {
          */
         public String clase = Enlaces.DIRECTO;
         public String extension = "";
+        /**
+         * Cuántos días guarda el panel de este canal, o cero.
+         *
+         * Es lo que permite ofrecer «ver desde el principio» en un programa
+         * que ya ha empezado. Lo manda `get_live_streams` en `tv_archive` y
+         * `tv_archive_duration`, y la mitad de las listas lo traen puesto
+         * sin que nadie lo use, porque no había por dónde pedirlo.
+         */
+        public int diasGuardados = 0;
         public String sinopsis = "";
         /** Año, género o lo que el proveedor mande: la línea de debajo. */
         public String extra = "";
@@ -556,6 +565,7 @@ public final class Catalogo {
             it.nombre = nombre;
             it.imagen = c.optString("stream_icon", "");
             it.numero = c.optInt("num", 0);
+            it.diasGuardados = archivoDe(c);
             /* .ts es el formato del directo en Xtream, y justo el que un
                navegador no sabe reproducir sin desmontarlo en JavaScript */
             it.clase = Enlaces.DIRECTO;
@@ -1087,6 +1097,27 @@ public final class Catalogo {
         }
         /** Está en antena si el reloj cae dentro de su tramo. */
         boolean enAntena(long ahora) { return inicio > 0 && fin > 0 && ahora >= inicio && ahora < fin; }
+
+        /** Ya se emitió: se puede recuperar del archivo, no esperar a él. */
+        public boolean yaPaso() { return fin > 0 && fin < System.currentTimeMillis(); }
+
+        /** Cuánto dura, en minutos. Es lo que hay que pedirle al archivo. */
+        public int minutos() {
+            if (inicio <= 0 || fin <= inicio) return 60;
+            return (int) Math.max(1, Math.round((fin - inicio) / 60000.0));
+        }
+
+        /**
+         * El momento, en el formato que fija el panel: 2026-09-05:20-30.
+         *
+         * Se arma con la zona horaria del propio televisor, que es la misma
+         * con la que llegó la hora de la guía.
+         */
+        public String momento() {
+            if (inicio <= 0) return "";
+            return new java.text.SimpleDateFormat("yyyy-MM-dd:HH-mm", java.util.Locale.US)
+                    .format(new java.util.Date(inicio));
+        }
     }
 
     /**
@@ -1122,19 +1153,58 @@ public final class Catalogo {
                 parrilla.add(new Programa(horaDe(ini), titulo, ini, fin));
             }
             if (parrilla.isEmpty()) return null;
-            /* Fuera lo ya emitido: ocupa sitio y no ayuda a decidir nada.
-               Si ninguno cae en el reloj —panel sin horas fiables— se deja
-               la lista entera, que es mejor que quedarse sin guía. */
+            /*
+             * Lo ya emitido se queda, pero detrás.
+             *
+             * Se tiraba —ocupaba sitio y no ayudaba a decidir qué ver—, y
+             * eso valía mientras no se pudiera ver. Con el archivo del panel
+             * sí se puede: el programa de las siete, a las nueve. La lista
+             * se recoloca para que lo que está en antena vaya primero y lo
+             * de antes quede a mano, y cada uno sabe si ya pasó.
+             *
+             * Si ninguno cae en el reloj —panel sin horas fiables— se deja
+             * como vino, que es mejor que quedarse sin guía.
+             */
             long ahora = System.currentTimeMillis();
             int deAqui = -1;
             for (int i = 0; i < parrilla.size(); i++) {
                 if (parrilla.get(i).enAntena(ahora)) { deAqui = i; break; }
             }
-            if (deAqui > 0) parrilla = new ArrayList<>(parrilla.subList(deAqui, parrilla.size()));
+            if (deAqui > 0) {
+                List<Programa> ordenada = new ArrayList<>(parrilla.subList(deAqui, parrilla.size()));
+                /* Lo de antes, del más reciente al más viejo: al que quiere
+                   recuperar algo le interesa lo de hace un rato */
+                for (int i = deAqui - 1; i >= 0; i--) ordenada.add(parrilla.get(i));
+                parrilla = ordenada;
+            }
             loQueEchan.put(streamId, parrilla);
             return parrilla;
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    /**
+     * Cuántos días de archivo tiene este canal.
+     *
+     * `tv_archive` dice si lo guarda y `tv_archive_duration` cuántos días,
+     * y los paneles los mandan unas veces como número y otras como texto.
+     * Sin `tv_archive` no hay archivo aunque venga la duración: hay listas
+     * que la traen a 7 en todos los canales por copiar la plantilla.
+     */
+    private static int archivoDe(JSONObject c) {
+        if (c == null) return 0;
+        String tiene = c.optString("tv_archive", "0").trim();
+        if (tiene.isEmpty() || "0".equals(tiene) || "false".equalsIgnoreCase(tiene)) return 0;
+        String dias = c.optString("tv_archive_duration", "").trim();
+        try {
+            int n = Integer.parseInt(dias);
+            return n > 0 ? n : 7;
+        } catch (Exception e) {
+            /* Dice que guarda pero no dice cuánto: una semana, que es lo
+               que guardan casi todos, y el propio panel dirá que no si se
+               le pide algo más viejo */
+            return 7;
         }
     }
 

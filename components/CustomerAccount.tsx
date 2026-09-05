@@ -20,7 +20,7 @@ interface Cuenta {
 interface Datos {
   cuenta: Cuenta;
   proveedor: { nombre: string; soporte: string; logo: string; precioPerfil: number };
-  dispositivos: { id: number; nombre: string; plataforma: string; alta: number; visto: number }[];
+  dispositivos: { id: number; llave: string; nombre: string; plataforma: string; alta: number; visto: number }[];
 }
 
 const PLATAFORMA: Record<string, string> = {
@@ -65,6 +65,8 @@ export default function CustomerAccount() {
   const [error, setError] = useState<string | null>(null);
   const [cambiando, setCambiando] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
+  /** Cuál se está cerrando, para que el botón lo diga mientras tanto */
+  const [cerrando, setCerrando] = useState("");
 
   useEffect(() => {
     fetch("/api/customer/cuenta")
@@ -95,6 +97,27 @@ export default function CustomerAccount() {
     form.reset();
     setCambiando(false);
     setAviso({ tipo: "ok", texto: "Contraseña cambiada. Úsala la próxima vez que entres." });
+  }
+
+  /**
+   * Cerrar uno de sus aparatos.
+   *
+   * Aquí ponía «pídeselo a tu proveedor», que para el cliente significa una
+   * llamada de teléfono por su propia tele: la que se dejó encendida en la
+   * casa del pueblo, o la del móvil que cambió. Son suyos y es su cupo.
+   */
+  async function cerrarAparato(llave: string) {
+    setCerrando(llave);
+    setAviso(null);
+    const res = await fetch(`/api/customer/cuenta?llave=${encodeURIComponent(llave)}`, { method: "DELETE" });
+    setCerrando("");
+    if (!res.ok) {
+      setAviso({ tipo: "error", texto: "No se pudo cerrar ese aparato" });
+      return;
+    }
+    setDatos((antes) =>
+      antes ? { ...antes, dispositivos: antes.dispositivos.filter((d) => d.llave !== llave) } : antes
+    );
   }
 
   async function salir() {
@@ -242,6 +265,13 @@ export default function CustomerAccount() {
                   <Icon name="device" size={16} />
                   <span className="cuenta-disp-nombre">{PLATAFORMA[d.plataforma] || d.nombre}</span>
                   <span className="cuenta-disp-visto">{cuandoFue(d.visto)}</span>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    disabled={cerrando === d.llave}
+                    onClick={() => cerrarAparato(d.llave)}
+                  >
+                    {cerrando === d.llave ? "Cerrando…" : "Cerrar"}
+                  </button>
                 </li>
               ))}
             </ul>
@@ -282,7 +312,8 @@ export default function CustomerAccount() {
             </div>
           ) : (
             <p className="cuenta-nota">
-              ¿Necesitas más dispositivos o perfiles, o liberar uno? Pídeselo a {proveedor.nombre}.
+              ¿Necesitas más dispositivos o perfiles? Pídeselos a {proveedor.nombre}. Liberar uno lo puedes
+              hacer tú desde la lista de arriba.
             </p>
           )}
         </section>

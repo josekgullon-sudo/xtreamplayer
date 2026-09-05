@@ -22,6 +22,24 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!--
+      Preguntar quién sabe escuchar.
+
+      Desde Android 11 una aplicación no ve qué otras hay instaladas si no
+      dice cuáles le interesan. Sin esto, la comprobación de si el aparato
+      entiende el dictado responde que no en TODOS los aparatos modernos, y
+      el micrófono del buscador no saldría nunca — ni en un Fire TV, que lo
+      lleva en el mando desde el primero.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <!-- Un televisor no tiene pantalla táctil: sin esto, Google Play no la
          ofrece a las teles y Amazon la rechaza -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -73,6 +91,8 @@
         <activity android:name=".FichaActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
         <activity android:name=".BuscarActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
+        <activity android:name=".AjustesActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />
         <activity android:name=".DescargasActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout" />

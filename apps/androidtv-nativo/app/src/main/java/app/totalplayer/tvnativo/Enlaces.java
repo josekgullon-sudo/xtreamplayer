@@ -22,6 +22,8 @@ public final class Enlaces {
     public static final String DIRECTO = "live";
     public static final String PELICULA = "movie";
     public static final String EPISODIO = "series";
+    /** Lo ya emitido: el panel lo sirve por otro guion. Ver `paraVerLoDeAntes`. */
+    public static final String YA_EMITIDO = "timeshift";
 
     /**
      * @param clase  qué se pide: directo, película o episodio
@@ -53,6 +55,33 @@ public final class Enlaces {
         JSONObject r = new JSONObject(Web.enCasaPost(Acceso.CASA + "/api/tele/ver", peticion.toString()));
         String url = r.optString("url", "");
         if (url.isEmpty()) throw new Exception("No hemos podido abrir esto. Prueba con otro.");
+        return completar(url);
+    }
+
+    /**
+     * Lo que ya se emitió: el programa de las siete, a las nueve.
+     *
+     * Es lo que en un panel se llama Catch Up, y la mitad de los canales de
+     * una lista lo traen puesto sin que nadie lo use, porque no hay por
+     * dónde pedirlo. El servidor ya sabe armarlo —lo hace para el
+     * reproductor web—; aquí solo hay que decirle desde cuándo y cuánto.
+     *
+     * @param cuando en el formato que fija el panel: 2026-09-05:20-30
+     * @param minutos lo que dura el programa
+     */
+    public static String paraVerLoDeAntes(String id, String cuando, int minutos) throws Exception {
+        if (!Sesion.actual().gestionada || !Sesion.actual().esXtream()) {
+            throw new Exception("Tu lista no permite ver lo ya emitido.");
+        }
+        JSONObject peticion = new JSONObject();
+        peticion.put("clase", YA_EMITIDO);
+        peticion.put("id", id);
+        peticion.put("inicio", cuando);
+        peticion.put("minutos", Math.max(1, minutos));
+
+        JSONObject r = new JSONObject(Web.enCasaPost(Acceso.CASA + "/api/tele/ver", peticion.toString()));
+        String url = r.optString("url", "");
+        if (url.isEmpty()) throw new Exception("Este canal no guarda lo ya emitido.");
         return completar(url);
     }
 

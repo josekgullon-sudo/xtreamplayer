@@ -275,6 +275,33 @@
                 android:orientation="vertical"
                 android:layout_marginTop="4dp" />
 
+            <!--
+              Y lo ya emitido, en los canales que lo guardan.
+
+              La mitad de las listas traen archivo y no había por dónde
+              pedirlo: el programa de las siete se perdía a las siete y
+              cinco. Sale solo cuando el canal lo guarda, que si no serían
+              cuatro renglones apagados en todos los demás.
+            -->
+            <TextView
+                android:id="@+id/etiquetaAntes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LO QUE YA SE EMITIÓ"
+                android:textColor="@color/tenue"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.14"
+                android:layout_marginTop="14dp"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/antesLista"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="4dp" />
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="0dp"

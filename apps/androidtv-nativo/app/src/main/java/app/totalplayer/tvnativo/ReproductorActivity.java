@@ -8,12 +8,12 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
-import java.util.Locale;
+import android.content.DialogInterface;
 
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.common.Tracks;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
 
@@ -38,9 +38,17 @@ public class ReproductorActivity extends Activity {
     private View cartelito;
     private TextView nombre, ahora, reloj, error;
     private ImageView logo, teclaPausa;
+    private TextView teclaIdioma;
     private ProgressBar girando, avance;
     private View mandos;
     private TextView vaPor, dura;
+    /**
+     * Que el idioma guardado se ponga una vez por vídeo.
+     *
+     * Ponerlo dispara otro aviso de pistas, y ese aviso volvería a ponerlo:
+     * sin esto es una pescadilla que se muerde la cola.
+     */
+    private boolean idiomaPuesto = false;
 
     /** Refresca la barra de una película mientras los mandos están a la vista. */
     private final Runnable contar = new Runnable() {
@@ -112,6 +120,24 @@ public class ReproductorActivity extends Activity {
                 girando.setVisibility(estado == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
                 if (estado == Player.STATE_READY) error.setVisibility(View.GONE);
             }
+            /**
+             * Ya se sabe qué trae el fichero dentro.
+             *
+             * Es el único momento en que se puede saber: hasta que no
+             * empieza a leerlo, ExoPlayer no tiene ni idea de cuántos
+             * audios hay. Por eso el botón nace escondido.
+             */
+            @Override public void onTracksChanged(Tracks pistas) {
+                if (reproductor == null) return;
+                if (!idiomaPuesto) {
+                    idiomaPuesto = true;
+                    SelectorIdioma.aplicarLoGuardado(ReproductorActivity.this, reproductor);
+                }
+                if (teclaIdioma == null) return;
+                boolean hay = SelectorIdioma.hayDondeElegir(reproductor);
+                teclaIdioma.setVisibility(hay ? View.VISIBLE : View.GONE);
+                if (hay) teclaIdioma.setText(SelectorIdioma.audioEnUso(reproductor));
+            }
             @Override public void onPlayerError(PlaybackException fallo) {
                 girando.setVisibility(View.GONE);
                 /* Dicho para lo que se está intentando poner: «este canal» en
@@ -135,8 +161,34 @@ public class ReproductorActivity extends Activity {
         teclaPausa.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { pausarOSeguir(); }
         });
+        teclaIdioma = findViewById(R.id.teclaIdioma);
+        teclaIdioma.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { elegirIdioma(); }
+        });
         teclaPausa.requestFocus();
         contar.run();
+    }
+
+    /**
+     * El cuadro de audio y subtítulos.
+     *
+     * Mientras está abierto no se esconden los mandos: al cerrarlo el foco
+     * vuelve al botón, y un botón invisible no recibe foco.
+     */
+    private void elegirIdioma() {
+        if (reproductor == null) return;
+        Hilos.olvidar(esconder);
+        SelectorIdioma.abrir(this, reproductor, new DialogInterface.OnDismissListener() {
+            @Override public void onDismiss(DialogInterface d) {
+                // La pantalla puede haberse cerrado con el cuadro abierto
+                if (reproductor == null) return;
+                if (teclaIdioma != null && teclaIdioma.getVisibility() == View.VISIBLE) {
+                    teclaIdioma.setText(SelectorIdioma.audioEnUso(reproductor));
+                }
+                sacarMandos();
+                asomar();
+            }
+        });
     }
 
     /** Adelantar o retroceder sin pasarse de los extremos. */
@@ -181,6 +233,8 @@ public class ReproductorActivity extends Activity {
     }
 
     private void poner() {
+        idiomaPuesto = false;
+        if (teclaIdioma != null) teclaIdioma.setVisibility(View.GONE);
         error.setVisibility(View.GONE);
         girando.setVisibility(View.VISIBLE);
         nombre.setText(Traspaso.titulo);

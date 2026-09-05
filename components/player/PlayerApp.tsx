@@ -17,6 +17,7 @@ import VideoPlayer, { PlaySource } from "./VideoPlayer";
 import AddPlaylistModal from "./AddPlaylistModal";
 import ProfileGate from "./ProfileGate";
 import SectionGate from "./SectionGate";
+import Ajustes from "./Ajustes";
 import ListaVirtual from "./ListaVirtual";
 import RejillaInfinita from "./RejillaInfinita";
 import { useAtras } from "./useAtras";
@@ -108,6 +109,42 @@ interface XtreamData {
 
 const K_LAST_PLAYLIST = "xp.lastPlaylist.v1";
 const K_VISTA_CANALES = "xp.vistaCanales.v1";
+/**
+ * Por dónde se entró la última vez, por lista.
+ *
+ * La pantalla de «¿qué te apetece ver?» está pensada para el primer día:
+ * enseña de una vez que la suscripción trae cine y series, que es lo que
+ * nadie descubría. A partir del segundo ya no enseña nada —quien pone la
+ * tele para ver el partido sabe perfectamente que quiere el directo— y se
+ * convierte en un clic entre el cliente y su canal, todos los días.
+ *
+ * Así que se pregunta una vez y luego se entra por donde se salió. Sigue a
+ * mano en «Inicio», con la portada entera, para quien quiera mirar.
+ */
+const K_ULTIMA_SECCION = "xp.ultimaSeccion.v1";
+
+/** Lo guardado para esta lista, si es una de las secciones de verdad. */
+function seccionRecordada(listaId: string | null): "live" | "vod" | "series" | "favs" | null {
+  if (!listaId) return null;
+  try {
+    const guardado = JSON.parse(localStorage.getItem(K_ULTIMA_SECCION) || "{}");
+    const cual = guardado[listaId];
+    return cual === "live" || cual === "vod" || cual === "series" || cual === "favs" ? cual : null;
+  } catch {
+    return null;
+  }
+}
+
+function recordarSeccion(listaId: string | null, cual: string) {
+  if (!listaId) return;
+  try {
+    const guardado = JSON.parse(localStorage.getItem(K_ULTIMA_SECCION) || "{}");
+    guardado[listaId] = cual;
+    localStorage.setItem(K_ULTIMA_SECCION, JSON.stringify(guardado));
+  } catch {
+    /* almacenamiento bloqueado: se preguntará otra vez, que no es grave */
+  }
+}
 
 /**
  * De dónde sale esta lista, en el lenguaje que entiende el servidor.
@@ -210,7 +247,9 @@ function rotulo(n?: string): string {
  */
 export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) {
   const [user, setUser] = useState<{ email: string } | null>(null);
-  const [customer, setCustomer] = useState<{ username: string; brand: string } | null>(null);
+  const [customer, setCustomer] = useState<{ username: string; brand: string; soporte?: string } | null>(null);
+  /** El cuadro de ajustes, que es donde el cliente arregla lo suyo sin llamar a nadie */
+  const [verAjustes, setVerAjustes] = useState(false);
   const [authLoaded, setAuthLoaded] = useState(false);
   const [playlists, setPlaylists] = useState<StoredPlaylist[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -411,7 +450,37 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
       .then((r) => r.json())
       .then((d) => {
         if (!d.customer) return;
-        setCustomer({ username: d.customer.username, brand: d.brand || "" });
+        setCustomer({
+          username: d.customer.username,
+          brand: d.brand || "",
+          soporte: d.branding?.support || "",
+        });
+
+        /*
+         * Y su lista, que es la razón de que esté aquí.
+         *
+         * Esto no se hacía: el cliente de un proveedor entraba en la
+         * aplicación con su sesión buena, sus perfiles y su marca… y se
+         * encontraba la pantalla de bienvenida pidiéndole que pegara una
+         * lista M3U. Que es exactamente lo que un cliente de proveedor no
+         * tiene ni tiene por qué saber qué es.
+         *
+         * No lleva dirección ni usuario: la resuelve el servidor desde la
+         * galleta en cada petición —ver `/api/customer/me` y `lib/origen`—
+         * y por eso `managed` va en true. Va la primera y se abre sola, salvo
+         * que el cliente hubiera elegido a mano otra suya: eso se respeta,
+         * que para algo la eligió.
+         */
+        if (!d.playlist) return;
+        const suya: StoredPlaylist = {
+          id: d.playlist.id,
+          name: d.playlist.name || "Mi lista",
+          type: d.playlist.type === "m3u" ? "m3u" : "xtream",
+          url: "",
+          managed: true,
+        };
+        setPlaylists((antes) => [suya, ...antes.filter((x) => x.id !== suya.id)]);
+        setActiveId((cur) => cur ?? suya.id);
       })
       .catch(() => {});
 
@@ -1695,8 +1764,26 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
   // Se resuelve una sola vez por lista, en cuanto se sabe quién está viendo
   useEffect(() => {
     if (seccionGate !== "pendiente" || !perfilResuelto || !active) return;
-    setSeccionGate(hayDondeElegir ? "mostrando" : "hecho");
-  }, [seccionGate, perfilResuelto, active, hayDondeElegir]);
+    if (!hayDondeElegir) {
+      setSeccionGate("hecho");
+      return;
+    }
+    /* La segunda vez y las siguientes se entra por donde se salió. Ver
+       K_ULTIMA_SECCION: preguntar todos los días lo que ya se contestó es
+       un clic diario a cambio de nada */
+    let antes = seccionRecordada(activeId);
+    /* Y que lo recordado siga existiendo: se entró por favoritos, se
+       quitaron todos, y al día siguiente la aplicación abría en una lista
+       vacía. Lo mismo con el cine en una lista M3U que ya no lo trae */
+    if (antes === "favs" && !Object.keys(favorites).length) antes = null;
+    if ((antes === "vod" || antes === "series") && !isXtream) antes = null;
+    if (antes) {
+      irAPestana(antes);
+      setSeccionGate("hecho");
+      return;
+    }
+    setSeccionGate("mostrando");
+  }, [seccionGate, perfilResuelto, active, activeId, hayDondeElegir, favorites, isXtream]);
 
   // La portada enseña cine y series sin entrar en sus pestañas: en cuanto se
   // muestra el selector se precargan en segundo plano y las carátulas van
@@ -2031,6 +2118,7 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
         conFavoritos={Object.keys(favorites).length > 0}
         onElegir={(s) => {
           irAPestana(s);
+          recordarSeccion(activeId, s);
           setSeccionGate("hecho");
         }}
         portada={active ? {
@@ -2048,6 +2136,7 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
             logo: imgSrc(c.logo) || "",
             play: () => {
               setSeccionGate("hecho");
+              recordarSeccion(activeId, "live");
               setTab("live");
               c.play();
             },
@@ -2062,6 +2151,7 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
             poster: imgSrc(v.stream_icon) || "",
             abrir: () => {
               setSeccionGate("hecho");
+              recordarSeccion(activeId, "vod");
               setTab("vod");
               setViendo(false); // si había un canal sonando, la ficha manda
               openVod(active, v);
@@ -2075,12 +2165,22 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
             poster: imgSrc(s.cover) || "",
             abrir: () => {
               setSeccionGate("hecho");
+              recordarSeccion(activeId, "series");
               setTab("series");
               setViendo(false);
               openSeries(active, s);
             },
           })),
         } : undefined}
+      />
+    )}
+    {verAjustes && (
+      <Ajustes
+        marca={customer?.brand || "TOTALplayer"}
+        soporte={customer?.soporte}
+        esCliente={Boolean(customer)}
+        creds={active ? credsOf(active) : null}
+        onCerrar={() => setVerAjustes(false)}
       />
     )}
     {/*
@@ -2114,7 +2214,7 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
           <button
             key={d.id}
             className={`pa-rail-item ${tab === d.id ? "activo" : ""}`}
-            onClick={() => { irAPestana(d.id); setSeccionGate("hecho"); }}
+            onClick={() => { irAPestana(d.id); recordarSeccion(activeId, d.id); setSeccionGate("hecho"); }}
             aria-current={tab === d.id ? "page" : undefined}
           >
             <span className="pa-rail-icono"><Icon name={d.icono} size={20} /></span>
@@ -2131,6 +2231,17 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
           <button className="pa-rail-item" onClick={recargar} title="Volver a pedir el catálogo" aria-label="Recargar">
             <span className="pa-rail-icono"><Icon name="recargar" size={20} /></span>
             <span className="pa-rail-txt">Recargar</span>
+          </button>
+          {/* Ajustes: el idioma, lo que llevo visto, mis aparatos y si el
+              que falla es mi proveedor o este aparato */}
+          <button
+            className={`pa-rail-item ${verAjustes ? "activo" : ""}`}
+            onClick={() => { setVerAjustes(true); setVerListas(false); }}
+            title="Ajustes"
+            aria-label="Ajustes"
+          >
+            <span className="pa-rail-icono"><Icon name="ajustes" size={20} /></span>
+            <span className="pa-rail-txt">Ajustes</span>
           </button>
           <button
             className={`pa-rail-item ${verListas ? "activo" : ""}`}
@@ -2169,6 +2280,15 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
         </button>
         <button className="pa-icon-btn" onClick={abrirBusqueda} title="Buscar" aria-label="Buscar">
           <Icon name="search" size={16} />
+        </button>
+        {/* Y los ajustes, que en el móvil no tienen carril donde vivir */}
+        <button
+          className="pa-icon-btn"
+          onClick={() => { setVerAjustes(true); setVerListas(false); }}
+          title="Ajustes"
+          aria-label="Ajustes"
+        >
+          <Icon name="ajustes" size={16} />
         </button>
       </div>
     )}
@@ -3458,7 +3578,7 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
             <button
               key={d.id}
               className={`pa-bottomnav-item ${tab === d.id ? "active" : ""}`}
-              onClick={() => { irAPestana(d.id); setSeccionGate("hecho"); }}
+              onClick={() => { irAPestana(d.id); recordarSeccion(activeId, d.id); setSeccionGate("hecho"); }}
               aria-current={tab === d.id ? "page" : undefined}
             >
               <span className="pa-bottomnav-pastilla"><Icon name={d.icono} size={20} /></span>

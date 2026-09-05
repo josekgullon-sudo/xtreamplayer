@@ -3,9 +3,12 @@ package app.totalplayer.tvnativo;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.speech.RecognizerIntent;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -48,6 +51,9 @@ public class BuscarActivity extends Activity {
     /** Cuántas de las tres listas han llegado ya. */
     private int listasPuestas;
 
+    /** El número con el que vuelve lo que se ha dictado. */
+    private static final int HABLANDO = 71;
+
     @Override protected void onCreate(Bundle guardado) {
         super.onCreate(guardado);
         Pantalla.colocar(this);
@@ -79,11 +85,68 @@ public class BuscarActivity extends Activity {
             @Override public List<Catalogo.Item> hacer() throws Exception { return Catalogo.todasLasSeries(); }
         });
 
+        prepararVoz();
+
         campo.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
             @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
             @Override public void afterTextChanged(Editable s) { filtrar(s.toString()); }
         });
+    }
+
+    /**
+     * Buscar hablando.
+     *
+     * Escribir «Los Simpson» con el mando son once paseos por un teclado en
+     * pantalla, uno por letra, con cuatro flechas. Es lo más pesado que hay
+     * en la aplicación, y el mando del Fire TV lleva micrófono desde
+     * siempre: lo único que faltaba era pedirlo.
+     *
+     * El botón solo sale si el aparato sabe escuchar. Hay televisores y
+     * cajas chinas sin nada que atienda a esto, y un botón que al pulsarlo
+     * no hace nada es peor que no tenerlo: la primera vez se piensa que la
+     * aplicación está rota.
+     */
+    private void prepararVoz() {
+        final ImageView boton = findViewById(R.id.botonVoz);
+        if (boton == null) return;
+        final Intent escuchar = intencionDeVoz();
+        if (getPackageManager().resolveActivity(escuchar, 0) == null) return;
+        boton.setVisibility(View.VISIBLE);
+        boton.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                try {
+                    startActivityForResult(escuchar, HABLANDO);
+                } catch (Exception e) {
+                    // Se anunciaba y no está: nada que hacer salvo esconderlo
+                    boton.setVisibility(View.GONE);
+                }
+            }
+        });
+    }
+
+    private Intent intencionDeVoz() {
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        /* En el idioma del aparato y no en español a la fuerza: la
+           aplicación se usa fuera de España y quien tiene la tele en
+           portugués dicta en portugués. Con guion y no con barra baja
+           —«es-ES»—, que es lo que entiende el reconocedor */
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag());
+        i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Di qué quieres ver");
+        return i;
+    }
+
+    @Override protected void onActivityResult(int cual, int comoFue, Intent datos) {
+        super.onActivityResult(cual, comoFue, datos);
+        if (cual != HABLANDO || comoFue != RESULT_OK || datos == null) return;
+        List<String> oido = datos.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+        if (oido == null || oido.isEmpty()) return;
+        /* Lo que se escribe en el campo y no lo que se busca a escondidas:
+           casi siempre acierta, y cuando no, se corrige la palabra suelta
+           que falló en vez de volver a empezar */
+        campo.setText(oido.get(0));
+        campo.setSelection(campo.getText().length());
     }
 
     /**

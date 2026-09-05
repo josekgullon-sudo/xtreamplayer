@@ -234,6 +234,32 @@
                 android:layout_marginTop="3dp" />
         </LinearLayout>
 
+        <!-- Ajustes, en la barra de abajo con los demás -->
+        <LinearLayout
+            android:id="@+id/botonAjustes"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_ajustes"
+                android:tint="@color/apagado"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ajustes"
+                android:textColor="@color/apagado"
+                android:textSize="12sp"
+                android:layout_marginTop="3dp" />
+        </LinearLayout>
+
         <LinearLayout
             android:id="@+id/botonSalir"
             android:layout_width="0dp"

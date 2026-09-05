@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { jsonComprimido } from "@/lib/comprimir";
 import { getCurrentCustomer } from "@/lib/provider";
 import { ProfileOwner, ensureDefaultProfile, getActiveProfileId, ownsProfile } from "@/lib/profiles";
-import { apuntar, olvidar, todos } from "@/lib/vistos";
+import { apuntar, olvidar, olvidarTodo, todos } from "@/lib/vistos";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,8 @@ export const dynamic = "force-dynamic";
  * GET     devuelve todo lo apuntado del perfil abierto.
  * POST    apunta por dónde va algo. Lo llama el reproductor cada quince
  *         segundos y al salir del vídeo.
- * DELETE  lo quita de «seguir viendo».
+ * DELETE  lo quita de «seguir viendo». Con `?todo=1`, el historial entero
+ *         de este perfil, que es lo que se pide desde Ajustes.
  */
 async function quien(): Promise<{ owner: ProfileOwner; profileId: number } | null> {
   const customer = await getCurrentCustomer();
@@ -76,7 +77,12 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const yo = await quien();
   if (!yo) return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
-  const llave = new URL(req.url).searchParams.get("llave") || "";
+  const busca = new URL(req.url).searchParams;
+  if (busca.get("todo") === "1") {
+    olvidarTodo(yo.owner, yo.profileId);
+    return NextResponse.json({ ok: true, todo: true });
+  }
+  const llave = busca.get("llave") || "";
   if (!llave) return NextResponse.json({ error: "Falta la llave" }, { status: 400 });
   olvidar(yo.owner, yo.profileId, llave);
   return NextResponse.json({ ok: true });

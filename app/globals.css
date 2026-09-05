@@ -5996,6 +5996,9 @@ select.input { appearance: none; cursor: pointer; }
 .cuenta-dispositivos svg { color: var(--text-faint); flex-shrink: 0; }
 .cuenta-disp-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cuenta-disp-visto { font-size: 12.5px; color: var(--text-faint); flex-shrink: 0; }
+/* Cerrar un aparato se pulsa con el dedo: 44px es el mínimo con el que no
+   se falla, y esta lista se mira sobre todo desde el móvil */
+.cuenta-dispositivos li .btn { flex-shrink: 0; min-height: 44px; }
 
 /* La ampliación que más se pide, con su precio a la vista */
 .cuenta-oferta {
@@ -6450,3 +6453,41 @@ tr:hover .celda-caduca .act-renovar,
   font-variant-numeric: tabular-nums;
 }
 .campo-pista { margin: 6px 0 0; font-size: 12.5px; color: var(--text-faint); line-height: 1.45; }
+
+/*
+ * Ajustes del reproductor.
+ *
+ * Cuatro bloques y ni un interruptor de adorno: cada uno está porque hoy
+ * acaba en una llamada al proveedor —el idioma que se eligió mal, lo que
+ * uno lleva visto y no quiere en la pantalla, el cupo de aparatos y el
+ * «no se ve nada» que nadie sabe de quién es—. Ver components/player/Ajustes.tsx.
+ */
+.pa-ajustes { position: relative; max-width: 540px; }
+.pa-ajustes h2 { margin-bottom: 2px; }
+.ajustes-bloque { padding: 18px 0; border-top: 1px solid var(--hairline); }
+.ajustes-bloque:first-of-type { border-top: 0; padding-top: 4px; }
+.ajustes-bloque h3 {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 700; margin: 0 0 8px;
+}
+.ajustes-bloque h3 svg { color: var(--text-faint); }
+.ajustes-pie { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 0 0 12px; }
+.ajustes-dato { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; margin: 0 0 6px; }
+.ajustes-dato b { font-weight: 600; }
+.ajustes-aparatos { list-style: none; display: flex; flex-direction: column; margin: 0 0 12px; padding: 0; }
+.ajustes-aparatos li {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 9px 0; border-top: 1px solid var(--hairline);
+}
+.ajustes-aparatos li:first-child { border-top: 0; }
+.ajustes-aparato-que { display: flex; flex-direction: column; min-width: 0; }
+.ajustes-aparato-que b { font-size: 14px; font-weight: 600; }
+.ajustes-aparato-que span { font-size: 12.5px; color: var(--text-faint); }
+/* El veredicto es lo único largo de esta pantalla: se lee como un párrafo,
+   no como una etiqueta */
+.ajustes-veredicto {
+  margin: 12px 0 0; padding: 12px 14px; border-radius: var(--radius-sm);
+  background: var(--surface-quiet); border: 1px solid var(--hairline);
+  font-size: 13px; line-height: 1.55; color: var(--text);
+}
+.ajustes-soporte { margin: 18px 0 0; font-size: 13px; color: var(--text-dim); text-align: center; }

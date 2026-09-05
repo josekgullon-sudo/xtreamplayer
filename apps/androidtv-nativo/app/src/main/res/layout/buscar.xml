@@ -35,20 +35,43 @@
         android:paddingTop="18dp"
         android:paddingBottom="12dp">
 
-        <EditText
-            android:id="@+id/campo"
+        <!-- El campo y el micrófono. En el teléfono se escribe mejor que
+             con un mando, pero dictar sigue siendo más rápido -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="54dp"
-            android:hint="Un título, una serie o un canal"
-            android:textColorHint="@color/tenue"
-            android:textColor="@color/texto"
-            android:textSize="16sp"
-            android:background="@drawable/campo"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:inputType="text"
-            android:singleLine="true"
-            android:importantForAutofill="no" />
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/campo"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="54dp"
+                android:hint="Un título, una serie o un canal"
+                android:textColorHint="@color/tenue"
+                android:textColor="@color/texto"
+                android:textSize="16sp"
+                android:background="@drawable/campo"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:inputType="text"
+                android:singleLine="true"
+                android:importantForAutofill="no" />
+
+            <ImageView
+                android:id="@+id/botonVoz"
+                android:layout_width="54dp"
+                android:layout_height="54dp"
+                android:layout_marginStart="10dp"
+                android:padding="15dp"
+                android:src="@drawable/ic_micro"
+                android:background="@drawable/tecla"
+                android:focusable="true"
+                android:clickable="true"
+                android:visibility="gone"
+                android:contentDescription="Buscar hablando" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/cuantos"

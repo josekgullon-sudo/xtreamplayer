@@ -39,20 +39,50 @@
         android:paddingTop="26dp"
         android:paddingBottom="24dp">
 
-    <EditText
-        android:id="@+id/campo"
+    <!--
+      El campo y el micrófono.
+
+      Escribir «Los Simpson» con el mando son once viajes por un teclado en
+      pantalla, letra a letra, con las flechas. Es la parte más pesada de la
+      aplicación con diferencia, y el mando del Fire TV lleva micrófono. El
+      botón nace escondido y solo sale si el aparato sabe escuchar — ver
+      BuscarActivity.
+    -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="66dp"
-        android:hint="Un título, una serie o un canal"
-        android:textColorHint="@color/tenue"
-        android:textColor="@color/texto"
-        android:textSize="19sp"
-        android:background="@drawable/campo"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:inputType="text"
-        android:singleLine="true"
-        android:importantForAutofill="no" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <EditText
+            android:id="@+id/campo"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="66dp"
+            android:hint="Un título, una serie o un canal"
+            android:textColorHint="@color/tenue"
+            android:textColor="@color/texto"
+            android:textSize="19sp"
+            android:background="@drawable/campo"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:inputType="text"
+            android:singleLine="true"
+            android:importantForAutofill="no" />
+
+        <ImageView
+            android:id="@+id/botonVoz"
+            android:layout_width="66dp"
+            android:layout_height="66dp"
+            android:layout_marginStart="14dp"
+            android:padding="19dp"
+            android:src="@drawable/ic_micro"
+            android:background="@drawable/tecla"
+            android:focusable="true"
+            android:clickable="true"
+            android:visibility="gone"
+            android:contentDescription="Buscar hablando" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/cuantos"
