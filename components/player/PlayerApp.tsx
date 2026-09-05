@@ -174,11 +174,13 @@ function rotulo(n?: string): string {
   return (n || "").trim() || "Canal sin nombre";
 }
 
-export default function PlayerApp() {
+/**
+ * @param enUnaApp Dentro de uno de nuestros envoltorios —el APK del móvil—
+ *   y no en el navegador. Quita lo que solo tiene sentido en la web.
+ */
+export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) {
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [customer, setCustomer] = useState<{ username: string; brand: string } | null>(null);
-  /** Cliente de un proveedor: la web no le sirve la tele, se la sirven las apps. */
-  const [soloApps, setSoloApps] = useState<{ marca: string; usuario: string } | null>(null);
   const [authLoaded, setAuthLoaded] = useState(false);
   const [playlists, setPlaylists] = useState<StoredPlaylist[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -336,21 +338,20 @@ export default function PlayerApp() {
     else if (locals.length) setActiveId(locals[0].id);
 
     /*
-     * Un cliente de proveedor no entra por aquí.
+     * Quién es el cliente, para su marca.
      *
-     * El reproductor de la web es para quien se pega su propia lista: esa
-     * dirección la ha escrito él y verla en la barra del navegador no le
-     * descubre nada. La línea de un cliente de proveedor es otra cosa —lleva
-     * dentro el servidor, el usuario y la contraseña— y en una página web no
-     * hay forma de reproducir un vídeo sin que la dirección esté al alcance
-     * de F12. Así que se ve desde las aplicaciones, donde sí se puede
-     * guardar, y aquí se le dice dónde bajarlas.
+     * Si llega hasta aquí es que está dentro de una aplicación: la página
+     * de servidor ya ha decidido que un cliente de proveedor en un navegador
+     * de a pie no reproduce (ver `lib/envoltorio.ts`). Lo que se pide es su
+     * nombre y el de su proveedor, que es lo que se enseña en la pantalla de
+     * elegir sección — hasta ahora ponía «TOTALplayer» a todo el mundo
+     * porque este estado no se rellenaba nunca.
      */
     fetch("/api/customer/me")
       .then((r) => r.json())
       .then((d) => {
         if (!d.customer) return;
-        setSoloApps({ marca: d.brand || "", usuario: d.customer.username });
+        setCustomer({ username: d.customer.username, brand: d.brand || "" });
       })
       .catch(() => {});
 
@@ -1724,30 +1725,6 @@ export default function PlayerApp() {
     })();
   }, [canalesALaVista, active]);
 
-  /*
-   * La puerta. Antes de pintar nada: si quien mira es cliente de un
-   * proveedor, aquí no se reproduce, se le manda a las aplicaciones.
-   */
-  if (soloApps) {
-    return (
-      <div className="solo-apps">
-        <div className="solo-apps-caja">
-          <span className="logo-nombre">TOTAL<span className="logo-play">player</span></span>
-          <h1>Hola, {soloApps.usuario}. Tu tele se ve desde la aplicación.</h1>
-          <p>
-            {soloApps.marca ? `${soloApps.marca} sirve` : "Tu proveedor sirve"} sus canales a través de
-            nuestras aplicaciones, no del navegador. Se instalan una vez y entras con el mismo usuario y
-            la misma contraseña que acabas de usar.
-          </p>
-          <div className="solo-apps-botones">
-            <a className="btn btn-primary" href="/apps">Ver las aplicaciones</a>
-            <a className="btn btn-ghost" href="/mi-cuenta">Mi cuenta</a>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
     <ProfileGate
@@ -2329,7 +2306,12 @@ export default function PlayerApp() {
         <aside className="pa-live-cats" aria-label="Categorías">
           <div className="pa-live-head">
             <span>Categorías</span>
-            <span className="pa-live-n">{liveGroups.reduce((n, g) => n + g.channels.length, 0)}</span>
+            {/* La pastilla cuenta lo que dice el rótulo que tiene al lado.
+                Contaba canales —«Categorías 9» con tres carpetas a la
+                vista—, y un número que no cuadra con lo que se ve debajo
+                hace dudar de la lista entera. Los canales de cada una ya
+                van escritos en su fila */}
+            <span className="pa-live-n">{liveGroups.length}</span>
           </div>
           <div className="pa-live-scroll">
             {/* Lo último visto, primero: en la práctica se vuelve al mismo
@@ -2346,12 +2328,17 @@ export default function PlayerApp() {
                 <p className="pa-live-sub">Categorías</p>
               </>
             )}
-            <button
-              className={`pa-live-cat ${!grupoSel ? "activa" : ""}`}
-              onClick={() => { setGrupoSel(null); setVerCanales(true); }}
-            >
-              <span className="name">Todos los canales</span>
-            </button>
+            {/* «Todos los canales» solo cuando hay alguno: en favoritos sin
+                nada marcado era un botón a una lista vacía, encima del texto
+                que ya decía que no había nada */}
+            {liveGroups.length > 0 && (
+              <button
+                className={`pa-live-cat ${!grupoSel ? "activa" : ""}`}
+                onClick={() => { setGrupoSel(null); setVerCanales(true); }}
+              >
+                <span className="name">Todos los canales</span>
+              </button>
+            )}
             {/* Con su icono: en sesenta carpetas que empiezan igual, el
                 dibujo distingue antes que el nombre — ver lib/categorias */}
             {liveGroups.map((g) => (
@@ -2375,18 +2362,29 @@ export default function PlayerApp() {
                 <Icon name="chevronRight" size={16} className="pa-cat-flecha" />
               </button>
             ))}
-            {!liveGroups.length && !loading && (
+            {/* Favoritos sin nada: un solo bloque con su dibujo y la salida,
+                en vez de un rótulo, un botón y una frase repartidos por la
+                columna diciendo lo mismo tres veces */}
+            {!liveGroups.length && !loading && tab === "favs" && (
+              <div className="pa-vacio">
+                <Icon name="star" size={30} />
+                <p>Aún no has marcado ningún canal.</p>
+                <p className="pa-vacio-pista">Con un canal puesto, dale a «Favorito» y aparecerá aquí.</p>
+                <button className="btn btn-primary btn-sm" onClick={() => setTab("live")}>
+                  Ir a los canales
+                </button>
+              </div>
+            )}
+            {!liveGroups.length && !loading && tab !== "favs" && (
               <p className="pa-empty">
-                {tab === "favs"
-                  ? "Aún no tienes canales en favoritos."
-                  : q
-                    ? "Nada con ese nombre en esta lista."
-                    : /* Sin buscar nada y sin un solo canal, la lista viene
+                {q
+                  ? "Nada con ese nombre en esta lista."
+                  : /* Sin buscar nada y sin un solo canal, la lista viene
                          vacía. Decir «no hay canales que coincidan» ahí suena
                          a que hay un filtro puesto y manda a buscarlo: el
                          cliente cuya suscripción ha caducado se quedaba
-                         mirando un buscador que no era el problema. */
-                      "Esta lista no trae ningún canal. Suele ser que la suscripción ha caducado, o que la dirección no es la que toca: pregúntale a quien te la dio."}
+                       mirando un buscador que no era el problema. */
+                    "Esta lista no trae ningún canal. Suele ser que la suscripción ha caducado, o que la dirección no es la que toca: pregúntale a quien te la dio."}
               </p>
             )}
           </div>

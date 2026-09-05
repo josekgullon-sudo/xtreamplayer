@@ -78,6 +78,73 @@ const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "✅" :
   check("Los importados están en la lista de clientes", filas >= 2, `${filas} filas`);
 
   /*
+   * La columna que se mira todos los días: cuándo se le acaba a cada uno.
+   *
+   * La tabla enseñaba el alta —que se mira una vez en la vida— y para saber
+   * a quién había que cobrarle esta semana había que abrir las fichas una a
+   * una. Se comprueba con tres clientes de tres estados distintos, que es lo
+   * que distingue una columna útil de una columna con fechas.
+   */
+  {
+    /* El alta, desde la propia página: la sesión del proveedor va en una
+       cookie httpOnly, que desde aquí no se puede leer para reenviarla */
+    const alta = (usuario, expiresAt) =>
+      p.evaluate(async ([u, exp]) => {
+        const res = await fetch("/api/provider/customers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: "clave1234", expiresAt: exp, playlistUrl: "http://127.0.0.1:8090/lista.m3u" }),
+        });
+        return res.status;
+      }, [usuario, expiresAt]);
+    const DIA = 86_400_000;
+    const altas = [
+      await alta(`cad${RUN}v`, Date.now() - 2 * DIA),   // vencido
+      await alta(`cad${RUN}p`, Date.now() + 3 * DIA),   // vence esta semana
+      await alta(`cad${RUN}l`, Date.now() + 300 * DIA), // le sobra tiempo
+    ];
+    check("Los tres clientes de prueba se dan de alta", altas.every((s) => s < 400), altas.join(" "));
+
+    await p.goto(BASE + "/panel", { waitUntil: "networkidle" });
+    await p.locator(".panel-nav-item:has-text('Clientes')").first().click();
+    await p.waitForSelector(".panel-table", { timeout: 15000 });
+    await p.waitForTimeout(800);
+
+    /* En mayúsculas por el CSS, así que se compara sin distinguirlas */
+    const cabeceras = (await p.locator(".panel-table thead th").allInnerTexts()).map((t) => t.trim().toLowerCase());
+    check("La tabla de clientes dice cuándo caduca cada uno",
+      cabeceras.includes("caduca"), cabeceras.filter(Boolean).join(" · "));
+
+    check("El vencido se marca, y no como una fecha más",
+      (await p.locator(".celda-caduca .cad-vencido").count()) >= 1);
+    check("El que vence esta semana dice cuánto le queda",
+      /\d+ días?/.test(await p.locator(".celda-caduca .cad-pronto").first().innerText().catch(() => "")),
+      await p.locator(".celda-caduca .cad-pronto").first().innerText().catch(() => "no hay ninguno"));
+
+    /* Los que urgen, arriba: en una cartera de cien, quien vence es lo que
+       se busca y no se puede pedir que se recorra la lista entera */
+    const primero = await p.locator(".panel-table tbody tr .celda-caduca").first().innerText();
+    check("Y los que urgen salen primero", /Caducado/.test(primero), primero.replace(/\s+/g, " ").trim());
+
+    check("Con un filtro para el trabajo de la semana",
+      (await p.locator(".chip-filtro").count()) === 1,
+      await p.locator(".chip-filtro").innerText().catch(() => "no está"));
+    await p.locator(".chip-filtro").click();
+    await p.waitForTimeout(600);
+    const filasFiltradas = await p.locator(".panel-table tbody tr").count();
+    check("Que deja solo a los que vencen o han vencido", filasFiltradas === 2, `${filasFiltradas} filas`);
+
+    /* Renovar sin salir de la fila: era abrir la ficha, calcular la fecha y
+       escribirla a mano */
+    await p.locator(".panel-table tbody tr").first().hover();
+    await p.locator(".celda-caduca .act-renovar").first().click();
+    await p.waitForTimeout(1200);
+    check("Y «+1 mes» lo renueva desde la propia tabla",
+      (await p.locator(".panel-table tbody tr").count()) === 1,
+      `${await p.locator(".panel-table tbody tr").count()} siguen venciendo`);
+  }
+
+  /*
    * Y volver a entrar, que es lo que hace un proveedor todos los días.
    *
    * Todas las pruebas del panel crean un proveedor nuevo por

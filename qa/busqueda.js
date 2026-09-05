@@ -240,11 +240,19 @@ async function verRejilla(p) {
   for (const sec of ["Cine", "Series", "Favoritos"]) {
     await cero.locator(`.pa-bottomnav-item:has-text('${sec}')`).click();
     await cero.waitForTimeout(1600);
-    porSeccion[sec] = (await cero.locator(".pa-empty").first().innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+    /* Favoritos vacío ya no es un renglón gris sino un bloque con su dibujo
+       y la salida —`.pa-vacio`—, porque estar vacío ahí es lo normal el
+       primer día y un «no hay nada» a secas se lee como que no funciona */
+    porSeccion[sec] = (await cero.locator(".pa-vacio, .pa-empty").first().innerText().catch(() => "")).replace(/\s+/g, " ").trim();
   }
   check("Una cuenta que entra pero no trae nada lo dice en cada sección",
-    porSeccion.Cine.includes("películas") && porSeccion.Series.includes("series") && porSeccion.Favoritos.includes("favoritos"),
-    Object.entries(porSeccion).map(([k, v]) => `${k}: ${v}`).join(" · ").slice(0, 160));
+    porSeccion.Cine.includes("películas") && porSeccion.Series.includes("series") && porSeccion.Favoritos.includes("marcado"),
+    Object.entries(porSeccion).map(([k, v]) => `${k}: ${v}`).join(" · ").slice(0, 200));
+
+  /* Y en favoritos, con la salida puesta: lo que hay que hacer para que
+     deje de estar vacío está a un botón, no explicado en un renglón */
+  check("Y en favoritos, además, dice cómo llenarlo",
+    (await cero.locator(".pa-vacio button:has-text('Ir a los canales')").count()) === 1);
 
   /* ---------- Sin cobertura ----------
    *

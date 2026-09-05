@@ -942,12 +942,32 @@ export default function VideoPlayer({
         </div>
       )}
       {source && state === "loading" && (
-        <div className="pa-video-overlay" style={{ pointerEvents: "none" }}>
+        /*
+          `data-intento` no se ve: es para las pruebas.
+          El texto que había aquí decía cuál de los caminos se estaba
+          probando, y la suite lo leía de la pantalla para comprobar que el
+          orden es el bueno —TS primero en directo—. Ese texto se ha quitado
+          porque estaba escrito para nosotros y lo leía el cliente; el dato
+          se queda, donde solo lo ve quien lo busca.
+        */
+        <div
+          className="pa-video-overlay"
+          style={{ pointerEvents: "none" }}
+          data-intento={progress ? `${progress.label}|${progress.step}|${progress.total}` : undefined}
+        >
           <div className="pa-spinner" />
           <p>Conectando con {source.name}…</p>
-          {progress && progress.total > 1 && (
+          {/*
+            Qué se está probando, pero contado hacia fuera.
+            Aquí ponía «Probando proxy de compatibilidad (4 de 4)», que es
+            una frase escrita para nosotros: al cliente le dice que algo va
+            por el cuarto intento y le suena a avería justo cuando lo único
+            que pasa es que estamos buscando el camino que funcione en su
+            aparato. El detalle sigue estando, en el diagnóstico del error.
+          */}
+          {progress && progress.total > 1 && progress.step > 1 && (
             <p style={{ fontSize: 13, color: "var(--text-faint)" }}>
-              Probando {progress.label} ({progress.step} de {progress.total})
+              Buscando la mejor forma de abrirlo…
             </p>
           )}
         </div>

@@ -548,26 +548,36 @@ async function esperarCanales(tv) {
     (await tv.locator(".tv-nav-item").allInnerTexts()).join(" | "));
   check("Con la sección en la que estás marcada",
     (await tv.locator(".tv-nav-item.activo").innerText()).includes("Directo"));
-  /* Cerrada enseña solo los iconos. Abierta todo el rato se lleva un trozo
-     de pantalla para cinco palabras que uno se sabe de memoria a la segunda
-     vez; el sitio es del contenido, que es a lo que se ha venido */
+  /*
+   * Los nombres, siempre puestos.
+   *
+   * Estuvieron escondidos hasta posar el ratón, para dejarle el sitio al
+   * contenido. Desde el sofá, el icono de cine y el de series son los dos un
+   * rectángulo con algo dentro y no hay quien los distinga —es el mismo
+   * fallo que ya se probó y se devolvió en la aplicación nativa—, y esta
+   * pantalla es la que va dentro del ejecutable de Windows y de los
+   * televisores Samsung y LG.
+   */
   const anchoNombre = () =>
     tv.evaluate(() => document.querySelector(".tv-nav-txt")?.getBoundingClientRect().width || 0);
   /* El ratón, sobre la lista de canales: en cualquier sitio menos la barra */
   await tv.locator(".tv-dir-canal").first().hover();
   await tv.waitForTimeout(500);
-  check("La barra de secciones, cerrada: solo los iconos",
-    !(await tv.locator(".tv-nav.abierta").count()) && (await anchoNombre()) < 1,
+  check("Cada sección de la barra dice su nombre, sin tener que ir a buscarlo",
+    (await anchoNombre()) > 10,
     `${Math.round(await anchoNombre())} px de nombre`);
+  check("Y los cuatro se leen: cine y series no son dos rectángulos iguales",
+    (await tv.locator(".tv-nav-item").allInnerTexts()).join(" ").includes("Cine") &&
+      (await tv.locator(".tv-nav-item").allInnerTexts()).join(" ").includes("Series"),
+    (await tv.locator(".tv-nav-item").allInnerTexts()).join(" | ").replace(/\n/g, " "));
 
-  /* Y se abre al posar el ratón en ella, no en cada icono: puesto en los
-     iconos, cruzar de «Directo» a «Series» la cerraba un instante antes de
-     volver a abrirla y la barra parpadeaba */
+  /* La barra sigue teniendo su estado «abierta» —el que marca la sección
+     con el subrayado y engorda el foco—; lo que ya no depende de él son los
+     nombres */
   await tv.locator(".tv-nav-marca").hover();
   await tv.waitForTimeout(500);
   check("Y se abre con el ratón encima, aunque no sea sobre un icono",
-    (await tv.locator(".tv-nav.abierta").count()) === 1 && (await anchoNombre()) > 10,
-    `${Math.round(await anchoNombre())} px de nombre`);
+    (await tv.locator(".tv-nav.abierta").count()) === 1);
   /* Y de vuelta a la lista, que es desde donde se sube con el mando */
   await tv.locator(".tv-dir-canal").first().hover();
   await tv.mouse.move(2, 700);

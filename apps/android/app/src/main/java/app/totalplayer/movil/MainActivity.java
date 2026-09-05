@@ -47,7 +47,16 @@ import android.widget.FrameLayout;
 public class MainActivity extends Activity {
 
     /** Dónde vive. Se cambia con apps/poner-dominio.sh al montarla para otra marca. */
-    private static final String INICIO = "https://totalplayer.app/player";
+    /*
+     * `?app=1` como en las de televisor.
+     *
+     * Sin él, quien entra con el usuario que le dio su proveedor veía el
+     * cartel de «tu tele se ve desde la aplicación» DENTRO de la aplicación
+     * que el cartel le pedía instalar: la página no tenía manera de saber
+     * que ya estaba en un envoltorio. La marca del agente —más abajo— dice
+     * lo mismo y cubre a los que ya tienen el APK instalado.
+     */
+    private static final String INICIO = "https://totalplayer.app/player?app=1";
 
     /** Una tele o un móvil pueden abrir la app antes de tener red */
     private static final int ESPERA_REINTENTO = 3000;

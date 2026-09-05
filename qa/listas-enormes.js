@@ -87,8 +87,11 @@ async function alFinal(p, selector) {
   const carpetas = await p.locator(".pa-live-cat:not(.pa-live-reciente)").count();
   check("Con sus 40 carpetas, todas", carpetas === 41, `${carpetas - 1} carpetas + «Todos los canales»`);
 
+  /* La pastilla de arriba cuenta CARPETAS, que es lo que dice el rótulo que
+     tiene al lado. Contó canales durante un tiempo, y «Categorías 8000» con
+     cuarenta carpetas debajo hacía dudar de la lista entera */
   const total = await p.locator(".pa-live-cats .pa-live-n").first().innerText();
-  check("Y la cuenta de arriba dice cuántos hay", total.replace(/\D/g, "") === "8000", total);
+  check("Y la cuenta de arriba dice cuántas carpetas hay", total.replace(/\D/g, "") === "40", total);
 
   // ---------- Todos los canales: están todos, pero no todos pintados ----------
   await p.locator(".pa-live-cat:has-text('Todos los canales')").click();

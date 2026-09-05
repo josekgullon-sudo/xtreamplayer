@@ -67,8 +67,12 @@ const ck = (sc, n) => { const m = sc?.match(new RegExp(`${n}=([^;]+)`)); return 
 
   // 3) En el reproductor sigue mandando el cliente, que es de quien es la lista
   await p.goto(BASE + "/player", { waitUntil: "networkidle" });
-  /* El reproductor recibe al cliente con dos pantallas encima —el perfil y
-     «¿qué quieres ver?»— que tapan la cabecera: se contestan primero */
+  /* Aquí, en un navegador de a pie, al cliente de un proveedor le sale el
+     cartel que le manda a las aplicaciones —ver `lib/envoltorio.ts`—, y lo
+     que se comprueba es que arriba manda él y no el revendedor con el que
+     también hay sesión abierta. Dentro de una aplicación esta misma
+     dirección abre el reproductor, con las dos pantallas de perfil y
+     «¿qué quieres ver?» encima, que se contestan primero */
   await p.waitForSelector(".account-avatar", { timeout: 15000 });
   if (await p.locator(".profile-item").first().isVisible().catch(() => false)) {
     await p.locator(".profile-item").first().click();

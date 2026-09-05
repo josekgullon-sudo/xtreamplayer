@@ -170,9 +170,12 @@ const ck = (sc, n) => {
   await pTs.evaluate(() => {
     window.__orden = [];
     const mirar = () => {
-      const t = document.querySelector(".pa-video-overlay")?.innerText || "";
-      const m = t.match(/Probando (.+) \(\d+ de \d+\)/);
-      if (m && window.__orden.at(-1) !== m[1]) window.__orden.push(m[1]);
+      /* Del atributo y no del texto: lo que se enseña al cliente mientras
+         conecta es «Buscando la mejor forma de abrirlo…», que no dice cuál
+         se está probando — a propósito. Ver VideoPlayer.tsx */
+      const dato = document.querySelector(".pa-video-overlay")?.dataset.intento || "";
+      const cual = dato.split("|")[0];
+      if (cual && window.__orden.at(-1) !== cual) window.__orden.push(cual);
       requestAnimationFrame(mirar);
     };
     requestAnimationFrame(mirar);

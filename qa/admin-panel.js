@@ -26,10 +26,21 @@ const SECCIONES = ["resumen", "proveedores", "revendedores", "clientes", "domini
   r = await call("/api/provider/resellers", { method: "POST", body: JSON.stringify({ email: `rev${RUN}@t.com`, password: "revendedor123", name: `Revende ${RUN}` }) }, prov);
   check("Revendedor de prueba creado", r.status === 200 || r.status === 201, String(r.status));
 
+  /*
+   * Uno vivo y otro caducado de verdad.
+   *
+   * Aquí se mandaba `expiresInDays`, que el alta no mira —el campo se llama
+   * `expiresAt` y es una fecha—, así que los dos clientes salían sin límite
+   * y el contador de caducados del resumen no se ejercitaba nunca. La
+   * comprobación de abajo tampoco lo habría notado: decía «activos ≤ total»,
+   * que es cierto siempre.
+   */
+  const ayer = Date.now() - 86_400_000;
+  const enUnMes = Date.now() + 30 * 86_400_000;
   for (const [i, u] of [`cli${RUN}a`, `cli${RUN}b`].entries()) {
     await call("/api/provider/customers", {
       method: "POST",
-      body: JSON.stringify({ username: u, password: "clave1234", domainId, expiresInDays: i === 0 ? 30 : 0 }),
+      body: JSON.stringify({ username: u, password: "clave1234", domainId, expiresAt: i === 0 ? enUnMes : ayer }),
     }, prov);
   }
   // Un acceso correcto y otro fallido, para el registro
@@ -65,7 +76,9 @@ const SECCIONES = ["resumen", "proveedores", "revendedores", "clientes", "domini
   check("El resumen cuenta proveedores, clientes y revendedores",
     res.proveedores.total >= 1 && res.clientes.total >= 2 && res.revendedores.total >= 1,
     `${res.proveedores.total} prov · ${res.clientes.total} cli · ${res.revendedores.total} rev`);
-  check("Distingue clientes activos de caducados", res.clientes.activos <= res.clientes.total);
+  check("Distingue clientes activos de caducados",
+    res.clientes.total - res.clientes.activos >= 1,
+    `${res.clientes.activos} activos de ${res.clientes.total}`);
   check("Y trae 30 días de altas para la gráfica", Array.isArray(r.body.altas) && r.body.altas.length === 30);
 
   r = await call(`/api/admin/proveedores?buscar=adm${RUN}`, {}, admin);
@@ -83,8 +96,10 @@ const SECCIONES = ["resumen", "proveedores", "revendedores", "clientes", "domini
 
   r = await call(`/api/admin/clientes?buscar=cli${RUN}`, {}, admin);
   check("El buscador global encuentra clientes de cualquier proveedor", r.body.clientes.length === 2, `${r.body.clientes.length}`);
+  /* De los dos, uno está caducado: el filtro tiene que dejar uno. Antes los
+     dos estaban vivos y «se filtran por estado» pasaba sin filtrar nada */
   r = await call(`/api/admin/clientes?buscar=cli${RUN}&estado=activos`, {}, admin);
-  check("Y se filtran por estado", r.body.clientes.length === 2, `${r.body.clientes.length} activos`);
+  check("Y se filtran por estado", r.body.clientes.length === 1, `${r.body.clientes.length} activos de 2`);
 
   r = await call(`/api/admin/dominios?buscar=dom${RUN}`, {}, admin);
   check("Los dominios dicen a cuántos clientes sirven", r.body.dominios[0]?.clientes === 2, `${r.body.dominios[0]?.clientes}`);

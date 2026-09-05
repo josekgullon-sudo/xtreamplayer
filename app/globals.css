@@ -1447,6 +1447,22 @@ select.input { appearance: none; cursor: pointer; }
 
 .pa-empty { padding: 30px 16px; text-align: center; color: var(--text-faint); font-size: 14px; }
 
+/*
+ * El vacío con nombre y con salida.
+ *
+ * Un renglón de texto gris en medio de una columna dice que no hay nada,
+ * pero no dice qué hacer, y en favoritos —donde estar vacío es lo normal
+ * el primer día— eso se lee como que la sección no funciona.
+ */
+.pa-vacio {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 8px; padding: 40px 20px; color: var(--text-dim);
+}
+.pa-vacio svg { color: var(--text-faint); }
+.pa-vacio p { margin: 0; font-size: 14.5px; max-width: 30ch; }
+.pa-vacio .pa-vacio-pista { color: var(--text-faint); font-size: 13px; }
+.pa-vacio .btn { margin-top: 6px; }
+
 .pa-video-zone { position: relative; background: #000; aspect-ratio: 16/9; max-height: 62vh; width: 100%; }
 .pa-video-zone video { width: 100%; height: 100%; display: block; }
 
@@ -2958,8 +2974,8 @@ select.input { appearance: none; cursor: pointer; }
    marca ni del botón de salir */
 .tv-nav-items { display: flex; align-items: center; gap: 0.4vw; margin: 0 auto; }
 .tv-nav-item, .tv-nav-salir {
-  display: flex; align-items: center; gap: 0;
-  padding: 0.9vh 0.9vw; border-radius: 0.7vw;
+  display: flex; align-items: center; gap: 0.5vw;
+  padding: 0.9vh 1.3vw; border-radius: 0.7vw;
   background: none; border: 0.16vw solid transparent; cursor: pointer;
   color: rgba(255, 255, 255, 0.55); font-size: 1.15vw; font-weight: 700;
   white-space: nowrap;
@@ -2971,52 +2987,30 @@ select.input { appearance: none; cursor: pointer; }
 .tv-nav-icono { display: flex; align-items: center; justify-content: center; flex: none; }
 
 /*
- * Cerrada, solo iconos; abierta, con sus nombres.
+ * Los nombres, siempre puestos.
  *
- * Es el mismo trato que tenía el carril de la izquierda, y por el mismo
- * motivo: abierta todo el rato se lleva un trozo de pantalla para enseñar
- * cinco palabras que uno se sabe de memoria a la segunda vez. Cerrada, ese
- * sitio es del contenido —que es a lo que se ha venido— y los nombres
- * aparecen justo cuando hacen falta: al posar el ratón en la barra o al
- * subir a ella con el mando. Un icono suelto es ambiguo la primera vez; a
- * partir de ahí, el texto sobra.
+ * Estuvieron escondidos hasta posar el ratón o subir con el mando, para
+ * dejarle el sitio al contenido. El problema es cuál es el sitio: desde el
+ * sofá, el icono de cine y el de series son los dos un rectángulo con algo
+ * dentro y no hay quien los distinga. Es exactamente lo que ya se probó y
+ * se devolvió en la aplicación nativa —está contado en `docs/REDISEÑO.md`—,
+ * y esta pantalla, que es la que va dentro del ejecutable de Windows y de
+ * los televisores Samsung y LG, se había quedado con la versión de antes.
  *
- * El nombre no se quita con `display`, se colapsa: con `display: none` el
- * texto no existe y no puede animarse —aparecería de golpe—, y de paso el
- * lector de pantalla lo sigue leyendo.
+ * Lo que se ahorraba eran cinco palabras en una barra que tiene 1920 px de
+ * ancho para cinco destinos.
  */
-.tv-nav-txt {
-  /* `min-width: 0` y `flex: none` no sobran: un hijo de una caja flexible no
-     baja de su ancho de contenido por defecto, así que el `max-width: 0` no
-     lo colapsaba y el nombre seguía ahí, ocupando */
-  flex: none; min-width: 0;
-  max-width: 0; overflow: hidden; opacity: 0;
-  /*
-   * El ancho cambia de golpe; lo único que se anima es la tinta.
-   *
-   * Animar el ancho era lo que se veía mal: los nombres empujan, los iconos
-   * van centrados, y durante esa fracción de segundo la barra entera se
-   * arrastraba doscientos píxeles por debajo de un puntero que estaba
-   * quieto. Un menú que aparece no se desliza —aparece—, y sin el
-   * deslizamiento no hay nada que se mueva donde no debe.
-   */
-  transition: opacity 0.12s ease-out;
-}
-.tv-nav.abierta .tv-nav-item, .tv-nav.abierta .tv-nav-salir { gap: 0.5vw; padding: 0.9vh 1.3vw; }
-.tv-nav.abierta .tv-nav-txt { max-width: 12vw; opacity: 1; }
+.tv-nav-txt { flex: none; }
 
 /*
- * Cerrada, la sección en la que estás se marca por brillo y no por color.
+ * La sección en la que estás: a plena luz y con su subrayado.
  *
- * El subrayado rojo debajo de un icono suelto es una raya de color sin nada
- * que la explique; y teñir permanentemente algo de la barra deja el color de
- * marca en pantalla todo el rato sin señalar nada. Cerrada, el activo es
- * simplemente el único a plena luz —los demás van al 55%—, que se distingue
- * igual de bien. El subrayado sale cuando salen los nombres, que es cuando
- * significa «esta es la sección abierta».
+ * El subrayado estuvo condicionado a que la barra estuviera abierta, porque
+ * cerrada era una raya de color debajo de un icono suelto, sin nada que la
+ * explicara. Con el nombre siempre puesto ya hay qué subrayar.
  */
 .tv-nav-item.activo { color: #fff; position: relative; }
-.tv-nav.abierta .tv-nav-item.activo::after {
+.tv-nav-item.activo::after {
   content: ""; position: absolute; left: 1.3vw; right: 1.3vw; bottom: -0.4vh;
   height: 0.3vh; border-radius: 0.3vh; background: var(--accent);
 }
@@ -4515,10 +4509,8 @@ select.input { appearance: none; cursor: pointer; }
   .tv-nav-marca { font-size: 15px; }
   .tv-nav-marca .tv-marca-logo { width: 28px; height: 28px; }
   .tv-nav-items { gap: 4px; margin: 0; }
-  .tv-nav-item, .tv-nav-salir { font-size: 14px; padding: 8px; border-radius: 8px; border-width: 2px; }
-  .tv-nav.abierta .tv-nav-item, .tv-nav.abierta .tv-nav-salir { padding: 8px 10px; }
-  .tv-nav.abierta .tv-nav-item.activo::after { left: 10px; right: 10px; height: 3px; }
-  .tv-nav.abierta .tv-nav-txt { max-width: 30vw; }
+  .tv-nav-item, .tv-nav-salir { font-size: 14px; padding: 8px 10px; border-radius: 8px; border-width: 2px; }
+  .tv-nav-item.activo::after { left: 10px; right: 10px; height: 3px; }
 
   /* Y el directo, en una sola columna: los canales debajo de lo que dan.
      Dos columnas de 27vw en un móvil son dos columnas de nada */
@@ -5463,8 +5455,20 @@ select.input { appearance: none; cursor: pointer; }
   .pa-watch-video .pa-video-zone { flex: none; aspect-ratio: 16/9; }
   .pa-watch-eps { border-left: none; border-top: 1px solid var(--hairline); }
   .ficha { padding: 20px; width: 96vw; }
-  .ficha-cabeza { flex-direction: column; gap: 16px; }
-  .ficha-cabeza > img { width: 130px; }
+  /*
+   * Apilada, y cada hijo del ancho de la ficha.
+   *
+   * Puesta en columna se quedó con el `align-items: flex-start` de cuando
+   * era una fila —allí sirve para que el cartel y el texto se alineen por
+   * arriba—, y en columna eso significa que cada hijo se encoge a lo que
+   * mida su contenido. El bloque del texto crecía hasta su hijo más ancho
+   * —la tira de caras del reparto— y se salía cinco puntos de la ficha, que
+   * recorta: la sinopsis aparecía cortada a media palabra en el borde
+   * derecho. El cartel se planta a mano porque él sí tiene que ser estrecho.
+   */
+  .ficha-cabeza { flex-direction: column; gap: 16px; align-items: stretch; }
+  .ficha-cabeza > img { width: 130px; align-self: flex-start; }
+  .ficha-datos { width: 100%; min-width: 0; }
   .ficha-datos h2 { font-size: 20px; }
   /* La ficha se apilaba bien en el móvil, pero sus botones seguían con las
      medidas del escritorio: el aspa 36px, las temporadas 33px y «Reproducir»
@@ -6104,3 +6108,44 @@ select.input { appearance: none; cursor: pointer; }
 }
 
 .funcs-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 40px; }
+
+/* ---- Clientes: cuándo se les acaba ---- */
+
+/*
+ * El vencimiento manda el color, y solo cuando hay prisa.
+ *
+ * Una columna entera de fechas de colores no dice nada: el que ya ha
+ * vencido va en su pastilla de aviso —se ve de un barrido en una tabla de
+ * cien— y el que vence esta semana, en ámbar y a secas. Los demás, en el
+ * gris de siempre. En ámbar y no en rojo por lo de arriba: aquí el rojo es
+ * el color de marca y un aviso rojo se leería como un botón.
+ */
+.celda-caduca { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.celda-caduca .cad-vencido {
+  color: var(--danger); font-weight: 700;
+  background: var(--danger-tint); border: 1px solid var(--danger-border);
+  border-radius: var(--radius-pill); padding: 2px 10px; font-size: 12.5px;
+}
+.celda-caduca .cad-pronto { color: var(--warning); font-weight: 600; }
+.celda-caduca .cad-nunca { color: var(--text-faint); }
+/* El botón de renovar, callado hasta que se pasa por la fila: en una tabla
+   de cien clientes, cien botones son cien manchas */
+.celda-caduca .act-renovar { opacity: 0; transition: opacity 0.12s; }
+tr:hover .celda-caduca .act-renovar,
+.celda-caduca .act-renovar:focus-visible { opacity: 1; }
+
+.panel-filtros { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; flex-wrap: wrap; }
+.chip-filtro {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 13px; border-radius: var(--radius-pill);
+  background: var(--surface-quiet); border: 1px solid var(--hairline);
+  color: var(--text-dim); font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.chip-filtro:hover { color: var(--text); }
+.chip-filtro.activo { background: var(--accent-tint-strong); border-color: var(--accent); color: var(--accent-bright); }
+
+/* En el móvil la fila es una ficha y no hay «pasar por encima»: el botón,
+   siempre puesto */
+@media (max-width: 860px) {
+  .celda-caduca .act-renovar { opacity: 1; }
+}

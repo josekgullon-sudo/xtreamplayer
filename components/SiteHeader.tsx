@@ -194,8 +194,12 @@ export default function SiteHeader() {
           ) : (
             <>
               {/* «Entrar» visible también en móvil: era la única puerta al
-                  login y estaba oculta justo donde más se entra por primera vez */}
-              <Link href="/acceso" className={`btn btn-sm ${enReproductor ? "btn-primary" : "btn-ghost"}`}>
+                  login y estaba oculta justo donde más se entra por primera vez.
+                  Y siempre en gris: dentro del reproductor iba en rojo, así que
+                  lo más llamativo de la pantalla era una cuenta que el que ya
+                  está viendo su lista no necesita — compitiendo con el botón de
+                  reproducir, que es lo único que tiene que gritar aquí */}
+              <Link href="/acceso" className="btn btn-sm btn-ghost">
                 Entrar
               </Link>
               {!enReproductor && (

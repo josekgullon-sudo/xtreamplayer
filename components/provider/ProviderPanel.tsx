@@ -82,6 +82,28 @@ function formatDate(ts: number) {
   return ts ? new Date(ts).toLocaleDateString("es-ES") : "—";
 }
 
+const DIA = 86_400_000;
+
+/**
+ * Cuándo se le acaba a un cliente, y con cuánta prisa.
+ *
+ * Es el dato que un proveedor mira todos los días —de él sale a quién hay
+ * que cobrarle esta semana— y la tabla enseñaba el contrario: el alta. Para
+ * saber quién vencía había que abrir las fichas una a una.
+ *
+ * Los tramos son los del resumen de administración, para que las dos
+ * pantallas cuenten lo mismo: vencido, vence dentro de una semana, o queda
+ * tiempo. Sin fecha es «sin límite», que no es una alarma.
+ */
+function caducidad(ts: number): { texto: string; clase: string; orden: number } {
+  if (!ts) return { texto: "Sin límite", clase: "cad-nunca", orden: Number.MAX_SAFE_INTEGER };
+  const quedan = Math.ceil((ts - Date.now()) / DIA);
+  if (quedan < 0) return { texto: "Caducado", clase: "cad-vencido", orden: ts };
+  if (quedan === 0) return { texto: "Caduca hoy", clase: "cad-pronto", orden: ts };
+  if (quedan <= 7) return { texto: `${quedan} ${quedan === 1 ? "día" : "días"}`, clase: "cad-pronto", orden: ts };
+  return { texto: formatDate(ts), clase: "", orden: ts };
+}
+
 /* El cupo de la casa (SIN_LIMITE en lib/provider) es un número enorme para que
    las cuentas no se rompan, pero enseñar «/ 1.000.000» no dice nada */
 function formatCupo(n?: number) {
@@ -115,6 +137,19 @@ export default function ProviderPanel() {
   const [showReseller, setShowReseller] = useState<Reseller | "new" | null>(null);
   const [createdReseller, setCreatedReseller] = useState<{ email: string; password: string } | null>(null);
   const [search, setSearch] = useState("");
+  /* «Los que vencen» es el trabajo de la semana: vencidos y los que caducan
+     en siete días, lo primero de la lista. Se filtra aquí y no en el
+     servidor porque la búsqueda ya trae la página entera */
+  const [soloVencen, setSoloVencen] = useState(false);
+  /* Vencidos y los de los próximos siete días, y los primeros de la lista:
+     es a quien hay que llamar. Los demás quedan por fecha, que es como se
+     repasa una cartera */
+  const venceProntoOYa = (c: Customer) =>
+    c.expiresAt > 0 && c.expiresAt - Date.now() <= 7 * DIA;
+  const cuantosVencen = customers.filter(venceProntoOYa).length;
+  const aLaVista = (soloVencen ? customers.filter(venceProntoOYa) : customers)
+    .slice()
+    .sort((a, b) => caducidad(a.expiresAt).orden - caducidad(b.expiresAt).orden);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [showDomain, setShowDomain] = useState<Domain | "new" | null>(null);
@@ -273,6 +308,21 @@ export default function ProviderPanel() {
     });
     if (res.ok) loadCustomers(search);
     else setError((await res.json()).error || "No se pudo actualizar");
+  }
+
+  /**
+   * Un mes más, desde donde toque.
+   *
+   * A un cliente vivo se le suma el mes a lo que le queda; a uno caducado
+   * —o sin fecha— se le cuenta desde hoy, que es lo que pasa de verdad
+   * cuando alguien vuelve a pagar después de dejarlo correr. Renovar era
+   * abrir la ficha, calcular la fecha y escribirla.
+   */
+  async function renovarUnMes(c: Customer) {
+    const desde = c.expiresAt > Date.now() ? c.expiresAt : Date.now();
+    const nueva = new Date(desde);
+    nueva.setMonth(nueva.getMonth() + 1);
+    await patchCustomer(c.id, { expiresAt: nueva.getTime() });
   }
 
   async function removeCustomer(c: Customer) {
@@ -1125,6 +1175,25 @@ export default function ProviderPanel() {
         </div>
       </div>
 
+      {/* El filtro del trabajo de la semana. Solo aparece si hay a quién
+          renovar: un botón que siempre dice «0» es un botón que estorba */}
+      {cuantosVencen > 0 && (
+        <div className="panel-filtros">
+          <button
+            className={`chip-filtro ${soloVencen ? "activo" : ""}`}
+            onClick={() => setSoloVencen((v) => !v)}
+          >
+            <Icon name="clock" size={14} />
+            Vencen o han vencido ({cuantosVencen})
+          </button>
+          {soloVencen && (
+            <button className="link-btn" onClick={() => setSoloVencen(false)}>
+              Ver todos
+            </button>
+          )}
+        </div>
+      )}
+
       <div style={{ overflowX: "auto" }}>
         <table className="panel-table fichas-en-movil">
           <thead>
@@ -1134,19 +1203,19 @@ export default function ProviderPanel() {
               <th>Lista</th>
               <th>Dispositivos</th>
               <th>Estado</th>
-              <th>Alta</th>
+              <th>Caduca</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {!customers.length && (
+            {!aLaVista.length && (
               <tr>
                 <td colSpan={7} style={{ textAlign: "center", color: "var(--text-faint)", padding: 30 }}>
-                  {search ? "Sin resultados" : "Aún no tienes clientes."}
+                  {soloVencen ? "No vence ninguno esta semana." : search ? "Sin resultados" : "Aún no tienes clientes."}
                 </td>
               </tr>
             )}
-            {customers.map((c) => (
+            {aLaVista.map((c) => (
               <tr key={c.id}>
                 <td className="celda-titulo">
                   <button className="link-btn" onClick={() => setDetailId(c.id)}>
@@ -1176,7 +1245,21 @@ export default function ProviderPanel() {
                     {c.status === "active" ? "Activo" : "Desactivado"}
                   </span>
                 </td>
-                <td data-etiqueta="Alta" style={{ color: "var(--text-faint)" }}>{formatDate(c.createdAt)}</td>
+                {/* Cuándo se le acaba, y a un clic renovarlo. El alta, que
+                    es lo que había aquí, se mira una vez en la vida; esto,
+                    todas las semanas */}
+                <td data-etiqueta="Caduca" title={`Alta: ${formatDate(c.createdAt)}`}>
+                  <span className="celda-caduca">
+                    <span className={caducidad(c.expiresAt).clase}>{caducidad(c.expiresAt).texto}</span>
+                    <button
+                      className="btn btn-ghost btn-sm act-renovar"
+                      onClick={() => renovarUnMes(c)}
+                      title={c.expiresAt ? "Añadir un mes a lo que le queda" : "Poner un mes desde hoy"}
+                    >
+                      +1 mes
+                    </button>
+                  </span>
+                </td>
                 <td className="col-actions">
                   <div className="row-actions">
                     <button

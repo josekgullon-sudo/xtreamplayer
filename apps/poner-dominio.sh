@@ -46,7 +46,7 @@ sed -i.bak -E "s|(private static final String INICIO = \")[^\"]*(\";)|\1${DESTIN
 
 # Android móvil: la misma constante, pero apuntando al reproductor y no a /tv
 MOVIL="$AQUI/android/app/src/main/java/app/totalplayer/movil/MainActivity.java"
-sed -i.bak -E "s|(private static final String INICIO = \")[^\"]*(\";)|\1${SITIO}/player\2|" "$MOVIL"
+sed -i.bak -E "s|(private static final String INICIO = \")[^\"]*(\";)|\1${SITIO}/player?app=1\2|" "$MOVIL"
 
 # Samsung y LG: la variable del arranque
 for ENVOLTORIO in "$AQUI/tizen/index.html" "$AQUI/webos/index.html"; do
