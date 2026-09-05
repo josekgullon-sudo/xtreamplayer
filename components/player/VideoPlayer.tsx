@@ -60,6 +60,46 @@ export interface PlaySource {
   empezarEn?: number;
 }
 
+/*
+ * El idioma que se eligió la última vez.
+ *
+ * Se guarda el IDIOMA —«spa», «Español»— y no el número de pista: el orden
+ * cambia de un fichero a otro, y guardar «la pista 2» pondría ruso en la
+ * mitad de las películas. Vive en el navegador, como los favoritos: es una
+ * preferencia de este aparato, no un dato de la cuenta.
+ */
+const K_AUDIO = "xp.idiomaAudio.v1";
+const K_SUBS = "xp.idiomaSubs.v1";
+/** «No quiero subtítulos» es una elección y también se recuerda. */
+const SIN_SUBS = "\u0000ninguno";
+
+function idiomaGuardado(clave: string): string {
+  try {
+    return localStorage.getItem(clave) || "";
+  } catch {
+    return "";
+  }
+}
+
+function recordarIdioma(clave: string, pista?: { lang?: string; name?: string; language?: string; label?: string } | null) {
+  try {
+    if (pista === null) {
+      localStorage.setItem(clave, SIN_SUBS);
+      return;
+    }
+    const cual = pista?.lang || pista?.language || pista?.name || pista?.label || "";
+    if (cual) localStorage.setItem(clave, cual);
+  } catch {
+    /* almacenamiento bloqueado: se sigue eligiendo a mano, sin más */
+  }
+}
+
+/** Dos formas de decir lo mismo: «spa», «es», «Español». */
+function mismoIdioma(pista: { lang?: string; name?: string; language?: string; label?: string }, quiere: string): boolean {
+  const suyo = `${pista.lang || pista.language || ""} ${pista.name || pista.label || ""}`.toLowerCase();
+  return suyo.includes(quiere.toLowerCase());
+}
+
 /** 7:04, o 1:23:45 cuando pasa de la hora. Sin horas a cero por delante. */
 function reloj(seg: number): string {
   if (!Number.isFinite(seg) || seg < 0) return "0:00";
@@ -1055,32 +1095,6 @@ export default function VideoPlayer({
     };
   }, [conMandos, source]);
 
-  /*
-   * Qué idiomas trae esto.
-   *
-   * Se pregunta cuando ya está sonando, no al pedirlo: las pistas llegan con
-   * el manifiesto y antes de eso las listas están vacías. hls.js las sabe
-   * todas; con el reproductor del navegador —Safari— los subtítulos salen
-   * en `textTracks` y el audio no sale, que es lo que hay.
-   */
-  useEffect(() => {
-    if (!conMandos || state !== "playing") return;
-    const v = videoRef.current;
-    const hls = hlsRef.current;
-    const nombre = (t: { name?: string; lang?: string }, i: number) =>
-      t.name || t.lang || `Pista ${i + 1}`;
-    if (hls) {
-      setAudios(hls.audioTracks.map((t, i) => ({ id: i, nombre: nombre(t, i) })));
-      setAudio(hls.audioTrack);
-      setSubs(hls.subtitleTracks.map((t, i) => ({ id: i, nombre: nombre(t, i) })));
-      setSub(hls.subtitleTrack);
-      return;
-    }
-    setAudios([]);
-    const pistas = v ? Array.from(v.textTracks) : [];
-    setSubs(pistas.map((t, i) => ({ id: i, nombre: t.label || t.language || `Subtítulos ${i + 1}` })));
-    setSub(pistas.findIndex((t) => t.mode === "showing"));
-  }, [conMandos, state, source]);
 
   /* Pantalla completa: la lleva el navegador y hay que preguntarle, porque
      también se sale con Escape sin pasar por nuestro botón */
@@ -1112,20 +1126,74 @@ export default function VideoPlayer({
     else caja.requestFullscreen?.().catch(() => {});
   }, []);
 
-  const ponerAudio = useCallback((i: number) => {
+  const ponerAudio = useCallback((i: number, recordarlo = true) => {
     if (hlsRef.current) hlsRef.current.audioTrack = i;
     setAudio(i);
     setMenu(null);
+    if (recordarlo) recordarIdioma(K_AUDIO, hlsRef.current?.audioTracks?.[i]);
   }, []);
 
   /** −1 es «sin subtítulos», que es una opción y tiene que estar en la lista. */
-  const ponerSub = useCallback((i: number) => {
+  const ponerSub = useCallback((i: number, recordarlo = true) => {
     const v = videoRef.current;
     if (hlsRef.current) hlsRef.current.subtitleTrack = i;
     else if (v) Array.from(v.textTracks).forEach((t, j) => { t.mode = j === i ? "showing" : "disabled"; });
     setSub(i);
     setMenu(null);
+    if (recordarlo) {
+      /* −1 es «sin subtítulos», y también se recuerda: quien los quita es
+         porque no los quiere, no porque no los haya encontrado */
+      recordarIdioma(K_SUBS, i < 0 ? null : hlsRef.current?.subtitleTracks?.[i] || Array.from(v?.textTracks || [])[i]);
+    }
   }, []);
+
+  /*
+   * Qué idiomas trae esto.
+   *
+   * Se pregunta cuando ya está sonando, no al pedirlo: las pistas llegan con
+   * el manifiesto y antes de eso las listas están vacías. hls.js las sabe
+   * todas; con el reproductor del navegador —Safari— los subtítulos salen
+   * en `textTracks` y el audio no sale, que es lo que hay.
+   */
+  useEffect(() => {
+    if (!conMandos || state !== "playing") return;
+    const v = videoRef.current;
+    const hls = hlsRef.current;
+    const nombre = (t: { name?: string; lang?: string }, i: number) =>
+      t.name || t.lang || `Pista ${i + 1}`;
+    if (hls) {
+      setAudios(hls.audioTracks.map((t, i) => ({ id: i, nombre: nombre(t, i) })));
+      setAudio(hls.audioTrack);
+      setSubs(hls.subtitleTracks.map((t, i) => ({ id: i, nombre: nombre(t, i) })));
+      setSub(hls.subtitleTrack);
+
+      /*
+       * Y lo que se eligió la última vez, puesto solo.
+       *
+       * Una serie son diez capítulos: elegir «español» en cada uno es diez
+       * veces el mismo gesto. Se guarda el IDIOMA y no el número de pista,
+       * que el orden cambia de un fichero a otro. Se aplica una vez, al
+       * descubrirlas; a partir de ahí manda lo que toque el cliente.
+       */
+      const quiereAudio = idiomaGuardado(K_AUDIO);
+      if (quiereAudio && hls.audioTracks.length > 1) {
+        const cual = hls.audioTracks.findIndex((t) => mismoIdioma(t, quiereAudio));
+        if (cual >= 0 && cual !== hls.audioTrack) ponerAudio(cual, false);
+      }
+      const quiereSubs = idiomaGuardado(K_SUBS);
+      if (quiereSubs === SIN_SUBS) {
+        if (hls.subtitleTrack >= 0) ponerSub(-1, false);
+      } else if (quiereSubs && hls.subtitleTracks.length) {
+        const cual = hls.subtitleTracks.findIndex((t) => mismoIdioma(t, quiereSubs));
+        if (cual >= 0 && cual !== hls.subtitleTrack) ponerSub(cual, false);
+      }
+      return;
+    }
+    setAudios([]);
+    const pistas = v ? Array.from(v.textTracks) : [];
+    setSubs(pistas.map((t, i) => ({ id: i, nombre: t.label || t.language || `Subtítulos ${i + 1}` })));
+    setSub(pistas.findIndex((t) => t.mode === "showing"));
+  }, [conMandos, state, source, ponerAudio, ponerSub]);
 
   /*
    * El teclado y el mando, mientras haya algo puesto.

@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getDb, CustomerRow, ProviderRow } from "@/lib/db";
-import { setCustomerCookie, registerDevice, getProviderStatus, recordLogin, clientIp } from "@/lib/provider";
+import {
+  setCustomerCookie,
+  registerDevice,
+  getProviderStatus,
+  recordLogin,
+  clientIp,
+  liberarDispositivo,
+} from "@/lib/provider";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +17,21 @@ export const dynamic = "force-dynamic";
  * Vincula el dispositivo (MAC en TV, UUID en web) respetando su cupo.
  */
 export async function POST(req: NextRequest) {
-  let body: { username?: string; password?: string; deviceKey?: string; platform?: string };
+  let body: {
+    username?: string;
+    password?: string;
+    deviceKey?: string;
+    platform?: string;
+    /**
+     * La llave del aparato que se quiere cerrar para poder entrar aquí.
+     *
+     * Va en el propio inicio de sesión y no en una ruta aparte porque el
+     * cliente todavía no ha entrado —justo eso es lo que no le dejan—, así
+     * que lo único con lo que se puede identificar es su contraseña, que ya
+     * se comprueba aquí. Una ruta propia tendría que volver a pedirla.
+     */
+    liberar?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -79,10 +100,30 @@ export async function POST(req: NextRequest) {
   const platform = (body.platform || "web").slice(0, 40);
   const ip = clientIp(req.headers);
 
+  /*
+   * Cerrar el aparato que sobra, si lo ha pedido.
+   *
+   * Se hace después de comprobar la contraseña —arriba— y antes de contar
+   * el cupo, que es lo que hace que la misma llamada sirva para cerrar uno
+   * y entrar. La llave se comprueba contra los aparatos de ESTE cliente.
+   */
+  const suelta = (body.liberar || "").trim().slice(0, 128);
+  if (suelta && suelta !== deviceKey) liberarDispositivo(customer.id, suelta);
+
   const check = registerDevice(customer, deviceKey, platform, ip);
   if (!check.allowed) {
     recordLogin(customer.id, deviceKey, platform, ip, false);
-    return NextResponse.json({ error: check.reason, devicesUsed: check.used, devicesMax: check.max }, { status: 403 });
+    return NextResponse.json(
+      {
+        error: check.reason,
+        devicesUsed: check.used,
+        devicesMax: check.max,
+        /* Cuáles hay, para que pueda cerrar uno él mismo en vez de llamar
+           a su proveedor. Ver `listarDispositivos` */
+        dispositivos: check.dispositivos || [],
+      },
+      { status: 403 }
+    );
   }
   recordLogin(customer.id, deviceKey, platform, ip, true);
 

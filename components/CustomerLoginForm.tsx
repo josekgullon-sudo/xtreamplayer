@@ -5,6 +5,30 @@ import { useState } from "react";
 import { getDeviceKey, getPlatform } from "@/lib/device";
 import Loading, { MENSAJES_ACCESO } from "@/components/Loading";
 
+/** Un aparato del cliente, como lo manda el servidor. Ver lib/provider.ts */
+interface Aparato {
+  llave: string;
+  plataforma: string;
+  desde: number;
+  visto: number;
+}
+
+/**
+ * «Hace 3 días», que es como se reconoce un aparato propio.
+ *
+ * Una fecha exacta no dice nada —nadie recuerda el día que encendió la tele
+ * del pueblo—; el tiempo que hace, sí.
+ */
+function haceCuanto(cuando: number): string {
+  const min = Math.round((Date.now() - cuando) / 60000);
+  if (min < 2) return "ahora mismo";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `hace ${h} ${h === 1 ? "hora" : "horas"}`;
+  const d = Math.round(h / 24);
+  return `hace ${d} ${d === 1 ? "día" : "días"}`;
+}
+
 /** Acceso del cliente final con las credenciales que le dio su proveedor. */
 export default function CustomerLoginForm({
   brandName,
@@ -20,8 +44,18 @@ export default function CustomerLoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /**
+   * Los aparatos que ocupan el cupo, cuando no cabe uno más.
+   *
+   * Aquí se le soltaba «has alcanzado el límite de 2 dispositivos, pide a
+   * tu proveedor que libere uno» y se le dejaba fuera: una llamada de
+   * teléfono para algo que casi siempre es su propia tele, la que se dejó
+   * encendida en otra casa o la del móvil que cambió. Con la lista delante,
+   * cierra uno y entra.
+   */
+  const [ocupados, setOcupados] = useState<Aparato[] | null>(null);
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent, liberar?: string) {
     e.preventDefault();
     setError(null);
     setBusy(true);
@@ -34,6 +68,7 @@ export default function CustomerLoginForm({
           password,
           deviceKey: getDeviceKey(),
           platform: getPlatform(),
+          liberar,
         }),
       });
       const data = await res.json();
@@ -51,6 +86,9 @@ export default function CustomerLoginForm({
             window.location.href = "/player";
             return;
           }
+        }
+        if (res.status === 403 && Array.isArray(data.dispositivos) && data.dispositivos.length) {
+          setOcupados(data.dispositivos as Aparato[]);
         }
         setError(data.error || "No se pudo iniciar sesión");
         return;
@@ -73,6 +111,32 @@ export default function CustomerLoginForm({
         {error && (
           <div className="error-box" style={{ marginBottom: 16 }} role="alert">
             {error}
+          </div>
+        )}
+        {/*
+          Y cuáles son, para que elija.
+          «Android TV · hace 3 días» es lo que le permite reconocer la tele
+          de la casa del pueblo sin saber qué es una MAC.
+        */}
+        {ocupados && (
+          <div className="aparatos-cupo">
+            <p className="aparatos-t">Aparatos usando esta cuenta</p>
+            {ocupados.map((d) => (
+              <div className="aparato" key={d.llave}>
+                <span className="aparato-que">
+                  <b>{d.plataforma}</b>
+                  <span>{haceCuanto(d.visto)}</span>
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={busy}
+                  onClick={(e) => submit(e, d.llave)}
+                >
+                  Cerrar y entrar aquí
+                </button>
+              </div>
+            ))}
           </div>
         )}
         <form onSubmit={submit}>

@@ -271,11 +271,21 @@ export function listPlans(): ProviderPlanRow[] {
 
 /* ---------------- Dispositivos ---------------- */
 
+/** Un aparato del cliente, tal y como se le enseña para que elija. */
+export interface DispositivoDelCliente {
+  llave: string;
+  plataforma: string;
+  desde: number;
+  visto: number;
+}
+
 export interface DeviceCheck {
   allowed: boolean;
   reason?: string;
   used: number;
   max: number;
+  /** Solo cuando no cabe: cuáles hay, para poder cerrar uno. */
+  dispositivos?: DispositivoDelCliente[];
 }
 
 /**
@@ -313,9 +323,19 @@ export function registerDevice(
   if (used >= customer.max_devices) {
     return {
       allowed: false,
-      reason: `Has alcanzado el límite de ${customer.max_devices} dispositivos. Pide a tu proveedor que libere uno.`,
+      /*
+       * Y qué hacer, no solo qué pasa.
+       *
+       * Aquí ponía «pide a tu proveedor que libere uno», que convierte en
+       * una llamada de teléfono algo que el cliente puede resolver él: casi
+       * siempre es su propia tele, la que se dejó encendida en otra casa o
+       * la que cambió de móvil. La lista de aparatos va con el error para
+       * que pueda cerrar uno y entrar — ver `liberarDispositivo`.
+       */
+      reason: `Ya hay ${customer.max_devices} aparatos usando esta cuenta. Cierra uno para entrar aquí.`,
       used,
       max: customer.max_devices,
+      dispositivos: listarDispositivos(customer.id),
     };
   }
 
@@ -325,6 +345,43 @@ export function registerDevice(
   db.prepare("UPDATE customers SET last_seen = ? WHERE id = ?").run(now, customer.id);
 
   return { allowed: true, used: used + 1, max: customer.max_devices };
+}
+
+/**
+ * Los aparatos de un cliente, para que pueda elegir cuál cierra.
+ *
+ * Se enseña la plataforma y cuándo se vio por última vez, que es lo que
+ * permite reconocer el suyo: «Android TV · hace 3 días» es la de la casa
+ * del pueblo. La llave del aparato viaja porque es lo que hay que mandar
+ * para cerrarlo, y no dice nada de nadie: la inventa el propio aparato.
+ */
+export function listarDispositivos(customerId: number): DispositivoDelCliente[] {
+  return (
+    getDb()
+      .prepare(
+        "SELECT device_key, platform, first_seen, last_seen FROM devices WHERE customer_id = ? ORDER BY last_seen DESC"
+      )
+      .all(customerId) as { device_key: string; platform: string; first_seen: number; last_seen: number }[]
+  ).map((d) => ({
+    llave: d.device_key,
+    plataforma: d.platform || "Aparato",
+    desde: d.first_seen,
+    visto: d.last_seen,
+  }));
+}
+
+/**
+ * Cerrar la sesión de un aparato para poder entrar en otro.
+ *
+ * Solo lo puede hacer quien sabe la contraseña —lo comprueba quien llama—,
+ * y solo sobre los suyos. Devuelve `false` si esa llave no es de este
+ * cliente, que es lo que pasaría si alguien probara a mano.
+ */
+export function liberarDispositivo(customerId: number, llave: string): boolean {
+  const r = getDb()
+    .prepare("DELETE FROM devices WHERE customer_id = ? AND device_key = ?")
+    .run(customerId, llave);
+  return r.changes > 0;
 }
 
 /** Deja constancia del intento de acceso, para el historial del panel. */

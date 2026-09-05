@@ -79,6 +79,30 @@ type Pantalla =
   | "viendo"
   | "salir";
 
+/** Un aparato que ocupa cupo, como lo manda el servidor. Ver lib/provider.ts */
+interface AparatoDelCupo {
+  llave: string;
+  plataforma: string;
+  desde: number;
+  visto: number;
+}
+
+/**
+ * «Hace 3 días», que es como se reconoce un aparato propio.
+ *
+ * Una fecha exacta no dice nada —nadie recuerda el día que encendió la tele
+ * del pueblo—; el tiempo que hace, sí.
+ */
+function haceCuanto(cuando: number): string {
+  const min = Math.round((Date.now() - cuando) / 60000);
+  if (min < 2) return "ahora mismo";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `hace ${h} ${h === 1 ? "hora" : "horas"}`;
+  const d = Math.round(h / 24);
+  return `hace ${d} ${d === 1 ? "día" : "días"}`;
+}
+
 /** Por dónde iba algo. Lo mismo que guarda el reproductor web. */
 interface Avance {
   llave: string;
@@ -468,6 +492,17 @@ export default function TvApp() {
   const [poniendoLista, setPoniendoLista] = useState(false);
   const [haciendoLogin, setHaciendoLogin] = useState(false);
   const [entrando, setEntrando] = useState(false);
+  /**
+   * Los aparatos que ocupan el cupo, cuando no cabe uno más.
+   *
+   * En una tele es donde más falta hace poder cerrarlos desde aquí: el que
+   * la enciende en el salón no tiene delante el móvil con el que se pasó, y
+   * «pide a tu proveedor que libere uno» convertía en una llamada de
+   * teléfono algo que casi siempre es su propia tele.
+   */
+  const [ocupados, setOcupados] = useState<AparatoDelCupo[] | null>(null);
+  /* El formulario, para poder reenviarlo desde un botón que no está dentro */
+  const formLogin = useRef<HTMLFormElement | null>(null);
   /** Arrancamos con lo de la última vez porque no hubo forma de preguntar */
   const [sinRed, setSinRed] = useState(false);
   /** Lo último que se estaba viendo, para volver con un solo OK */
@@ -852,28 +887,43 @@ export default function TvApp() {
   }, []);
 
   /** Entrar con el usuario del proveedor, desde la propia tele */
-  async function entrarConUsuario(e: React.FormEvent<HTMLFormElement>) {
+  /**
+   * Entrar con el usuario del proveedor.
+   *
+   * `liberar` es la llave del aparato que se cierra para hacer sitio: en una
+   * tele es donde más falta hace, porque quien la enciende en el salón no
+   * tiene a mano el móvil con el que se pasó del cupo.
+   */
+  async function entrarConUsuario(e: { preventDefault: () => void }, liberar?: string) {
     e.preventDefault();
+    if (!formLogin.current) return;
     setError("");
     setEntrando(true);
-    const fd = new FormData(e.currentTarget);
+    /* Del formulario por referencia y no del evento: el botón de «cerrar y
+       entrar aquí» está dentro pero no es quien lo envía */
+    const datosDelFormulario = new FormData(formLogin.current);
     const res = await fetch("/api/customer/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: fd.get("usuario"),
-        password: fd.get("password"),
+        username: datosDelFormulario.get("usuario"),
+        password: datosDelFormulario.get("password"),
         // La tele se identifica con su MAC: así el proveedor la reconoce
         deviceKey: `mac-${macDelAparato()}`,
         platform: "tv",
+        liberar,
       }),
     });
     const data = await res.json();
     setEntrando(false);
     if (!res.ok) {
+      if (res.status === 403 && Array.isArray(data.dispositivos) && data.dispositivos.length) {
+        setOcupados(data.dispositivos as AparatoDelCupo[]);
+      }
       setError(data.error || "No hemos podido entrar con esos datos");
       return;
     }
+    setOcupados(null);
     setHaciendoLogin(false);
     await mirarSesion();
   }
@@ -3508,12 +3558,37 @@ export default function TvApp() {
     if (haciendoLogin) {
       return (
         <div className="tv-app tv-centro tv-lienzo" style={fondoMarca ? { backgroundImage: `url(${JSON.stringify(fondoMarca).slice(1, -1)})` } : undefined}>
-          <form className="tv-activar tv-form" onSubmit={entrarConUsuario}>
+          <form className="tv-activar tv-form" ref={formLogin} onSubmit={(e) => entrarConUsuario(e)}>
             <h1>Entrar con mi usuario</h1>
             <p className="tv-activar-paso">El usuario y la contraseña que te dio tu proveedor.</p>
             <input name="usuario" className="tv-input" placeholder="Usuario" required autoFocus autoComplete="off" />
             <input name="password" className="tv-input" type="password" placeholder="Contraseña" required autoComplete="off" />
             {error && <p className="tv-activar-error">{error}</p>}
+            {/*
+              Y si el cupo está lleno, cuáles lo ocupan.
+              «Android TV · hace 3 días» es lo que le permite reconocer la
+              tele de la casa del pueblo sin saber qué es una MAC.
+            */}
+            {ocupados && (
+              <div className="tv-aparatos">
+                <p className="tv-aparatos-t">Aparatos usando esta cuenta</p>
+                {ocupados.map((d) => (
+                  <button
+                    key={d.llave}
+                    type="button"
+                    className="tv-aparato"
+                    disabled={entrando}
+                    onClick={(e) => entrarConUsuario(e, d.llave)}
+                  >
+                    <span className="tv-aparato-que">
+                      <b>{d.plataforma}</b>
+                      <span>{haceCuanto(d.visto)}</span>
+                    </span>
+                    <span className="tv-aparato-accion">Cerrar y entrar aquí</span>
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="tv-form-fila">
               <button type="submit" className="tv-boton" disabled={entrando}>
                 {entrando ? "Entrando…" : "Entrar"}

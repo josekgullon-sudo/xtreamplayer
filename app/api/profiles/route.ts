@@ -42,6 +42,8 @@ export async function GET() {
       name: p.name,
       avatar: p.avatar,
       kids: p.kids === 1,
+      /* Si tiene PIN, no cuál es: eso no sale de aquí */
+      conPin: Boolean(p.pin),
     })),
   });
 }
@@ -96,7 +98,7 @@ export async function PUT(req: NextRequest) {
   const owner = await currentOwner();
   if (!owner) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  let body: { profileId?: number };
+  let body: { profileId?: number; pin?: string };
   try {
     body = await req.json();
   } catch {
@@ -105,6 +107,21 @@ export async function PUT(req: NextRequest) {
 
   const chosen = listProfiles(owner).find((p) => p.id === Number(body.profileId));
   if (!chosen) return NextResponse.json({ error: "Perfil no encontrado" }, { status: 404 });
+
+  /*
+   * El perfil con PIN pide su PIN.
+   *
+   * Lo que protege a un niño no es un candado en SU perfil —ese tiene que
+   * poder abrirlo él—, sino uno en los de los mayores: sin esto, salirse
+   * del perfil infantil es elegir otro en la misma pantalla. Se comprueba
+   * aquí y no en el navegador porque en el navegador no protege de nada.
+   */
+  if (chosen.pin && chosen.pin !== String(body.pin || "")) {
+    return NextResponse.json(
+      { error: body.pin ? "Ese PIN no es" : "Este perfil pide PIN", pide: "pin" },
+      { status: 403 }
+    );
+  }
 
   await setActiveProfile(chosen.id);
   return NextResponse.json({ ok: true, profile: { id: chosen.id, name: chosen.name } });

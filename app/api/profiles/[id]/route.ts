@@ -22,7 +22,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const profile = ownsProfile(owner, Number(id));
   if (!profile) return NextResponse.json({ error: "Perfil no encontrado" }, { status: 404 });
 
-  let body: { name?: string; avatar?: string; kids?: boolean };
+  let body: { name?: string; avatar?: string; kids?: boolean; pin?: string };
   try {
     body = await req.json();
   } catch {
@@ -41,6 +41,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (typeof body.kids === "boolean") {
     db.prepare("UPDATE profiles SET kids = ? WHERE id = ?").run(body.kids ? 1 : 0, profile.id);
+  }
+  /*
+   * El PIN: cuatro cifras, o vacío para quitarlo.
+   *
+   * Cuatro y no más porque se teclea con el mando de una tele, y de cifras
+   * porque ahí no hay teclado. No es una contraseña —protege de un niño,
+   * no de un ladrón— y por eso se guarda tal cual: cifrarlo daría una
+   * sensación de seguridad que no tiene, y aquí lo que hay al otro lado ya
+   * es la cuenta entera de quien lo pone.
+   */
+  if (typeof body.pin === "string") {
+    const pin = body.pin.trim();
+    if (pin && !/^\d{4}$/.test(pin)) {
+      return NextResponse.json({ error: "El PIN son cuatro cifras" }, { status: 400 });
+    }
+    db.prepare("UPDATE profiles SET pin = ? WHERE id = ?").run(pin, profile.id);
   }
 
   return NextResponse.json({ ok: true });

@@ -6362,3 +6362,91 @@ tr:hover .celda-caduca .act-renovar,
   display: block; color: var(--text-faint); font-size: 12px; margin-top: 1px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* ---- El cupo de aparatos, cuando está lleno ---- */
+
+/*
+ * Cuáles ocupan el cupo, para poder cerrar uno.
+ *
+ * Antes esto era un error a secas —«pide a tu proveedor que libere uno»— y
+ * el cliente se quedaba fuera con una llamada de teléfono por delante. Casi
+ * siempre es su propia tele: la que se dejó encendida en otra casa, o el
+ * móvil que cambió. Con la lista delante lo resuelve él.
+ */
+.aparatos-cupo {
+  border: 1px solid var(--hairline); border-radius: var(--radius-sm);
+  padding: 6px; margin-bottom: 16px; background: var(--surface-quiet);
+}
+.aparatos-t {
+  margin: 6px 8px 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-faint);
+}
+.aparato {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 8px 8px 10px; border-radius: 9px;
+}
+.aparato + .aparato { border-top: 1px solid var(--hairline); }
+.aparato-que { display: flex; flex-direction: column; min-width: 0; }
+.aparato-que b { font-size: 14px; font-weight: 600; }
+.aparato-que span { font-size: 12.5px; color: var(--text-faint); }
+
+/* Y en la tele, con las medidas del sofá y el foco a la vista */
+.tv-aparatos {
+  border: 0.16vw solid rgba(255, 255, 255, 0.16); border-radius: 0.8vw;
+  padding: 0.6vh 0.6vw; margin: 1.4vh 0; background: rgba(255, 255, 255, 0.04);
+  display: flex; flex-direction: column; gap: 0.4vh;
+}
+.tv-aparatos-t {
+  margin: 0.6vh 0.8vw; font-size: 1vw; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255, 255, 255, 0.5);
+}
+.tv-aparato {
+  display: flex; align-items: center; justify-content: space-between; gap: 1.2vw;
+  width: 100%; padding: 1.1vh 1.2vw; border-radius: 0.7vw; cursor: pointer;
+  background: none; border: 0.16vw solid transparent; color: inherit; text-align: left;
+}
+.tv-aparato:hover, .tv-aparato:focus-visible {
+  border-color: rgba(255, 255, 255, 0.85); background: rgba(255, 255, 255, 0.10);
+}
+.tv-aparato-que { display: flex; flex-direction: column; min-width: 0; }
+.tv-aparato-que b { font-size: 1.3vw; font-weight: 700; }
+.tv-aparato-que span { font-size: 1.05vw; color: rgba(255, 255, 255, 0.55); }
+.tv-aparato-accion { font-size: 1.15vw; font-weight: 700; color: var(--accent-bright); flex: none; }
+
+/* ---- Perfiles: el candado y el lápiz ---- */
+
+/*
+ * El candado, sobre el avatar.
+ *
+ * Dice antes de pulsar que ese perfil va a pedir algo, en vez de que la
+ * petición aparezca de la nada. Y en el infantil, su ausencia es la
+ * información: es el único al que se entra sin nada.
+ */
+.profile-item { position: relative; }
+.profile-avatar { position: relative; }
+.profile-candado {
+  position: absolute; right: -2px; bottom: -2px;
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--bg-elev-2); border: 2px solid var(--bg);
+  color: var(--text-dim);
+}
+/* El lápiz, callado hasta que se pasa por encima: en una fila de perfiles
+   lo que se hace casi siempre es entrar, no editar */
+.profile-editar {
+  position: absolute; top: 6px; right: 6px;
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bg-elev-2); color: var(--text-faint);
+  opacity: 0; transition: opacity 0.14s, color 0.14s; cursor: pointer;
+}
+.profile-item:hover .profile-editar,
+.profile-editar:focus-visible { opacity: 1; }
+.profile-editar:hover { color: var(--text); }
+
+/* El PIN: cuatro cifras separadas, que se teclean con el mando */
+.pin-campo {
+  font-size: 22px; letter-spacing: 0.5em; text-align: center; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.campo-pista { margin: 6px 0 0; font-size: 12.5px; color: var(--text-faint); line-height: 1.45; }
