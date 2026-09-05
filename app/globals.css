@@ -6339,3 +6339,26 @@ tr:hover .celda-caduca .act-renovar,
 @media (max-width: 860px) {
   .celda-caduca .act-renovar { opacity: 1; }
 }
+
+/* ---- Seguir viendo: por dónde iba cada cosa ---- */
+
+/*
+ * La barra sobre la carátula.
+ *
+ * En una fila de carátulas del mismo tamaño no hay nada que distinga la
+ * película que casi has terminado de la que acabas de empezar, y esa es
+ * justo la pregunta que se hace uno mirando esta fila. Va pegada abajo y
+ * ocupa dos puntos: es un dato, no un elemento.
+ */
+.pa-avance-barra {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+  background: rgba(255, 255, 255, 0.22); border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  overflow: hidden;
+}
+.pa-avance-barra > span { display: block; height: 100%; background: var(--accent-bright); }
+
+/* La segunda línea: «T2 E5 · quedan 23 min», que es lo que se pregunta */
+.pa-card-sub {
+  display: block; color: var(--text-faint); font-size: 12px; margin-top: 1px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}

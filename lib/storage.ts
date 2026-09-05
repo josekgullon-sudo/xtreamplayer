@@ -28,6 +28,7 @@ export interface RecentItem {
 const K_PLAYLISTS = "xp.playlists.v1";
 const K_FAVORITES = "xp.favorites.v1";
 const K_RECENTS = "xp.recents.v1";
+const K_VISTOS = "xp.vistos.v1";
 
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -80,4 +81,57 @@ export function pushRecent(item: RecentItem): RecentItem[] {
 
 export function newLocalId(): string {
   return `local-${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
+}
+
+/**
+ * Por dónde iba cada cosa, en el aparato.
+ *
+ * Quien se pega su propia lista no tiene cuenta —esa es la gracia de la web
+ * pública—, así que no hay dónde guardarlo en el servidor. Vale lo mismo
+ * que para las listas y los favoritos: vive aquí y no sale del navegador.
+ *
+ * Con cuenta —un cliente de proveedor, o quien se registra— manda lo que
+ * hay en el servidor, que es lo que hace que la tele del salón y el móvil
+ * cuenten lo mismo. Esto sigue escribiéndose igual, y sirve de copia para
+ * el rato en que el servidor no conteste.
+ */
+export interface VistoLocal {
+  llave: string;
+  titulo: string;
+  cartel: string;
+  clase: string;
+  idStream: string;
+  extension: string;
+  serieId: string;
+  temporada: number;
+  episodio: number;
+  segundo: number;
+  duracion: number;
+  acabado: boolean;
+  vistoEn: number;
+}
+
+/** El mismo tope que en el servidor: ver CUANTOS en lib/vistos.ts */
+const VISTOS_TOPE = 50;
+
+export function getVistos(): Record<string, VistoLocal> {
+  return read<Record<string, VistoLocal>>(K_VISTOS, {});
+}
+
+export function putVisto(v: VistoLocal): Record<string, VistoLocal> {
+  const todos = { ...getVistos(), [v.llave]: v };
+  /* Y se tiran los más viejos, que si no esto crece sin fin en el navegador
+     de alguien que zapea mucho */
+  const ordenados = Object.values(todos).sort((a, b) => b.vistoEn - a.vistoEn).slice(0, VISTOS_TOPE);
+  const recortado: Record<string, VistoLocal> = {};
+  for (const x of ordenados) recortado[x.llave] = x;
+  write(K_VISTOS, recortado);
+  return recortado;
+}
+
+export function borrarVisto(llave: string): Record<string, VistoLocal> {
+  const todos = getVistos();
+  delete todos[llave];
+  write(K_VISTOS, todos);
+  return todos;
 }

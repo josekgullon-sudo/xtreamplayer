@@ -50,6 +50,14 @@ export interface PlaySource {
    * veía bien.
    */
   recordar?: string;
+  /**
+   * El segundo por el que se quedó, para retomarlo ahí.
+   *
+   * Va en la fuente y no en una propiedad aparte porque es de lo que se va
+   * a ver, no del reproductor: al cambiar de película cambia con ella, y
+   * así no hay manera de que se aplique el punto de una a otra.
+   */
+  empezarEn?: number;
 }
 
 /** 7:04, o 1:23:45 cuando pasa de la hora. Sin horas a cero por delante. */
@@ -440,6 +448,7 @@ export default function VideoPlayer({
   enVivo = false,
   siguiente,
   alSalir,
+  alAvanzar,
   onEnded,
 }: {
   source: PlaySource | null;
@@ -470,6 +479,15 @@ export default function VideoPlayer({
   siguiente?: { texto: string; ir: () => void };
   /** Volver a lo de antes. En el móvil, la única salida de la pantalla completa. */
   alSalir?: () => void;
+  /**
+   * Por dónde va, cada quince segundos y al dejarlo.
+   *
+   * Quince porque es lo que se puede perder sin que nadie lo note —quince
+   * segundos de una película— y porque guardar en cada latido del vídeo
+   * sería una escritura cada décima. También se avisa al salir y al
+   * pausar, que es cuando de verdad se deja algo a medias.
+   */
+  alAvanzar?: (segundo: number, duracion: number) => void;
   onEnded?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -1158,6 +1176,74 @@ export default function VideoPlayer({
   /* Al cambiar de canal o de película, la capa se enseña otra vez: es el
      momento en que hace falta saber qué se ha puesto */
   useEffect(() => { asomar(); setMenu(null); }, [source, asomar]);
+
+  /*
+   * Retomar por donde se quedó.
+   *
+   * Una sola vez por cosa puesta, y no en cada intento: la escalera prueba
+   * hasta cuatro caminos, y saltando en todos, un fallo a mitad devolvería
+   * al minuto guardado a alguien que ya se había movido a mano. `yaRetomado`
+   * se compara con la dirección porque es lo único que distingue una
+   * película de otra desde aquí.
+   */
+  const yaRetomado = useRef<string>("");
+  useEffect(() => {
+    const v = videoRef.current;
+    const desde = source?.empezarEn || 0;
+    if (!v || !source || desde <= 0 || state !== "playing") return;
+    if (yaRetomado.current === source.url) return;
+    /*
+     * Se espera a saber cuánto dura, sin darlo por perdido.
+     *
+     * `playing` se enciende con el primer fotograma, y por según qué camino
+     * —el proxy, el conversor— la duración llega un instante después. Dando
+     * por hecho que ya se sabe, el salto no se hacía nunca y la película
+     * empezaba desde el principio; marcándolo como retomado ahí, tampoco se
+     * volvía a intentar. Por eso `duracion` está en las dependencias y la
+     * marca se pone DESPUÉS de saltar.
+     */
+    if (!Number.isFinite(v.duration) || v.duration <= 0) return;
+    yaRetomado.current = source.url;
+    /*
+     * Y si lo que queda son los créditos no se retoma, que volver a poner
+     * algo es querer verlo y no ver cómo termina.
+     *
+     * En proporción y no en segundos sueltos: con un margen fijo —«los dos
+     * últimos segundos»— cualquier cosa corta se quedaba sin retomar,
+     * porque su mitad ya cae dentro del margen. El segundo límite solo
+     * evita pedir un salto más allá del final.
+     */
+    if (desde >= v.duration - 0.5 || desde / v.duration >= 0.95) return;
+    v.currentTime = desde;
+  }, [source, state, duracion]);
+
+  /*
+   * Contar por dónde va.
+   *
+   * Va aquí y no en quien nos usa porque el que sabe el segundo es el
+   * elemento de vídeo, y así lo aprovechan por igual el reproductor de la
+   * web, el del móvil y el de la tele. No se avisa en directo: en un canal
+   * no hay «por dónde ibas».
+   */
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !source || enVivo || !alAvanzar) return;
+    const contar = () => {
+      if (!Number.isFinite(v.duration) || v.duration <= 0 || v.currentTime <= 0) return;
+      alAvanzar(v.currentTime, v.duration);
+    };
+    const cada = setInterval(() => { if (!v.paused) contar(); }, 15000);
+    v.addEventListener("pause", contar);
+    v.addEventListener("ended", contar);
+    return () => {
+      clearInterval(cada);
+      v.removeEventListener("pause", contar);
+      v.removeEventListener("ended", contar);
+      /* Y al dejarlo: salir del vídeo es la forma más corriente de dejar
+         algo a medias, y sin esto se perdían los últimos quince segundos */
+      contar();
+    };
+  }, [source, enVivo, alAvanzar]);
 
   useEffect(() => () => { if (plazoOsd.current) clearTimeout(plazoOsd.current); }, []);
 

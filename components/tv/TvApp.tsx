@@ -79,6 +79,23 @@ type Pantalla =
   | "viendo"
   | "salir";
 
+/** Por dónde iba algo. Lo mismo que guarda el reproductor web. */
+interface Avance {
+  llave: string;
+  titulo: string;
+  cartel: string;
+  clase: string;
+  idStream: string;
+  extension: string;
+  serieId: string;
+  temporada: number;
+  episodio: number;
+  segundo: number;
+  duracion: number;
+  acabado: boolean;
+  vistoEn: number;
+}
+
 /** Una persona de la casa. Lo mismo que en el reproductor web. */
 interface Perfil {
   id: number;
@@ -458,6 +475,14 @@ export default function TvApp() {
   /** Cuántas veces se ha puesto cada canal aquí. Ver `K_VISTOS`. */
   const [vistos, setVistos] = useState<Record<string, number>>({});
   /**
+   * Por dónde iba cada película y cada episodio, de la cuenta.
+   *
+   * Es lo mismo que guarda el reproductor de la web —la misma tabla y la
+   * misma ruta—, y por eso una serie se empieza en el móvil y se sigue aquí.
+   * Ver `lib/vistos.ts`.
+   */
+  const [progreso, setProgreso] = useState<Record<string, Avance>>({});
+  /**
    * Columnas que ha puesto de verdad la rejilla de carátulas. Se miden en vez
    * de darlas por sabidas: el mando tiene que bajar exactamente una fila, y
    * una tele de 4K y el navegador de pruebas no caben lo mismo.
@@ -781,6 +806,51 @@ export default function TvApp() {
     setVistos(leer<Record<string, number>>(K_VISTOS) || {});
   }, []);
 
+  /*
+   * Por dónde iba cada cosa, de la cuenta.
+   *
+   * Se pide al entrar y cada vez que se cambia de perfil: el historial es de
+   * quien mira, no del televisor. Sin sesión —una tele con su propia lista
+   * tecleada a mano— la ruta contesta vacío y aquí no cambia nada.
+   */
+  useEffect(() => {
+    if (sesion !== "dentro") return;
+    fetch("/api/vistos")
+      .then((r) => r.json())
+      .then((d: { vistos?: Avance[] }) => {
+        const por: Record<string, Avance> = {};
+        for (const v of d.vistos || []) por[v.llave] = v;
+        setProgreso(por);
+      })
+      .catch(() => {});
+  }, [sesion, perfil?.id]);
+
+  /**
+   * Apuntar por dónde va lo que se está viendo.
+   *
+   * Lo llama el reproductor cada quince segundos y al dejarlo. Se guarda
+   * aquí también, sin esperar al servidor, para que la fila de «seguir
+   * viendo» esté al día al volver atrás — que es lo que se hace justo
+   * después de salir del vídeo.
+   */
+  const apuntarAvance = useCallback((apunte: Omit<Avance, "acabado" | "vistoEn">) => {
+    if (apunte.duracion <= 0 || apunte.segundo / apunte.duracion < 0.03) return;
+    const entero: Avance = {
+      ...apunte,
+      segundo: Math.round(apunte.segundo),
+      duracion: Math.round(apunte.duracion),
+      acabado: apunte.segundo / apunte.duracion >= 0.92,
+      vistoEn: Date.now(),
+    };
+    setProgreso((antes) => ({ ...antes, [entero.llave]: entero }));
+    fetch("/api/vistos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(apunte),
+      keepalive: true,
+    }).catch(() => {});
+  }, []);
+
   /** Entrar con el usuario del proveedor, desde la propia tele */
   async function entrarConUsuario(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -1101,7 +1171,10 @@ export default function TvApp() {
       nombre: string,
       kind: PlaySource["kind"],
       pedir: () => Promise<Omit<PlaySource, "name" | "kind">>,
-      epgId?: string
+      epgId?: string,
+      /* Con qué apuntar por dónde va, y por dónde retomarlo. Solo en lo que
+         tiene final: en un canal no hay «por dónde ibas» */
+      apunte?: Omit<Avance, "segundo" | "duracion" | "acabado" | "vistoEn">
     ) => {
       /*
        * Cada puesta en marcha lleva número, y solo la última manda.
@@ -1113,13 +1186,25 @@ export default function TvApp() {
        * acabas viendo el 4.
        */
       const mio = ++zapeo.current;
+      setLoQueSeVe(apunte || null);
       /* Sin dirección todavía: el reproductor sabe esperarla sin dar error
          —ver `buildAttempts`— y mientras tanto enseña «Conectando con…» */
       reproducir({ url: "", name: nombre, kind }, epgId);
+      /* `progreso` no va en las dependencias a propósito: se lee en el
+         momento de abrir y no tiene por qué volver a montarse esta función
+         cada vez que se apunta un avance —que es cada quince segundos— */
       pedir()
         .then((donde) => {
           if (mio !== zapeo.current) return;
-          const source: PlaySource = { ...donde, name: nombre, kind };
+          /* Terminado no se retoma: volver a ponerlo es querer verlo otra
+             vez, no ver los créditos */
+          const antes = apunte ? progreso[apunte.llave] : undefined;
+          const source: PlaySource = {
+            ...donde,
+            name: nombre,
+            kind,
+            empezarEn: antes && !antes.acabado ? antes.segundo : 0,
+          };
           setViendo((antes) => (antes ? { ...antes, source } : antes));
           /* Lo de «seguir viendo» se guarda con la dirección ya resuelta: sin
              esto quedaría guardado el hueco vacío y el atajo no llevaría a
@@ -1135,8 +1220,57 @@ export default function TvApp() {
           setError(enCristiano(e, "No se pudo abrir"));
         });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [reproducir]
   );
+  /**
+   * Lo último que quedó a medias, si hay algo.
+   *
+   * Manda sobre el último canal en el botón de «seguir viendo» del inicio:
+   * un canal se vuelve a encontrar en dos pulsaciones —está en su carpeta y
+   * en «los que más ves»—, y una película a medias, no. Es además lo que
+   * hace volver mañana.
+   */
+  const aMedias = useMemo(() => {
+    const todos = Object.values(progreso).filter((v) => !v.acabado && v.duracion > 0);
+    return todos.sort((a, b) => b.vistoEn - a.vistoEn)[0] || null;
+  }, [progreso]);
+
+  /** Volver a lo que se dejó a medias, sin pasar por su ficha. */
+  const seguirConLoDeAyer = useCallback(() => {
+    if (!aMedias || !creds) return;
+    const comoSeLlama =
+      aMedias.temporada || aMedias.episodio
+        ? `${aMedias.titulo} — T${aMedias.temporada} E${aMedias.episodio}`
+        : aMedias.titulo;
+    verEsto(
+      comoSeLlama,
+      "video",
+      () =>
+        pedirEnlace({
+          ...creds,
+          clase: aMedias.clase === "series" ? "series" : "movie",
+          id: aMedias.idStream,
+          ext: aMedias.extension || "mp4",
+        }),
+      undefined,
+      {
+        llave: aMedias.llave,
+        titulo: aMedias.titulo,
+        cartel: aMedias.cartel,
+        clase: aMedias.clase,
+        idStream: aMedias.idStream,
+        extension: aMedias.extension,
+        serieId: aMedias.serieId,
+        temporada: aMedias.temporada,
+        episodio: aMedias.episodio,
+      }
+    );
+  }, [aMedias, creds, verEsto]);
+
+  /** Lo que se está viendo, para apuntarlo. Ver `apuntarAvance`. */
+  const [loQueSeVe, setLoQueSeVe] = useState<Omit<Avance, "segundo" | "duracion" | "acabado" | "vistoEn"> | null>(null);
+
   const entrarEnCarpeta = useCallback((nombre: string, contenido: Fila[]) => {
     setCarpetaAbierta(nombre);
     setFilas(contenido);
@@ -1448,13 +1582,28 @@ export default function TvApp() {
           );
           /* Poner la película, cuando ya se ha decidido ponerla */
           const ponerPeli = (v: XtreamVodStream) => () =>
-            verEsto(v.name, "video", () =>
-              pedirEnlace({
-                ...creds,
+            verEsto(
+              v.name,
+              "video",
+              () =>
+                pedirEnlace({
+                  ...creds,
+                  clase: "movie",
+                  id: String(v.stream_id),
+                  ext: v.container_extension || "mp4",
+                }),
+              undefined,
+              {
+                llave: `tv:vod:${v.stream_id}`,
+                titulo: v.name,
+                cartel: v.stream_icon || "",
                 clase: "movie",
-                id: String(v.stream_id),
-                ext: v.container_extension || "mp4",
-              })
+                idStream: String(v.stream_id),
+                extension: v.container_extension || "mp4",
+                serieId: "",
+                temporada: 0,
+                episodio: 0,
+              }
             );
           /*
            * Y antes, su ficha.
@@ -1901,8 +2050,22 @@ export default function TvApp() {
       temporadas: [],
       episodios: {},
       reproducir: () =>
-        verEsto(v.name, "video", () =>
-          pedirEnlace({ ...creds, clase: "movie", id: String(v.stream_id), ext })
+        verEsto(
+          v.name,
+          "video",
+          () => pedirEnlace({ ...creds, clase: "movie", id: String(v.stream_id), ext }),
+          undefined,
+          {
+            llave: `tv:vod:${v.stream_id}`,
+            titulo: v.name,
+            cartel: suyo.imagen || "",
+            clase: "movie",
+            idStream: String(v.stream_id),
+            extension: ext,
+            serieId: "",
+            temporada: 0,
+            episodio: 0,
+          }
         ),
       enlace: async () =>
         dondeGuardar(await pedirEnlace({ ...creds, clase: "movie", id: String(v.stream_id), ext })),
@@ -1982,13 +2145,31 @@ export default function TvApp() {
             duracion: minutosDe(ep.info?.duration || ""),
             sinopsis: String(ep.info?.plot ?? ""),
             abrir: () =>
-              verEsto(`${s.name} — ${titulo}`, "video", () =>
-                pedirEnlace({
-                  ...creds,
+              verEsto(
+                `${s.name} — ${titulo}`,
+                "video",
+                () =>
+                  pedirEnlace({
+                    ...creds,
+                    clase: "series",
+                    id: ep.id,
+                    ext: ep.container_extension || "mp4",
+                  }),
+                undefined,
+                {
+                  llave: `tv:ep:${ep.id}`,
+                  /* El nombre de la serie y el del episodio por separado: la
+                     fila de «seguir viendo» pone «Serie · T2 E5», y de un
+                     «Serie — Título» no se puede sacar */
+                  titulo: s.name,
+                  cartel: s.cover || "",
                   clase: "series",
-                  id: ep.id,
-                  ext: ep.container_extension || "mp4",
-                })
+                  idStream: ep.id,
+                  extension: ep.container_extension || "mp4",
+                  serieId: String(s.series_id),
+                  temporada: Number(temporada) || 0,
+                  episodio: Number(ep.episode_num) || 0,
+                }
               ),
             /* La misma dirección que usa `abrir`, pero devuelta en vez de
                puesta: guardarlo en el aparato y verlo son lo mismo con dos
@@ -3162,7 +3343,11 @@ export default function TvApp() {
         }
         if (tecla === "Ok") {
           e.preventDefault();
-          if (focoFila === -2 && ultimo) reproducir(ultimo.source);
+          /* Lo mismo que hace el clic del botón: ver más abajo */
+          if (focoFila === -2) {
+            if (aMedias) seguirConLoDeAyer();
+            else if (ultimo) reproducir(ultimo.source);
+          }
           else if (focoFila === -1) {
             elegirDestino(focoCol >= accesos.length ? "salir" : accesos[focoCol]?.id);
           } else {
@@ -3214,7 +3399,7 @@ export default function TvApp() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol, dirEnPortada, zonaDir, canalesVista, filaGuia, filaDestacados, canalMirado, filasInicioALaVista, perfiles, elegirPerfil, cabenMas, creandoPerfil]);
+  }, [pantalla, filas, foco, ultimo, reproducir, columnas, focoCarril, enPortada, filasConLista, destacado, focoFila, focoCol, dirEnPortada, zonaDir, canalesVista, filaGuia, filaDestacados, canalMirado, filasInicioALaVista, perfiles, elegirPerfil, cabenMas, creandoPerfil, aMedias, seguirConLoDeAyer]);
 
   // La fila con el foco siempre a la vista, sin que el usuario persiga nada
   useEffect(() => {
@@ -3783,7 +3968,13 @@ export default function TvApp() {
           source={viendo.source}
           mandos={viendo.epgId ? "ninguno" : "propios"}
           titulo={viendo.source.name}
+          enVivo={Boolean(viendo.epgId)}
           alSalir={() => { setViendo(null); setPantalla(ficha ? "ficha" : filas.length ? ultimaLista.current : "portada"); }}
+          alAvanzar={
+            loQueSeVe
+              ? (segundo, duracion) => apuntarAvance({ ...loQueSeVe, segundo, duracion })
+              : undefined
+          }
         />
         {/*
           La guía del canal que suena, no solo su nombre.
@@ -3989,16 +4180,27 @@ export default function TvApp() {
           ))}
         </div>
 
-        {ultimo && (
+        {/*
+          Seguir viendo: primero lo que quedó a medias, y si no, el último
+          canal. Una película por la mitad es lo que hace volver mañana; un
+          canal está a dos pulsaciones en su carpeta.
+        */}
+        {(aMedias || ultimo) && (
           <button
             className={`tv-seguir ${foc(focoFila === -2)}`}
             onMouseEnter={() => { conElRaton(); setFocoFila(-2); }}
-            onClick={() => reproducir(ultimo.source)}
+            onClick={() => (aMedias ? seguirConLoDeAyer() : ultimo && reproducir(ultimo.source))}
           >
             <Icon name="play" size={26} />
             <span>
               Seguir viendo
-              <b>{ultimo.nombre}</b>
+              <b>
+                {aMedias
+                  ? aMedias.temporada || aMedias.episodio
+                    ? `${aMedias.titulo} · T${aMedias.temporada} E${aMedias.episodio} · quedan ${Math.max(1, Math.round((aMedias.duracion - aMedias.segundo) / 60))} min`
+                    : `${aMedias.titulo} · quedan ${Math.max(1, Math.round((aMedias.duracion - aMedias.segundo) / 60))} min`
+                  : ultimo?.nombre}
+              </b>
             </span>
           </button>
         )}

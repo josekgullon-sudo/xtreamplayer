@@ -31,6 +31,8 @@ import {
   getRecents,
   pushRecent,
   RecentItem,
+  getVistos,
+  putVisto,
 } from "@/lib/storage";
 import { parseM3U, M3UChannel } from "@/lib/m3u";
 import { imgSrc } from "@/lib/img";
@@ -65,6 +67,34 @@ interface NowPlaying {
   kind: "live" | "vod" | "episode" | "m3u";
   streamId?: number;
   favKey?: string;
+  /** Con qué apuntar por dónde va. Solo en lo que tiene final. */
+  visto?: Omit<Visto, "segundo" | "duracion">;
+}
+
+/**
+ * Lo que se apunta de algo que se está viendo.
+ *
+ * Es lo mismo que guarda el servidor (ver `lib/vistos.ts`), y lleva de qué
+ * es y qué hay que pedirle al panel: la fila de «seguir viendo» tiene que
+ * poder volver a abrirlo sin que el catálogo esté cargado todavía.
+ */
+interface Visto {
+  llave: string;
+  titulo: string;
+  cartel: string;
+  clase: string;
+  idStream: string;
+  extension: string;
+  serieId: string;
+  temporada: number;
+  episodio: number;
+  segundo: number;
+  duracion: number;
+}
+
+interface VistoGuardado extends Visto {
+  acabado: boolean;
+  vistoEn: number;
 }
 
 interface XtreamData {
@@ -194,6 +224,15 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
    * marcar el primer favorito.
    */
   const [seccionGate, setSeccionGate] = useState<"pendiente" | "mostrando" | "hecho">("pendiente");
+  /**
+   * Por dónde iba cada cosa, de la cuenta y no del aparato.
+   *
+   * Se pide una vez al entrar y se guarda por llave: sirve para la fila de
+   * «seguir viendo», para retomar al abrir algo y para pintar la barra de
+   * avance sobre las carátulas. Preguntando por título habría una petición
+   * por carátula.
+   */
+  const [vistos, setVistos] = useState<Record<string, VistoGuardado>>({});
   /**
    * En cine y series se navega a pantalla completa: el vídeo solo aparece
    * cuando se ha elegido algo que ver. Tener el reproductor siempre arriba
@@ -347,6 +386,27 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
      * elegir sección — hasta ahora ponía «TOTALplayer» a todo el mundo
      * porque este estado no se rellenaba nunca.
      */
+    /*
+     * Por dónde iba cada cosa: primero lo del aparato y luego lo de la
+     * cuenta, si la hay.
+     *
+     * Lo del aparato sale al momento y es lo único que tiene quien se pega
+     * su propia lista, que no tiene cuenta ninguna. Lo de la cuenta llega
+     * un instante después y manda: es lo que hace que la tele del salón y
+     * el móvil cuenten lo mismo. Si el servidor no contesta, se sigue con
+     * lo local, que es mejor que nada.
+     */
+    setVistos(getVistos());
+    fetch("/api/vistos")
+      .then((r) => r.json())
+      .then((d: { vistos?: VistoGuardado[] }) => {
+        if (!d.vistos?.length) return;
+        const por: Record<string, VistoGuardado> = {};
+        for (const v of d.vistos) por[v.llave] = v;
+        setVistos((local) => ({ ...local, ...por }));
+      })
+      .catch(() => {});
+
     fetch("/api/customer/me")
       .then((r) => r.json())
       .then((d) => {
@@ -971,12 +1031,34 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
     const ext = item.container_extension || "mp4";
     setViendo(true);
     const enlace = await pedirEnlace({ ...credsOf(p), clase: "movie", id: String(item.stream_id), ext });
+    /* La llave lleva la lista dentro: la misma película en dos listas son
+       dos ficheros distintos, con duraciones distintas */
+    const llave = `${p.id}:vod:${item.stream_id}`;
+    const yaVisto = vistos[llave];
     setCurrent({
-      source: { ...enlace, name: item.name, kind: "video" },
+      source: {
+        ...enlace,
+        name: item.name,
+        kind: "video",
+        /* Terminada no se retoma: volver a ponerla es querer verla otra
+           vez desde el principio, no ver los créditos */
+        empezarEn: yaVisto && !yaVisto.acabado ? yaVisto.segundo : 0,
+      },
       logo: item.stream_icon,
       playlistId: p.id,
       kind: "vod",
-      favKey: `${p.id}:vod:${item.stream_id}`,
+      favKey: llave,
+      visto: {
+        llave,
+        titulo: item.name,
+        cartel: item.stream_icon || "",
+        clase: "movie",
+        idStream: String(item.stream_id),
+        extension: ext,
+        serieId: "",
+        temporada: 0,
+        episodio: 0,
+      },
     });
     setRecents(
       pushRecent({
@@ -1006,16 +1088,145 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
     }
   }
 
-  async function playEpisode(p: StoredPlaylist, s: XtreamSeries, epId: string, title: string, ext?: string) {
+  async function playEpisode(
+    p: StoredPlaylist,
+    s: XtreamSeries,
+    epId: string,
+    title: string,
+    ext?: string,
+    donde?: { temporada: number; episodio: number }
+  ) {
     setViendo(true);
     const enlace = await pedirEnlace({ ...credsOf(p), clase: "series", id: epId, ext: ext || "mp4" });
+    const llave = `${p.id}:ep:${epId}`;
+    const yaVisto = vistos[llave];
     setCurrent({
-      source: { ...enlace, name: `${s.name} — ${title}`, kind: "video" },
+      source: {
+        ...enlace,
+        name: `${s.name} — ${title}`,
+        kind: "video",
+        empezarEn: yaVisto && !yaVisto.acabado ? yaVisto.segundo : 0,
+      },
       logo: s.cover,
       playlistId: p.id,
       kind: "episode",
+      visto: {
+        llave,
+        /* El nombre de la serie y el del episodio por separado: la fila de
+           «seguir viendo» pone «Serie · T2 E5», y de un «Serie — Título»
+           no se puede sacar */
+        titulo: s.name,
+        cartel: s.cover || "",
+        clase: "series",
+        idStream: epId,
+        extension: ext || "mp4",
+        serieId: String(s.series_id),
+        temporada: donde?.temporada || 0,
+        episodio: donde?.episodio || 0,
+      },
     });
   }
+
+  /**
+   * Apuntar por dónde va lo que se está viendo.
+   *
+   * Lo llama el reproductor cada quince segundos y al dejarlo. Se guarda
+   * también aquí en memoria —sin esperar al servidor— para que la fila de
+   * «seguir viendo» y la barra de las carátulas estén al día al volver
+   * atrás, que es lo que se hace justo después de salir del vídeo.
+   */
+  const apuntarVisto = useCallback((v: Visto) => {
+    /* El mismo suelo que en el servidor: rozar algo diez segundos para ver
+       qué es no es haberlo empezado. Ver EMPEZADO en lib/vistos.ts */
+    if (v.duracion <= 0 || v.segundo / v.duracion < 0.03) return;
+    const apunte = {
+      ...v,
+      segundo: Math.round(v.segundo),
+      duracion: Math.round(v.duracion),
+      acabado: v.segundo / v.duracion >= 0.92,
+      vistoEn: Date.now(),
+    };
+    /* En el aparato siempre: es lo único que tiene quien se pega su propia
+       lista, y de paso la fila y las barras están al día sin esperar al
+       servidor —que es lo que se mira justo al salir del vídeo— */
+    setVistos(putVisto(apunte));
+    /* Y en la cuenta, cuando la hay. `keepalive` para que la última
+       llamada —la de al salir del vídeo— sobreviva a que la página cambie
+       de pantalla o se cierre */
+    fetch("/api/vistos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(v),
+      keepalive: true,
+    }).catch(() => {});
+  }, []);
+
+  /** El avance de algo, de 0 a 1, para la barra sobre la carátula. */
+  const avanceDe = useCallback(
+    (llave: string) => {
+      const v = vistos[llave];
+      if (!v || v.duracion <= 0) return 0;
+      return Math.min(1, Math.max(0, v.segundo / v.duracion));
+    },
+    [vistos]
+  );
+
+  /**
+   * Volver a lo que se dejó a medias.
+   *
+   * Se abre con lo que se guardó y sin tocar el catálogo: la fila sale
+   * antes de que el catálogo esté cargado —es lo primero que se mira— y
+   * hacerla depender de él la dejaría en blanco justo cuando hace falta.
+   */
+  async function seguirViendo(v: VistoGuardado) {
+    const p = playlists.find((x) => `${x.id}:` === v.llave.slice(0, x.id.length + 1));
+    if (!p) return;
+    setViendo(true);
+    setTab(v.clase === "series" ? "series" : "vod");
+    const enlace = await pedirEnlace({
+      ...credsOf(p),
+      clase: v.clase === "series" ? "series" : "movie",
+      id: v.idStream,
+      ext: v.extension || "mp4",
+    });
+    setCurrent({
+      source: {
+        ...enlace,
+        name: v.temporada || v.episodio ? `${v.titulo} — T${v.temporada} E${v.episodio}` : v.titulo,
+        kind: "video",
+        empezarEn: v.segundo,
+      },
+      logo: v.cartel,
+      playlistId: p.id,
+      kind: v.clase === "series" ? "episode" : "vod",
+      visto: {
+        llave: v.llave,
+        titulo: v.titulo,
+        cartel: v.cartel,
+        clase: v.clase,
+        idStream: v.idStream,
+        extension: v.extension,
+        serieId: v.serieId,
+        temporada: v.temporada,
+        episodio: v.episodio,
+      },
+    });
+  }
+
+  /**
+   * Lo que hay a medias de la lista abierta, lo último primero.
+   *
+   * Sin lo terminado —para eso está la fila, para lo que se dejó a medias— y
+   * solo de esta lista: en el desplegable de listas puede haber tres, y
+   * ofrecer la película de otra lleva a un enlace que no existe.
+   */
+  const aMedias = useMemo(() => {
+    if (!active) return [];
+    return Object.values(vistos)
+      .filter((v) => !v.acabado && v.llave.startsWith(`${active.id}:`) && v.duracion > 0)
+      .sort((a, b) => b.vistoEn - a.vistoEn)
+      .slice(0, 12);
+  }, [vistos, active]);
 
   function onToggleFav(key: string) {
     setFavorites(toggleFavorite(key));
@@ -1576,6 +1787,56 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
    */
   const enPortada = catFilter === "all" && !q && verRejilla !== tab && titulosPortada.length > 0;
 
+  /**
+   * La fila de «seguir viendo».
+   *
+   * Escrita una vez y puesta en cine y en series: en las dos se busca lo
+   * mismo. Va encima de la portada porque es lo que se busca al entrar; el
+   * escaparate debajo, que es para cuando no sabes qué poner.
+   *
+   * Y solo sin filtros: filtrando por un género o buscando algo, lo que se
+   * quiere es eso y no un recordatorio de lo de ayer.
+   */
+  const filaSeguirViendo =
+    enPortada && !loading && aMedias.length > 0 ? (
+      <section className="pa-carrusel pa-seguir">
+        <h3 className="pa-carrusel-t">Seguir viendo</h3>
+        <div className="pa-carrusel-tira">
+          {aMedias.map((v) => {
+            const quedan = Math.max(1, Math.round((v.duracion - v.segundo) / 60));
+            return (
+              <button className="pa-card" key={v.llave} onClick={() => seguirViendo(v)} title={v.titulo}>
+                <span className="pa-card-marco">
+                  {/* El título detrás del hueco, como en la portada: una
+                      carátula que no llega deja un cuadro gris igual a
+                      todos los demás */}
+                  <span className="poster-ph">{v.titulo}</span>
+                  {imgSrc(v.cartel) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="poster" src={imgSrc(v.cartel)} alt="" loading="lazy" />
+                  )}
+                  {/* Cuánto llevas, sobre la carátula: en una fila de
+                      carátulas iguales es lo único que distingue lo que casi
+                      has terminado de lo que acabas de empezar */}
+                  <span className="pa-avance-barra" aria-hidden="true">
+                    <span style={{ width: `${Math.round(avanceDe(v.llave) * 100)}%` }} />
+                  </span>
+                </span>
+                <div className="meta">
+                  <div className="title">{v.titulo}</div>
+                  <div className="pa-card-sub">
+                    {v.temporada || v.episodio
+                      ? `T${v.temporada} E${v.episodio} · quedan ${quedan} min`
+                      : `Quedan ${quedan} min`}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    ) : null;
+
   /*
    * Canales de la carpeta abierta. Sin carpeta elegida se enseñan todos
    * seguidos, con un tope: pintar diez mil botones de golpe deja el
@@ -1613,7 +1874,8 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
       seriesDetail.series,
       elSiguiente.id,
       elSiguiente.title || `Episodio ${elSiguiente.episode_num}`,
-      elSiguiente.container_extension
+      elSiguiente.container_extension,
+      { temporada: Number(seriesDetail.season) || 0, episodio: Number(elSiguiente.episode_num) || 0 }
     );
   }
 
@@ -2249,6 +2511,11 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
               source={current.source}
               titulo={current.source.name}
               alSalir={() => { setViendo(false); setCurrent(null); }}
+              alAvanzar={
+                current.visto
+                  ? (segundo, duracion) => apuntarVisto({ ...current.visto!, segundo, duracion })
+                  : undefined
+              }
             />
           </div>
         </div>
@@ -2783,6 +3050,11 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
                     : undefined
                 }
                 alSalir={() => { setViendo(false); setCurrent(null); }}
+                alAvanzar={
+                  current.visto
+                    ? (segundo, duracion) => apuntarVisto({ ...current.visto!, segundo, duracion })
+                    : undefined
+                }
                 onEnded={siguienteEpisodio}
               />
             </div>
@@ -2795,7 +3067,8 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
                       key={ep.id}
                       className={`pa-ep-fila ${current.source.name.includes(ep.title || `Episodio ${ep.episode_num}`) ? "activo" : ""}`}
                       onClick={() =>
-                        playEpisode(active, seriesDetail!.series, ep.id, ep.title || `Episodio ${ep.episode_num}`, ep.container_extension)
+                        playEpisode(active, seriesDetail!.series, ep.id, ep.title || `Episodio ${ep.episode_num}`, ep.container_extension,
+                          { temporada: Number(seriesDetail!.season) || 0, episodio: Number(ep.episode_num) || 0 })
                       }
                     >
                       <span className="pa-ep-n">{ep.episode_num}</span>
@@ -2813,6 +3086,7 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
           <div className="pa-cat-scroll">
             {loading && <Loading messages={MENSAJES_CINE} />}
             {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
+            {filaSeguirViendo}
             {/* Sin filtro, la portada; con filtro, la rejilla de siempre */}
             {enPortada && !loading ? (
               <PortadaCatalogo
@@ -2854,6 +3128,7 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
           <div className="pa-cat-scroll">
             {loading && <Loading messages={MENSAJES_SERIES} />}
             {loadError && <div className="pa-empty"><div className="error-box">{loadError}</div></div>}
+            {filaSeguirViendo}
             {enPortada && !loading ? (
               <PortadaCatalogo
                 titulos={titulosPortada}
@@ -3037,7 +3312,8 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
                     <button
                       className="btn btn-primary"
                       onClick={() =>
-                        playEpisode(active, seriesDetail.series, primero.id, comoSeLlama, primero.container_extension)
+                        playEpisode(active, seriesDetail.series, primero.id, comoSeLlama, primero.container_extension,
+                          { temporada: Number(seriesDetail.season) || 0, episodio: Number(primero.episode_num) || 0 })
                       }
                     >
                       <Icon name="play" size={16} /> Ver el primer episodio
@@ -3090,7 +3366,8 @@ export default function PlayerApp({ enUnaApp = false }: { enUnaApp?: boolean }) 
                   <button
                     className="pa-episode"
                     onClick={() =>
-                      playEpisode(active, seriesDetail.series, ep.id, titulo, ep.container_extension)
+                      playEpisode(active, seriesDetail.series, ep.id, titulo, ep.container_extension,
+                        { temporada: Number(seriesDetail.season) || 0, episodio: Number(ep.episode_num) || 0 })
                     }
                   >
                     {/*
