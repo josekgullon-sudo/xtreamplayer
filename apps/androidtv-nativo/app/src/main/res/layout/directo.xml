@@ -220,12 +220,22 @@
                 android:visibility="gone" />
         </FrameLayout>
 
-        <LinearLayout
+        <!-- La guía, desplazable: con la parrilla entera debajo del vídeo
+             no cabe en un teléfono, y lo que sobraba se cortaba por abajo.
+             El identificador va en el marco, que es lo que se esconde a
+             pantalla completa. Ver la variante de televisor -->
+        <ScrollView
             android:id="@+id/bloqueInfo"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scrollbars="none"
+            android:background="@color/superficie">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@color/superficie"
             android:padding="16dp">
 
             <TextView
@@ -320,6 +330,7 @@
                 android:layout_marginTop="10dp"
                 android:visibility="gone" />
         </LinearLayout>
+        </ScrollView>
     </LinearLayout>
 
     </FrameLayout>

@@ -44,12 +44,21 @@ public class InicioActivity extends Activity {
                 .setText((s.marca.isEmpty() ? "TOTALplayer" : s.marca).toUpperCase(Locale.getDefault()));
 
         String quien = s.perfil.isEmpty() ? s.entradaUsuario : s.perfil;
-        /* En voz baja y en una línea: con las filas debajo, el saludo ya no
-           es lo que llena la pantalla, y «¿Qué te apetece ver?» sobra cuando
-           lo que hay se está viendo justo debajo */
-        ((TextView) findViewById(R.id.saludo)).setText(quien.isEmpty() ? "" : "Hola, " + quien);
+        /*
+         * El saludo y la pregunta, en la misma línea.
+         *
+         * Ponía solo «Hola, fulano» justo encima de las cuatro pestañas, y
+         * eso las dejaba sin explicar: cercada la primera por el foco,
+         * parecían un filtro de lo que hay debajo en vez de cuatro sitios a
+         * los que ir. Con la pregunta delante, las pestañas son la
+         * respuesta, que es lo que son.
+         */
+        ((TextView) findViewById(R.id.saludo)).setText(
+                quien.isEmpty() ? "¿Qué quieres ver?" : "Hola, " + quien + ". ¿Qué quieres ver?");
+        /* «No soy fulano» se lee raro con la mitad de los nombres de perfil
+           —«No soy primero»— y encima no dice a dónde lleva */
         ((TextView) findViewById(R.id.textoSalir)).setText(
-                quien.isEmpty() ? "Cambiar de cuenta" : "No soy " + quien);
+                quien.isEmpty() ? "Cambiar de cuenta" : "Cambiar de perfil");
 
         preparar(R.id.tarjetaDirecto, R.drawable.ic_tv, "TV en directo", Catalogo.DIRECTO);
         preparar(R.id.tarjetaPelis, R.drawable.ic_cine, "Películas", Catalogo.PELIS);
@@ -156,6 +165,13 @@ public class InicioActivity extends Activity {
      * relaciona una cosa con la otra.
      */
     private static final String EN_DIRECTO = "En directo ahora";
+    /** Lo tuyo: lo que has marcado y lo que más pones. Ver `tusCanales`. */
+    private static final String TUS_CANALES = "Tus canales";
+
+    /** Si esta fila lleva canales, que se pintan apaisados y llevan guía. */
+    private static boolean deCanales(String rotulo) {
+        return EN_DIRECTO.equals(rotulo) || TUS_CANALES.equals(rotulo);
+    }
 
     private void cargarFilas() {
         final LinearLayout donde = findViewById(R.id.filas);
@@ -184,28 +200,123 @@ public class InicioActivity extends Activity {
          * segunda.
          */
         final int[] puestos = new int[FILAS_DEL_INICIO];
+        /* Lo tuyo primero, y sin pedirle nada a nadie: sale al instante */
         pedirFila(donde, puestos, 0, new Hilos.Trabajo<Catalogo.Fila>() {
-            @Override public Catalogo.Fila hacer() throws Exception {
-                List<Catalogo.Item> canales = Catalogo.todoElDirecto();
-                if (canales.isEmpty()) return null;
-                return new Catalogo.Fila(EN_DIRECTO,
-                        canales.subList(0, Math.min(14, canales.size())), false, "", false);
-            }
+            @Override public Catalogo.Fila hacer() { return tusCanales(); }
         });
         pedirFila(donde, puestos, 1, new Hilos.Trabajo<Catalogo.Fila>() {
+            @Override public Catalogo.Fila hacer() throws Exception { return enDirectoAhora(); }
+        });
+        pedirFila(donde, puestos, 2, new Hilos.Trabajo<Catalogo.Fila>() {
             @Override public Catalogo.Fila hacer() throws Exception {
                 return destacados(Catalogo.SERIES, "Series destacadas");
             }
         });
-        pedirFila(donde, puestos, 2, new Hilos.Trabajo<Catalogo.Fila>() {
+        pedirFila(donde, puestos, 3, new Hilos.Trabajo<Catalogo.Fila>() {
             @Override public Catalogo.Fila hacer() throws Exception {
                 return destacados(Catalogo.PELIS, "Películas destacadas");
             }
         });
     }
 
+    /** Cuántos canales entran en una fila del inicio. */
+    private static final int CUANTOS_CANALES = 12;
+
+    /**
+     * Los tuyos: los marcados y los que más pones.
+     *
+     * Es la fila que de verdad hace que una pantalla de inicio sirva para
+     * algo, y la única que se puede pintar sin pedirle nada al proveedor:
+     * las dos listas están guardadas en el aparato. Se llena sola con solo
+     * ver la tele, así que a los dos días ya está ahí.
+     */
+    private Catalogo.Fila tusCanales() {
+        List<Catalogo.Item> marcados = Favoritos.lista(this);
+        List<Catalogo.Item> puestos = MasVistos.lista(this);
+        /* Con un canal puesto una vez y ninguno marcado, «Tus canales» no
+           dice lo que ves: dice que acabas de instalar esto. Es el mismo
+           listón que la carpeta del directo, ver MasVistos.MINIMO */
+        if (marcados.isEmpty() && puestos.size() < MasVistos.MINIMO) return null;
+
+        List<Catalogo.Item> mios = new ArrayList<>();
+        Set<String> ya = new HashSet<>();
+        for (Catalogo.Item f : marcados) if (ya.add(f.id)) mios.add(f);
+        for (Catalogo.Item v : puestos) if (ya.add(v.id)) mios.add(v);
+        if (mios.isEmpty()) return null;
+        if (mios.size() > CUANTOS_CANALES) mios = new ArrayList<>(mios.subList(0, CUANTOS_CANALES));
+        return new Catalogo.Fila(TUS_CANALES, mios, false, "", false);
+    }
+
+    /**
+     * El escaparate del directo.
+     *
+     * Eran los catorce primeros canales de la lista tal cual venían, y eso
+     * en una lista de IPTV son «LA 1 4K», «LA 1 FHD», «LA 1 HD», «LA 1 SD»
+     * y «LA 2 4K»: la pantalla de inicio entera enseñando el mismo canal
+     * cuatro veces, con el logotipo del panel —que suele ser el número del
+     * canal— de un palmo. No decía qué hay: decía que algo va mal.
+     *
+     * Ahora cada canal sale una vez —ver `Catalogo.sinRepetirCalidades`— y
+     * los que ya están arriba en «Tus canales» no se repiten aquí.
+     */
+    private Catalogo.Fila enDirectoAhora() throws Exception {
+        List<Catalogo.Item> todos = Catalogo.todoElDirecto();
+        if (todos.isEmpty()) return null;
+
+        Set<String> arriba = new HashSet<>();
+        for (Catalogo.Item f : Favoritos.lista(this)) arriba.add(f.id);
+        for (Catalogo.Item v : MasVistos.lista(this)) arriba.add(v.id);
+
+        List<Catalogo.Item> escaparate = new ArrayList<>();
+        for (Catalogo.Item c : Catalogo.sinRepetirCalidades(todos)) {
+            if (arriba.contains(c.id)) continue;
+            escaparate.add(c);
+            if (escaparate.size() >= CUANTOS_CANALES) break;
+        }
+        return escaparate.isEmpty() ? null : new Catalogo.Fila(EN_DIRECTO, escaparate, false, "", false);
+    }
+
+    /**
+     * Y qué echan ahora en cada uno, debajo del nombre.
+     *
+     * El rótulo dice «En directo ahora» y lo único que se veía era el
+     * logotipo: para saber qué ponían había que entrar en el canal. La guía
+     * se pide después de pintar la fila —son doce peticiones al panel— para
+     * que la pantalla no espere por ella, y `Catalogo.guia` se la guarda,
+     * así que la segunda vez es gratis.
+     */
+    private void ponerLoQueEchan(final View fila, final List<Catalogo.Item> canales) {
+        final RecyclerView tira = fila.findViewById(R.id.carteles);
+        /* En la cola de las imágenes y no en la de los datos: la guía es
+           decoración, como un logotipo, y no puede ponerse por delante de
+           las filas de cine y series que todavía están viniendo */
+        Hilos.fueraLento(new Hilos.Trabajo<Boolean>() {
+            @Override public Boolean hacer() {
+                boolean alguno = false;
+                for (Catalogo.Item c : canales) {
+                    String echan = Catalogo.enAntena(c.id);
+                    if (echan != null && !echan.isEmpty()) {
+                        c.echan = echan;
+                        alguno = true;
+                    }
+                }
+                return alguno;
+            }
+        }, new Hilos.Luego<Boolean>() {
+            @Override public void listo(Boolean alguno) {
+                RecyclerView.Adapter<?> quien = tira.getAdapter();
+                if (!alguno || quien == null) return;
+                /* Celda a celda y no de golpe: `notifyDataSetChanged` rehace
+                   las filas y se lleva por delante el foco de quien esté
+                   recorriendo la fila justo en ese momento */
+                for (int i = 0; i < canales.size(); i++) quien.notifyItemChanged(i);
+            }
+            @Override public void falla(Exception e) { /* la guía es un extra */ }
+        });
+    }
+
     /** Cuántas filas puede haber en el inicio. Ver `cargarFilas`. */
-    private static final int FILAS_DEL_INICIO = 3;
+    private static final int FILAS_DEL_INICIO = 4;
 
     /** La primera fila de la portada de una sección, con su rótulo. */
     private Catalogo.Fila destacados(String seccion, String rotulo) throws Exception {
@@ -229,7 +340,10 @@ public class InicioActivity extends Activity {
                 int donde_va = 0;
                 for (int i = 0; i < puesto; i++) donde_va += puestos[i];
                 puestos[puesto] = 1;
-                donde.addView(pintarFila(donde, f), donde_va);
+                View fila = pintarFila(donde, f);
+                donde.addView(fila, donde_va);
+                // Y qué echan ahora en cada canal, que es lo que promete el rótulo
+                if (deCanales(f.titulo)) ponerLoQueEchan(fila, f.items);
             }
             @Override public void falla(Exception e) {
                 /* Una sección que no sirve el proveedor no impide las otras.
@@ -261,7 +375,7 @@ public class InicioActivity extends Activity {
         /* La fila del directo lleva canales, y un canal no es un cartel:
            su celda es apaisada y su logotipo cabe entero. Ver
            `AdaptadorCarteles.canales` */
-        carteles.canales(EN_DIRECTO.equals(f.titulo));
+        carteles.canales(deCanales(f.titulo));
         carteles.poner(deLaFila);
 
         RecyclerView tira = fila.findViewById(R.id.carteles);

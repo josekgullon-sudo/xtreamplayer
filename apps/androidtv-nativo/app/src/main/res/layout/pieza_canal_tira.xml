@@ -22,10 +22,18 @@
     android:padding="6dp"
     android:layout_margin="8dp">
 
+    <!--
+      El logotipo, más pequeño que antes.
+
+      Ocupaba 200×113 con el nombre en 14 puntos debajo, y como el logotipo
+      que manda medio panel es el NÚMERO del canal, la fila entera eran
+      cifras enormes y unos nombres que desde el sofá no se leían. El que
+      tiene que mandar en la celda es el nombre, y debajo lo que echan.
+    -->
     <FrameLayout
         android:id="@+id/marcoCartel"
-        android:layout_width="200dp"
-        android:layout_height="113dp"
+        android:layout_width="196dp"
+        android:layout_height="94dp"
         android:background="@color/elevada">
 
         <TextView
@@ -53,20 +61,25 @@
          vacío de debajo se comía media celda -->
     <TextView
         android:id="@+id/nombre"
-        android:layout_width="200dp"
+        android:layout_width="196dp"
         android:layout_height="wrap_content"
         android:textColor="@color/texto"
-        android:textSize="14sp"
+        android:textSize="16sp"
+        android:textStyle="bold"
         android:maxLines="1"
         android:ellipsize="end"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="9dp" />
 
+    <!-- Lo que echan ahora. El renglón se reserva aunque venga vacío: si no,
+         la fila entera pega un salto de alto cuando llega la guía, un
+         segundo después de pintarse -->
     <TextView
         android:id="@+id/extra"
-        android:layout_width="200dp"
+        android:layout_width="196dp"
         android:layout_height="wrap_content"
-        android:textColor="@color/tenue"
-        android:textSize="12.5sp"
+        android:textColor="@color/apagado"
+        android:textSize="13sp"
         android:maxLines="1"
-        android:ellipsize="end" />
+        android:ellipsize="end"
+        android:layout_marginTop="2dp" />
 </LinearLayout>

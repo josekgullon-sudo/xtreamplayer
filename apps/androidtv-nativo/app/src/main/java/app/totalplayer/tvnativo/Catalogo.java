@@ -6,9 +6,12 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -100,6 +103,16 @@ public final class Catalogo {
         public String sinopsis = "";
         /** Año, género o lo que el proveedor mande: la línea de debajo. */
         public String extra = "";
+        /**
+         * Lo que echan AHORA en este canal, cuando se ha preguntado.
+         *
+         * Campo suyo y no reaprovechando `extra`: los canales de esta lista
+         * son los mismos objetos que guarda el catálogo, y escribiendo el
+         * programa en `extra` salía luego en el buscador —«Canal · Telediario
+         * 1»— con la hora de cuando se pidió, que a las tres horas ya no es
+         * verdad. Aquí solo lo lee quien lo ha pedido.
+         */
+        public String echan = "";
         /*
          * Y lo mismo, pero desmenuzado.
          *
@@ -1051,6 +1064,68 @@ public final class Catalogo {
         if (todasLasSeries != null) return todasLasSeries;
         todasLasSeries = Sesion.actual().esXtream() ? seriesXtream("") : seriesDeM3u();
         return todasLasSeries;
+    }
+
+    /**
+     * La coletilla de calidad, que es lo que repite un canal cuatro veces.
+     *
+     * Toda lista de IPTV trae «LA 1 4K», «LA 1 FHD», «LA 1 HD» y «LA 1 SD»
+     * seguidos, porque son el mismo canal a cuatro tamaños. En la lista de
+     * una carpeta eso está bien —hay teles que no pueden con el 4K y hay
+     * conexiones que no llegan—, pero en un escaparate de doce huecos son
+     * tres huecos gastados en repetir el mismo canal.
+     */
+    private static final Pattern CALIDAD = Pattern.compile(
+            "(?i)[\\s\\-|_.]*(?:\\[|\\()?(4k|uhd|fhd|hd|sd|hq|h\\.?265|hevc|1080p?|720p?|576p?|480p?|multi|raw)(?:\\]|\\))?[\\s\\-|_.]*$");
+
+    /**
+     * De qué canal es este, sin la calidad ni el país delante.
+     *
+     * «ES: LA 1 FHD» y «LA 1 HD» son el mismo canal, y en un escaparate
+     * tienen que contar como uno.
+     */
+    private static String claveDeCanal(String nombre) {
+        String n = nombre == null ? "" : nombre.trim();
+        /*
+         * El prefijo de país que ponen casi todos los paneles: «ES: LA 1»,
+         * «ES | LA 1».
+         *
+         * Con una lista cerrada y no con «dos o tres letras cualesquiera»:
+         * así se quitaba la cadena entera en «MTV - Hits» o «TNT | Series»,
+         * que no son prefijos de país sino el nombre del canal. Y sin el
+         * guion como separador, que es el que de verdad se usa dentro de un
+         * nombre.
+         */
+        n = n.replaceFirst("(?i)^(es|esp|en|uk|us|usa|pt|br|fr|it|de|al|mx|ar|co|cl|pe|ve|lat|latino|ro|ma)\\s*[:|]\\s*", "");
+        // La calidad puede venir repetida: «LA 1 HD FHD» existe, y de sobra
+        for (int vuelta = 0; vuelta < 3; vuelta++) {
+            String antes = n;
+            n = CALIDAD.matcher(n).replaceAll("");
+            if (n.equals(antes)) break;
+        }
+        /* En US y no en el del aparato: con la tele en turco, «I» no baja a
+           «i» y dos canales iguales dejarían de serlo */
+        return n.trim().toLowerCase(Locale.US);
+    }
+
+    /**
+     * La misma lista, con cada canal una sola vez.
+     *
+     * Se queda con el primero de cada uno, que en todos los paneles es el de
+     * más calidad: los ponen de mejor a peor. Solo para escaparates —el
+     * inicio—, nunca para la lista de una carpeta: ahí están los que hay, y
+     * esconder el «SD» a quien tiene una conexión de pueblo es quitarle el
+     * único que le funciona.
+     */
+    public static List<Item> sinRepetirCalidades(List<Item> canales) {
+        List<Item> uno = new ArrayList<>();
+        Set<String> vistos = new HashSet<>();
+        for (Item c : canales) {
+            String clave = claveDeCanal(c.nombre);
+            if (clave.isEmpty()) clave = c.id;
+            if (vistos.add(clave)) uno.add(c);
+        }
+        return uno;
     }
 
     /** Todos los canales, para el buscador. Se piden una vez y se guardan. */

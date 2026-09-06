@@ -206,11 +206,38 @@
           la vista y lo que se recorta, si algo se recorta, es el último
           renglón de la guía. Que es lo que se puede perder.
         -->
-        <LinearLayout
+        <!--
+          Y la guía, desplazable.
+
+          Debajo de un vídeo 16:9 que ocupa el ancho de la columna quedan
+          unos 140 puntos, y la guía entera —el nombre del canal, lo de
+          ahora, cinco programas después y cuatro ya emitidos— pide casi
+          trescientos. O sea que dos tercios se quedaban fuera de la
+          pantalla, cortados: la lista terminaba a medias y «lo que ya se
+          emitió» no se veía NUNCA en un televisor, aunque sus renglones
+          fueran los únicos que se pueden pulsar. Peor todavía: al ir a la
+          derecha desde la lista de canales, el foco caía en uno de esos
+          renglones invisibles y no se veía a dónde había ido.
+
+          Con esto, el bloque se desplaza solo para enseñar el renglón que
+          tiene el foco, que es lo que hace cualquier lista de Android.
+
+          El identificador se lo queda el marco y no lo de dentro: es lo que
+          el código esconde al pasar a pantalla completa, y escondiendo solo
+          el contenido, el marco seguiría llevándose su peso y el vídeo no
+          llegaría a llenar la pantalla.
+        -->
+        <ScrollView
             android:id="@+id/bloqueInfo"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:scrollbars="none"
+            android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical">
 
             <!-- Qué se está viendo -->
@@ -302,11 +329,8 @@
                 android:orientation="vertical"
                 android:layout_marginTop="4dp" />
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
         </LinearLayout>
+        </ScrollView>
 
         <TextView
             android:id="@+id/comoAmpliar"

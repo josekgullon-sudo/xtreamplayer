@@ -313,34 +313,34 @@ public class DirectoActivity extends Activity {
                 conFavoritos.addAll(lista);
                 carpetas.poner(conFavoritos);
                 pista.setText("Elige un canal de la lista");
-                /* En la tele la columna arranca por las carpetas: es la
-                   pantalla que se ha pedido, la lista de las veinte carpetas
-                   del proveedor y no los ocho mil canales de dentro */
+                /*
+                 * En la tele se entra dentro de una carpeta, no en la lista
+                 * de carpetas.
+                 *
+                 * Arrancaba enseñando las veinte carpetas del proveedor, y
+                 * lo que se veía al entrar en «TV en directo» era una
+                 * columna de nombres a la izquierda y dos tercios de
+                 * pantalla en negro a la derecha: ni un canal, ni un
+                 * logotipo, ni qué están echando. Tres pasos —carpeta, canal
+                 * y OK— antes de ver nada.
+                 *
+                 * Entrando en una, el foco cae sobre un canal y con él la
+                 * derecha se llena sola: nombre y guía del canal por el que
+                 * se pasa —ver `asomarse`—. Las carpetas siguen a un ATRÁS,
+                 * que es de donde se venía.
+                 *
+                 * Y se entra por la última que se usó, que es lo que hace una
+                 * tele: quien ve deportes vuelve a deportes.
+                 */
                 if (dosNiveles) {
                     verCarpetas();
+                    int cual = laDeSiempre(conFavoritos);
+                    if (cual >= 0) abrirCarpeta(cual);
                     return;
                 }
-                /*
-                 * Y se abre la primera que tenga algo dentro.
-                 *
-                 * Favoritos va la primera de la tira porque es a donde se va
-                 * cuando no apetece buscar. Pero recién instalada está vacía,
-                 * y abrirla dejaba la aplicación estrenada enseñando «aún no
-                 * has marcado ningún canal» y ni un solo canal a la vista,
-                 * con los ocho mil del proveedor a una carpeta de distancia.
-                 * Quien acaba de instalar esto no lee eso como «esta carpeta
-                 * está vacía»: lo lee como «esto no funciona».
-                 *
-                 * Solo se saltan las carpetas de casa —favoritos y los que
-                 * más ves—, que se pueden contar aquí mismo. Las del
-                 * proveedor no: saber si traen canales cuesta una petición,
-                 * y para eso ya está el «esta carpeta no tiene canales».
-                 */
-                int primera = 0;
-                while (primera < conFavoritos.size() && deCasaYVacia(conFavoritos.get(primera).id)) primera++;
-                if (primera >= conFavoritos.size()) primera = 0;
-                // Y en el teléfono se entra ya en la primera con algo dentro
-                abrirCarpeta(primera);
+                /* Y en el teléfono, igual: se entra ya en una carpeta. Cuál,
+                   lo decide `laDeSiempre` */
+                abrirCarpeta(Math.max(0, laDeSiempre(conFavoritos)));
             }
             @Override public void falla(Exception e) {
                 girando.setVisibility(View.GONE);
@@ -352,6 +352,41 @@ public class DirectoActivity extends Activity {
                 findViewById(R.id.botonReintentar).requestFocus();
             }
         });
+    }
+
+    /**
+     * En qué carpeta se entra al abrir la sección.
+     *
+     * La última que se usó, si sigue estando: el proveedor las cambia de un
+     * día para otro y una carpeta que ya no existe no se puede abrir. Si no
+     * hay ninguna recordada, la primera que tenga algo dentro.
+     *
+     * Favoritos va la primera de la lista porque es a donde se va cuando no
+     * apetece buscar, pero recién instalada está vacía, y abrirla dejaba la
+     * aplicación estrenada enseñando «aún no has marcado ningún canal» con
+     * los ocho mil del proveedor a una carpeta de distancia. Quien acaba de
+     * instalar esto no lee eso como «esta carpeta está vacía»: lo lee como
+     * «esto no funciona». Solo se saltan las de casa —favoritos y los que
+     * más ves—, que se pueden contar aquí mismo; saber si una del proveedor
+     * trae canales cuesta una petición.
+     */
+    private int laDeSiempre(List<Catalogo.Carpeta> cuales) {
+        String ultima = Sesion.ajustes(this).getString(llaveDeLaUltima(), "");
+        if (!ultima.isEmpty()) {
+            for (int i = 0; i < cuales.size(); i++) {
+                if (ultima.equals(cuales.get(i).id) && !deCasaYVacia(ultima)) return i;
+            }
+        }
+        for (int i = 0; i < cuales.size(); i++) {
+            if (!deCasaYVacia(cuales.get(i).id)) return i;
+        }
+        return cuales.isEmpty() ? -1 : 0;
+    }
+
+    /** Por perfil: en una casa con varios, cada uno vuelve a lo suyo. */
+    private String llaveDeLaUltima() {
+        int perfil = Sesion.actual().perfilId;
+        return perfil > 0 ? "ultima_carpeta_" + perfil : "ultima_carpeta";
     }
 
     /** ¿Es una de las carpetas de casa y está vacía? Ver `cargarCarpetas`. */
@@ -376,6 +411,8 @@ public class DirectoActivity extends Activity {
         carpetas.marcar(dosNiveles ? listaCanales : listaCarpetas, cual);
         carpetaAbierta = carpeta;
         tituloCarpeta.setText(carpeta.nombre);
+        // Para volver aquí la próxima vez. Ver `laDeSiempre`
+        Sesion.ajustes(this).edit().putString(llaveDeLaUltima(), carpeta.id).apply();
 
         // En el teléfono, elegir carpeta es entrar en ella. Va antes de lo de
         // abajo: volver a una carpeta ya cargada también tiene que entrar
@@ -628,6 +665,12 @@ public class DirectoActivity extends Activity {
         if (canal.id.equals(mirando)) return;
         mirando = canal.id;
         nombreCanal.setText(canal.nombre);
+        /* Y la caja dice qué pasa si pulsas, en vez de «elige un canal de la
+           lista» cuando ya se está encima de uno */
+        if (sonando.isEmpty()) {
+            pista.setText("Pulsa OK para ver " + canal.nombre);
+            pista.setVisibility(View.VISIBLE);
+        }
         ahora.setText("");
         luegoLista.removeAllViews();
         antesLista.removeAllViews();

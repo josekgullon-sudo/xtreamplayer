@@ -100,19 +100,22 @@ public class AdaptadorCarteles extends RecyclerView.Adapter<AdaptadorCarteles.Ce
             medir(celda.extra, ancho, 0);
         }
         celda.nombre.setText(it.nombre);
-        celda.extra.setText(it.extra);
+        /* En un canal, la segunda línea es lo que echan ahora; en un cartel,
+           el año y el género. Ver `Catalogo.Item.echan` */
+        String segunda = deCanales && !it.echan.isEmpty() ? it.echan : it.extra;
+        celda.extra.setText(segunda);
         if (celda.puesto != null) celda.puesto.setText(String.valueOf(posicion + 1));
         /*
-         * Vacío: invisible en un cartel, fuera en un canal.
+         * Vacío, el renglón se guarda igual.
          *
-         * En una fila de películas, `INVISIBLE` guarda el renglón para que
-         * los títulos de todas las celdas queden a la misma altura aunque a
-         * unas les falte el año. En una fila de canales no hay segundo
-         * renglón que alinear —ninguno lo lleva— y lo único que hace es
-         * dejar un palmo de hueco muerto debajo del nombre.
+         * `INVISIBLE` y no `GONE` para que los nombres de todas las celdas
+         * queden a la misma altura aunque a una le falte el año. En los
+         * canales estuvo en `GONE` mientras ninguno llevaba segunda línea;
+         * ahora llevan la guía —qué echan AHORA— y quitarle el hueco a los
+         * que todavía no la han recibido hacía saltar el alto de la fila
+         * entera un segundo después de pintarse, con el foco dentro.
          */
-        celda.extra.setVisibility(!it.extra.isEmpty() ? View.VISIBLE
-                : deCanales ? View.GONE : View.INVISIBLE);
+        celda.extra.setVisibility(!segunda.isEmpty() ? View.VISIBLE : View.INVISIBLE);
         /*
          * El título detrás del hueco, y la carátula encima cuando llega.
          *
